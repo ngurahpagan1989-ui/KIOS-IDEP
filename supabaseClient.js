@@ -474,7 +474,10 @@ async function dispatchApiCall(fnName, args) {
     case 'saveSupplier': {
       const sPayload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
       const { data, error } = await (window.supabaseClient || supabase).rpc('saveSupplier', { supplier_payload: sPayload });
-      if (error) throw error;
+      if (error) {
+        console.error('Error saveSupplier:', error);
+        throw error;
+      }
       return data;
     }
 
@@ -487,7 +490,10 @@ async function dispatchApiCall(fnName, args) {
     case 'saveFarmer': {
       const fPayload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
       const { data, error } = await (window.supabaseClient || supabase).rpc('saveFarmer', { farmer_payload: fPayload });
-      if (error) throw error;
+      if (error) {
+        console.error('Error saveFarmer:', error);
+        throw error;
+      }
       return data;
     }
 

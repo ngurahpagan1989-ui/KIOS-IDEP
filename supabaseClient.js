@@ -223,27 +223,17 @@ async function dispatchApiCall(fnName, args) {
     }
 
     case 'saveUser': {
-      const [, payload] = args;
-      const { data, error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: payload.id,
-          username: payload.username,
-          full_name: payload.name || payload.full_name,
-          role: payload.role,
-          phone: payload.phone
-        })
-        .select()
-        .single();
+      const userPayload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
+      const { data, error } = await supabase.rpc('saveUser', { user_payload: userPayload });
       if (error) throw error;
-      return { success: true, user: data };
+      return data;
     }
 
     case 'deleteUser': {
-      const [, userId] = args;
-      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      const userId = (args[1] !== undefined) ? args[1] : args[0];
+      const { data, error } = await supabase.rpc('deleteUser', { user_id: String(userId) });
       if (error) throw error;
-      return { success: true };
+      return data;
     }
 
     // --------------------------------------------------------------------------

@@ -15,6 +15,15 @@
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
+  <!-- Tailwind CSS (Play CDN dengan preflight dinonaktifkan agar konsisten dengan tema desain Kios IDEP) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: {
+        preflight: false
+      }
+    }
+  </script>
 </head>
 <body>
 
@@ -236,6 +245,79 @@
             <div class="skeleton-card"></div>
             <div class="skeleton-card"></div>
             <div class="skeleton-card"></div>
+          </div>
+        </div>
+
+        <!-- ===================== PANEL PENGATURAN TOKO (#settings) ===================== -->
+        <div id="settings" class="settings-panel" style="display:none;">
+          <div class="card bg-white rounded-xl shadow-sm border border-emerald-500/20 p-5 mb-4">
+            <div class="border-b border-emerald-100 pb-3 mb-4">
+              <h3 class="text-lg font-bold text-emerald-950 m-0" style="color:var(--text-main);">Pengaturan Profil Toko &amp; Pembayaran</h3>
+              <p class="text-xs text-emerald-700 m-0 mt-1" style="color:var(--text-secondary);">Konfigurasi profil toko, tarif pajak, dan rekening resmi transfer bank Kios IDEP</p>
+            </div>
+
+            <!-- Form Fields Profil Toko -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:14px;">
+              <div class="field-group">
+                <label class="field-label text-xs font-semibold text-emerald-950" for="set-store-name-static">Nama Toko / Kios</label>
+                <div class="input-wrapper">
+                  <input type="text" id="set-store-name-static" placeholder="Kios IDEP POS" value="Kios IDEP" style="padding-left:14px;">
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label text-xs font-semibold text-emerald-950" for="set-store-phone-static">Kontak WhatsApp</label>
+                <div class="input-wrapper">
+                  <input type="text" id="set-store-phone-static" placeholder="0812-3456-7890" style="padding-left:14px;">
+                </div>
+              </div>
+              <div class="field-group" style="grid-column:1/-1;">
+                <label class="field-label text-xs font-semibold text-emerald-950" for="set-store-address-static">Alamat Lengkap</label>
+                <div class="input-wrapper">
+                  <input type="text" id="set-store-address-static" placeholder="Br. Medahan, Kemenuh, Sukawati, Gianyar, Bali 80582" style="padding-left:14px;">
+                </div>
+              </div>
+            </div>
+
+            <!-- BLOK PENGATURAN REKENING RESMI PEMBAYARAN BANK -->
+            <div class="mt-4 mb-4 p-4 rounded-xl border border-emerald-500/40 bg-emerald-50/60 dark:bg-emerald-950/20 shadow-sm" style="border: 1.5px solid #10b981; background: #f0fdf4; border-radius: 12px; padding: 16px; margin: 16px 0;">
+              <div class="flex items-center gap-2 mb-3 pb-2 border-b border-emerald-200/80" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #a7f3d0;">
+                <span class="text-2xl" style="font-size:22px;">🏦</span>
+                <div>
+                  <h4 class="font-bold text-emerald-900 text-sm m-0" style="margin:0;font-size:13.5px;font-weight:700;color:#064e3b;">Rekening Resmi Pembayaran Bank</h4>
+                  <p class="text-xs text-emerald-700 m-0" style="margin:2px 0 0 0;font-size:11px;color:#047857;">Informasi rekening transfer resmi Kios IDEP untuk faktur &amp; struk kasir</p>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+                <div class="field-group">
+                  <label class="field-label font-semibold text-emerald-950 text-xs mb-1" for="set-bank-name" style="font-size:11.5px;font-weight:600;color:#064e3b;">Nama Bank</label>
+                  <div class="input-wrapper">
+                    <input type="text" id="set-bank-name" data-setting="bank_name" placeholder="Contoh: BNI (Bank Negara Indonesia)" value="BNI (Bank Negara Indonesia)" class="w-full px-3 py-2 text-sm rounded-lg border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" style="padding-left:12px;font-size:13px;border-color:#6ee7b7;background:#ffffff;">
+                  </div>
+                </div>
+                <div class="field-group">
+                  <label class="field-label font-semibold text-emerald-950 text-xs mb-1" for="set-bank-acc-no" style="font-size:11.5px;font-weight:600;color:#064e3b;">Nomor Rekening</label>
+                  <div class="input-wrapper">
+                    <input type="text" id="set-bank-acc-no" data-setting="bank_account_no" placeholder="Contoh: 0178 849 203" value="0178 849 203" class="w-full px-3 py-2 text-sm font-mono rounded-lg border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" style="padding-left:12px;font-size:13px;font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:0.5px;border-color:#6ee7b7;background:#ffffff;">
+                  </div>
+                </div>
+                <div class="field-group">
+                  <label class="field-label font-semibold text-emerald-950 text-xs mb-1" for="set-bank-acc-name" style="font-size:11.5px;font-weight:600;color:#064e3b;">Atas Nama (A.N.)</label>
+                  <div class="input-wrapper">
+                    <input type="text" id="set-bank-acc-name" data-setting="bank_account_name" placeholder="Contoh: Yayasan IDEP Selaras Alam" value="Yayasan IDEP Selaras Alam" class="w-full px-3 py-2 text-sm rounded-lg border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" style="padding-left:12px;font-size:13px;border-color:#6ee7b7;background:#ffffff;">
+                  </div>
+                </div>
+              </div>
+              <small class="text-emerald-700 text-xs mt-2 block" style="font-size:10.5px;color:#059669;margin-top:8px;display:block;">
+                💡 Rekening ini otomatis dicetak di bagian footer pembayaran faktur dan nota kasir.
+              </small>
+            </div>
+
+            <!-- Tombol Simpan Pengaturan -->
+            <div class="flex justify-end gap-3 mt-4" style="display:flex;justify-content:flex-end;margin-top:16px;">
+              <button type="button" class="btn btn-primary" id="btn-save-settings" onclick="saveSettings()">
+                💾 Simpan Pengaturan
+              </button>
+            </div>
           </div>
         </div>
       </main>

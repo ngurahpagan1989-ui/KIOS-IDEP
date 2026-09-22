@@ -240,103 +240,32 @@ async function dispatchApiCall(fnName, args) {
     // B. MASTER PRODUK, KEMASAN & PRICE TIERS
     // --------------------------------------------------------------------------
     case 'getProducts': {
-      const [prodsRes, batchesRes] = await Promise.all([
-        supabase
-          .from('products')
-          .select(`
-            *,
-            price_tiers (*),
-            packaging_types (*)
-          `)
-          .eq('is_active', true)
-          .order('name', { ascending: true }),
-        supabase
-          .from('stock_batches')
-          .select('*')
-          .gt('qty_remaining', 0)
-          .eq('quality_status', 'NORMAL')
-          .eq('qc_status', 'APPROVED')
-      ]);
-
-      if (prodsRes.error) throw prodsRes.error;
-
-      // Susun mapping batch dan total stok aktif per product_id
-      const batchMap = {};
-      const stockMap = {};
-      (batchesRes.data || []).forEach(b => {
-        if (!batchMap[b.product_id]) batchMap[b.product_id] = [];
-        batchMap[b.product_id].push(b);
-        stockMap[b.product_id] = (stockMap[b.product_id] || 0) + Number(b.qty_remaining || 0);
-      });
-
-      return (prodsRes.data || []).map(p => ({
-        id: p.id,
-        name: p.name,
-        category: p.category,
-        product_type: p.product_type,
-        variant: p.variant || '',
-        unit: p.unit || 'pcs',
-        photo_url: p.photo_url || '',
-        packaging_type_id: p.packaging_type_id,
-        harvest_days: p.harvest_days || 0,
-        active: p.is_active,
-        is_active: p.is_active,
-        stock: stockMap[p.id] || 0,
-        batches: batchMap[p.id] || [],
-        priceTiers: p.price_tiers || [],
-        packaging: p.packaging_types || null
-      }));
+      const { data, error } = await (window.supabaseClient || supabase).rpc('getProducts');
+      if (error) {
+        console.error('Error getProducts:', error);
+        throw error;
+      }
+      return data || [];
     }
 
     case 'saveProduct': {
-      const [, payload] = args;
-      const productObj = {
-        name: payload.name,
-        category: payload.category || 'Benih',
-        product_type: payload.product_type || 'raw_seed',
-        variant: payload.variant || '',
-        unit: payload.unit || 'pcs',
-        photo_url: payload.photo_url || '',
-        packaging_type_id: payload.packaging_type_id || null,
-        harvest_days: Number(payload.harvest_days) || 0,
-        is_active: payload.active !== false
-      };
-
-      let productId = payload.id;
-      if (productId) {
-        const { error } = await supabase.from('products').update(productObj).eq('id', productId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.from('products').insert(productObj).select('id').single();
-        if (error) throw error;
-        productId = data.id;
+      const payload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
+      const { data, error } = await (window.supabaseClient || supabase).rpc('saveProduct', { product_payload: payload });
+      if (error) {
+        console.error('Error saveProduct:', error);
+        throw error;
       }
-
-      if (Array.isArray(payload.priceTiers)) {
-        await supabase.from('price_tiers').delete().eq('product_id', productId);
-        const tiersToInsert = payload.priceTiers
-          .filter(t => t.tier_name && Number(t.price) >= 0)
-          .map(t => ({
-            product_id: productId,
-            tier_name: t.tier_name,
-            price: Number(t.price)
-          }));
-        if (tiersToInsert.length > 0) {
-          await supabase.from('price_tiers').insert(tiersToInsert);
-        }
-      }
-
-      return { success: true, id: productId, message: 'Produk berhasil disimpan.' };
+      return data;
     }
 
     case 'deleteProduct': {
-      const [, productId] = args;
-      const { error } = await supabase
-        .from('products')
-        .update({ is_active: false })
-        .eq('id', productId);
-      if (error) throw error;
-      return { success: true };
+      const prodId = (args[1] !== undefined) ? args[1] : args[0];
+      const { data, error } = await (window.supabaseClient || supabase).rpc('deleteProduct', { product_id: String(prodId) });
+      if (error) {
+        console.error('Error deleteProduct:', error);
+        throw error;
+      }
+      return data;
     }
 
     // --------------------------------------------------------------------------

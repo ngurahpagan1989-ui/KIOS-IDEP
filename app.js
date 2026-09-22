@@ -12511,8 +12511,8 @@ function renderFakturRows(list) {
       : 'padding:10px 12px;border:1px solid var(--border);cursor:pointer;border-radius:var(--radius-sm);background:var(--surface);transition:all 0.15s;';
 
     const priceHTML = isVoid
-      ? '<span style="text-decoration:line-through;color:var(--text-secondary);font-size:11px;font-family:'JetBrains Mono',monospace;">' + formatRupiah(t.total) + '</span>'
-      : '<strong style="color:var(--accent);font-family:'JetBrains Mono',monospace;">' + formatRupiah(t.total) + '</strong>';
+      ? '<span style="text-decoration:line-through;color:var(--text-secondary);font-size:11px;font-family:monospace;">' + formatRupiah(t.total) + '</span>'
+      : '<strong style="color:var(--accent);font-family:monospace;">' + formatRupiah(t.total) + '</strong>';
 
     const profitHTML = (adminUser && !isVoid && t.gross_profit !== undefined)
       ? '<span style="font-size:10px;color:#16A34A;font-weight:600;margin-left:6px;" title="Estimasi Laba Kotor">+' + formatRupiah(t.gross_profit) + '</span>'
@@ -12522,9 +12522,9 @@ function renderFakturRows(list) {
       ? '<div style="font-size:10px;color:#DC2626;margin-top:2px;font-style:italic;">Dibatalkan: ' + escapeHtml(t.void_reason || 'Nota Void') + '</div>'
       : '';
 
-    return '<div style="' + cardStyle + '" onclick="loadInvoicePreview('' + t.id + '')">' +
+    return '<div style="' + cardStyle + '" onclick="loadInvoicePreview(\'' + t.id + '\')">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-        '<strong style="font-family:'JetBrains Mono',monospace;color:var(--primary);font-size:12px;">#' + escapeHtml(t.id) + '</strong>' +
+        '<strong style="font-family:monospace;color:var(--primary);font-size:12px;">#' + escapeHtml(t.id) + '</strong>' +
         badge +
       '</div>' +
       '<div style="font-size:12px;color:var(--text-main);margin-top:4px;font-weight:600;">' +

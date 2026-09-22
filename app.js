@@ -3165,6 +3165,7 @@ function openPurchaseModal() {
     });
   }
 }
+window.openPurchaseModal = openPurchaseModal;
 
 function buildProductOptionsHTML(category, selectedId) {
   const list = PRODUCTS_CACHE || [];
@@ -3550,9 +3551,9 @@ function openSupplierModal() {
     '<button type="button" class="modal-close-btn" id="sup-close">&times;</button>' +
     '</div>' +
     '<div class="modal-body">' +
-    '<div class="field-group"><label class="field-label">Nama Supplier</label><div class="input-wrapper"><input type="text" id="sup-name" style="padding-left:14px;"></div></div>' +
-    '<div class="field-group"><label class="field-label">Kontak WhatsApp</label><div class="input-wrapper"><input type="text" id="sup-contact" style="padding-left:14px;"></div></div>' +
-    '<div class="field-group"><label class="field-label">Alamat</label><div class="input-wrapper"><input type="text" id="sup-address" style="padding-left:14px;"></div></div>' +
+    '<div class="field-group"><label class="field-label">Nama Supplier *</label><div class="input-wrapper"><input type="text" id="sup-name" placeholder="Nama Supplier / Toko" style="padding-left:14px;"></div></div>' +
+    '<div class="field-group"><label class="field-label">Kontak WhatsApp</label><div class="input-wrapper"><input type="text" id="sup-contact" placeholder="Contoh: 08123456789" style="padding-left:14px;"></div></div>' +
+    '<div class="field-group"><label class="field-label">Alamat</label><div class="input-wrapper"><input type="text" id="sup-address" placeholder="Alamat / Kota" style="padding-left:14px;"></div></div>' +
     '</div>' +
     '<div class="modal-footer">' +
     '<button type="button" class="btn btn-secondary" id="sup-cancel">Batal</button>' +
@@ -3567,19 +3568,28 @@ function openSupplierModal() {
   overlay.querySelector('#sup-save').onclick = function () {
     const name = document.getElementById('sup-name').value.trim();
     if (!name) { showToast('Nama supplier wajib diisi.', true); return; }
+    const contact = document.getElementById('sup-contact').value.trim();
+    const address = document.getElementById('sup-address').value.trim();
+
     api('saveSupplier', TOKEN, {
       name: name,
-      contact: document.getElementById('sup-contact').value.trim(),
-      address: document.getElementById('sup-address').value.trim()
+      contact: contact,
+      address: address
     }).then(function (res) {
       invalidateCache('suppliers');
-      SUPPLIERS_CACHE.push({ id: res.id, name: name });
-      renderSupplierOptions(res.id);
+      const savedId = (res && typeof res === 'object') ? (res.id || res.supplier_id || res.data || ('sup-' + Date.now())) : (res || ('sup-' + Date.now()));
+      if (!Array.isArray(SUPPLIERS_CACHE)) SUPPLIERS_CACHE = [];
+      SUPPLIERS_CACHE.push({ id: savedId, name: name, contact: contact, address: address });
+      renderSupplierOptions(savedId);
       showToast('Supplier ditambahkan.');
       close();
-    }).catch(function (err) { showToast('Gagal: ' + (err.message || err), true); });
+    }).catch(function (err) {
+      console.error('Error saveSupplier:', err);
+      showToast('Gagal: ' + (err.message || err), true);
+    });
   };
 }
+window.openSupplierModal = openSupplierModal;
 
 function renderFarmerOptions(selectedId) {
   const select = document.getElementById('pur-farmer');
@@ -3660,6 +3670,7 @@ function openFarmerModal() {
     });
   };
 }
+window.openFarmerModal = openFarmerModal;
 
 function onFarmerSelectedChange(farmerId) {
   document.querySelectorAll('#pur-items .price-tier-row').forEach(function (row) {

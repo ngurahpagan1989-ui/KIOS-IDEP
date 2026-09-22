@@ -7996,7 +7996,6 @@ function drawPiutangUI(list) {
 
 
 function openPaymentReceivableModal(recId, remaining, customerName) {
-  // Defensive swap if arguments are passed as (recId, customerName, remaining)
   if (typeof remaining === 'string' && typeof customerName === 'number') {
     const tmp = remaining;
     remaining = customerName;
@@ -8030,9 +8029,8 @@ function openPaymentReceivableModal(recId, remaining, customerName) {
 
   const footerHtml =
     '<button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
-    '<button type="button" class="btn btn-primarconst footerHtml =
-    '<button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
     '<button type="button" class="btn btn-primary" id="btn-submit-rec-pay" onclick="submitReceivablePayment(\'' + recId + '\')">Simpan Pembayaran</button>';
+
   openModal('Catat Angsuran / Pelunasan Piutang', bodyHtml, footerHtml);
 }
 

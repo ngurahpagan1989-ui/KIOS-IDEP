@@ -8171,7 +8171,7 @@ function openCustomerFormModal(customerId) {
 
   const footerHtml =
     '<button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
-    '<button type="button" class="btn btn-primary" onclick="submitCustomerForm('' + (customerId || '') + '')">Simpan Pelanggan</button>';
+    '<button type="button" class="btn btn-primary" onclick="submitCustomerForm(\'' + (customerId || '') + '\')">Simpan Pelanggan</button>';
 
   openModal(c ? 'Edit Data Pelanggan' : 'Pelanggan Baru', bodyHtml, footerHtml);
 }

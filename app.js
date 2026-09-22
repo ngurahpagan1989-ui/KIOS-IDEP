@@ -83,6 +83,11 @@ let SELECTED_FAKTUR_ID = null;
 let EDITING_TRANSACTION = null;
 let CART = [];
 let APP_SETTINGS = {};
+const DEFAULT_BANK_SETTINGS = {
+  bank_name: "BNI (Bank Negara Indonesia)",
+  bank_account_no: "0178 849 203",
+  bank_account_name: "Yayasan IDEP Selaras Alam"
+};
 let CURRENT_PRODUCT_TAB = 'all';
 let PRODUCT_SEARCH_QUERY = '';
 let ACTIVE_REQUESTS_COUNT = 0;
@@ -746,6 +751,7 @@ function router(forceRefresh) {
     'purna-jual': 'Purna Jual & Kepuasan Pelanggan',
     'laporan': 'Laporan Penjualan & Margin',
     'pengaturan': 'Pengaturan Sistem',
+    'settings': 'Pengaturan Sistem',
     'faktur': 'Riwayat Transaksi & Faktur'
   };
   if (titleEl) titleEl.textContent = routeTitles[route] || 'E-Kasir';
@@ -770,6 +776,7 @@ function router(forceRefresh) {
     case 'valuasi-stok':
       switchLaporanMainView('stock_valuation');
       break;
+    case 'settings':
     case 'pengaturan': renderPengaturan(forceRefresh); break;
     case 'faktur': renderFaktur(forceRefresh); break;
     default: renderPlaceholder(route); break;
@@ -4569,7 +4576,13 @@ function generateMiniReceiptHTML(data) {
       '<div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Pajak:</span><span>' + formatRupiah(tax) + '</span></div>' : '') +
     '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px;"><span>TOTAL:</span><span>' + formatRupiah(data.total) + '</span></div>' +
     '</div>' +
-    '<div style="border-top:1px dashed #222;margin-top:10px;padding-top:8px;text-align:center;font-size:10px;color:#444;">' +
+    '<div style="border-top:1px dashed #222;margin-top:8px;padding-top:6px;text-align:center;font-size:9.5px;color:#111;">' +
+    '<div style="font-weight:700;letter-spacing:0.3px;margin-bottom:2px;">REKENING RESMI PEMBAYARAN BANK:</div>' +
+    '<div>' + escapeHtml((APP_SETTINGS && APP_SETTINGS['bank_name']) || DEFAULT_BANK_SETTINGS.bank_name) + '</div>' +
+    '<div style="font-weight:800;font-size:11px;font-family:monospace;letter-spacing:0.5px;">' + escapeHtml((APP_SETTINGS && APP_SETTINGS['bank_account_no']) || DEFAULT_BANK_SETTINGS.bank_account_no) + '</div>' +
+    '<div>A.N. ' + escapeHtml((APP_SETTINGS && APP_SETTINGS['bank_account_name']) || DEFAULT_BANK_SETTINGS.bank_account_name) + '</div>' +
+    '</div>' +
+    '<div style="border-top:1px dashed #222;margin-top:8px;padding-top:8px;text-align:center;font-size:10px;color:#444;">' +
     escapeHtml(footerText) +
     '<div style="margin-top:4px;font-size:9px;color:#777;">Simpan struk ini sebagai bukti pembayaran benih.</div>' +
     '</div>' +
@@ -4741,7 +4754,16 @@ function printInvoiceA4(invoiceData) {
     '</tfoot>' +
     '</table>' +
 
-    '<div style="display:flex;justify-content:space-between;gap:40px;margin-top:40px;padding-top:20px;text-align:center;">' +
+    '<div style="margin-top:14px;padding:10px 14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;font-size:9.5pt;display:flex;align-items:center;gap:12px;">' +
+    '<div style="font-size:24px;line-height:1;">🏦</div>' +
+    '<div style="line-height:1.4;">' +
+    '<div style="font-weight:700;color:#1E4D3F;font-size:9.5pt;">INFORMASI REKENING RESMI PEMBAYARAN BANK:</div>' +
+    '<div>Bank: <strong>' + escapeHtml((s && s.bank_name) || (APP_SETTINGS && APP_SETTINGS.bank_name) || DEFAULT_BANK_SETTINGS.bank_name) + '</strong> &bull; No. Rekening: <strong style="font-family:monospace;font-size:10.5pt;letter-spacing:0.5px;">' + escapeHtml((s && s.bank_account_no) || (APP_SETTINGS && APP_SETTINGS.bank_account_no) || DEFAULT_BANK_SETTINGS.bank_account_no) + '</strong></div>' +
+    '<div>Atas Nama: <strong>' + escapeHtml((s && s.bank_account_name) || (APP_SETTINGS && APP_SETTINGS.bank_account_name) || DEFAULT_BANK_SETTINGS.bank_account_name) + '</strong> &bull; <span style="font-size:8.5pt;color:#6B7280;">Mohon cantumkan No. Faktur pada berita transfer</span></div>' +
+    '</div>' +
+    '</div>' +
+
+    '<div style="display:flex;justify-content:space-between;gap:40px;margin-top:30px;padding-top:16px;text-align:center;">' +
     '<div style="width:200px;">' +
     '<div style="font-weight:600;color:#4B5563;">Tanda Terima Pelanggan,</div>' +
     '<div style="height:60px;"></div>' +
@@ -5259,7 +5281,13 @@ function renderThermalReceiptHTML(data, isActive) {
     '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px;"><span>TOTAL:</span><span>' + formatRupiah(tx.total) + '</span></div>' +
     (rec && !isVoid ? '<div style="display:flex;justify-content:space-between;font-size:11px;color:#DC2626;margin-top:2px;"><span>Sisa Piutang:</span><span>' + formatRupiah(rec.remaining) + '</span></div>' : '') +
     '</div>' +
-    '<div style="border-top:1px dashed #222;margin-top:10px;padding-top:8px;text-align:center;font-size:10px;color:#444;">' +
+    '<div style="border-top:1px dashed #222;margin-top:8px;padding-top:6px;text-align:center;font-size:9.5px;color:#111;">' +
+    '<div style="font-weight:700;letter-spacing:0.3px;margin-bottom:2px;">REKENING RESMI PEMBAYARAN BANK:</div>' +
+    '<div>' + escapeHtml((s && s.bank_name) || (APP_SETTINGS && APP_SETTINGS.bank_name) || DEFAULT_BANK_SETTINGS.bank_name) + '</div>' +
+    '<div style="font-weight:800;font-size:11px;font-family:monospace;letter-spacing:0.5px;">' + escapeHtml((s && s.bank_account_no) || (APP_SETTINGS && APP_SETTINGS.bank_account_no) || DEFAULT_BANK_SETTINGS.bank_account_no) + '</div>' +
+    '<div>A.N. ' + escapeHtml((s && s.bank_account_name) || (APP_SETTINGS && APP_SETTINGS.bank_account_name) || DEFAULT_BANK_SETTINGS.bank_account_name) + '</div>' +
+    '</div>' +
+    '<div style="border-top:1px dashed #222;margin-top:8px;padding-top:8px;text-align:center;font-size:10px;color:#444;">' +
     escapeHtml(s.invoice_footer || 'Terima kasih atas kunjungan Anda. Salam Lestari!') +
     '<div style="margin-top:3px;font-size:9px;color:#666;">Simpan struk ini sebagai bukti transaksi benih resmi.</div>' +
     '</div>' +
@@ -5348,7 +5376,14 @@ function renderMinimalistInvoiceHTML(data, isActive) {
     (rec && !isVoid ? '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:12px;color:#DC2626;font-weight:700;"><span>Sisa Piutang:</span><span>' + formatRupiah(rec.remaining) + '</span></div>' : '') +
     '</div>' +
     '</div>' +
-    '<div style="margin-top:28px;padding-top:12px;border-top:1px dashed #CBD5E1;font-size:11px;color:#64748B;text-align:center;">' +
+    '<div style="margin-top:16px;padding:10px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;font-size:11px;display:flex;align-items:center;gap:10px;">' +
+    '<span style="font-size:20px;">🏦</span>' +
+    '<div>' +
+    '<div style="font-weight:700;color:#1E4D3F;font-size:11.5px;">REKENING RESMI PEMBAYARAN BANK:</div>' +
+    '<div>Bank: <strong>' + escapeHtml((s && s.bank_name) || (APP_SETTINGS && APP_SETTINGS.bank_name) || DEFAULT_BANK_SETTINGS.bank_name) + '</strong> &bull; Rek: <strong style="font-family:monospace;font-size:12px;">' + escapeHtml((s && s.bank_account_no) || (APP_SETTINGS && APP_SETTINGS.bank_account_no) || DEFAULT_BANK_SETTINGS.bank_account_no) + '</strong> &bull; A.N: <strong>' + escapeHtml((s && s.bank_account_name) || (APP_SETTINGS && APP_SETTINGS.bank_account_name) || DEFAULT_BANK_SETTINGS.bank_account_name) + '</strong></div>' +
+    '</div>' +
+    '</div>' +
+    '<div style="margin-top:20px;padding-top:12px;border-top:1px dashed #CBD5E1;font-size:11px;color:#64748B;text-align:center;">' +
     escapeHtml(s.invoice_footer || 'Terima kasih telah berbelanja di Kios IDEP. Salam Lestari!') +
     '</div>' +
     '</div>';
@@ -5453,8 +5488,8 @@ function renderFormalInvoiceHTML(data, isActive) {
     '<div style="font-size:24px;line-height:1;">🏦</div>' +
     '<div style="line-height:1.4;">' +
     '<div style="font-weight:700;color:#7A5031;font-size:11.5px;">INFORMASI PEMBAYARAN TRANSFER BANK RESMI:</div>' +
-    '<div>Bank: <strong>BNI (Bank Negara Indonesia)</strong> &bull; No. Rekening: <strong style="font-family:monospace;font-size:12px;letter-spacing:0.5px;">0178 849 203</strong></div>' +
-    '<div>Atas Nama: <strong>Yayasan IDEP Selaras Alam</strong> &bull; <span style="font-size:10px;color:#6B5749;">Mohon cantumkan No. Faktur pada berita transfer</span></div>' +
+    '<div>Bank: <strong>' + escapeHtml((s && s.bank_name) || (APP_SETTINGS && APP_SETTINGS.bank_name) || DEFAULT_BANK_SETTINGS.bank_name) + '</strong> &bull; No. Rekening: <strong style="font-family:monospace;font-size:12px;letter-spacing:0.5px;">' + escapeHtml((s && s.bank_account_no) || (APP_SETTINGS && APP_SETTINGS.bank_account_no) || DEFAULT_BANK_SETTINGS.bank_account_no) + '</strong></div>' +
+    '<div>Atas Nama: <strong>' + escapeHtml((s && s.bank_account_name) || (APP_SETTINGS && APP_SETTINGS.bank_account_name) || DEFAULT_BANK_SETTINGS.bank_account_name) + '</strong> &bull; <span style="font-size:10px;color:#6B5749;">Mohon cantumkan No. Faktur pada berita transfer</span></div>' +
     '</div>' +
     '</div>' +
     '<div style="display:flex;justify-content:space-between;gap:30px;margin-top:24px;padding-top:10px;font-size:11.5px;text-align:center;">' +
@@ -11185,12 +11220,65 @@ let CURRENT_SELECTED_ROLE_TAB = 'Admin';
 let CURRENT_USERS_LIST = [];
 let CURRENT_SETTINGS_SUBTAB = 'profile';
 
+function applyBankSettingsDefaults(s) {
+  if (!s) return;
+  if (!s.bank_name || !String(s.bank_name).trim()) s.bank_name = DEFAULT_BANK_SETTINGS.bank_name;
+  if (!s.bank_account_no || !String(s.bank_account_no).trim()) s.bank_account_no = DEFAULT_BANK_SETTINGS.bank_account_no;
+  if (!s.bank_account_name || !String(s.bank_account_name).trim()) s.bank_account_name = DEFAULT_BANK_SETTINGS.bank_account_name;
+}
+
+function populateBankInputs(s) {
+  if (!s) s = APP_SETTINGS || {};
+  const bankNameInput = document.getElementById('set-bank-name') || document.querySelector('[data-setting="bank_name"]');
+  const bankAccNoInput = document.getElementById('set-bank-acc-no') || document.querySelector('[data-setting="bank_account_no"]');
+  const bankAccNameInput = document.getElementById('set-bank-acc-name') || document.querySelector('[data-setting="bank_account_name"]');
+
+  const bName = s.bank_name || DEFAULT_BANK_SETTINGS.bank_name;
+  const bAccNo = s.bank_account_no || DEFAULT_BANK_SETTINGS.bank_account_no;
+  const bAccName = s.bank_account_name || DEFAULT_BANK_SETTINGS.bank_account_name;
+
+  if (bankNameInput) bankNameInput.value = bName;
+  if (bankAccNoInput) bankAccNoInput.value = bAccNo;
+  if (bankAccNameInput) bankAccNameInput.value = bAccName;
+}
+
+function loadSettings(forceRefresh) {
+  return new Promise(function (resolve, reject) {
+    if (!forceRefresh && isCacheValid('settings') && DATA_CACHE.settings && DATA_CACHE.settings.data) {
+      const s = Object.assign({}, DATA_CACHE.settings.data);
+      applyBankSettingsDefaults(s);
+      populateBankInputs(s);
+      return resolve(s);
+    }
+    api('getSettings', TOKEN).then(function (settings) {
+      const s = settings || {};
+      applyBankSettingsDefaults(s);
+      DATA_CACHE.settings = { data: s, timestamp: Date.now() };
+      APP_SETTINGS = Object.assign({}, APP_SETTINGS, s);
+      populateBankInputs(s);
+      resolve(s);
+    }).catch(function (err) {
+      const fallback = Object.assign({}, APP_SETTINGS);
+      applyBankSettingsDefaults(fallback);
+      populateBankInputs(fallback);
+      reject(err);
+    });
+  });
+}
+
+function getStoreSettings(forceRefresh) {
+  return loadSettings(forceRefresh);
+}
+
 function renderPengaturan(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
   if (!forceRefresh && isCacheValid('settings')) {
-    drawPengaturanUI(DATA_CACHE.settings.data);
+    const s = Object.assign({}, DATA_CACHE.settings.data);
+    applyBankSettingsDefaults(s);
+    drawPengaturanUI(s);
+    populateBankInputs(s);
     return;
   }
 
@@ -11198,10 +11286,9 @@ function renderPengaturan(forceRefresh) {
     content.innerHTML = '<div class="card"><div class="empty-state"><span class="spinner" style="display:inline-block;width:24px;height:24px;border:3px solid rgba(30,77,63,0.2);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:8px;"></span><br>Memuat pengaturan sistem...</div></div>';
   }
 
-  api('getSettings', TOKEN).then(function (settings) {
-    DATA_CACHE.settings = { data: settings || {}, timestamp: Date.now() };
-    APP_SETTINGS = settings || {};
+  loadSettings(forceRefresh).then(function (settings) {
     drawPengaturanUI(settings || {});
+    populateBankInputs(settings || {});
   }).catch(function (err) {
     showToast('Gagal memuat pengaturan: ' + (err.message || err), true);
   });
@@ -11242,6 +11329,9 @@ function drawPengaturanUI(settings) {
 
   const currentLogo = settings['store_logo'] || '';
   const currentLogoLight = settings['store_logo_light'] || '';
+  const bankNameVal = escapeHtml((settings && settings['bank_name']) || DEFAULT_BANK_SETTINGS.bank_name);
+  const bankAccNoVal = escapeHtml((settings && settings['bank_account_no']) || DEFAULT_BANK_SETTINGS.bank_account_no);
+  const bankAccNameVal = escapeHtml((settings && settings['bank_account_name']) || DEFAULT_BANK_SETTINGS.bank_account_name);
   const isUserAdmin = isAdmin();
 
   content.innerHTML =
@@ -11265,7 +11355,7 @@ function drawPengaturanUI(settings) {
     '<!-- PANEL 1: PROFIL TOKO & PAJAK -->' +
     '<div id="panel-set-profile" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'profile' ? 'block' : 'none') + ';">' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">' +
-        '<div class="card">' +
+        '<div class="card" id="settings">' +
           '<h3 style="margin-bottom:16px;">Profil Toko &amp; Pajak</h3>' +
           
           '<!-- 1. LOGO PRIMER (FULL COLOR / LATAR TERANG) -->' +
@@ -11349,7 +11439,42 @@ function drawPengaturanUI(settings) {
               '<input type="text" id="set-invoice-footer" value="' + escapeHtml(settings['invoice_footer'] || 'Terima kasih atas kunjungan Anda!') + '" style="padding-left:14px;">' +
             '</div>' +
           '</div>' +
-          '<button type="button" class="btn btn-primary" onclick="saveStoreSettings()">Simpan Profil Toko &amp; Pajak</button>' +
+
+          '<!-- BLOK PENGATURAN REKENING RESMI PEMBAYARAN BANK -->' +
+          '<div class="mt-4 mb-4 p-4 rounded-xl border border-emerald-500/40 bg-emerald-50/60 dark:bg-emerald-950/20 shadow-sm" style="border:1.5px solid #10b981;background:#f0fdf4;border-radius:12px;padding:16px;margin:16px 0;">' +
+            '<div class="flex items-center gap-2 mb-3 pb-2 border-b border-emerald-200/80" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #a7f3d0;">' +
+              '<span class="text-2xl" style="font-size:22px;">🏦</span>' +
+              '<div>' +
+                '<h4 class="font-bold text-emerald-900 text-sm m-0" style="margin:0;font-size:13.5px;font-weight:700;color:#064e3b;">Rekening Resmi Pembayaran Bank</h4>' +
+                '<p class="text-xs text-emerald-700 m-0" style="margin:2px 0 0 0;font-size:11px;color:#047857;">Informasi rekening transfer resmi Kios IDEP untuk faktur &amp; struk kasir</p>' +
+              '</div>' +
+            '</div>' +
+            '<div class="grid grid-cols-1 md:grid-cols-3 gap-3" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">' +
+              '<div class="field-group">' +
+                '<label class="field-label font-semibold text-emerald-950 text-xs mb-1" for="set-bank-name" style="font-size:11.5px;font-weight:600;color:#064e3b;">Nama Bank</label>' +
+                '<div class="input-wrapper">' +
+                  '<input type="text" id="set-bank-name" data-setting="bank_name" placeholder="Contoh: BNI (Bank Negara Indonesia)" value="' + bankNameVal + '" class="w-full px-3 py-2 text-sm rounded-lg border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" style="padding-left:12px;font-size:13px;border-color:#6ee7b7;background:#ffffff;">' +
+                '</div>' +
+              '</div>' +
+              '<div class="field-group">' +
+                '<label class="field-label font-semibold text-emerald-950 text-xs mb-1" for="set-bank-acc-no" style="font-size:11.5px;font-weight:600;color:#064e3b;">Nomor Rekening</label>' +
+                '<div class="input-wrapper">' +
+                  '<input type="text" id="set-bank-acc-no" data-setting="bank_account_no" placeholder="Contoh: 0178 849 203" value="' + bankAccNoVal + '" class="w-full px-3 py-2 text-sm font-mono rounded-lg border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" style="padding-left:12px;font-size:13px;font-family:\'JetBrains Mono\',monospace;font-weight:600;letter-spacing:0.5px;border-color:#6ee7b7;background:#ffffff;">' +
+                '</div>' +
+              '</div>' +
+              '<div class="field-group">' +
+                '<label class="field-label font-semibold text-emerald-950 text-xs mb-1" for="set-bank-acc-name" style="font-size:11.5px;font-weight:600;color:#064e3b;">Atas Nama (A.N.)</label>' +
+                '<div class="input-wrapper">' +
+                  '<input type="text" id="set-bank-acc-name" data-setting="bank_account_name" placeholder="Contoh: Yayasan IDEP Selaras Alam" value="' + bankAccNameVal + '" class="w-full px-3 py-2 text-sm rounded-lg border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" style="padding-left:12px;font-size:13px;border-color:#6ee7b7;background:#ffffff;">' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<small class="text-emerald-700 text-xs mt-2 block" style="font-size:10.5px;color:#059669;margin-top:8px;display:block;">' +
+              '💡 Rekening ini otomatis dicetak di bagian footer pembayaran faktur dan nota kasir.' +
+            '</small>' +
+          '</div>' +
+
+          '<button type="button" class="btn btn-primary" id="btn-save-settings" onclick="saveSettings()">Simpan Profil Toko &amp; Pajak</button>' +
         '</div>' +
 
         '<div class="card">' +
@@ -12005,7 +12130,19 @@ function deleteUserUI(userId, username) {
 
 
 function saveStoreSettingsUI() {
-  saveStoreSettings();
+  saveSettings();
+}
+
+function saveSettings(customPayload) {
+  if (customPayload && typeof customPayload === 'object' && !(customPayload instanceof Event)) {
+    return api('saveSettings', TOKEN, customPayload).then(function (res) {
+      invalidateCache('settings');
+      if (!APP_SETTINGS) APP_SETTINGS = {};
+      Object.assign(APP_SETTINGS, customPayload);
+      return res;
+    });
+  }
+  return saveStoreSettings();
 }
 
 function saveStoreSettings() {
@@ -12014,6 +12151,15 @@ function saveStoreSettings() {
   const batchFormat = (document.getElementById('set-batch-format') ? document.getElementById('set-batch-format').value.trim() : '') || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}';
   const taxRateInput = document.getElementById('set-tax-rate');
   const taxRate = taxRateInput ? taxRateInput.value.trim() : (APP_SETTINGS.tax_rate || '0');
+
+  // Kumpulkan data rekening resmi pembayaran bank
+  const bankNameInput = document.getElementById('set-bank-name') || document.querySelector('[data-setting="bank_name"]');
+  const bankAccNoInput = document.getElementById('set-bank-acc-no') || document.querySelector('[data-setting="bank_account_no"]');
+  const bankAccNameInput = document.getElementById('set-bank-acc-name') || document.querySelector('[data-setting="bank_account_name"]');
+
+  const bankName = (bankNameInput ? bankNameInput.value.trim() : '') || DEFAULT_BANK_SETTINGS.bank_name;
+  const bankAccNo = (bankAccNoInput ? bankAccNoInput.value.trim() : '') || DEFAULT_BANK_SETTINGS.bank_account_no;
+  const bankAccName = (bankAccNameInput ? bankAccNameInput.value.trim() : '') || DEFAULT_BANK_SETTINGS.bank_account_name;
 
   // Kumpulkan preset tier harga
   const presetRows = document.querySelectorAll('#price-tier-presets-body .preset-tier-row');
@@ -12044,18 +12190,28 @@ function saveStoreSettings() {
     invoice_footer: document.getElementById('set-invoice-footer') ? document.getElementById('set-invoice-footer').value.trim() : '',
     batch_format_template: batchFormat,
     batch_format: batchFormat,
-    price_tiers_preset: presetJson
+    price_tiers_preset: presetJson,
+    bank_name: bankName,
+    bank_account_no: bankAccNo,
+    bank_account_name: bankAccName
   };
 
-  api('saveSettings', TOKEN, payload).then(function () {
+  const btn = document.getElementById('btn-save-settings');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
+
+  return api('saveSettings', TOKEN, payload).then(function () {
     invalidateCache('settings');
     if (!APP_SETTINGS) APP_SETTINGS = {};
     Object.assign(APP_SETTINGS, payload);
     APP_SETTINGS['price_tiers_preset'] = presetJson;
     PRICE_TIERS_LIST = presets.map(function (p) { return p.name; });
     applyBrandLogo();
-    showToast('Pengaturan profil toko & preset tingkat harga berhasil disimpan.');
-  }).catch(function (err) { showToast('Gagal: ' + (err.message || err), true); });
+    if (btn) { btn.disabled = false; btn.textContent = 'Simpan Profil Toko & Pajak'; }
+    showToast('Pengaturan profil toko, rekening bank & preset harga berhasil disimpan.');
+  }).catch(function (err) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Simpan Profil Toko & Pajak'; }
+    showToast('Gagal: ' + (err.message || err), true);
+  });
 }
 
 // Alias untuk kompatibilitas nama fungsi modul

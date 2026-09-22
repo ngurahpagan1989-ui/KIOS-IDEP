@@ -1570,6 +1570,30 @@ async function dispatchApiCall(fnName, args) {
       return { success: true };
     }
 
+    case 'getRolePermissions': {
+      const { data, error } = await supabase.rpc('getRolePermissions');
+      if (error) {
+        console.error('[Supabase Bridge] Error memanggil RPC getRolePermissions:', error);
+        return {
+          roles: ['Admin', 'Koordinator', 'QC', 'Kasir'],
+          permissions: {
+            Admin: { dashboard: { can_view: true, can_edit: true, can_delete: true } }
+          }
+        };
+      }
+      return data;
+    }
+
+    case 'saveRolePermissions': {
+      const payload = args[1] || args[0];
+      const { data, error } = await supabase.rpc('saveRolePermissions', { permissions_payload: payload });
+      if (error) {
+        console.error('[Supabase Bridge] Error memanggil RPC saveRolePermissions:', error);
+        throw error;
+      }
+      return data || { success: true };
+    }
+
     // --------------------------------------------------------------------------
     // M. TAMBAHAN FITUR: BATCH, MUTASI, OUTLET DETAIL & DANGER ZONE
     // --------------------------------------------------------------------------

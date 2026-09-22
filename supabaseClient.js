@@ -1,3 +1,4 @@
+(function () {
 /**
  * ==============================================================================
  * E-KASIR v2 (KIOS IDEP) - SUPABASE CLIENT ADAPTER & API BRIDGE
@@ -1762,7 +1763,7 @@ async function dispatchApiCall(fnName, args) {
 }
 
 // Ekspor fungsi ke objek global window agar dapat diakses dari seluruh modul frontend
-window.supabase = supabase;
+window.supabaseClient = supabase;
 window.api = api;
 window.dispatchApiCall = dispatchApiCall;
 window.loginSupabaseUser = loginSupabaseUser;
@@ -1778,3 +1779,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+  })();

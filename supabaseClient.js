@@ -446,113 +446,49 @@ async function dispatchApiCall(fnName, args) {
     // D. PENGADAAN (PURCHASES, SUPPLIERS, FARMERS)
     // --------------------------------------------------------------------------
     case 'getPurchases': {
-      const { data, error } = await supabase
-        .from('purchases')
-        .select('*, suppliers(name), farmers(name)')
-        .order('created_at', { ascending: false });
-
+      const { data, error } = await (window.supabaseClient || supabase).rpc('getPurchases');
       if (error) throw error;
-
-      return (data || []).map(p => ({
-        ...p,
-        supplier_name: p.suppliers ? p.suppliers.name : '(tidak diketahui)',
-        farmer_name: p.farmers ? p.farmers.name : (p.farmer_name || '-')
-      }));
+      return data || [];
     }
 
     case 'createPurchase': {
-      const [, purchase] = args;
-      const purchaseId = crypto.randomUUID();
-      const invoiceNo = purchase.invoice_no || `PUR-${Date.now().toString().slice(-6)}`;
-      const now = new Date().toISOString();
-
-      // 1. Simpan Header Pembelian
-      const { error: purErr } = await supabase.from('purchases').insert({
-        id: purchaseId,
-        invoice_no: invoiceNo,
-        supplier_id: purchase.supplier_id || null,
-        farmer_id: purchase.farmer_id || null,
-        total: Number(purchase.total || 0),
-        notes: purchase.notes || ''
-      });
-      if (purErr) throw purErr;
-
-      // 2. Simpan Item-Item menjadi Stock Batches dan Stock Movements
-      for (const item of (purchase.items || [])) {
-        const batchId = crypto.randomUUID();
-        const batchCode = item.batch_no ? String(item.batch_no).trim() : `B-${Date.now().toString().slice(-6)}`;
-        const qtyIn = Number(item.qty || 0);
-        const buyPrice = Number(item.buy_price || 0);
-
-        // Benih curah masuk ke antrean PENDING_QC; non-benih/pabrikan langsung APPROVED & NORMAL
-        const isSeed = item.is_seed !== false && item.category !== 'Non-Benih';
-        const qcStatus = isSeed ? 'PENDING_QC' : 'APPROVED';
-        const qualityStatus = isSeed ? 'QUARANTINE' : 'NORMAL';
-
-        await supabase.from('stock_batches').insert({
-          id: batchId,
-          batch_code: batchCode,
-          product_id: item.product_id,
-          purchase_id: purchaseId,
-          qty_in: qtyIn,
-          qty_remaining: qtyIn,
-          buy_price: buyPrice,
-          production_date: item.production_date || null,
-          expiry_date: item.expiry_date || null,
-          quality_status: qualityStatus,
-          qc_status: qcStatus
-        });
-
-        await supabase.from('stock_movements').insert({
-          product_id: item.product_id,
-          batch_id: batchId,
-          type: 'purchase_in',
-          qty: qtyIn,
-          ref_id: purchaseId,
-          notes: `Pembelian #${invoiceNo}`
-        });
-      }
-
-      return { success: true, id: purchaseId, message: 'Faktur pembelian berhasil disimpan.' };
+      const pPayload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
+      const { data, error } = await (window.supabaseClient || supabase).rpc('createPurchase', { purchase_payload: pPayload });
+      if (error) throw error;
+      return data;
     }
 
     case 'deletePurchase': {
-      const [, purchaseId] = args;
-      await supabase.from('stock_batches').delete().eq('purchase_id', purchaseId);
-      await supabase.from('stock_movements').delete().eq('ref_id', purchaseId);
-      const { error } = await supabase.from('purchases').delete().eq('id', purchaseId);
+      const purId = (args[1] !== undefined) ? args[1] : args[0];
+      const { data, error } = await (window.supabaseClient || supabase).rpc('deletePurchase', { purchase_id: String(purId) });
       if (error) throw error;
-      return { success: true };
+      return data;
     }
 
     case 'getSuppliers': {
-      const { data, error } = await supabase.from('suppliers').select('*').order('name', { ascending: true });
+      const { data, error } = await (window.supabaseClient || supabase).rpc('getSuppliers');
       if (error) throw error;
       return data || [];
     }
 
     case 'saveSupplier': {
-      const [, supplier] = args;
-      const { data, error } = await supabase.from('suppliers').upsert(supplier).select().single();
+      const sPayload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
+      const { data, error } = await (window.supabaseClient || supabase).rpc('saveSupplier', { supplier_payload: sPayload });
       if (error) throw error;
-      return { success: true, id: data.id };
+      return data;
     }
 
     case 'getFarmers': {
-      const { data, error } = await supabase.from('farmers').select('*').order('name', { ascending: true });
+      const { data, error } = await (window.supabaseClient || supabase).rpc('getFarmers');
       if (error) throw error;
       return data || [];
     }
 
     case 'saveFarmer': {
-      const [, farmer] = args;
-      const code = farmer.code || (farmer.name ? farmer.name.slice(0, 3).toUpperCase() : 'FAR');
-      const { data, error } = await supabase.from('farmers').upsert({
-        ...farmer,
-        code: code
-      }).select().single();
+      const fPayload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
+      const { data, error } = await (window.supabaseClient || supabase).rpc('saveFarmer', { farmer_payload: fPayload });
       if (error) throw error;
-      return { success: true, id: data.id, name: data.name, code: data.code };
+      return data;
     }
 
     // --------------------------------------------------------------------------
@@ -1488,10 +1424,8 @@ async function dispatchApiCall(fnName, args) {
     // M. TAMBAHAN FITUR: BATCH, MUTASI, OUTLET DETAIL & DANGER ZONE
     // --------------------------------------------------------------------------
     case 'getStockBatches': {
-      const [, productId] = args;
-      let q = supabase.from('stock_batches').select('*').order('expiry_date', { ascending: true });
-      if (productId) q = q.eq('product_id', productId);
-      const { data, error } = await q;
+      const pId = (args[1] !== undefined) ? args[1] : args[0];
+      const { data, error } = await (window.supabaseClient || supabase).rpc('getStockBatches', { prod_id: String(pId) });
       if (error) throw error;
       return data || [];
     }

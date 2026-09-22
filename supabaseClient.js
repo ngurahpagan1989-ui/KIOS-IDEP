@@ -15,7 +15,7 @@
 
 // 1. KREDENSIAL KONEKSI SUPABASE
 const SUPABASE_CONFIG = {
-  url: 'https://xozysfvihcyjytukisul.supabase.co',
+  url: 'https://xozysfvlhcyjytukisul.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvenlzZnZsaGN5anl0dWtpc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NDg3MzYsImV4cCI6MjEwNTUyNDczNn0.SNlrOxV3jx3H3pYxu9BAMi1zxsW-cmvty_FZL0-RsdQ'
 };
 // Inisialisasi Supabase Client dari CDN resmi window.supabase

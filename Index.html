@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <base target="_self">
+  <meta name="theme-color" content="#7A5031">
+  <title>Kios IDEP POS &amp; Manajemen Stok</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Tipografi Brand Guidelines IDEP: General Sans untuk Header -->
+  <link href="https://api.fontshare.com/v2/css?f[]=general-sans@500,600,700&display=swap" rel="stylesheet">
+  <!-- Figtree untuk Sub-header & Konten Utama -->
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Progress Bar (Loading State Indicator) -->
+  <div id="top-progress-bar" class="top-progress-bar" style="display:none;"></div>
+
+  <!-- ===================== LOGIN SCREEN OVERLAY ===================== -->
+  <div id="login-screen" class="login-screen" aria-modal="true" role="dialog">
+    <div class="login-backdrop"></div>
+    <div class="login-card">
+      <div class="login-brand">
+        <div id="login-brand-logo-wrap" class="brand-logo-wrap">
+          <div class="brand-logo" aria-hidden="true">IDEP</div>
+        </div>
+        <h1 class="brand-title">Kios IDEP POS</h1>
+        <p class="brand-tagline">Sistem Kasir &amp; Inventaris Benih Terpadu</p>
+      </div>
+
+      <form id="login-form" novalidate>
+        <div class="field-group">
+          <label class="field" for="login-username">
+            <span class="field-label">Username</span>
+            <div class="input-wrapper">
+              <span class="input-icon" aria-hidden="true">&#128100;</span>
+              <input type="text" id="login-username" name="username" placeholder="Masukkan username" required autocomplete="username" autofocus>
+            </div>
+          </label>
+        </div>
+
+        <div class="field-group">
+          <label class="field" for="login-password">
+            <span class="field-label">Password</span>
+            <div class="input-wrapper">
+              <span class="input-icon" aria-hidden="true">&#128274;</span>
+              <input type="password" id="login-password" name="password" placeholder="Masukkan password" required autocomplete="current-password">
+              <button type="button" id="toggle-password-visibility" class="input-action-btn" title="Lihat password" aria-label="Lihat password">&#128065;</button>
+            </div>
+          </label>
+        </div>
+
+        <div id="login-error" class="alert-banner alert-danger" style="display:none;" role="alert">
+          <span class="alert-icon">&#9888;</span>
+          <span id="login-error-text" class="alert-msg"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="login-submit">
+          <span class="btn-text">Masuk ke Sistem</span>
+          <span class="spinner" id="login-spinner" style="display:none;" aria-hidden="true"></span>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <small>&copy; Kios IDEP &bull; Yayasan IDEP Selaras Alam</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MAIN APPLICATION SHELL ===================== -->
+  <div id="app-shell" class="app-shell" style="display:none;">
+
+    <!-- Mobile Navigation Backdrop -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside class="sidebar" id="sidebar" aria-label="Navigasi Utama">
+      <div class="sidebar-brand">
+        <div id="sidebar-brand-logo-wrap" class="brand-logo-wrap">
+          <div class="brand-logo" aria-hidden="true">IDEP</div>
+        </div>
+        <div class="brand-info">
+          <div class="brand-title">Kios IDEP</div>
+          <div class="brand-subtitle">Smart Seed &amp; Eco POS</div>
+        </div>
+        <button type="button" id="sidebar-close-btn" class="sidebar-close-btn" title="Tutup Menu" aria-label="Tutup Menu">&times;</button>
+      </div>
+
+      <div class="sidebar-role-badge">
+        <span class="status-dot"></span>
+        <span id="sidebar-role-text">Kasir &amp; Gudang Terhubung</span>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebar-nav">
+        <div class="nav-section-label">OPERASIONAL UTAMA</div>
+        <a href="#dashboard" data-route="dashboard" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#9635;</span>
+          <span class="nav-text">Dashboard</span>
+        </a>
+        <a href="#pos" data-route="pos" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#128176;</span>
+          <span class="nav-text">Kasir (POS)</span>
+          <span class="badge badge-hot">Utama</span>
+        </a>
+        <a href="#produk" data-route="produk" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#128230;</span>
+          <span class="nav-text">Katalog Produk</span>
+        </a>
+        <a href="#stok" data-route="stok" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#128203;</span>
+          <span class="nav-text">Stok &amp; Batch FIFO</span>
+        </a>
+
+        <div class="nav-section-label">PENGADAAN &amp; MITRA</div>
+        <a href="#produksi" data-route="produksi" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#9881;</span>
+          <span class="nav-text">Kemas Mandiri</span>
+        </a>
+        <a href="#qc" data-route="qc" class="nav-item">
+          <span class="nav-icon" aria-hidden="true"><i class="fas fa-microscope"></i></span>
+          <span class="nav-text">Quality Control (QC)</span>
+          <span id="badge-qc-count" class="nav-badge" style="display:none;background:#2563EB;color:#fff;">0</span>
+        </a>
+        <a href="#pembelian" data-route="pembelian" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#128722;</span>
+          <span class="nav-text">Pembelian Stok</span>
+        </a>
+        <a href="#konsinyasi" data-route="konsinyasi" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#128257;</span>
+          <span class="nav-text">Konsinyasi Mitra</span>
+        </a>
+
+        <div class="nav-section-label">FINANSIAL &amp; KLIEN</div>
+        <a href="#piutang" data-route="piutang" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#128179;</span>
+          <span class="nav-text">Piutang &amp; Tempo</span>
+          <span id="badge-receivables-count" class="nav-badge" style="display:none;">0</span>
+        </a>
+        <a href="#crm" data-route="crm" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#128101;</span>
+          <span class="nav-text">Pelanggan (CRM)</span>
+        </a>
+        <a href="#purnajual" data-route="purnajual" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#128295;</span>
+          <span class="nav-text">Purna Jual &amp; Kepuasan</span>
+          <span id="badge-purnajual-count" class="nav-badge" style="display:none;background:#16A34A;color:#fff;">0</span>
+        </a>
+        <a href="#faktur" data-route="faktur" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#128196;</span>
+          <span class="nav-text">Riwayat &amp; Faktur</span>
+        </a>
+        <a href="#laporan" data-route="laporan" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#128202;</span>
+          <span class="nav-text">Laporan &amp; Valuasi Stok</span>
+        </a>
+        <a href="#pengaturan" data-route="pengaturan" class="nav-item">
+          <span class="nav-icon" aria-hidden="true">&#9881;</span>
+          <span class="nav-text">Pengaturan Toko</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="user-avatar" id="user-avatar-initial">A</div>
+          <div class="user-details">
+            <span class="user-name" id="user-name-label">Admin Utama</span>
+            <span class="user-status">Online</span>
+          </div>
+        </div>
+        <button type="button" id="logout-btn" class="logout-btn" title="Keluar dari Aplikasi">
+          <span class="logout-icon">&#10162;</span>
+          <span>Keluar</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===================== MAIN CONTENT WRAPPER ===================== -->
+    <div class="main-area">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button type="button" id="sidebar-toggle-btn" class="topbar-btn sidebar-toggle" aria-label="Buka Menu Navigasi" aria-expanded="false" aria-controls="sidebar">
+            <span class="hamburger-bar"></span>
+            <span class="hamburger-bar"></span>
+            <span class="hamburger-bar"></span>
+          </button>
+          <div class="topbar-page-badge">
+            <span id="current-view-title" class="current-view-title">Dashboard</span>
+          </div>
+        </div>
+
+        <div class="topbar-search-wrapper">
+          <span class="search-icon" aria-hidden="true">&#128269;</span>
+          <input type="text" id="topbar-global-search" class="topbar-search" placeholder="Cari nota, produk, atau pelanggan..." autocomplete="off">
+          <button type="button" id="search-clear-btn" class="search-clear-btn" style="display:none;" title="Bersihkan pencarian">&times;</button>
+        </div>
+
+        <div class="topbar-actions">
+          <a href="#pos" data-route="pos" class="btn btn-sm btn-primary topbar-quick-pos">
+            <span class="btn-icon">&#43;</span>
+            <span class="btn-label">Buka Kasir</span>
+          </a>
+
+          <button type="button" id="topbar-refresh-btn" class="topbar-icon-btn" title="Muat Ulang Data" aria-label="Muat Ulang Data">
+            <span class="icon-refresh">&#8635;</span>
+          </button>
+
+          <div class="user-dropdown-container">
+            <div class="user-pill" id="user-pill">
+              <span class="user-pill-avatar" id="user-avatar-top">A</span>
+              <span class="user-pill-name" id="user-name-top">Admin</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Banner Mode Pantau (View-Only) untuk Peran Koordinator / Pembatasan Akses -->
+      <div id="view-only-banner" class="view-only-banner" style="display:none;" role="alert">
+        <div class="view-only-banner-content">
+          <span class="view-only-icon">&#8505;&#65039;</span>
+          <div>
+            <strong>Mode Pantau Aktif:</strong> Anda masuk sebagai <span id="view-only-role-name">Koordinator</span> (Hak akses baca / view-only). Tombol input, aksi tambah, ubah, dan hapus dinonaktifkan.
+          </div>
+        </div>
+      </div>
+
+      <main class="content" id="content" role="region" aria-live="polite">
+        <!-- Tampilan halaman di-render dinamis oleh fungsi router di JavaScript.html -->
+        <div class="content-skeleton-loader" id="initial-skeleton">
+          <div class="skeleton-header"></div>
+          <div class="skeleton-grid">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ===================== MOBILE BOTTOM TAB NAVIGATION ===================== -->
+      <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Navigasi Cepat Handphone">
+        <a href="#dashboard" data-route="dashboard" class="mobile-nav-item" id="mob-nav-dashboard">
+          <span class="nav-icon" aria-hidden="true">&#9635;</span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="#pos" data-route="pos" class="mobile-nav-item" id="mob-nav-pos">
+          <span class="nav-icon" aria-hidden="true">&#128176;</span>
+          <span class="nav-label">Kasir</span>
+        </a>
+        <a href="#produk" data-route="produk" class="mobile-nav-item" id="mob-nav-produk">
+          <span class="nav-icon" aria-hidden="true">&#128230;</span>
+          <span class="nav-label">Produk</span>
+        </a>
+        <a href="#stok" data-route="stok" class="mobile-nav-item" id="mob-nav-stok">
+          <span class="nav-icon" aria-hidden="true">&#128203;</span>
+          <span class="nav-label">Stok</span>
+        </a>
+        <button type="button" class="mobile-nav-item" id="mobile-menu-more-btn" aria-label="Buka Menu Lengkap">
+          <span class="nav-icon" aria-hidden="true">&#9776;</span>
+          <span class="nav-label">Menu</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- ===================== GLOBAL MODAL CONTAINER ===================== -->
+  <div id="modal-container" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-dialog" id="modal-dialog">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-title">Judul Dialog</h2>
+        <button type="button" class="modal-close-btn" id="modal-close-btn" aria-label="Tutup Dialog">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Konten form / detail disuntikkan secara dinamis -->
+      </div>
+      <div class="modal-footer" id="modal-footer">
+        <!-- Tombol aksi kustom dimuat di sini -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== NON-BLOCKING CONFIRM & ALERT MODAL ===================== -->
+  <div id="confirm-modal" class="modal-overlay modal-overlay-alert" style="display:none;" role="alertdialog" aria-modal="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog modal-dialog-sm">
+      <div class="confirm-content">
+        <div class="confirm-icon" id="confirm-icon">&#9888;</div>
+        <h3 class="confirm-title" id="confirm-title">Konfirmasi Aksi</h3>
+        <p class="confirm-message" id="confirm-message">Apakah Anda yakin ingin melanjutkan tindakan ini?</p>
+      </div>
+      <div class="modal-footer confirm-footer">
+        <button type="button" class="btn btn-secondary" id="confirm-cancel-btn">Batal</button>
+        <button type="button" class="btn btn-primary" id="confirm-ok-btn">Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL SERAH TERIMA SURAT JALAN / PROOF OF DELIVERY ===================== -->
+  <div id="delivery-signature-modal" class="modal-overlay modal-overlay-pod" style="display:none; z-index: 1060;" role="dialog" aria-modal="true" aria-labelledby="pod-modal-title">
+    <div class="modal-backdrop" onclick="closeDeliveryReceiptModal(true)"></div>
+    <div class="modal-dialog modal-dialog-lg pod-dialog">
+      <div class="modal-header pod-modal-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:20px;">✍️</span>
+          <div>
+            <h2 class="modal-title" id="pod-modal-title">Serah Terima Barang Konsinyasi</h2>
+            <div style="font-size:11px;color:var(--text-secondary);font-weight:400;" id="pod-modal-subtitle">Berita Acara Serah Terima Fisik Benih di Lokasi Toko Mitra</div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeDeliveryReceiptModal(true)" aria-label="Tutup Dialog">&times;</button>
+      </div>
+      <div class="modal-body pod-modal-body" id="delivery-signature-modal-body">
+        <!-- Konten ringkasan pengiriman, tabel benih, form, dan canvas di-render dinamis -->
+      </div>
+      <div class="modal-footer pod-modal-footer" id="delivery-signature-modal-footer">
+        <!-- Tombol Kembali & Konfirmasi Serah Terima -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL PREVIEW BUKTI SERAH TERIMA (POD DETAIL) ===================== -->
+  <div id="pod-view-modal" class="modal-overlay" style="display:none; z-index: 1060;" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" onclick="closePodViewModal()"></div>
+    <div class="modal-dialog modal-dialog-lg">
+      <div class="modal-header">
+        <h2 class="modal-title" id="pod-view-modal-title">📄 Berita Acara &amp; Bukti Serah Terima</h2>
+        <button type="button" class="modal-close-btn" onclick="closePodViewModal()" aria-label="Tutup Dialog">&times;</button>
+      </div>
+      <div class="modal-body" id="pod-view-modal-body">
+        <!-- Konten detail POD dan tanda tangan -->
+      </div>
+      <div class="modal-footer" id="pod-view-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closePodViewModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL RESET DATA UJI COBA (DANGER ZONE) ===================== -->
+  <div id="modal-reset-data" class="modal-overlay modal-overlay-danger" style="display:none; z-index: 1060 !important;" role="dialog" aria-modal="true" aria-labelledby="reset-modal-title">
+    <div class="modal-backdrop" onclick="closeResetDataModal()"></div>
+    <div class="modal-dialog modal-dialog-sm danger-dialog modal-content">
+      <div class="modal-header danger-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;">⚠️</span>
+          <div>
+            <h2 class="modal-title" id="reset-modal-title" style="color:#b91c1c;margin:0;">Zona Bahaya: Reset Data</h2>
+            <div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px;">Pembersihan Khusus Riwayat Transaksi Uji Coba</div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeResetDataModal()" aria-label="Tutup Dialog">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:16px 20px;">
+        <p style="font-size:12.5px;color:var(--text-main);margin-bottom:14px;line-height:1.5;">
+          Pilih modul riwayat simulasi yang ingin Anda kosongkan. Data master (produk, batch stok, outlet, kemasan, user, dan pengaturan toko) <strong>tidak akan terhapus</strong>:
+        </p>
+
+        <!-- Checklist Modul yang Ingin Dikosongkan -->
+        <div class="danger-checklist-group">
+          <label class="danger-check-item">
+            <input type="checkbox" id="reset-mod-pos" value="pos" checked onchange="validateResetConfirmInput()">
+            <span><strong>Riwayat Transaksi Kasir &amp; Detail Item</strong></span>
+          </label>
+          <label class="danger-check-item">
+            <input type="checkbox" id="reset-mod-consign" value="consign" checked onchange="validateResetConfirmInput()">
+            <span><strong>Mutasi Konsinyasi &amp; Laporan Audit Opname</strong></span>
+          </label>
+          <label class="danger-check-item">
+            <input type="checkbox" id="reset-mod-aftersales" value="aftersales" checked onchange="validateResetConfirmInput()">
+            <span><strong>Rekam Medis Kebun &amp; Klaim Purna Jual</strong></span>
+          </label>
+        </div>
+
+        <!-- Kotak Pengaman Konfirmasi -->
+        <div class="danger-confirmation-box">
+          <div class="danger-warning-text">
+            <span>⛔</span>
+            <span>Tindakan ini <strong>tidak dapat dibatalkan</strong>. Ketik kata <code>RESET</code> di bawah ini untuk melanjutkan:</span>
+          </div>
+          <input type="text" id="reset-confirmation-input" class="danger-input-text" placeholder="Ketik RESET di sini..." autocomplete="off" oninput="validateResetConfirmInput()">
+        </div>
+      </div>
+      <div class="modal-footer" style="padding:12px 20px;display:flex;justify-content:flex-end;gap:8px;background:var(--surface-muted);">
+        <button type="button" class="btn btn-secondary" onclick="closeResetDataModal()">Batal</button>
+        <button type="button" id="btn-execute-reset" class="btn btn-danger" onclick="executeResetTestingData()" disabled style="opacity:0.5;cursor:not-allowed;" title="Ketik RESET dengan benar untuk mengaktifkan">
+          🗑️ Hapus Permanen Data Terpilih
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL INPUT QC & DOKUMENTASI FOTO ===================== -->
+  <div id="modal-qc-entry" class="modal-overlay modal-overlay-qc" style="display:none; z-index: 1060;" role="dialog" aria-modal="true" aria-labelledby="qc-modal-title">
+    <div class="modal-backdrop" onclick="closeQCEntryModal()"></div>
+    <div class="modal-dialog modal-dialog-lg qc-dialog">
+      <div class="modal-header qc-modal-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;">🔬</span>
+          <div>
+            <h2 class="modal-title" id="qc-modal-title">Input Uji QC &amp; Dokumentasi Foto</h2>
+            <div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px;">Standardisasi Daya Tumbuh Duplo 100 Butir (Ambang Minimal IDEP 80%)</div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeQCEntryModal()" aria-label="Tutup Dialog">&times;</button>
+      </div>
+      <div class="modal-body qc-modal-body" style="padding:18px 22px;">
+        <form id="qc-entry-form" onsubmit="event.preventDefault(); submitQCForm();">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:12px;">
+            <div>
+              <label class="field-label" for="qc-batch-id">Kode Batch Toples Benih <span style="color:#ef4444;">*</span></label>
+              <div class="input-wrapper">
+                <select id="qc-batch-id" required style="padding-left:14px;font-family:'JetBrains Mono',monospace;" onchange="onQCBatchSelected()">
+                  <option value="">-- Pilih Batch Antrean QC --</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="field-label" for="qc-stage">Tahapan Pengujian <span style="color:#ef4444;">*</span></label>
+              <div class="input-wrapper">
+                <select id="qc-stage" required style="padding-left:14px;" onchange="onQCStageChanged()">
+                  <option value="UJI_1_PETANI">1. Uji Lapangan Petani</option>
+                  <option value="UJI_2_IDEP">2. Uji Semai Kantor (Pre-DHT)</option>
+                  <option value="DHT_24JAM">3. Log DHT 1 Hari</option>
+                  <option value="UJI_3_PASCA_DHT" selected>4. Uji Semai Pasca-DHT</option>
+                  <option value="UJI_BERKALA">5. Uji Berkala / Semai Ulang (Toples Simpan &gt; 6 Bulan)</option>
+                </select>
+              </div>
+              <small id="qc-stage-note" style="font-size:11px;color:var(--primary);margin-top:4px;display:block;">
+                Tahap 4 adalah penentu kelulusan batch untuk membuka kunci kasir &amp; kemas mandiri.
+              </small>
+            </div>
+          </div>
+
+          <!-- Kartu Info Otomatis (Read-Only / Auto-Populate) Anti-Dobel Ketik -->
+          <div id="qc-batch-auto-card" class="qc-auto-card" style="display:none;margin-bottom:14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px 16px;">
+            <div style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+              <span>📋</span> Identitas Batch Terpilih (Otomatis dari Pengadaan Tanpa Dobel Ketik)
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">
+              <div>
+                <span style="font-size:11px;color:var(--text-secondary);display:block;">Varietas Benih</span>
+                <strong id="qc-info-product-name" style="font-size:13px;color:var(--text-main);">-</strong>
+              </div>
+              <div>
+                <span style="font-size:11px;color:var(--text-secondary);display:block;">Petani Mitra</span>
+                <strong id="qc-info-farmer-name" style="font-size:13px;color:#1E293B;">-</strong>
+              </div>
+              <div>
+                <span style="font-size:11px;color:var(--text-secondary);display:block;">Tanggal Masuk Toko</span>
+                <strong id="qc-info-entry-date" style="font-size:13px;color:var(--text-main);">-</strong>
+              </div>
+              <div>
+                <span style="font-size:11px;color:var(--text-secondary);display:block;">Berat Curah / Sisa Stok</span>
+                <strong id="qc-info-current-stock" style="font-size:13px;color:#16A34A;">-</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bagian Khusus Dry Heat Treatment (DHT) 24 Jam Oven -->
+          <div id="qc-dht-section" style="display:none;background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:8px;padding:16px;margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #FEF3C7;padding-bottom:8px;">
+              <div style="font-weight:700;font-size:13.5px;color:#92400E;display:flex;align-items:center;gap:6px;">
+                <span style="font-size:16px;">🔥</span> Parameter Oven Dry Heat Treatment (DHT) 24 Jam
+              </div>
+              <span class="badge" style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;font-size:11px;">Durasi Tetap: 24 Jam</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:12px;">
+              <div>
+                <label class="field-label" for="qc-dht-oven">Pilihan Unit Oven <span style="color:#ef4444;">*</span></label>
+                <div class="input-wrapper">
+                  <select id="qc-dht-oven" style="padding-left:14px;font-weight:600;">
+                    <option value="Oven 1">🔥 Oven 1 (Lab Utama)</option>
+                    <option value="Oven 2">🔥 Oven 2 (Ruang Produksi)</option>
+                    <option value="Oven 3">🔥 Oven 3 (Gudang Benih)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="field-label" for="qc-dht-temp">Suhu Target (°C) <span style="color:#ef4444;">*</span></label>
+                <div class="input-wrapper">
+                  <input type="number" id="qc-dht-temp" min="40" max="75" step="1" value="50" style="padding-left:14px;font-weight:700;" placeholder="Default: 50°C">
+                </div>
+                <small style="font-size:10.5px;color:#78350F;margin-top:2px;display:block;">Rentang aman: 40°C – 75°C (Standar: 50°C)</small>
+              </div>
+
+              <div>
+                <label class="field-label" for="qc-dht-start-time">Jam Masuk Oven <span style="color:#ef4444;">*</span></label>
+                <div class="input-wrapper">
+                  <input type="datetime-local" id="qc-dht-start-time" onchange="checkWeekendWarning(this.value)" style="padding-left:10px;font-weight:600;font-size:12px;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Peringatan Akhir Pekan (Weekend Warning) Dinamis -->
+            <div id="qc-weekend-warning" style="display:none;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;padding:10px 14px;color:#991B1B;font-size:12px;margin-top:8px;line-height:1.4;">
+              <strong>⚠️ Perhatian:</strong> Durasi 24 jam akan berakhir di akhir pekan saat kantor/lab tutup. Disarankan memulai proses pada hari Senin–Kamis agar benih dapat dikeluarkan tepat waktu.
+            </div>
+
+            <div style="margin-top:10px;padding:8px 12px;background:#FEF3C7;border-radius:6px;font-size:11.5px;color:#92400E;display:flex;align-items:center;gap:6px;">
+              <span>ℹ️</span> <span>Setelah tombol <strong>Mulai Proses Oven</strong> ditekan, timer 24 jam akan berjalan otomatis dan terpantau secara realtime di tabel QC.</span>
+            </div>
+          </div>
+
+          <!-- Bagian Baki Semai Duplo -->
+          <div id="qc-germination-section" style="background:var(--surface-muted);border:1px solid var(--border-color);border-radius:8px;padding:14px;margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <span style="font-weight:600;font-size:13px;color:var(--text-main);">🌱 Pengamatan Baki Semai Duplo (100 Butir)</span>
+              <span style="font-size:11.5px;color:var(--text-secondary);">Maks. 50 butir per baki</span>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div>
+                <label class="field-label" for="qc-tray-a">Baki A (Jumlah Tumbuh 0-50)</label>
+                <div class="input-wrapper">
+                  <input type="number" id="qc-tray-a" min="0" max="50" placeholder="0 - 50" value="0" oninput="calculateQCGermination()" style="padding-left:14px;font-weight:600;">
+                </div>
+              </div>
+              <div>
+                <label class="field-label" for="qc-tray-b">Baki B (Jumlah Tumbuh 0-50)</label>
+                <div class="input-wrapper">
+                  <input type="number" id="qc-tray-b" min="0" max="50" placeholder="0 - 50" value="0" oninput="calculateQCGermination()" style="padding-left:14px;font-weight:600;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Live Indicator Total Daya Tumbuh -->
+            <div id="qc-germination-indicator" class="qc-rate-indicator qc-rate-fail" style="margin-top:12px;padding:10px 14px;border-radius:6px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;">
+              <span id="qc-rate-text">Daya Tumbuh: 0% (Standar IDEP: Min 80%)</span>
+              <span id="qc-rate-badge" class="badge badge-danger">BELUM MEMENUHI</span>
+            </div>
+          </div>
+
+          <!-- Area Kamera On-Site & Unggah Foto Baki -->
+          <div class="qc-camera-section" style="margin-bottom:14px;">
+            <label class="field-label">Dokumentasi Foto Baki On-Site</label>
+            <input type="file" id="qc-camera-input" accept="image/*" capture="environment" class="hidden" style="display:none;" onchange="handleQCCameraCapture(event)">
+
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+              <button type="button" class="btn btn-secondary" id="qc-camera-btn" onclick="triggerQCCamera()" style="display:inline-flex;align-items:center;gap:6px;">
+                <i class="fas fa-camera"></i>
+                <span>📷 Buka Kamera &amp; Jepret Baki Semai</span>
+              </button>
+              <span style="font-size:11.5px;color:var(--text-secondary);">Kompresi otomatis client-side (~150-300 KB) untuk upload kilat.</span>
+            </div>
+
+            <!-- Kotak Pratinjau Gambar -->
+            <div id="qc-photo-preview" class="qc-photo-preview-box" style="display:none;margin-top:8px;">
+              <div class="qc-preview-wrapper" style="position:relative;display:inline-block;border-radius:8px;overflow:hidden;border:1px solid var(--border-color);max-width:280px;">
+                <img id="qc-preview-img" src="" alt="Pratinjau Foto Baki QC" style="display:block;width:100%;height:auto;max-height:180px;object-fit:cover;cursor:pointer;" onclick="zoomQCPreview()">
+                <div class="qc-preview-overlay" style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(0,0,0,0.7);color:#fff;font-size:11px;">
+                  <span id="qc-file-size-info">0 KB</span>
+                  <button type="button" class="btn btn-sm btn-danger" onclick="removeQCPhoto()" style="padding:1px 6px;font-size:10.5px;">&times; Hapus Foto</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Catatan / Kondisi Media Semai -->
+          <div style="margin-bottom:16px;">
+            <label class="field-label" for="qc-notes">Catatan / Kondisi Media Semai &amp; Suhu</label>
+            <textarea id="qc-notes" rows="2" placeholder="Contoh: Media kokopit + kompos steril, kecambah serempak di hari ke-5, vigor sehat..." style="width:100%;border-radius:6px;border:1px solid var(--border-color);padding:8px 12px;font-size:12.5px;box-sizing:border-box;"></textarea>
+          </div>
+
+          <div id="qc-upload-status" style="display:none;padding:10px 14px;background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF;border-radius:6px;font-size:12px;margin-bottom:12px;">
+            <span class="sync-spinner" style="display:inline-block;vertical-align:middle;margin-right:6px;"></span>
+            <span id="qc-upload-status-text">Menyimpan catatan dan mengunggah foto ke Drive...</span>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer qc-modal-footer" style="padding:12px 22px;background:var(--surface-muted);display:flex;justify-content:flex-end;gap:10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeQCEntryModal()">Batal</button>
+        <button type="button" class="btn btn-primary" id="btn-save-qc" onclick="submitQCForm()">
+          <i class="fas fa-check-circle mr-1"></i> Simpan Catatan QC
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL PRATINJAU FOTO DOKUMENTASI (LIGHTBOX) ===================== -->
+  <div id="modal-qc-photo-viewer" class="modal-overlay qc-lightbox-overlay" style="display:none; z-index: 1070;" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" onclick="closeQCPhotoViewer()"></div>
+    <div class="modal-dialog qc-lightbox-dialog" style="max-width:850px;width:95%;">
+      <div class="modal-header qc-lightbox-header" style="background:#18181B;color:#fff;border-bottom:1px solid #27272A;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:18px;">📷</span>
+          <div>
+            <h3 class="modal-title" id="qc-lightbox-title" style="color:#fff;font-size:14px;margin:0;">Dokumentasi Foto Baki Benih</h3>
+            <div id="qc-lightbox-subtitle" style="font-size:11px;color:#A1A1AA;margin-top:2px;">Bukti Keaslian &amp; Uji Semai On-Site</div>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeQCPhotoViewer()" style="color:#fff;" aria-label="Tutup Pratinjau">&times;</button>
+      </div>
+      <div class="modal-body qc-lightbox-body" style="background:#09090B;padding:16px;text-align:center;">
+        <img id="qc-lightbox-img" src="" alt="Dokumentasi QC Benih" style="max-height:70vh;max-width:100%;border-radius:6px;object-fit:contain;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+        <div id="qc-lightbox-meta" style="color:#D4D4D8;font-size:12px;margin-top:12px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+      <div class="modal-footer qc-lightbox-footer" style="background:#18181B;border-top:1px solid #27272A;display:flex;justify-content:space-between;padding:10px 16px;">
+        <a id="qc-lightbox-drive-link" href="#" target="_blank" class="btn btn-sm btn-secondary" style="color:#60A5FA;text-decoration:none;">
+          🔗 Buka di Google Drive
+        </a>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="closeQCPhotoViewer()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL FORM PENGGUNA (TAMBAH / EDIT AKUN) ===================== -->
+  <div id="modal-user-entry" class="modal-overlay" style="display:none; z-index: 1060;" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+    <div class="modal-backdrop" onclick="closeUserModal()"></div>
+    <div class="modal-dialog" style="max-width:480px;width:95%;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="user-modal-title">Tambah Akun Pengguna</h3>
+        <button type="button" class="modal-close-btn" onclick="closeUserModal()" aria-label="Tutup Form">&times;</button>
+      </div>
+      <form id="form-user-entry" onsubmit="return submitUserForm(event)">
+        <input type="hidden" id="user-id">
+        <div class="modal-body" style="padding:20px;">
+          <div class="field-group">
+            <label class="field-label" for="user-username">Username <span style="color:#ef4444;">*</span></label>
+            <div class="input-wrapper">
+              <input type="text" id="user-username" required placeholder="Contoh: koordinator_bali, kasir1" style="padding-left:14px;">
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="user-fullname">Nama Lengkap <span style="color:#ef4444;">*</span></label>
+            <div class="input-wrapper">
+              <input type="text" id="user-fullname" required placeholder="Contoh: Budi Santoso" style="padding-left:14px;">
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="user-role-select">Peran / Hak Akses <span style="color:#ef4444;">*</span></label>
+            <div class="input-wrapper">
+              <select id="user-role-select" required style="padding-left:14px;">
+                <!-- Opsi diisi dinamis dari daftar peran yang tersimpan di Settings -->
+              </select>
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="user-password">Password <span id="user-pass-required-star" style="color:#ef4444;">*</span></label>
+            <div class="input-wrapper">
+              <input type="password" id="user-password" placeholder="Minimal 6 karakter" style="padding-left:14px;">
+            </div>
+            <small id="user-pass-hint" style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">
+              Biarkan kosong jika tidak ingin mengubah password saat mengedit pengguna.
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Batal</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-user">Simpan Pengguna</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL TAMBAH PERAN BARU ===================== -->
+  <div id="modal-role-entry" class="modal-overlay" style="display:none; z-index: 1060;" role="dialog" aria-modal="true" aria-labelledby="role-modal-title">
+    <div class="modal-backdrop" onclick="closeRoleModal()"></div>
+    <div class="modal-dialog" style="max-width:440px;width:95%;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="role-modal-title">Tambah Peran Hak Akses Baru</h3>
+        <button type="button" class="modal-close-btn" onclick="closeRoleModal()" aria-label="Tutup Form">&times;</button>
+      </div>
+      <form id="form-role-entry" onsubmit="return submitRoleForm(event)">
+        <div class="modal-body" style="padding:20px;">
+          <div class="field-group">
+            <label class="field-label" for="new-role-name">Nama Peran Baru <span style="color:#ef4444;">*</span></label>
+            <div class="input-wrapper">
+              <input type="text" id="new-role-name" required placeholder="Contoh: Supervisor, Auditor, Relawan" style="padding-left:14px;">
+            </div>
+            <small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">
+              Setelah peran dibuat, Anda dapat mengatur centang izin per modul pada tabel matriks.
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeRoleModal()">Batal</button>
+          <button type="submit" class="btn btn-primary">Tambahkan Peran</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== GLOBAL TOAST NOTIFICATION STACK ===================== -->
+  <div id="toast-stack" class="toast-stack" aria-live="assertive" aria-atomic="true">
+    <div id="toast" class="toast" style="display:none;">
+      <span class="toast-icon" id="toast-icon">&#10003;</span>
+      <span class="toast-message" id="toast-msg">Pemberitahuan berhasil diproses.</span>
+    </div>
+  </div>
+
+  <!-- Non-intrusive Background Sync Indicator -->
+  <div id="sync-indicator" class="sync-indicator" style="display:none;">
+    <span class="sync-spinner"></span>
+    <span id="sync-text">Menyinkronkan ke Spreadsheet...</span>
+  </div>
+
+  <!-- Supabase CDN Client Library (v2) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase Client Adapter & API Bridge -->
+  <script src="supabaseClient.js"></script>
+  <!-- Core Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>

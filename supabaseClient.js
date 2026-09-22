@@ -258,6 +258,16 @@ async function dispatchApiCall(fnName, args) {
       return data;
     }
 
+    case 'saveBundledProducts': {
+      const payload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
+      const { data, error } = await (window.supabaseClient || supabase).rpc('saveBundledProducts', { payload: payload });
+      if (error) {
+        console.error('Error saveBundledProducts:', error);
+        throw error;
+      }
+      return data;
+    }
+
     case 'deleteProduct': {
       const prodId = (args[1] !== undefined) ? args[1] : args[0];
       const { data, error } = await (window.supabaseClient || supabase).rpc('deleteProduct', { product_id: String(prodId) });
@@ -669,45 +679,6 @@ async function dispatchApiCall(fnName, args) {
       const { error } = await supabase.from('productions').delete().eq('id', productionId);
       if (error) throw error;
       return { success: true };
-    }
-
-    case 'saveBundledProducts': {
-      const [, payload] = args;
-      // Buat produk curah + varian kemasan sekaligus
-      const raw = payload.rawProduct || {};
-      const { data: rawProd, error: rawErr } = await supabase.from('products').insert({
-        name: raw.name,
-        category: raw.category || 'Benih',
-        product_type: 'raw_seed',
-        unit: 'gram',
-        is_active: true
-      }).select('id').single();
-
-      if (rawErr) throw rawErr;
-
-      const packList = payload.packProducts || payload.packagedProducts || [];
-      for (const pack of packList) {
-        const { data: pProd } = await supabase.from('products').insert({
-          name: pack.name,
-          category: raw.category || 'Benih',
-          product_type: 'packaged_seed',
-          variant: pack.variant || '',
-          unit: 'pcs',
-          packaging_type_id: pack.packaging_type_id || null,
-          is_active: true
-        }).select('id').single();
-
-        if (pProd && Array.isArray(pack.priceTiers)) {
-          const tiers = pack.priceTiers.map(t => ({
-            product_id: pProd.id,
-            tier_name: t.tier_name,
-            price: Number(t.price || 0)
-          }));
-          await supabase.from('price_tiers').insert(tiers);
-        }
-      }
-
-      return { success: true, raw_id: rawProd.id };
     }
 
     // --------------------------------------------------------------------------

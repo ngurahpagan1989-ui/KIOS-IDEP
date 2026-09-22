@@ -11726,10 +11726,20 @@ function loadRolePermissionsUI() {
 
   container.innerHTML = '<div class="empty-state">⏳ Memuat matriks hak akses...</div>';
   api('getRolePermissions', TOKEN).then(function (res) {
-    if (res && res.permissions) {
-      CURRENT_ROLES_PERMISSIONS = res.permissions;
-      if (res.roles) AVAILABLE_ROLES = res.roles;
+    const actualData = (res && res.permissions) ? res : (res && res.data ? res.data : res);
+    if (actualData && actualData.permissions) {
+      CURRENT_ROLES_PERMISSIONS = actualData.permissions;
+      AVAILABLE_ROLES = actualData.roles || AVAILABLE_ROLES;
+      if (Array.isArray(AVAILABLE_ROLES)) {
+        AVAILABLE_ROLES.forEach(function (r) {
+          if (!CURRENT_ROLES_PERMISSIONS[r]) {
+            CURRENT_ROLES_PERMISSIONS[r] = {};
+          }
+        });
+      }
       renderRoleMatrixUI();
+    } else {
+      container.innerHTML = '<div class="alert-banner alert-warning">⚠️ Format data hak akses tidak sesuai atau kosong. Silakan muat ulang halaman atau simpan ulang matriks peran.</div>';
     }
   }).catch(function (err) {
     container.innerHTML = '<div class="alert-banner alert-danger">Gagal memuat hak akses: ' + escapeHtml(err.message || err) + '</div>';

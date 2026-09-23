@@ -3116,7 +3116,7 @@ function openPurchaseModal() {
       '<label class="field-label" style="font-weight:600;font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Supplier</label>' +
       '<div style="display:flex;gap:6px;">' +
       '<select id="pur-supplier" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);font-size:0.875rem;"></select>' +
-      '<button type="button" class="btn btn-secondary btn-sm" onclick="openSupplierModal()">+ Baru</button>' +
+      '<button type="button" class="btn btn-secondary btn-sm" style="flex-shrink:0;white-space:nowrap;padding:6px 12px;" onclick="openSupplierModal()">+ Baru</button>' +
       '</div>' +
       '</div>' +
     '<div>' +

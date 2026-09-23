@@ -3112,13 +3112,13 @@ function deletePurchaseUI(purchaseId) {
 function openPurchaseModal() {
   const bodyHtml =
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px;">' +
-    '<div>
-  <label class="field-label" style="font-weight:600;font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Supplier</label>
-  <div style="display:flex;gap:6px;">
-    <select id="pur-supplier" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);font-size:0.875rem;"></select>
-    <button type="button" class="btn btn-secondary btn-sm" onclick="openSupplierModal()">+ Baru</button>
-  </div>
-</div>
+    '<div>' +
+      '<label class="field-label" style="font-weight:600;font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Supplier</label>' +
+      '<div style="display:flex;gap:6px;">' +
+      '<select id="pur-supplier" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);font-size:0.875rem;"></select>' +
+      '<button type="button" class="btn btn-secondary btn-sm" onclick="openSupplierModal()">+ Baru</button>' +
+      '</div>' +
+      '</div>' +
     '<div>' +
     '<label class="field-label">Nama Petani / Penangkar Mitra</label>' +
     '<div style="display:flex;gap:6px;">' +

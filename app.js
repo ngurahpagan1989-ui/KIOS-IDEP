@@ -3670,6 +3670,70 @@ function openFarmerModal() {
     });
   };
 }
+
+function openSupplierModal() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.zIndex = '2100';
+  overlay.innerHTML =
+    '<div class="modal-backdrop"></div>' +
+    '<div class="modal-dialog modal-dialog-sm">' +
+    '<div class="modal-header">' +
+    '<h3 class="modal-title">Supplier Baru</h3>' +
+    '<button type="button" class="modal-close-btn" id="sup-close">&times;</button>' +
+    '</div>' +
+    '<div class="modal-body">' +
+    '<div class="field-group"><label class="field-label">Nama Supplier *</label><div class="input-wrapper"><input type="text" id="sup-name" placeholder="Contoh: CV Mitra Pertanian" class="input"></div></div>' +
+    '<div class="field-group"><label class="field-label">Nomor Kontak WhatsApp</label><div class="input-wrapper"><input type="text" id="sup-contact" placeholder="08123456789" class="input"></div></div>' +
+    '<div class="field-group"><label class="field-label">Alamat</label><div class="input-wrapper"><textarea id="sup-address" placeholder="Alamat supplier..." class="input" rows="2"></textarea></div></div>' +
+    '</div>' +
+    '<div class="modal-footer">' +
+    '<button type="button" class="btn btn-secondary" id="sup-cancel">Batal</button>' +
+    '<button type="button" class="btn btn-primary" id="sup-save">Simpan</button>' +
+    '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+
+  const close = function () { overlay.remove(); };
+  overlay.querySelector('#sup-close').onclick = close;
+  overlay.querySelector('#sup-cancel').onclick = close;
+
+  overlay.querySelector('#sup-save').onclick = function () {
+    const name = document.getElementById('sup-name').value.trim();
+    const contact = document.getElementById('sup-contact').value.trim();
+    const address = document.getElementById('sup-address').value.trim();
+
+    if (!name) {
+      alert('Nama supplier wajib diisi!');
+      return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    btn.innerText = 'Menyimpan...';
+
+    api('saveSupplier', TOKEN, { name: name, contact: contact, address: address }).then(function (res) {
+      alert('Supplier berhasil disimpan!');
+      overlay.remove();
+
+      // Segarkan pilihan dropdown supplier di modal pembelian
+      api('getSuppliers', TOKEN).then(function (suppliers) {
+        const select = document.getElementById('pur-supplier');
+        if (select) {
+          select.innerHTML = '<option value="">-- Pilih Supplier --</option>' +
+            suppliers.map(function (s) {
+              return '<option value="' + s.id + '" ' + (s.name === name ? 'selected' : '') + '>' + s.name + '</option>';
+            }).join('');
+        }
+      });
+    }).catch(function (err) {
+      alert('Gagal menyimpan supplier: ' + (err.message || err));
+      btn.disabled = false;
+      btn.innerText = 'Simpan';
+    });
+  };
+}
 window.openFarmerModal = openFarmerModal;
 
 function onFarmerSelectedChange(farmerId) {

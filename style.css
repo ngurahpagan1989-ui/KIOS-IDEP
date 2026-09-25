@@ -4869,3 +4869,65 @@ tbody tr:hover {
   font-family: 'JetBrains Mono', monospace;
   border: 1px solid var(--border);
 }
+
+/* ===================== MODUL PEMBELIAN & HPP LANDED COST ===================== */
+.purchase-items-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  margin-bottom: 10px;
+}
+
+.purchase-items-table {
+  min-width: 960px;
+  width: 100%;
+}
+
+.purchase-grid-header {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(130px, 1.3fr) 65px 105px 115px 125px 110px 110px 42px;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pur-item-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(130px, 1.3fr) 65px 105px 115px 125px 110px 110px 42px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px dashed var(--border);
+  transition: background-color 0.15s ease;
+}
+
+.pur-item-row:hover {
+  background-color: rgba(0, 0, 0, 0.015);
+}
+
+.pur-item-row:last-child {
+  border-bottom: none;
+}
+
+.pur-item-cost-extra {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.pur-item-hpp-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #166534 !important;
+  background: #f0fdf4 !important;
+  border: 1px solid #bbf7d0 !important;
+  text-align: right;
+  border-radius: var(--radius-xs);
+  cursor: default;
+}
+

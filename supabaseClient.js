@@ -13,22 +13,29 @@
  */
 
 // 1. KREDENSIAL KONEKSI SUPABASE
+const SUPABASE_URL = 'https://xozysfvihcyjytukisul.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvenlzZnZsaGN5anl0dWtpc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NDg3MzYsImV4cCI6MjEwNTUyNDczNn0.SNlrOxV3jx3H3pYxu9BAMi1zxsW-cmvty_FZL0-RsdQ';
 const SUPABASE_CONFIG = {
-  url: 'https://xozysfvihcyjytukisul.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvenlzZnZsaGN5anl0dWtpc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NDg3MzYsImV4cCI6MjEwNTUyNDczNn0.SNlrOxV3jx3H3pYxu9BAMi1zxsW-cmvty_FZL0-RsdQ'
+  url: SUPABASE_URL,
+  anonKey: SUPABASE_ANON_KEY
 };
-// Inisialisasi Supabase Client dari CDN resmi window.supabase
-let supabase = null;
-if (window.supabase && typeof window.supabase.createClient === 'function') {
-  supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
-    }
-  });
-} else {
-  console.warn('[Supabase] Library @supabase/supabase-js belum termuat. Pastikan CDN sudah dipasang di HTML.');
+
+// Inisialisasi Supabase Client langsung ke window.supabase (menghindari error redeclaration of non-configurable global property)
+try {
+  const _createClientFn = window.supabase?.createClient || (typeof createClient === 'function' ? createClient : null);
+  if (_createClientFn) {
+    window.supabase = _createClientFn(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
+  } else {
+    console.warn('[Supabase] Library @supabase/supabase-js belum termuat. Pastikan CDN sudah dipasang di HTML.');
+  }
+} catch (err) {
+  console.error('[Supabase] Inisialisasi client gagal:', err);
 }
 
 // Global state untuk sesi pengguna lokal

@@ -1,4 +1,3 @@
-(function () {
 /**
  * ==============================================================================
  * E-KASIR v2 (KIOS IDEP) - SUPABASE CLIENT ADAPTER & API BRIDGE
@@ -15,7 +14,7 @@
 
 // 1. KREDENSIAL KONEKSI SUPABASE
 const SUPABASE_CONFIG = {
-  url: 'https://xozysfvlhcyjytukisul.supabase.co',
+  url: 'https://xozysfvihcyjytukisul.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvenlzZnZsaGN5anl0dWtpc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NDg3MzYsImV4cCI6MjEwNTUyNDczNn0.SNlrOxV3jx3H3pYxu9BAMi1zxsW-cmvty_FZL0-RsdQ'
 };
 // Inisialisasi Supabase Client dari CDN resmi window.supabase
@@ -223,59 +222,130 @@ async function dispatchApiCall(fnName, args) {
     }
 
     case 'saveUser': {
-      const userPayload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
-      const { data, error } = await supabase.rpc('saveUser', { user_payload: userPayload });
+      const [, payload] = args;
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: payload.id,
+          username: payload.username,
+          full_name: payload.name || payload.full_name,
+          role: payload.role,
+          phone: payload.phone
+        })
+        .select()
+        .single();
       if (error) throw error;
-      return data;
+      return { success: true, user: data };
     }
 
     case 'deleteUser': {
-      const userId = (args[1] !== undefined) ? args[1] : args[0];
-      const { data, error } = await supabase.rpc('deleteUser', { user_id: String(userId) });
+      const [, userId] = args;
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
       if (error) throw error;
-      return data;
+      return { success: true };
     }
 
     // --------------------------------------------------------------------------
     // B. MASTER PRODUK, KEMASAN & PRICE TIERS
     // --------------------------------------------------------------------------
     case 'getProducts': {
-      const { data, error } = await (window.supabaseClient || supabase).rpc('getProducts');
-      if (error) {
-        console.error('Error getProducts:', error);
-        throw error;
-      }
-      return data || [];
+      const [prodsRes, batchesRes] = await Promise.all([
+        supabase
+          .from('products')
+          .select(`
+            *,
+            price_tiers (*),
+            packaging_types (*)
+          `)
+          .eq('is_active', true)
+          .order('name', { ascending: true }),
+        supabase
+          .from('stock_batches')
+          .select('*')
+          .gt('qty_remaining', 0)
+          .eq('quality_status', 'NORMAL')
+          .eq('qc_status', 'APPROVED')
+      ]);
+
+      if (prodsRes.error) throw prodsRes.error;
+
+      // Susun mapping batch dan total stok aktif per product_id
+      const batchMap = {};
+      const stockMap = {};
+      (batchesRes.data || []).forEach(b => {
+        if (!batchMap[b.product_id]) batchMap[b.product_id] = [];
+        batchMap[b.product_id].push(b);
+        stockMap[b.product_id] = (stockMap[b.product_id] || 0) + Number(b.qty_remaining || 0);
+      });
+
+      return (prodsRes.data || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        product_type: p.product_type,
+        variant: p.variant || '',
+        unit: p.unit || 'pcs',
+        photo_url: p.photo_url || '',
+        packaging_type_id: p.packaging_type_id,
+        harvest_days: p.harvest_days || 0,
+        active: p.is_active,
+        is_active: p.is_active,
+        stock: stockMap[p.id] || 0,
+        batches: batchMap[p.id] || [],
+        priceTiers: p.price_tiers || [],
+        packaging: p.packaging_types || null
+      }));
     }
 
     case 'saveProduct': {
-      const payload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
-      const { data, error } = await (window.supabaseClient || supabase).rpc('saveProduct', { product_payload: payload });
-      if (error) {
-        console.error('Error saveProduct:', error);
-        throw error;
-      }
-      return data;
-    }
+      const [, payload] = args;
+      const productObj = {
+        name: payload.name,
+        category: payload.category || 'Benih',
+        product_type: payload.product_type || 'raw_seed',
+        variant: payload.variant || '',
+        unit: payload.unit || 'pcs',
+        photo_url: payload.photo_url || '',
+        packaging_type_id: payload.packaging_type_id || null,
+        harvest_days: Number(payload.harvest_days) || 0,
+        is_active: payload.active !== false
+      };
 
-    case 'saveBundledProducts': {
-      const payload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
-      const { data, error } = await (window.supabaseClient || supabase).rpc('saveBundledProducts', { payload: payload });
-      if (error) {
-        console.error('Error saveBundledProducts:', error);
-        throw error;
+      let productId = payload.id;
+      if (productId) {
+        const { error } = await supabase.from('products').update(productObj).eq('id', productId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from('products').insert(productObj).select('id').single();
+        if (error) throw error;
+        productId = data.id;
       }
-      return data;
+
+      if (Array.isArray(payload.priceTiers)) {
+        await supabase.from('price_tiers').delete().eq('product_id', productId);
+        const tiersToInsert = payload.priceTiers
+          .filter(t => t.tier_name && Number(t.price) >= 0)
+          .map(t => ({
+            product_id: productId,
+            tier_name: t.tier_name,
+            price: Number(t.price)
+          }));
+        if (tiersToInsert.length > 0) {
+          await supabase.from('price_tiers').insert(tiersToInsert);
+        }
+      }
+
+      return { success: true, id: productId, message: 'Produk berhasil disimpan.' };
     }
 
     case 'deleteProduct': {
-      const prodId = (args[1] !== undefined) ? args[1] : args[0];
-      const { data, error } = await (window.supabaseClient || supabase).rpc('deleteProduct', { product_id: String(prodId) });
-      if (error) {
-        console.error('Error deleteProduct:', error);
-        throw error;
-      }
-      return data;
+      const [, productId] = args;
+      const { error } = await supabase
+        .from('products')
+        .update({ is_active: false })
+        .eq('id', productId);
+      if (error) throw error;
+      return { success: true };
     }
 
     // --------------------------------------------------------------------------
@@ -446,55 +516,139 @@ async function dispatchApiCall(fnName, args) {
     // D. PENGADAAN (PURCHASES, SUPPLIERS, FARMERS)
     // --------------------------------------------------------------------------
     case 'getPurchases': {
-      const { data, error } = await (window.supabaseClient || supabase).rpc('getPurchases');
+      const { data, error } = await supabase
+        .from('purchases')
+        .select('*, suppliers(name), farmers(name)')
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
-      return data || [];
+
+      return (data || []).map(p => ({
+        ...p,
+        supplier_name: p.suppliers ? p.suppliers.name : '(tidak diketahui)',
+        farmer_name: p.farmers ? p.farmers.name : (p.farmer_name || '-')
+      }));
     }
 
     case 'createPurchase': {
-      const pPayload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
-      const { data, error } = await (window.supabaseClient || supabase).rpc('createPurchase', { purchase_payload: pPayload });
-      if (error) throw error;
-      return data;
+      const [, purchase] = args;
+      const purchaseId = crypto.randomUUID();
+      const invoiceNo = purchase.invoice_no || `PUR-${Date.now().toString().slice(-6)}`;
+      const now = new Date().toISOString();
+
+      // 1. Simpan Header Pembelian
+      const { error: purErr } = await supabase.from('purchases').insert({
+        id: purchaseId,
+        invoice_no: invoiceNo,
+        supplier_id: purchase.supplier_id || null,
+        farmer_id: purchase.farmer_id || null,
+        total: Number(purchase.total || 0),
+        notes: purchase.notes || ''
+      });
+      if (purErr) throw purErr;
+
+      // 2. Simpan Item-Item menjadi Purchase Items, Stock Batches, dan Stock Movements
+      for (const item of (purchase.items || [])) {
+        const batchId = crypto.randomUUID();
+        const batchCode = item.batch_no ? String(item.batch_no).trim() : `B-${Date.now().toString().slice(-6)}`;
+        const qtyIn = Number(item.qty || 0);
+        const buyPrice = Number(item.buy_price || 0);
+        const additionalCost = Number(item.additional_cost || 0);
+        const costPerUnit = Number(item.cost_per_unit !== undefined ? item.cost_per_unit : (buyPrice + additionalCost));
+
+        // Benih curah masuk ke antrean PENDING_QC; non-benih/pabrikan langsung APPROVED & NORMAL
+        const isSeed = item.is_seed !== false && item.category !== 'Non-Benih';
+        const qcStatus = isSeed ? 'PENDING_QC' : 'APPROVED';
+        const qualityStatus = isSeed ? 'QUARANTINE' : 'NORMAL';
+
+        // 2a. Simpan ke purchase_items jika tabel tersedia
+        try {
+          await supabase.from('purchase_items').insert({
+            purchase_id: purchaseId,
+            product_id: item.product_id,
+            batch_no: batchCode,
+            qty: qtyIn,
+            buy_price: buyPrice,
+            additional_cost: additionalCost,
+            cost_per_unit: costPerUnit,
+            subtotal: qtyIn * costPerUnit,
+            production_date: item.production_date || null,
+            expiry_date: item.expiry_date || null
+          });
+        } catch (itemErr) {
+          console.warn('[Supabase] Warning saat insert purchase_items:', itemErr);
+        }
+
+        // 2b. Simpan ke stock_batches (cost_per_unit = HPP Final Landed Cost, buy_price = harga beli dasar)
+        await supabase.from('stock_batches').insert({
+          id: batchId,
+          batch_code: batchCode,
+          product_id: item.product_id,
+          purchase_id: purchaseId,
+          qty_in: qtyIn,
+          qty_remaining: qtyIn,
+          buy_price: buyPrice,
+          cost_per_unit: costPerUnit,
+          production_date: item.production_date || null,
+          expiry_date: item.expiry_date || null,
+          quality_status: qualityStatus,
+          qc_status: qcStatus
+        });
+
+        // 2c. Simpan riwayat mutasi masuk
+        await supabase.from('stock_movements').insert({
+          product_id: item.product_id,
+          batch_id: batchId,
+          type: 'purchase_in',
+          qty: qtyIn,
+          ref_id: purchaseId,
+          notes: `Pembelian #${invoiceNo}`
+        });
+      }
+
+      return { success: true, id: purchaseId, message: 'Faktur pembelian berhasil disimpan.' };
     }
 
     case 'deletePurchase': {
-      const purId = (args[1] !== undefined) ? args[1] : args[0];
-      const { data, error } = await (window.supabaseClient || supabase).rpc('deletePurchase', { purchase_id: String(purId) });
+      const [, purchaseId] = args;
+      try {
+        await supabase.from('purchase_items').delete().eq('purchase_id', purchaseId);
+      } catch (e) { }
+      await supabase.from('stock_batches').delete().eq('purchase_id', purchaseId);
+      await supabase.from('stock_movements').delete().eq('ref_id', purchaseId);
+      const { error } = await supabase.from('purchases').delete().eq('id', purchaseId);
       if (error) throw error;
-      return data;
+      return { success: true };
     }
 
     case 'getSuppliers': {
-      const { data, error } = await (window.supabaseClient || supabase).rpc('getSuppliers');
+      const { data, error } = await supabase.from('suppliers').select('*').order('name', { ascending: true });
       if (error) throw error;
       return data || [];
     }
 
     case 'saveSupplier': {
-      const sPayload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
-      const { data, error } = await (window.supabaseClient || supabase).rpc('saveSupplier', { supplier_payload: sPayload });
-      if (error) {
-        console.error('Error saveSupplier:', error);
-        throw error;
-      }
-      return data;
+      const [, supplier] = args;
+      const { data, error } = await supabase.from('suppliers').upsert(supplier).select().single();
+      if (error) throw error;
+      return { success: true, id: data.id };
     }
 
     case 'getFarmers': {
-      const { data, error } = await (window.supabaseClient || supabase).rpc('getFarmers');
+      const { data, error } = await supabase.from('farmers').select('*').order('name', { ascending: true });
       if (error) throw error;
       return data || [];
     }
 
     case 'saveFarmer': {
-      const fPayload = (args[1] && typeof args[1] === 'object') ? args[1] : (typeof args[0] === 'object' ? args[0] : {});
-      const { data, error } = await (window.supabaseClient || supabase).rpc('saveFarmer', { farmer_payload: fPayload });
-      if (error) {
-        console.error('Error saveFarmer:', error);
-        throw error;
-      }
-      return data;
+      const [, farmer] = args;
+      const code = farmer.code || (farmer.name ? farmer.name.slice(0, 3).toUpperCase() : 'FAR');
+      const { data, error } = await supabase.from('farmers').upsert({
+        ...farmer,
+        code: code
+      }).select().single();
+      if (error) throw error;
+      return { success: true, id: data.id, name: data.name, code: data.code };
     }
 
     // --------------------------------------------------------------------------
@@ -621,6 +775,45 @@ async function dispatchApiCall(fnName, args) {
       const { error } = await supabase.from('productions').delete().eq('id', productionId);
       if (error) throw error;
       return { success: true };
+    }
+
+    case 'saveBundledProducts': {
+      const [, payload] = args;
+      // Buat produk curah + varian kemasan sekaligus
+      const raw = payload.rawProduct || {};
+      const { data: rawProd, error: rawErr } = await supabase.from('products').insert({
+        name: raw.name,
+        category: raw.category || 'Benih',
+        product_type: 'raw_seed',
+        unit: 'gram',
+        is_active: true
+      }).select('id').single();
+
+      if (rawErr) throw rawErr;
+
+      const packList = payload.packProducts || payload.packagedProducts || [];
+      for (const pack of packList) {
+        const { data: pProd } = await supabase.from('products').insert({
+          name: pack.name,
+          category: raw.category || 'Benih',
+          product_type: 'packaged_seed',
+          variant: pack.variant || '',
+          unit: 'pcs',
+          packaging_type_id: pack.packaging_type_id || null,
+          is_active: true
+        }).select('id').single();
+
+        if (pProd && Array.isArray(pack.priceTiers)) {
+          const tiers = pack.priceTiers.map(t => ({
+            product_id: pProd.id,
+            tier_name: t.tier_name,
+            price: Number(t.price || 0)
+          }));
+          await supabase.from('price_tiers').insert(tiers);
+        }
+      }
+
+      return { success: true, raw_id: rawProd.id };
     }
 
     // --------------------------------------------------------------------------
@@ -1339,7 +1532,7 @@ async function dispatchApiCall(fnName, args) {
       const items = (batchesRes.data || []).map(b => {
         const prod = prodMap[b.product_id] || {};
         const qty = Number(b.qty_remaining || 0);
-        const buyPrice = Number(b.buy_price || 0);
+        const buyPrice = Number(b.cost_per_unit || b.buy_price || 0);
         const assetVal = qty * buyPrice;
 
         totalAssetValue += assetVal;
@@ -1402,36 +1595,14 @@ async function dispatchApiCall(fnName, args) {
       return { success: true };
     }
 
-    case 'getRolePermissions': {
-      const { data, error } = await supabase.rpc('getRolePermissions');
-      if (error) {
-        console.error('[Supabase Bridge] Error memanggil RPC getRolePermissions:', error);
-        return {
-          roles: ['Admin', 'Koordinator', 'QC', 'Kasir'],
-          permissions: {
-            Admin: { dashboard: { can_view: true, can_edit: true, can_delete: true } }
-          }
-        };
-      }
-      return data;
-    }
-
-    case 'saveRolePermissions': {
-      const payload = args[1] || args[0];
-      const { data, error } = await supabase.rpc('saveRolePermissions', { permissions_payload: payload });
-      if (error) {
-        console.error('[Supabase Bridge] Error memanggil RPC saveRolePermissions:', error);
-        throw error;
-      }
-      return data || { success: true };
-    }
-
     // --------------------------------------------------------------------------
     // M. TAMBAHAN FITUR: BATCH, MUTASI, OUTLET DETAIL & DANGER ZONE
     // --------------------------------------------------------------------------
     case 'getStockBatches': {
-      const pId = (args[1] !== undefined) ? args[1] : args[0];
-      const { data, error } = await (window.supabaseClient || supabase).rpc('getStockBatches', { prod_id: String(pId) });
+      const [, productId] = args;
+      let q = supabase.from('stock_batches').select('*').order('expiry_date', { ascending: true });
+      if (productId) q = q.eq('product_id', productId);
+      const { data, error } = await q;
       if (error) throw error;
       return data || [];
     }
@@ -1617,7 +1788,7 @@ async function dispatchApiCall(fnName, args) {
 }
 
 // Ekspor fungsi ke objek global window agar dapat diakses dari seluruh modul frontend
-window.supabaseClient = supabase;
+window.supabase = supabase;
 window.api = api;
 window.dispatchApiCall = dispatchApiCall;
 window.loginSupabaseUser = loginSupabaseUser;
@@ -1633,4 +1804,3 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
-  })();

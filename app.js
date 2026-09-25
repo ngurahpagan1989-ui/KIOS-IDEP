@@ -83,11 +83,6 @@ let SELECTED_FAKTUR_ID = null;
 let EDITING_TRANSACTION = null;
 let CART = [];
 let APP_SETTINGS = {};
-const DEFAULT_BANK_SETTINGS = {
-  bank_name: "BNI (Bank Negara Indonesia)",
-  bank_account_no: "0178 849 203",
-  bank_account_name: "Yayasan IDEP Selaras Alam"
-};
 let CURRENT_PRODUCT_TAB = 'all';
 let PRODUCT_SEARCH_QUERY = '';
 let ACTIVE_REQUESTS_COUNT = 0;
@@ -751,7 +746,6 @@ function router(forceRefresh) {
     'purna-jual': 'Purna Jual & Kepuasan Pelanggan',
     'laporan': 'Laporan Penjualan & Margin',
     'pengaturan': 'Pengaturan Sistem',
-    'settings': 'Pengaturan Sistem',
     'faktur': 'Riwayat Transaksi & Faktur'
   };
   if (titleEl) titleEl.textContent = routeTitles[route] || 'E-Kasir';
@@ -776,7 +770,6 @@ function router(forceRefresh) {
     case 'valuasi-stok':
       switchLaporanMainView('stock_valuation');
       break;
-    case 'settings':
     case 'pengaturan': renderPengaturan(forceRefresh); break;
     case 'faktur': renderFaktur(forceRefresh); break;
     default: renderPlaceholder(route); break;
@@ -1731,7 +1724,10 @@ function showBatchDetail(productId, productName) {
         '<td>' + formatDate(b.received_at) + '</td>' +
         '<td>' + (b.qty_in || 0) + '</td>' +
         '<td><strong style="color:var(--primary);">' + (b.qty_remaining || 0) + '</strong></td>' +
-        '<td>' + formatRupiah(b.buy_price) + '</td>' +
+        '<td><strong style="color:var(--primary);">' + formatRupiah(b.cost_per_unit || b.buy_price) + '</strong>' +
+        ((b.cost_per_unit && Number(b.cost_per_unit) !== Number(b.buy_price) && Number(b.buy_price) > 0)
+          ? '<br><span style="font-size:10px;color:var(--text-secondary);">(Beli: ' + formatRupiah(b.buy_price) + ')</span>'
+          : '') + '</td>' +
         '<td>' + expiryBadge + '</td>' +
         '</tr>';
     }).join('');
@@ -3113,12 +3109,12 @@ function openPurchaseModal() {
   const bodyHtml =
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px;">' +
     '<div>' +
-      '<label class="field-label" style="font-weight:600;font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Supplier</label>' +
-      '<div style="display:flex;gap:6px;">' +
-      '<select id="pur-supplier" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);font-size:0.875rem;"></select>' +
-      '<button type="button" class="btn btn-secondary btn-sm" style="flex-shrink:0;white-space:nowrap;padding:6px 12px;" onclick="openSupplierModal()">+ Baru</button>' +
-      '</div>' +
-      '</div>' +
+    '<label class="field-label">Supplier</label>' +
+    '<div style="display:flex;gap:6px;">' +
+    '<select id="pur-supplier" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);"></select>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="openSupplierModal()">+ Baru</button>' +
+    '</div>' +
+    '</div>' +
     '<div>' +
     '<label class="field-label">Nama Petani / Penangkar Mitra</label>' +
     '<div style="display:flex;gap:6px;">' +
@@ -3144,9 +3140,33 @@ function openPurchaseModal() {
     '</div>' +
     '</div>' +
     '<div class="field-group">' +
-    '<label class="field-label">Daftar Item Pembelian</label>' +
-    '<div id="pur-items" style="max-height:360px;overflow-y:auto;padding-right:4px;"></div>' +
-    '<button type="button" class="btn btn-secondary btn-sm" onclick="addPurchaseItemRow()" style="margin-top:8px;">+ Tambah Baris Barang</button>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+    '<label class="field-label" style="margin-bottom:0;">Daftar Item Pembelian &amp; Perhitungan HPP (Landed Cost)</label>' +
+    '<span style="font-size:11px;color:var(--text-secondary);"><i class="fas fa-calculator" style="margin-right:4px;"></i>Rumus: <strong>HPP Final = Harga Beli + Biaya Tambahan/Pcs</strong></span>' +
+    '</div>' +
+    '<div class="purchase-items-wrapper">' +
+    '<div class="purchase-items-table">' +
+    '<div class="purchase-grid-header">' +
+    '<div>Nama Produk</div>' +
+    '<div>No. Batch / Lot</div>' +
+    '<div style="text-align:center;">Qty</div>' +
+    '<div>Harga Beli (Rp)</div>' +
+    '<div>Biaya Ekstra/Pcs (Rp)</div>' +
+    '<div>HPP Final/Pcs (Rp)</div>' +
+    '<div>Tgl Produksi</div>' +
+    '<div>Tgl Kadaluarsa</div>' +
+    '<div style="text-align:center;">Aksi</div>' +
+    '</div>' +
+    '<div id="pur-items" style="max-height:360px;overflow-y:auto;"></div>' +
+    '</div>' +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:10px;">' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="addPurchaseItemRow()">+ Tambah Baris Barang</button>' +
+    '<div style="display:flex;gap:18px;align-items:center;">' +
+    '<div style="font-size:12px;color:var(--text-secondary);">Total Item Qty: <strong id="pur-total-qty" style="color:var(--text-main);font-size:13px;">0</strong></div>' +
+    '<div style="font-size:13px;font-weight:700;color:var(--primary,#1b5e20);">Total Pengadaan: <span id="pur-grand-total" style="font-size:15px;color:var(--primary,#1b5e20);">Rp 0</span></div>' +
+    '</div>' +
+    '</div>' +
     '</div>';
 
   const footerHtml =
@@ -3154,6 +3174,10 @@ function openPurchaseModal() {
     '<button type="button" class="btn btn-primary" onclick="submitPurchase()">Simpan Faktur Pembelian</button>';
 
   openModal('Pembelian / Pengadaan Baru', bodyHtml, footerHtml, true);
+  const dialog = document.getElementById('modal-dialog');
+  if (dialog) {
+    dialog.style.maxWidth = '1120px';
+  }
   renderSupplierOptions();
   renderFarmerOptions();
   addPurchaseItemRow();
@@ -3165,7 +3189,6 @@ function openPurchaseModal() {
     });
   }
 }
-window.openPurchaseModal = openPurchaseModal;
 
 function buildProductOptionsHTML(category, selectedId) {
   const list = PRODUCTS_CACHE || [];
@@ -3187,6 +3210,53 @@ function buildProductOptionsHTML(category, selectedId) {
   }).join('');
 }
 
+function calculatePurchaseRowHPP(targetEl) {
+  if (!targetEl) return;
+  const row = targetEl.closest ? targetEl.closest('.price-tier-row') : targetEl;
+  if (!row) return;
+
+  const priceInput = row.querySelector('.pi-price, .pur-item-buy-price');
+  const extraInput = row.querySelector('.pur-item-cost-extra');
+  const hppDisplay = row.querySelector('.pur-item-hpp-display');
+
+  const buyPrice = parseFloat(priceInput ? priceInput.value : 0) || 0;
+  const extraCost = parseFloat(extraInput ? extraInput.value : 0) || 0;
+  const hppFinal = Math.max(0, buyPrice + extraCost);
+
+  if (hppDisplay) {
+    const formatted = formatRupiah(hppFinal);
+    if (hppDisplay.tagName === 'INPUT') {
+      hppDisplay.value = formatted;
+    } else {
+      hppDisplay.textContent = formatted;
+    }
+    hppDisplay.dataset.value = hppFinal;
+  }
+
+  updatePurchaseModalTotal();
+}
+
+function updatePurchaseModalTotal() {
+  const grandTotalEl = document.getElementById('pur-grand-total');
+  const totalQtyEl = document.getElementById('pur-total-qty');
+  if (!grandTotalEl && !totalQtyEl) return;
+
+  let grandTotal = 0;
+  let totalQty = 0;
+  const rows = document.querySelectorAll('#pur-items .price-tier-row');
+  rows.forEach(function (r) {
+    const qty = parseFloat(r.querySelector('.pi-qty') ? r.querySelector('.pi-qty').value : 0) || 0;
+    const price = parseFloat(r.querySelector('.pi-price, .pur-item-buy-price') ? r.querySelector('.pi-price, .pur-item-buy-price').value : 0) || 0;
+    const extra = parseFloat(r.querySelector('.pur-item-cost-extra') ? r.querySelector('.pur-item-cost-extra').value : 0) || 0;
+    const hpp = price + extra;
+    grandTotal += (qty * hpp);
+    totalQty += qty;
+  });
+
+  if (grandTotalEl) grandTotalEl.textContent = formatRupiah(grandTotal);
+  if (totalQtyEl) totalQtyEl.textContent = totalQty.toLocaleString('id-ID');
+}
+
 function addPurchaseItemRow() {
   const catFilter = document.getElementById('pur-cat-filter') ? document.getElementById('pur-cat-filter').value : 'all';
   const container = document.getElementById('pur-items');
@@ -3194,44 +3264,45 @@ function addPurchaseItemRow() {
 
   const todayStr = new Date().toISOString().split('T')[0];
   const row = document.createElement('div');
-  row.className = 'price-tier-row';
-  row.style.cssText = 'background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;';
+  row.className = 'price-tier-row pur-item-row';
 
   row.innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">' +
-    '<select class="pi-product" onchange="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;font-weight:600;">' +
+    '<div>' +
+    '<select class="pi-product pur-item-product" onchange="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;font-size:12px;font-weight:600;">' +
     buildProductOptionsHTML(catFilter) +
     '</select>' +
-    '<button type="button" class="btn btn-danger btn-sm" onclick="this.closest(\'.price-tier-row\').remove();renumberPurchaseBatchSequences();">&times; Hapus</button>' +
     '</div>' +
-    '<div style="display:grid;grid-template-columns:1.6fr 80px 120px 130px 130px;gap:8px;">' +
     '<div>' +
-    '<div style="font-size:10px;font-weight:700;color:var(--text-secondary);margin-bottom:2px;">NO. BATCH / LOT</div>' +
     '<div style="display:flex;gap:4px;">' +
-    '<input type="text" class="pi-lot" oninput="this.dataset.manual=\'true\'" placeholder="Auto / Manual" style="flex:1;width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);font-family:\'JetBrains Mono\',monospace;">' +
-    '<button type="button" class="btn-regen-batch" title="Generate ulang kode acak" onclick="regenerateBatchRow(this)">🔄</button>' +
+    '<input type="text" class="pi-lot pur-item-lot" oninput="this.dataset.manual=\'true\'" placeholder="Auto / Manual" style="flex:1;min-width:0;width:100%;padding:6px 6px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);font-family:\'JetBrains Mono\',monospace;">' +
+    '<button type="button" class="btn-regen-batch" title="Generate ulang kode acak" onclick="regenerateBatchRow(this)" style="padding:4px 6px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-xs);cursor:pointer;font-size:11px;">🔄</button>' +
     '</div>' +
     '</div>' +
     '<div>' +
-    '<div style="font-size:10px;font-weight:700;color:var(--text-secondary);margin-bottom:2px;">QTY</div>' +
-    '<input type="number" class="pi-qty" placeholder="Qty" min="1" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '<input type="number" class="pi-qty pur-item-qty" placeholder="Qty" min="1" value="1" oninput="calculatePurchaseRowHPP(this)" style="width:100%;padding:6px 4px;font-size:12px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
     '</div>' +
     '<div>' +
-    '<div style="font-size:10px;font-weight:700;color:var(--text-secondary);margin-bottom:2px;">HARGA BELI</div>' +
-    '<input type="number" class="pi-price" placeholder="Rp" min="0" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '<input type="number" class="pi-price pur-item-buy-price" placeholder="0" min="0" oninput="calculatePurchaseRowHPP(this)" style="width:100%;padding:6px 6px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);text-align:right;">' +
     '</div>' +
     '<div>' +
-    '<div style="font-size:10px;font-weight:700;color:var(--text-secondary);margin-bottom:2px;">TGL PRODUKSI</div>' +
-    '<input type="date" class="pi-prod-date" value="' + todayStr + '" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '<input type="number" class="pur-item-cost-extra pi-cost-extra" placeholder="0" min="0" value="0" oninput="calculatePurchaseRowHPP(this)" style="width:100%;padding:6px 6px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);text-align:right;">' +
     '</div>' +
     '<div>' +
-    '<div style="font-size:10px;font-weight:700;color:var(--text-secondary);margin-bottom:2px;">TGL KADALUARSA</div>' +
-    '<input type="date" class="pi-expiry" onchange="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" oninput="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '<input type="text" class="pur-item-hpp-display" readonly value="Rp 0" data-value="0" title="HPP Final / Pcs = Harga Beli + Biaya Ekstra" style="width:100%;padding:6px 6px;font-size:12px;font-weight:700;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-xs);cursor:default;text-align:right;">' +
     '</div>' +
+    '<div>' +
+    '<input type="date" class="pi-prod-date pur-item-prod-date" value="' + todayStr + '" style="width:100%;padding:6px 4px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '</div>' +
+    '<div>' +
+    '<input type="date" class="pi-expiry pur-item-expiry" onchange="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" oninput="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" style="width:100%;padding:6px 4px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '</div>' +
+    '<div style="text-align:center;">' +
+    '<button type="button" class="btn btn-danger btn-sm" onclick="this.closest(\'.price-tier-row\').remove();renumberPurchaseBatchSequences();updatePurchaseModalTotal();" title="Hapus baris" style="padding:4px 8px;font-size:12px;line-height:1;">&times;</button>' +
     '</div>';
 
   container.appendChild(row);
   autoFillPurchaseRowBatch(row, false);
+  calculatePurchaseRowHPP(row);
 }
 
 function cleanFarmerInitialClient(farmerName) {
@@ -3551,9 +3622,9 @@ function openSupplierModal() {
     '<button type="button" class="modal-close-btn" id="sup-close">&times;</button>' +
     '</div>' +
     '<div class="modal-body">' +
-    '<div class="field-group"><label class="field-label">Nama Supplier *</label><div class="input-wrapper"><input type="text" id="sup-name" placeholder="Nama Supplier / Toko" style="padding-left:14px;"></div></div>' +
-    '<div class="field-group"><label class="field-label">Kontak WhatsApp</label><div class="input-wrapper"><input type="text" id="sup-contact" placeholder="Contoh: 08123456789" style="padding-left:14px;"></div></div>' +
-    '<div class="field-group"><label class="field-label">Alamat</label><div class="input-wrapper"><input type="text" id="sup-address" placeholder="Alamat / Kota" style="padding-left:14px;"></div></div>' +
+    '<div class="field-group"><label class="field-label">Nama Supplier</label><div class="input-wrapper"><input type="text" id="sup-name" style="padding-left:14px;"></div></div>' +
+    '<div class="field-group"><label class="field-label">Kontak WhatsApp</label><div class="input-wrapper"><input type="text" id="sup-contact" style="padding-left:14px;"></div></div>' +
+    '<div class="field-group"><label class="field-label">Alamat</label><div class="input-wrapper"><input type="text" id="sup-address" style="padding-left:14px;"></div></div>' +
     '</div>' +
     '<div class="modal-footer">' +
     '<button type="button" class="btn btn-secondary" id="sup-cancel">Batal</button>' +
@@ -3568,28 +3639,19 @@ function openSupplierModal() {
   overlay.querySelector('#sup-save').onclick = function () {
     const name = document.getElementById('sup-name').value.trim();
     if (!name) { showToast('Nama supplier wajib diisi.', true); return; }
-    const contact = document.getElementById('sup-contact').value.trim();
-    const address = document.getElementById('sup-address').value.trim();
-
     api('saveSupplier', TOKEN, {
       name: name,
-      contact: contact,
-      address: address
+      contact: document.getElementById('sup-contact').value.trim(),
+      address: document.getElementById('sup-address').value.trim()
     }).then(function (res) {
       invalidateCache('suppliers');
-      const savedId = (res && typeof res === 'object') ? (res.id || res.supplier_id || res.data || ('sup-' + Date.now())) : (res || ('sup-' + Date.now()));
-      if (!Array.isArray(SUPPLIERS_CACHE)) SUPPLIERS_CACHE = [];
-      SUPPLIERS_CACHE.push({ id: savedId, name: name, contact: contact, address: address });
-      renderSupplierOptions(savedId);
+      SUPPLIERS_CACHE.push({ id: res.id, name: name });
+      renderSupplierOptions(res.id);
       showToast('Supplier ditambahkan.');
       close();
-    }).catch(function (err) {
-      console.error('Error saveSupplier:', err);
-      showToast('Gagal: ' + (err.message || err), true);
-    });
+    }).catch(function (err) { showToast('Gagal: ' + (err.message || err), true); });
   };
 }
-window.openSupplierModal = openSupplierModal;
 
 function renderFarmerOptions(selectedId) {
   const select = document.getElementById('pur-farmer');
@@ -3671,71 +3733,6 @@ function openFarmerModal() {
   };
 }
 
-function openSupplierModal() {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.style.zIndex = '2100';
-  overlay.innerHTML =
-    '<div class="modal-backdrop"></div>' +
-    '<div class="modal-dialog modal-dialog-sm">' +
-    '<div class="modal-header">' +
-    '<h3 class="modal-title">Supplier Baru</h3>' +
-    '<button type="button" class="modal-close-btn" id="sup-close">&times;</button>' +
-    '</div>' +
-    '<div class="modal-body">' +
-    '<div class="field-group"><label class="field-label">Nama Supplier *</label><div class="input-wrapper"><input type="text" id="sup-name" placeholder="Contoh: CV Mitra Pertanian" class="input"></div></div>' +
-    '<div class="field-group"><label class="field-label">Nomor Kontak WhatsApp</label><div class="input-wrapper"><input type="text" id="sup-contact" placeholder="08123456789" class="input"></div></div>' +
-    '<div class="field-group"><label class="field-label">Alamat</label><div class="input-wrapper"><textarea id="sup-address" placeholder="Alamat supplier..." class="input" rows="2"></textarea></div></div>' +
-    '</div>' +
-    '<div class="modal-footer">' +
-    '<button type="button" class="btn btn-secondary" id="sup-cancel">Batal</button>' +
-    '<button type="button" class="btn btn-primary" id="sup-save">Simpan</button>' +
-    '</div>' +
-    '</div>';
-
-  document.body.appendChild(overlay);
-
-  const close = function () { overlay.remove(); };
-  overlay.querySelector('#sup-close').onclick = close;
-  overlay.querySelector('#sup-cancel').onclick = close;
-
-  overlay.querySelector('#sup-save').onclick = function () {
-    const name = document.getElementById('sup-name').value.trim();
-    const contact = document.getElementById('sup-contact').value.trim();
-    const address = document.getElementById('sup-address').value.trim();
-
-    if (!name) {
-      alert('Nama supplier wajib diisi!');
-      return;
-    }
-
-    const btn = this;
-    btn.disabled = true;
-    btn.innerText = 'Menyimpan...';
-
-    api('saveSupplier', TOKEN, { name: name, contact: contact, address: address }).then(function (res) {
-      alert('Supplier berhasil disimpan!');
-      overlay.remove();
-
-      // Segarkan pilihan dropdown supplier di modal pembelian
-      api('getSuppliers', TOKEN).then(function (suppliers) {
-        const select = document.getElementById('pur-supplier');
-        if (select) {
-          select.innerHTML = '<option value="">-- Pilih Supplier --</option>' +
-            suppliers.map(function (s) {
-              return '<option value="' + s.id + '" ' + (s.name === name ? 'selected' : '') + '>' + s.name + '</option>';
-            }).join('');
-        }
-      });
-    }).catch(function (err) {
-      alert('Gagal menyimpan supplier: ' + (err.message || err));
-      btn.disabled = false;
-      btn.innerText = 'Simpan';
-    });
-  };
-}
-window.openFarmerModal = openFarmerModal;
-
 function onFarmerSelectedChange(farmerId) {
   document.querySelectorAll('#pur-items .price-tier-row').forEach(function (row) {
     autoFillPurchaseRowBatch(row, false);
@@ -3780,26 +3777,44 @@ function submitPurchase() {
       const expVal = row.querySelector('.pi-expiry') ? row.querySelector('.pi-expiry').value : '';
       batchNo = generateClientBatchCode(farmerId || farmerName, expVal, idx + 1);
     }
+
+    const buyPrice = Number(row.querySelector('.pi-price, .pur-item-buy-price') ? row.querySelector('.pi-price, .pur-item-buy-price').value : 0) || 0;
+    const additionalCost = Number(row.querySelector('.pur-item-cost-extra') ? row.querySelector('.pur-item-cost-extra').value : 0) || 0;
+    const hppDisplay = row.querySelector('.pur-item-hpp-display');
+    let costPerUnit = (hppDisplay && hppDisplay.dataset && hppDisplay.dataset.value !== undefined)
+      ? Number(hppDisplay.dataset.value)
+      : (buyPrice + additionalCost);
+    if (isNaN(costPerUnit) || costPerUnit <= 0) {
+      costPerUnit = buyPrice + additionalCost;
+    }
+
     return {
       product_id: row.querySelector('.pi-product').value,
       batch_no: batchNo,
       qty: Number(row.querySelector('.pi-qty').value || 0),
-      buy_price: Number(row.querySelector('.pi-price').value || 0),
+      buy_price: buyPrice,
+      additional_cost: additionalCost,
+      cost_per_unit: costPerUnit,
       production_date: prodDateVal || todayStr,
       expiry_date: row.querySelector('.pi-expiry').value || ''
     };
   }).filter(function (i) { return i.product_id && i.qty > 0 && i.buy_price > 0; });
 
   if (items.length === 0) {
-    showToast('Minimal 1 item pembelian valid harus terisi.', true);
+    showToast('Minimal 1 item pembelian valid harus terisi (Qty & Harga Beli harus lebih dari 0).', true);
     return;
   }
+
+  const grandTotal = items.reduce(function (sum, item) {
+    return sum + (item.qty * item.cost_per_unit);
+  }, 0);
 
   api('createPurchase', TOKEN, {
     supplier_id: supplierId,
     farmer_id: farmerId,
     farmer_name: farmerName,
     invoice_no: invoiceNo,
+    total: grandTotal,
     items: items
   }).then(function () {
     invalidateCache('purchases');
@@ -4651,13 +4666,7 @@ function generateMiniReceiptHTML(data) {
       '<div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Pajak:</span><span>' + formatRupiah(tax) + '</span></div>' : '') +
     '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px;"><span>TOTAL:</span><span>' + formatRupiah(data.total) + '</span></div>' +
     '</div>' +
-    '<div style="border-top:1px dashed #222;margin-top:8px;padding-top:6px;text-align:center;font-size:9.5px;color:#111;">' +
-    '<div style="font-weight:700;letter-spacing:0.3px;margin-bottom:2px;">REKENING RESMI PEMBAYARAN BANK:</div>' +
-    '<div>' + escapeHtml((APP_SETTINGS && APP_SETTINGS['bank_name']) || DEFAULT_BANK_SETTINGS.bank_name) + '</div>' +
-    '<div style="font-weight:800;font-size:11px;font-family:monospace;letter-spacing:0.5px;">' + escapeHtml((APP_SETTINGS && APP_SETTINGS['bank_account_no']) || DEFAULT_BANK_SETTINGS.bank_account_no) + '</div>' +
-    '<div>A.N. ' + escapeHtml((APP_SETTINGS && APP_SETTINGS['bank_account_name']) || DEFAULT_BANK_SETTINGS.bank_account_name) + '</div>' +
-    '</div>' +
-    '<div style="border-top:1px dashed #222;margin-top:8px;padding-top:8px;text-align:center;font-size:10px;color:#444;">' +
+    '<div style="border-top:1px dashed #222;margin-top:10px;padding-top:8px;text-align:center;font-size:10px;color:#444;">' +
     escapeHtml(footerText) +
     '<div style="margin-top:4px;font-size:9px;color:#777;">Simpan struk ini sebagai bukti pembayaran benih.</div>' +
     '</div>' +
@@ -4829,16 +4838,7 @@ function printInvoiceA4(invoiceData) {
     '</tfoot>' +
     '</table>' +
 
-    '<div style="margin-top:14px;padding:10px 14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:6px;font-size:9.5pt;display:flex;align-items:center;gap:12px;">' +
-    '<div style="font-size:24px;line-height:1;">🏦</div>' +
-    '<div style="line-height:1.4;">' +
-    '<div style="font-weight:700;color:#1E4D3F;font-size:9.5pt;">INFORMASI REKENING RESMI PEMBAYARAN BANK:</div>' +
-    '<div>Bank: <strong>' + escapeHtml((s && s.bank_name) || (APP_SETTINGS && APP_SETTINGS.bank_name) || DEFAULT_BANK_SETTINGS.bank_name) + '</strong> &bull; No. Rekening: <strong style="font-family:monospace;font-size:10.5pt;letter-spacing:0.5px;">' + escapeHtml((s && s.bank_account_no) || (APP_SETTINGS && APP_SETTINGS.bank_account_no) || DEFAULT_BANK_SETTINGS.bank_account_no) + '</strong></div>' +
-    '<div>Atas Nama: <strong>' + escapeHtml((s && s.bank_account_name) || (APP_SETTINGS && APP_SETTINGS.bank_account_name) || DEFAULT_BANK_SETTINGS.bank_account_name) + '</strong> &bull; <span style="font-size:8.5pt;color:#6B7280;">Mohon cantumkan No. Faktur pada berita transfer</span></div>' +
-    '</div>' +
-    '</div>' +
-
-    '<div style="display:flex;justify-content:space-between;gap:40px;margin-top:30px;padding-top:16px;text-align:center;">' +
+    '<div style="display:flex;justify-content:space-between;gap:40px;margin-top:40px;padding-top:20px;text-align:center;">' +
     '<div style="width:200px;">' +
     '<div style="font-weight:600;color:#4B5563;">Tanda Terima Pelanggan,</div>' +
     '<div style="height:60px;"></div>' +
@@ -5356,13 +5356,7 @@ function renderThermalReceiptHTML(data, isActive) {
     '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px;"><span>TOTAL:</span><span>' + formatRupiah(tx.total) + '</span></div>' +
     (rec && !isVoid ? '<div style="display:flex;justify-content:space-between;font-size:11px;color:#DC2626;margin-top:2px;"><span>Sisa Piutang:</span><span>' + formatRupiah(rec.remaining) + '</span></div>' : '') +
     '</div>' +
-    '<div style="border-top:1px dashed #222;margin-top:8px;padding-top:6px;text-align:center;font-size:9.5px;color:#111;">' +
-    '<div style="font-weight:700;letter-spacing:0.3px;margin-bottom:2px;">REKENING RESMI PEMBAYARAN BANK:</div>' +
-    '<div>' + escapeHtml((s && s.bank_name) || (APP_SETTINGS && APP_SETTINGS.bank_name) || DEFAULT_BANK_SETTINGS.bank_name) + '</div>' +
-    '<div style="font-weight:800;font-size:11px;font-family:monospace;letter-spacing:0.5px;">' + escapeHtml((s && s.bank_account_no) || (APP_SETTINGS && APP_SETTINGS.bank_account_no) || DEFAULT_BANK_SETTINGS.bank_account_no) + '</div>' +
-    '<div>A.N. ' + escapeHtml((s && s.bank_account_name) || (APP_SETTINGS && APP_SETTINGS.bank_account_name) || DEFAULT_BANK_SETTINGS.bank_account_name) + '</div>' +
-    '</div>' +
-    '<div style="border-top:1px dashed #222;margin-top:8px;padding-top:8px;text-align:center;font-size:10px;color:#444;">' +
+    '<div style="border-top:1px dashed #222;margin-top:10px;padding-top:8px;text-align:center;font-size:10px;color:#444;">' +
     escapeHtml(s.invoice_footer || 'Terima kasih atas kunjungan Anda. Salam Lestari!') +
     '<div style="margin-top:3px;font-size:9px;color:#666;">Simpan struk ini sebagai bukti transaksi benih resmi.</div>' +
     '</div>' +
@@ -5451,14 +5445,7 @@ function renderMinimalistInvoiceHTML(data, isActive) {
     (rec && !isVoid ? '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:12px;color:#DC2626;font-weight:700;"><span>Sisa Piutang:</span><span>' + formatRupiah(rec.remaining) + '</span></div>' : '') +
     '</div>' +
     '</div>' +
-    '<div style="margin-top:16px;padding:10px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;font-size:11px;display:flex;align-items:center;gap:10px;">' +
-    '<span style="font-size:20px;">🏦</span>' +
-    '<div>' +
-    '<div style="font-weight:700;color:#1E4D3F;font-size:11.5px;">REKENING RESMI PEMBAYARAN BANK:</div>' +
-    '<div>Bank: <strong>' + escapeHtml((s && s.bank_name) || (APP_SETTINGS && APP_SETTINGS.bank_name) || DEFAULT_BANK_SETTINGS.bank_name) + '</strong> &bull; Rek: <strong style="font-family:monospace;font-size:12px;">' + escapeHtml((s && s.bank_account_no) || (APP_SETTINGS && APP_SETTINGS.bank_account_no) || DEFAULT_BANK_SETTINGS.bank_account_no) + '</strong> &bull; A.N: <strong>' + escapeHtml((s && s.bank_account_name) || (APP_SETTINGS && APP_SETTINGS.bank_account_name) || DEFAULT_BANK_SETTINGS.bank_account_name) + '</strong></div>' +
-    '</div>' +
-    '</div>' +
-    '<div style="margin-top:20px;padding-top:12px;border-top:1px dashed #CBD5E1;font-size:11px;color:#64748B;text-align:center;">' +
+    '<div style="margin-top:28px;padding-top:12px;border-top:1px dashed #CBD5E1;font-size:11px;color:#64748B;text-align:center;">' +
     escapeHtml(s.invoice_footer || 'Terima kasih telah berbelanja di Kios IDEP. Salam Lestari!') +
     '</div>' +
     '</div>';
@@ -5563,8 +5550,8 @@ function renderFormalInvoiceHTML(data, isActive) {
     '<div style="font-size:24px;line-height:1;">🏦</div>' +
     '<div style="line-height:1.4;">' +
     '<div style="font-weight:700;color:#7A5031;font-size:11.5px;">INFORMASI PEMBAYARAN TRANSFER BANK RESMI:</div>' +
-    '<div>Bank: <strong>' + escapeHtml((s && s.bank_name) || (APP_SETTINGS && APP_SETTINGS.bank_name) || DEFAULT_BANK_SETTINGS.bank_name) + '</strong> &bull; No. Rekening: <strong style="font-family:monospace;font-size:12px;letter-spacing:0.5px;">' + escapeHtml((s && s.bank_account_no) || (APP_SETTINGS && APP_SETTINGS.bank_account_no) || DEFAULT_BANK_SETTINGS.bank_account_no) + '</strong></div>' +
-    '<div>Atas Nama: <strong>' + escapeHtml((s && s.bank_account_name) || (APP_SETTINGS && APP_SETTINGS.bank_account_name) || DEFAULT_BANK_SETTINGS.bank_account_name) + '</strong> &bull; <span style="font-size:10px;color:#6B5749;">Mohon cantumkan No. Faktur pada berita transfer</span></div>' +
+    '<div>Bank: <strong>BNI (Bank Negara Indonesia)</strong> &bull; No. Rekening: <strong style="font-family:monospace;font-size:12px;letter-spacing:0.5px;">0178 849 203</strong></div>' +
+    '<div>Atas Nama: <strong>Yayasan IDEP Selaras Alam</strong> &bull; <span style="font-size:10px;color:#6B5749;">Mohon cantumkan No. Faktur pada berita transfer</span></div>' +
     '</div>' +
     '</div>' +
     '<div style="display:flex;justify-content:space-between;gap:30px;margin-top:24px;padding-top:10px;font-size:11.5px;text-align:center;">' +
@@ -8106,6 +8093,7 @@ function drawPiutangUI(list) {
 
 
 function openPaymentReceivableModal(recId, remaining, customerName) {
+  // Defensive swap if arguments are passed as (recId, customerName, remaining)
   if (typeof remaining === 'string' && typeof customerName === 'number') {
     const tmp = remaining;
     remaining = customerName;
@@ -8139,7 +8127,7 @@ function openPaymentReceivableModal(recId, remaining, customerName) {
 
   const footerHtml =
     '<button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
-    '<button type="button" class="btn btn-primary" id="btn-submit-rec-pay" onclick="submitReceivablePayment(\'' + recId + '\')">Simpan Pembayaran</button>';
+    '<button type="button" class="btn btn-primary" id="btn-submit-rec-pay" onclick="submitReceivablePayment('' + recId + '')">Simpan Pembayaran</button>';
 
   openModal('Catat Angsuran / Pelunasan Piutang', bodyHtml, footerHtml);
 }
@@ -8281,7 +8269,7 @@ function openCustomerFormModal(customerId) {
 
   const footerHtml =
     '<button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
-    '<button type="button" class="btn btn-primary" onclick="submitCustomerForm(\'' + (customerId || '') + '\')">Simpan Pelanggan</button>';
+    '<button type="button" class="btn btn-primary" onclick="submitCustomerForm('' + (customerId || '') + '')">Simpan Pelanggan</button>';
 
   openModal(c ? 'Edit Data Pelanggan' : 'Pelanggan Baru', bodyHtml, footerHtml);
 }
@@ -11295,65 +11283,12 @@ let CURRENT_SELECTED_ROLE_TAB = 'Admin';
 let CURRENT_USERS_LIST = [];
 let CURRENT_SETTINGS_SUBTAB = 'profile';
 
-function applyBankSettingsDefaults(s) {
-  if (!s) return;
-  if (!s.bank_name || !String(s.bank_name).trim()) s.bank_name = DEFAULT_BANK_SETTINGS.bank_name;
-  if (!s.bank_account_no || !String(s.bank_account_no).trim()) s.bank_account_no = DEFAULT_BANK_SETTINGS.bank_account_no;
-  if (!s.bank_account_name || !String(s.bank_account_name).trim()) s.bank_account_name = DEFAULT_BANK_SETTINGS.bank_account_name;
-}
-
-function populateBankInputs(s) {
-  if (!s) s = APP_SETTINGS || {};
-  const bankNameInput = document.getElementById('set-bank-name') || document.querySelector('[data-setting="bank_name"]');
-  const bankAccNoInput = document.getElementById('set-bank-acc-no') || document.querySelector('[data-setting="bank_account_no"]');
-  const bankAccNameInput = document.getElementById('set-bank-acc-name') || document.querySelector('[data-setting="bank_account_name"]');
-
-  const bName = s.bank_name || DEFAULT_BANK_SETTINGS.bank_name;
-  const bAccNo = s.bank_account_no || DEFAULT_BANK_SETTINGS.bank_account_no;
-  const bAccName = s.bank_account_name || DEFAULT_BANK_SETTINGS.bank_account_name;
-
-  if (bankNameInput) bankNameInput.value = bName;
-  if (bankAccNoInput) bankAccNoInput.value = bAccNo;
-  if (bankAccNameInput) bankAccNameInput.value = bAccName;
-}
-
-function loadSettings(forceRefresh) {
-  return new Promise(function (resolve, reject) {
-    if (!forceRefresh && isCacheValid('settings') && DATA_CACHE.settings && DATA_CACHE.settings.data) {
-      const s = Object.assign({}, DATA_CACHE.settings.data);
-      applyBankSettingsDefaults(s);
-      populateBankInputs(s);
-      return resolve(s);
-    }
-    api('getSettings', TOKEN).then(function (settings) {
-      const s = settings || {};
-      applyBankSettingsDefaults(s);
-      DATA_CACHE.settings = { data: s, timestamp: Date.now() };
-      APP_SETTINGS = Object.assign({}, APP_SETTINGS, s);
-      populateBankInputs(s);
-      resolve(s);
-    }).catch(function (err) {
-      const fallback = Object.assign({}, APP_SETTINGS);
-      applyBankSettingsDefaults(fallback);
-      populateBankInputs(fallback);
-      reject(err);
-    });
-  });
-}
-
-function getStoreSettings(forceRefresh) {
-  return loadSettings(forceRefresh);
-}
-
 function renderPengaturan(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
   if (!forceRefresh && isCacheValid('settings')) {
-    const s = Object.assign({}, DATA_CACHE.settings.data);
-    applyBankSettingsDefaults(s);
-    drawPengaturanUI(s);
-    populateBankInputs(s);
+    drawPengaturanUI(DATA_CACHE.settings.data);
     return;
   }
 
@@ -11361,9 +11296,10 @@ function renderPengaturan(forceRefresh) {
     content.innerHTML = '<div class="card"><div class="empty-state"><span class="spinner" style="display:inline-block;width:24px;height:24px;border:3px solid rgba(30,77,63,0.2);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:8px;"></span><br>Memuat pengaturan sistem...</div></div>';
   }
 
-  loadSettings(forceRefresh).then(function (settings) {
+  api('getSettings', TOKEN).then(function (settings) {
+    DATA_CACHE.settings = { data: settings || {}, timestamp: Date.now() };
+    APP_SETTINGS = settings || {};
     drawPengaturanUI(settings || {});
-    populateBankInputs(settings || {});
   }).catch(function (err) {
     showToast('Gagal memuat pengaturan: ' + (err.message || err), true);
   });
@@ -11404,9 +11340,6 @@ function drawPengaturanUI(settings) {
 
   const currentLogo = settings['store_logo'] || '';
   const currentLogoLight = settings['store_logo_light'] || '';
-  const bankNameVal = escapeHtml((settings && settings['bank_name']) || DEFAULT_BANK_SETTINGS.bank_name);
-  const bankAccNoVal = escapeHtml((settings && settings['bank_account_no']) || DEFAULT_BANK_SETTINGS.bank_account_no);
-  const bankAccNameVal = escapeHtml((settings && settings['bank_account_name']) || DEFAULT_BANK_SETTINGS.bank_account_name);
   const isUserAdmin = isAdmin();
 
   content.innerHTML =
@@ -11430,7 +11363,7 @@ function drawPengaturanUI(settings) {
     '<!-- PANEL 1: PROFIL TOKO & PAJAK -->' +
     '<div id="panel-set-profile" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'profile' ? 'block' : 'none') + ';">' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">' +
-        '<div class="card" id="settings">' +
+        '<div class="card">' +
           '<h3 style="margin-bottom:16px;">Profil Toko &amp; Pajak</h3>' +
           
           '<!-- 1. LOGO PRIMER (FULL COLOR / LATAR TERANG) -->' +
@@ -11514,42 +11447,7 @@ function drawPengaturanUI(settings) {
               '<input type="text" id="set-invoice-footer" value="' + escapeHtml(settings['invoice_footer'] || 'Terima kasih atas kunjungan Anda!') + '" style="padding-left:14px;">' +
             '</div>' +
           '</div>' +
-
-          '<!-- BLOK PENGATURAN REKENING RESMI PEMBAYARAN BANK -->' +
-          '<div class="mt-4 mb-4 p-4 rounded-xl border border-emerald-500/40 bg-emerald-50/60 dark:bg-emerald-950/20 shadow-sm" style="border:1.5px solid #10b981;background:#f0fdf4;border-radius:12px;padding:16px;margin:16px 0;">' +
-            '<div class="flex items-center gap-2 mb-3 pb-2 border-b border-emerald-200/80" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #a7f3d0;">' +
-              '<span class="text-2xl" style="font-size:22px;">🏦</span>' +
-              '<div>' +
-                '<h4 class="font-bold text-emerald-900 text-sm m-0" style="margin:0;font-size:13.5px;font-weight:700;color:#064e3b;">Rekening Resmi Pembayaran Bank</h4>' +
-                '<p class="text-xs text-emerald-700 m-0" style="margin:2px 0 0 0;font-size:11px;color:#047857;">Informasi rekening transfer resmi Kios IDEP untuk faktur &amp; struk kasir</p>' +
-              '</div>' +
-            '</div>' +
-            '<div class="grid grid-cols-1 md:grid-cols-3 gap-3" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">' +
-              '<div class="field-group">' +
-                '<label class="field-label font-semibold text-emerald-950 text-xs mb-1" for="set-bank-name" style="font-size:11.5px;font-weight:600;color:#064e3b;">Nama Bank</label>' +
-                '<div class="input-wrapper">' +
-                  '<input type="text" id="set-bank-name" data-setting="bank_name" placeholder="Contoh: BNI (Bank Negara Indonesia)" value="' + bankNameVal + '" class="w-full px-3 py-2 text-sm rounded-lg border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" style="padding-left:12px;font-size:13px;border-color:#6ee7b7;background:#ffffff;">' +
-                '</div>' +
-              '</div>' +
-              '<div class="field-group">' +
-                '<label class="field-label font-semibold text-emerald-950 text-xs mb-1" for="set-bank-acc-no" style="font-size:11.5px;font-weight:600;color:#064e3b;">Nomor Rekening</label>' +
-                '<div class="input-wrapper">' +
-                  '<input type="text" id="set-bank-acc-no" data-setting="bank_account_no" placeholder="Contoh: 0178 849 203" value="' + bankAccNoVal + '" class="w-full px-3 py-2 text-sm font-mono rounded-lg border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" style="padding-left:12px;font-size:13px;font-family:\'JetBrains Mono\',monospace;font-weight:600;letter-spacing:0.5px;border-color:#6ee7b7;background:#ffffff;">' +
-                '</div>' +
-              '</div>' +
-              '<div class="field-group">' +
-                '<label class="field-label font-semibold text-emerald-950 text-xs mb-1" for="set-bank-acc-name" style="font-size:11.5px;font-weight:600;color:#064e3b;">Atas Nama (A.N.)</label>' +
-                '<div class="input-wrapper">' +
-                  '<input type="text" id="set-bank-acc-name" data-setting="bank_account_name" placeholder="Contoh: Yayasan IDEP Selaras Alam" value="' + bankAccNameVal + '" class="w-full px-3 py-2 text-sm rounded-lg border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white" style="padding-left:12px;font-size:13px;border-color:#6ee7b7;background:#ffffff;">' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-            '<small class="text-emerald-700 text-xs mt-2 block" style="font-size:10.5px;color:#059669;margin-top:8px;display:block;">' +
-              '💡 Rekening ini otomatis dicetak di bagian footer pembayaran faktur dan nota kasir.' +
-            '</small>' +
-          '</div>' +
-
-          '<button type="button" class="btn btn-primary" id="btn-save-settings" onclick="saveSettings()">Simpan Profil Toko &amp; Pajak</button>' +
+          '<button type="button" class="btn btn-primary" onclick="saveStoreSettings()">Simpan Profil Toko &amp; Pajak</button>' +
         '</div>' +
 
         '<div class="card">' +
@@ -11801,20 +11699,10 @@ function loadRolePermissionsUI() {
 
   container.innerHTML = '<div class="empty-state">⏳ Memuat matriks hak akses...</div>';
   api('getRolePermissions', TOKEN).then(function (res) {
-    const actualData = (res && res.permissions) ? res : (res && res.data ? res.data : res);
-    if (actualData && actualData.permissions) {
-      CURRENT_ROLES_PERMISSIONS = actualData.permissions;
-      AVAILABLE_ROLES = actualData.roles || AVAILABLE_ROLES;
-      if (Array.isArray(AVAILABLE_ROLES)) {
-        AVAILABLE_ROLES.forEach(function (r) {
-          if (!CURRENT_ROLES_PERMISSIONS[r]) {
-            CURRENT_ROLES_PERMISSIONS[r] = {};
-          }
-        });
-      }
+    if (res && res.permissions) {
+      CURRENT_ROLES_PERMISSIONS = res.permissions;
+      if (res.roles) AVAILABLE_ROLES = res.roles;
       renderRoleMatrixUI();
-    } else {
-      container.innerHTML = '<div class="alert-banner alert-warning">⚠️ Format data hak akses tidak sesuai atau kosong. Silakan muat ulang halaman atau simpan ulang matriks peran.</div>';
     }
   }).catch(function (err) {
     container.innerHTML = '<div class="alert-banner alert-danger">Gagal memuat hak akses: ' + escapeHtml(err.message || err) + '</div>';
@@ -12215,19 +12103,7 @@ function deleteUserUI(userId, username) {
 
 
 function saveStoreSettingsUI() {
-  saveSettings();
-}
-
-function saveSettings(customPayload) {
-  if (customPayload && typeof customPayload === 'object' && !(customPayload instanceof Event)) {
-    return api('saveSettings', TOKEN, customPayload).then(function (res) {
-      invalidateCache('settings');
-      if (!APP_SETTINGS) APP_SETTINGS = {};
-      Object.assign(APP_SETTINGS, customPayload);
-      return res;
-    });
-  }
-  return saveStoreSettings();
+  saveStoreSettings();
 }
 
 function saveStoreSettings() {
@@ -12236,15 +12112,6 @@ function saveStoreSettings() {
   const batchFormat = (document.getElementById('set-batch-format') ? document.getElementById('set-batch-format').value.trim() : '') || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}';
   const taxRateInput = document.getElementById('set-tax-rate');
   const taxRate = taxRateInput ? taxRateInput.value.trim() : (APP_SETTINGS.tax_rate || '0');
-
-  // Kumpulkan data rekening resmi pembayaran bank
-  const bankNameInput = document.getElementById('set-bank-name') || document.querySelector('[data-setting="bank_name"]');
-  const bankAccNoInput = document.getElementById('set-bank-acc-no') || document.querySelector('[data-setting="bank_account_no"]');
-  const bankAccNameInput = document.getElementById('set-bank-acc-name') || document.querySelector('[data-setting="bank_account_name"]');
-
-  const bankName = (bankNameInput ? bankNameInput.value.trim() : '') || DEFAULT_BANK_SETTINGS.bank_name;
-  const bankAccNo = (bankAccNoInput ? bankAccNoInput.value.trim() : '') || DEFAULT_BANK_SETTINGS.bank_account_no;
-  const bankAccName = (bankAccNameInput ? bankAccNameInput.value.trim() : '') || DEFAULT_BANK_SETTINGS.bank_account_name;
 
   // Kumpulkan preset tier harga
   const presetRows = document.querySelectorAll('#price-tier-presets-body .preset-tier-row');
@@ -12275,28 +12142,18 @@ function saveStoreSettings() {
     invoice_footer: document.getElementById('set-invoice-footer') ? document.getElementById('set-invoice-footer').value.trim() : '',
     batch_format_template: batchFormat,
     batch_format: batchFormat,
-    price_tiers_preset: presetJson,
-    bank_name: bankName,
-    bank_account_no: bankAccNo,
-    bank_account_name: bankAccName
+    price_tiers_preset: presetJson
   };
 
-  const btn = document.getElementById('btn-save-settings');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
-
-  return api('saveSettings', TOKEN, payload).then(function () {
+  api('saveSettings', TOKEN, payload).then(function () {
     invalidateCache('settings');
     if (!APP_SETTINGS) APP_SETTINGS = {};
     Object.assign(APP_SETTINGS, payload);
     APP_SETTINGS['price_tiers_preset'] = presetJson;
     PRICE_TIERS_LIST = presets.map(function (p) { return p.name; });
     applyBrandLogo();
-    if (btn) { btn.disabled = false; btn.textContent = 'Simpan Profil Toko & Pajak'; }
-    showToast('Pengaturan profil toko, rekening bank & preset harga berhasil disimpan.');
-  }).catch(function (err) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Simpan Profil Toko & Pajak'; }
-    showToast('Gagal: ' + (err.message || err), true);
-  });
+    showToast('Pengaturan profil toko & preset tingkat harga berhasil disimpan.');
+  }).catch(function (err) { showToast('Gagal: ' + (err.message || err), true); });
 }
 
 // Alias untuk kompatibilitas nama fungsi modul
@@ -12751,8 +12608,8 @@ function renderFakturRows(list) {
       : 'padding:10px 12px;border:1px solid var(--border);cursor:pointer;border-radius:var(--radius-sm);background:var(--surface);transition:all 0.15s;';
 
     const priceHTML = isVoid
-      ? '<span style="text-decoration:line-through;color:var(--text-secondary);font-size:11px;font-family:monospace;">' + formatRupiah(t.total) + '</span>'
-      : '<strong style="color:var(--accent);font-family:monospace;">' + formatRupiah(t.total) + '</strong>';
+      ? '<span style="text-decoration:line-through;color:var(--text-secondary);font-size:11px;font-family:'JetBrains Mono',monospace;">' + formatRupiah(t.total) + '</span>'
+      : '<strong style="color:var(--accent);font-family:'JetBrains Mono',monospace;">' + formatRupiah(t.total) + '</strong>';
 
     const profitHTML = (adminUser && !isVoid && t.gross_profit !== undefined)
       ? '<span style="font-size:10px;color:#16A34A;font-weight:600;margin-left:6px;" title="Estimasi Laba Kotor">+' + formatRupiah(t.gross_profit) + '</span>'
@@ -12762,9 +12619,9 @@ function renderFakturRows(list) {
       ? '<div style="font-size:10px;color:#DC2626;margin-top:2px;font-style:italic;">Dibatalkan: ' + escapeHtml(t.void_reason || 'Nota Void') + '</div>'
       : '';
 
-    return '<div style="' + cardStyle + '" onclick="loadInvoicePreview(\'' + t.id + '\')">' +
+    return '<div style="' + cardStyle + '" onclick="loadInvoicePreview('' + t.id + '')">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-        '<strong style="font-family:monospace;color:var(--primary);font-size:12px;">#' + escapeHtml(t.id) + '</strong>' +
+        '<strong style="font-family:'JetBrains Mono',monospace;color:var(--primary);font-size:12px;">#' + escapeHtml(t.id) + '</strong>' +
         badge +
       '</div>' +
       '<div style="font-size:12px;color:var(--text-main);margin-top:4px;font-weight:600;">' +

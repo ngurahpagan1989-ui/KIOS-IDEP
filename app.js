@@ -8127,7 +8127,7 @@ function openPaymentReceivableModal(recId, remaining, customerName) {
 
   const footerHtml =
     '<button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
-    '<button type="button" class="btn btn-primary" id="btn-submit-rec-pay" onclick="submitReceivablePayment('' + recId + '')">Simpan Pembayaran</button>';
+   '<button type="button" class="btn btn-primary" id="btn-submit-rec-pay" onclick="submitReceivablePayment(\'' + recId + '\')">Simpan Pembayaran</button>';
 
   openModal('Catat Angsuran / Pelunasan Piutang', bodyHtml, footerHtml);
 }

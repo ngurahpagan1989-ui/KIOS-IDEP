@@ -1645,45 +1645,133 @@ function submitProduct(productId) {
   });
 }
 
+// Helper untuk merender badge warna tipe mutasi stok
+function renderMutationTypeBadge(type) {
+  const t = String(type || '').toUpperCase();
+  if (t === 'MASUK_PEMBELIAN' || t === 'PURCHASE_IN') {
+    return '<span class="badge" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-weight:600;"><i class="fas fa-cart-arrow-down" style="font-size:10px;margin-right:4px;"></i> Masuk Pembelian</span>';
+  }
+  if (t === 'MASUK_PRODUKSI' || t === 'PRODUCTION_IN') {
+    return '<span class="badge" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-weight:600;"><i class="fas fa-boxes-packing" style="font-size:10px;margin-right:4px;"></i> Masuk Produksi</span>';
+  }
+  if (t === 'KELUAR_PRODUKSI' || t === 'PRODUCTION_OUT') {
+    return '<span class="badge" style="background:#fffbeb;color:#b45309;border:1px solid #fde68a;font-weight:600;"><i class="fas fa-seedling" style="font-size:10px;margin-right:4px;"></i> Keluar Produksi</span>';
+  }
+  if (t === 'KELUAR_PENJUALAN' || t === 'SALE_OUT') {
+    return '<span class="badge" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;font-weight:600;"><i class="fas fa-receipt" style="font-size:10px;margin-right:4px;"></i> Keluar Penjualan</span>';
+  }
+  return '<span class="badge badge-neutral" style="font-weight:600;">' + escapeHtml(type || 'Mutasi') + '</span>';
+}
+window.renderMutationTypeBadge = renderMutationTypeBadge;
+
 // ========================= STOK & BATCH FIFO =========================
 function renderStok(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('products') && DATA_CACHE.batches && DATA_CACHE.batches.data) {
-    drawStokUI(DATA_CACHE.products.data, DATA_CACHE.batches.data);
+  if (!forceRefresh && isCacheValid('products') && DATA_CACHE.batches && DATA_CACHE.batches.data && DATA_CACHE.mutations && DATA_CACHE.mutations.data) {
+    drawStokUI(DATA_CACHE.products.data, DATA_CACHE.batches.data, DATA_CACHE.mutations.data);
     return;
   }
 
-  content.innerHTML = '<div class="card"><div class="empty-state">Memuat antrean stok &amp; batch...</div></div>';
+  content.innerHTML = '<div class="card"><div class="empty-state">Memuat antrean stok, batch &amp; riwayat mutasi...</div></div>';
 
   Promise.all([
     api('getProducts', TOKEN),
-    api('getStockBatches', TOKEN)
+    api('getStockBatches', TOKEN),
+    api('getStockMutations', TOKEN).catch(function (e) {
+      console.warn('Fallback ambil getStockMovements:', e);
+      return api('getStockMovements', TOKEN).catch(function () { return []; });
+    })
   ]).then(function (results) {
     const products = Array.isArray(results[0]) ? results[0] : [];
     const batches = Array.isArray(results[1]) ? results[1] : [];
+    const mutations = Array.isArray(results[2]) ? results[2] : [];
+
     DATA_CACHE.products = { data: products, timestamp: Date.now() };
     if (!DATA_CACHE.batches) DATA_CACHE.batches = {};
     DATA_CACHE.batches = { data: batches, timestamp: Date.now() };
-    drawStokUI(products, batches);
+    if (!DATA_CACHE.mutations) DATA_CACHE.mutations = {};
+    DATA_CACHE.mutations = { data: mutations, timestamp: Date.now() };
+
+    drawStokUI(products, batches, mutations);
   }).catch(function (err) {
     api('getProducts', TOKEN).then(function (products) {
       const list = Array.isArray(products) ? products : [];
       DATA_CACHE.products = { data: list, timestamp: Date.now() };
-      drawStokUI(list, []);
+      drawStokUI(list, [], []);
     }).catch(function (e2) {
       showToast('Gagal memuat data stok: ' + (e2.message || e2), true);
     });
   });
 }
 
-function drawStokUI(products, batches) {
+function drawStokUI(products, batches, mutations) {
   const content = document.getElementById('content');
   if (!content) return;
 
   PRODUCTS_CACHE = products.filter(function (p) { return p && p.active; });
   const allBatches = Array.isArray(batches) ? batches : [];
+  const allMutations = Array.isArray(mutations) ? mutations : [];
+
+  // Peta produk untuk lookup cepat nama & satuan
+  const productMap = {};
+  products.forEach(function (p) { if (p && p.id) productMap[p.id] = p; });
+
+  // Render Baris Tabel Riwayat Mutasi Stok Fisik
+  const mutationRows = allMutations.map(function (m) {
+    const p = productMap[m.product_id] || (m.product ? m.product : null);
+    const prodName = (p && p.name) || m.product_name || (m.product_id ? ('ID: ' + m.product_id) : '-');
+    const isRaw = p ? isRawProduct(p.unit) : (m.unit === 'gr');
+    const unitText = m.unit || (isRaw ? 'gr' : 'pcs');
+
+    // 1. Kolom [Tanggal / Waktu] menggunakan formatDateIndo
+    const tglText = formatDateIndo(m.created_at);
+    let timeText = '';
+    if (m.created_at) {
+      try {
+        const dt = new Date(m.created_at);
+        if (!isNaN(dt.getTime())) {
+          timeText = dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        }
+      } catch (e) {}
+    }
+    const dateTimeHTML = '<div><strong style="color:var(--text-primary);">' + tglText + '</strong>' +
+      (timeText ? '<br><span style="font-size:11px;color:var(--text-muted);">' + timeText + ' WITA</span>' : '') +
+      '</div>';
+
+    // 2. Kolom [Nama Produk]
+    const prodBadge = isRaw
+      ? '<span class="badge badge-warning" style="font-size:10px;padding:1px 5px;margin-left:4px;">Curah</span>'
+      : '<span class="badge badge-success" style="font-size:10px;padding:1px 5px;margin-left:4px;">Kemasan</span>';
+    const prodHTML = '<div><strong style="color:var(--text-primary);">' + escapeHtml(prodName) + '</strong> ' + prodBadge + '</div>';
+
+    // 3. Kolom [Tipe Mutasi (Badge Warna)]
+    const mutType = m.mutation_type || m.type || '';
+    const badgeHTML = renderMutationTypeBadge(mutType);
+
+    // 4. Kolom [Perubahan Qty (+/-)]
+    const qtyNum = Number(m.qty || 0);
+    const qtySign = qtyNum > 0 ? '+' : '';
+    const qtyCol = qtyNum > 0 ? '#10b981' : (qtyNum < 0 ? '#ef4444' : 'var(--text-secondary)');
+    const qtyHTML = '<strong style="color:' + qtyCol + ';font-size:13px;font-family:\'JetBrains Mono\',monospace;">' + qtySign + qtyNum.toLocaleString('id-ID') + ' ' + unitText + '</strong>';
+
+    // 5. Kolom [No. Batch / Ref]
+    const refNo = m.reference_no || m.batch_code || m.batch_no || m.ref_id || '-';
+    const refHTML = '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;background:var(--surface-muted);padding:3px 7px;border-radius:4px;border:1px solid var(--border);color:var(--text-primary);">' + escapeHtml(refNo) + '</span>';
+
+    // 6. Kolom [Keterangan]
+    const notesText = escapeHtml(m.notes || '-');
+
+    return '<tr>' +
+      '<td>' + dateTimeHTML + '</td>' +
+      '<td>' + prodHTML + '</td>' +
+      '<td>' + badgeHTML + '</td>' +
+      '<td>' + qtyHTML + '</td>' +
+      '<td>' + refHTML + '</td>' +
+      '<td><span style="font-size:12px;color:var(--text-secondary);">' + notesText + '</span></td>' +
+      '</tr>';
+  }).join('');
 
   content.innerHTML =
     '<div class="page-header">' +
@@ -1709,12 +1797,10 @@ function drawStokUI(products, batches) {
       const isRaw = isRawProduct(p.unit);
       const typeBadge = isRaw ? '<span class="badge badge-warning">Curah Mentah</span>' : '<span class="badge badge-success">Kemasan Siap Jual</span>';
       
-      // Hitung total saldo persediaan produk secara dinamis berdasarkan total akumulasi qty_remaining dari seluruh batch aktif produk tersebut:
       const productBatches = allBatches.filter(function (b) { return b.product_id === p.id; });
       const totalBatchStock = productBatches.reduce(function (sum, b) { return sum + Number(b.qty_remaining || 0); }, 0);
       const totalStock = productBatches.length > 0 ? totalBatchStock : Number(p.stock || 0);
 
-      // Format tampilan stok dengan satuan yang tepat: "X gr" untuk curah mentah, dan "X pcs" untuk kemasan siap jual.
       const unitText = isRaw ? 'gr' : (p.unit && p.unit.toLowerCase() !== 'gram' && p.unit.toLowerCase() !== 'gr' ? p.unit : 'pcs');
       const formattedStock = totalStock.toLocaleString('id-ID') + ' ' + unitText;
 
@@ -1731,7 +1817,35 @@ function drawStokUI(products, batches) {
     '</table>' +
     '</div>' +
     '</div>' +
-    '<div id="batch-detail" style="margin-top:20px;"></div>';
+    '<div id="batch-detail" style="margin-top:20px;"></div>' +
+    '<div class="card" style="margin-top:24px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
+    '<div>' +
+    '<h3 style="margin:0;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;"><i class="fas fa-history" style="color:var(--primary);"></i> Riwayat Mutasi Stok Fisik</h3>' +
+    '<p style="margin:3px 0 0;font-size:12px;color:var(--text-secondary);">Log audit mutasi persediaan fisik benih curah &amp; kemasan (Kemas Mandiri, Pembelian Faktur, dan Penjualan).</p>' +
+    '</div>' +
+    '<div>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="renderStok(true)"><i class="fas fa-sync-alt" style="margin-right:4px;"></i> Segarkan Riwayat</button>' +
+    '</div>' +
+    '</div>' +
+    '<div class="table-container">' +
+    '<table>' +
+    '<thead>' +
+    '<tr>' +
+    '<th style="width:160px;">Tanggal / Waktu</th>' +
+    '<th>Nama Produk</th>' +
+    '<th style="width:160px;">Tipe Mutasi</th>' +
+    '<th style="width:140px;">Perubahan Qty (+/-)</th>' +
+    '<th style="width:170px;">No. Batch / Ref</th>' +
+    '<th>Keterangan</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' +
+    (mutationRows || '<tr><td colspan="6"><div style="text-align:center;padding:24px;color:var(--text-secondary);"><i class="fas fa-box-open" style="font-size:24px;margin-bottom:8px;opacity:0.5;display:block;"></i>Belum ada riwayat mutasi stok fisik.</div></td></tr>') +
+    '</tbody>' +
+    '</table>' +
+    '</div>' +
+    '</div>';
 }
 
 function showBatchDetail(productId, productName) {
@@ -1741,10 +1855,12 @@ function showBatchDetail(productId, productName) {
 
   Promise.all([
     api('getStockBatches', TOKEN, productId),
-    api('getStockMovements', TOKEN, productId)
+    api('getStockMutations', TOKEN, productId).catch(function () {
+      return api('getStockMovements', TOKEN, productId).catch(function () { return []; });
+    })
   ]).then(function (results) {
     const batches = Array.isArray(results[0]) ? results[0] : [];
-    const movements = Array.isArray(results[1]) ? results[1] : [];
+    const mutations = Array.isArray(results[1]) ? results[1] : [];
     const today = new Date();
 
     const batchRows = batches.map(function (b) {
@@ -1757,7 +1873,7 @@ function showBatchDetail(productId, productName) {
       const prodDateStr = b.production_date ? formatDateIndo(b.production_date) : (b.received_at ? formatDateIndo(b.received_at) : '-');
 
       return '<tr>' +
-        '<td><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);">' + escapeHtml(b.id) + '</strong></td>' +
+        '<td><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);">' + escapeHtml(b.batch_code || b.id) + '</strong></td>' +
         '<td>' + prodDateStr + '</td>' +
         '<td>' + formatDateIndo(b.received_at) + '</td>' +
         '<td>' + (b.qty_in || 0) + '</td>' +
@@ -1770,18 +1886,31 @@ function showBatchDetail(productId, productName) {
         '</tr>';
     }).join('');
 
-    const movementRows = movements.slice(0, 15).map(function (m) {
-      const sign = Number(m.qty) > 0 ? '+' : '';
-      const color = Number(m.qty) > 0 ? 'var(--success)' : 'var(--danger)';
-      return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">' +
-        '<span>' + formatDate(m.created_at) + ' &bull; <strong style="text-transform:uppercase;">' + escapeHtml(m.type) + '</strong> (' + escapeHtml(m.notes || '-') + ')</span>' +
-        '<strong style="color:' + color + ';">' + sign + m.qty + '</strong>' +
-        '</div>';
-    }).join('') || '<div style="text-align:center;padding:16px;color:var(--text-secondary);">Belum ada log mutasi stok.</div>';
+    const mutationRows = mutations.slice(0, 20).map(function (m) {
+      const qVal = Number(m.qty || 0);
+      const sign = qVal > 0 ? '+' : '';
+      const color = qVal > 0 ? '#10b981' : '#ef4444';
+      const mType = m.mutation_type || m.type || '';
+      const badge = renderMutationTypeBadge(mType);
+      const tglStr = formatDateIndo(m.created_at);
+      const refCode = m.reference_no || m.batch_code || m.ref_id || '-';
+      const unit = m.unit || 'pcs';
+
+      return '<tr>' +
+        '<td><strong>' + tglStr + '</strong></td>' +
+        '<td>' + badge + '</td>' +
+        '<td><strong style="color:' + color + ';font-family:\'JetBrains Mono\',monospace;">' + sign + qVal.toLocaleString('id-ID') + ' ' + unit + '</strong></td>' +
+        '<td><span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;background:var(--surface-muted);padding:2px 6px;border-radius:4px;border:1px solid var(--border);">' + escapeHtml(refCode) + '</span></td>' +
+        '<td><span style="font-size:12px;color:var(--text-secondary);">' + escapeHtml(m.notes || '-') + '</span></td>' +
+        '</tr>';
+    }).join('');
 
     detailEl.innerHTML =
       '<div class="card" style="margin-bottom:16px;">' +
-      '<h3 style="margin-bottom:12px;">Daftar Batch FIFO: ' + escapeHtml(productName) + '</h3>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+      '<h3 style="margin:0;">Daftar Batch FIFO: ' + escapeHtml(productName) + '</h3>' +
+      '<button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById(\'batch-detail\').innerHTML=\'\'">&times; Tutup Rincian</button>' +
+      '</div>' +
       '<div class="table-container">' +
       '<table>' +
       '<thead>' +
@@ -1800,8 +1929,23 @@ function showBatchDetail(productId, productName) {
       '</div>' +
       '</div>' +
       '<div class="card">' +
-      '<h3 style="margin-bottom:12px;">Riwayat Mutasi Stok Fisik</h3>' +
-      movementRows +
+      '<h3 style="margin-bottom:12px;">Riwayat Mutasi Produk: ' + escapeHtml(productName) + '</h3>' +
+      '<div class="table-container">' +
+      '<table>' +
+      '<thead>' +
+      '<tr>' +
+      '<th style="width:140px;">Tanggal</th>' +
+      '<th style="width:150px;">Tipe Mutasi</th>' +
+      '<th style="width:130px;">Perubahan Qty</th>' +
+      '<th style="width:160px;">No. Batch / Ref</th>' +
+      '<th>Keterangan</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody>' +
+      (mutationRows || '<tr><td colspan="5"><div style="text-align:center;padding:16px;color:var(--text-secondary);">Belum ada log mutasi stok untuk produk ini.</div></td></tr>') +
+      '</tbody>' +
+      '</table>' +
+      '</div>' +
       '</div>';
   }).catch(function (err) {
     showToast('Gagal memuat batch: ' + (err.message || err), true);
@@ -2113,11 +2257,20 @@ function submitProduction() {
     }
   }
 
+  const tgtSelect = document.getElementById('prod-target');
+  const tgtName = (tgtSelect && tgtSelect.selectedIndex >= 0) ? tgtSelect.options[tgtSelect.selectedIndex].text.trim() : '';
+  const srcSelect = document.getElementById('prod-source');
+  const srcName = (srcSelect && srcSelect.selectedIndex >= 0) ? srcSelect.options[srcSelect.selectedIndex].text.trim() : '';
+  const srcBatchCode = (batchSelect && batchSelect.selectedIndex >= 0) ? batchSelect.options[batchSelect.selectedIndex].text.split('(')[0].trim() : srcBatchId;
+
   showToast('Memproses kemas mandiri & pembaruan saldo...');
   api('processProduction', TOKEN, {
     source_product_id: srcId,
     source_batch_id: srcBatchId,
+    source_batch_code: srcBatchCode,
+    source_product_name: srcName,
     target_product_id: tgtId,
+    target_product_name: tgtName,
     lot_no: srcBatchId,
     gram_used: gramUsed,
     gram_per_pack: gramPack,
@@ -2152,6 +2305,8 @@ function submitProduction() {
     invalidateCache('products');
     invalidateCache('dashboard');
     invalidateCache('batches');
+    invalidateCache('mutations');
+    invalidateCache('stock_mutations');
     showToast('Pengemasan berhasil! HPP baru: ' + formatRupiah(res.hpp_per_piece) + '/pcs');
     renderProduksi(true);
   }).catch(function (err) {
@@ -3852,10 +4007,17 @@ function submitPurchase() {
       costPerUnit = buyPrice + additionalCost;
     }
 
+    const prodId = row.querySelector('.pi-product').value;
+    const allProds = (DATA_CACHE.products && DATA_CACHE.products.data) || PRODUCTS_CACHE || [];
+    const prodObj = allProds.find(function (p) { return p && p.id === prodId; });
+    const isCurah = prodObj && isRawProduct(prodObj.unit);
+    const itemUnit = (prodObj && prodObj.unit) ? prodObj.unit : (isCurah ? 'gr' : 'pcs');
+
     return {
-      product_id: row.querySelector('.pi-product').value,
+      product_id: prodId,
       batch_no: batchNo,
       qty: Number(row.querySelector('.pi-qty').value || 0),
+      unit: itemUnit,
       buy_price: buyPrice,
       additional_cost: additionalCost,
       cost_per_unit: costPerUnit,
@@ -3885,6 +4047,9 @@ function submitPurchase() {
     invalidateCache('products');
     invalidateCache('dashboard');
     invalidateCache('qc_records');
+    invalidateCache('batches');
+    invalidateCache('mutations');
+    invalidateCache('stock_mutations');
     showToast('Pembelian berhasil disimpan.');
     closeModal();
     renderPembelian(true);

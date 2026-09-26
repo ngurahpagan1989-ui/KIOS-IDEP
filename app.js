@@ -3477,17 +3477,17 @@ function openPurchaseModal() {
     '<label class="field-label" style="margin-bottom:0;">Daftar Item Pembelian &amp; Perhitungan HPP (Landed Cost)</label>' +
     '<span style="font-size:11px;color:var(--text-secondary);"><i class="fas fa-calculator" style="margin-right:4px;"></i>Rumus: <strong>HPP Final = Harga Beli + Biaya Tambahan/Pcs</strong></span>' +
     '</div>' +
-    '<div class="purchase-items-wrapper">' +
-    '<div class="purchase-items-table">' +
+    '<div class="w-full overflow-x-auto border rounded-lg purchase-items-wrapper">' +
+    '<div class="purchase-items-table min-w-[950px]">' +
     '<div class="purchase-grid-header">' +
-    '<div>Nama Produk</div>' +
+    '<div class="pl-4">Nama Produk</div>' +
     '<div class="min-w-[210px]" style="min-width:210px;">No. Batch / Lot</div>' +
     '<div style="text-align:center;">Qty</div>' +
     '<div>Harga Beli (Rp)</div>' +
     '<div>Biaya Ekstra/Pcs (Rp)</div>' +
     '<div>HPP Final/Pcs (Rp)</div>' +
     '<div>Tgl Produksi</div>' +
-    '<div>Tgl Kadaluarsa</div>' +
+    '<div class="pr-4">Tgl Kadaluarsa</div>' +
     '<div style="text-align:center;">Aksi</div>' +
     '</div>' +
     '<div id="pur-items" style="max-height:360px;overflow-y:auto;"></div>' +
@@ -3660,7 +3660,7 @@ function addPurchaseItemRow() {
   row.className = 'price-tier-row pur-item-row';
 
   row.innerHTML =
-    '<div>' +
+    '<div class="pl-4">' +
     '<select class="pi-product pur-item-product" onchange="onPurchaseRowProductChange(this.closest(\'.price-tier-row\'))" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;font-size:12px;font-weight:600;">' +
     buildProductOptionsHTML(catFilter) +
     '</select>' +
@@ -3686,7 +3686,7 @@ function addPurchaseItemRow() {
     '<div>' +
     '<input type="date" class="pi-prod-date pur-item-prod-date" value="' + todayStr + '" style="width:100%;padding:6px 4px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
     '</div>' +
-    '<div>' +
+    '<div class="pr-4">' +
     '<input type="date" class="pi-expiry pur-item-expiry" onchange="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" oninput="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" style="width:100%;padding:6px 4px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
     '</div>' +
     '<div style="text-align:center;">' +

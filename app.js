@@ -3456,31 +3456,35 @@ function deletePurchaseUI(purchaseId) {
 
 function openPurchaseModal() {
   const bodyHtml =
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px;">' +
+    // Baris 1: Supplier dan Petani Mitra (grid 2 kolom responsif)
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:14px;">' +
     '<div>' +
     '<label class="field-label">Supplier</label>' +
-    '<div style="display:flex;gap:6px;">' +
-    '<select id="pur-supplier" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);"></select>' +
-    '<button type="button" class="btn btn-secondary btn-sm" onclick="openSupplierModal()">+ Baru</button>' +
+    '<div class="flex gap-2" style="display:flex;gap:8px;">' +
+    '<select id="purchase-supplier" class="flex-1 min-w-0" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);"></select>' +
+    '<button type="button" class="btn btn-secondary btn-sm shrink-0 whitespace-nowrap" onclick="openSupplierModal()" style="flex-shrink:0;white-space:nowrap;">+ Baru</button>' +
     '</div>' +
     '</div>' +
     '<div>' +
     '<label class="field-label">Nama Petani / Penangkar Mitra</label>' +
-    '<div style="display:flex;gap:6px;">' +
-    '<select id="pur-farmer" onchange="onFarmerSelectedChange(this.value)" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);"></select>' +
-    '<button type="button" class="btn btn-secondary btn-sm" onclick="openFarmerModal()">+ Baru</button>' +
+    '<div class="flex gap-2" style="display:flex;gap:8px;">' +
+    '<select id="purchase-farmer" class="flex-1 min-w-0" onchange="onFarmerSelectedChange(this.value)" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);"></select>' +
+    '<button type="button" class="btn btn-secondary btn-sm shrink-0 whitespace-nowrap" onclick="openFarmerModal()" style="flex-shrink:0;white-space:nowrap;">+ Baru</button>' +
     '</div>' +
     '</div>' +
+    '</div>' +
+    // Baris 2: No. Faktur dan Filter Jenis Produk (grid 2 kolom responsif)
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:16px;">' +
     '<div>' +
     '<label class="field-label">No. Faktur / Surat Jalan</label>' +
-    '<div class="input-wrapper">' +
-    '<input type="text" id="pur-invoice" placeholder="Contoh: INV-SUP-01" style="padding-left:14px;">' +
+    '<div class="input-wrapper w-full">' +
+    '<input type="text" id="purchase-invoice-no" class="w-full" placeholder="Contoh: INV-SUP-01" style="padding-left:14px;width:100%;">' +
     '</div>' +
     '</div>' +
     '<div>' +
     '<label class="field-label">Filter Jenis Produk</label>' +
-    '<div class="input-wrapper">' +
-    '<select id="pur-cat-filter" onchange="filterPurchaseProductOptions(this.value)" style="padding-left:14px;">' +
+    '<div class="input-wrapper w-full">' +
+    '<select id="purchase-filter-type" class="w-full" onchange="filterPurchaseProductOptions(this.value)" style="padding-left:14px;width:100%;">' +
     '<option value="all">Semua Produk</option>' +
     '<option value="mentah">🌾 Bahan Baku Curah (Gram)</option>' +
     '<option value="jadi">📦 Barang Jadi Kemasan (Pcs)</option>' +
@@ -3537,7 +3541,7 @@ function openPurchaseModal() {
   renderFarmerOptions();
   addPurchaseItemRow();
 
-  const farmerEl = document.getElementById('pur-farmer');
+  const farmerEl = document.getElementById('purchase-farmer') || document.getElementById('pur-farmer');
   if (farmerEl) {
     farmerEl.addEventListener('change', function () {
       onFarmerSelectedChange(this.value);
@@ -3673,7 +3677,8 @@ function updatePurchaseModalTotal() {
 }
 
 function addPurchaseItemRow() {
-  const catFilter = document.getElementById('pur-cat-filter') ? document.getElementById('pur-cat-filter').value : 'all';
+  const catFilterEl = document.getElementById('purchase-filter-type') || document.getElementById('pur-cat-filter');
+  const catFilter = catFilterEl ? catFilterEl.value : 'all';
   const container = document.getElementById('pur-items');
   if (!container) return;
 
@@ -3851,7 +3856,7 @@ function autoFillPurchaseRowBatch(row, forceNewRandom) {
     return;
   }
 
-  const farmerEl = document.getElementById('pur-farmer');
+  const farmerEl = document.getElementById('purchase-farmer') || document.getElementById('pur-farmer');
   let farmerIdOrName = '';
   if (farmerEl) {
     if (farmerEl.tagName === 'SELECT') {
@@ -4017,7 +4022,7 @@ function filterPurchaseProductOptions(category) {
 }
 
 function renderSupplierOptions(selectedId) {
-  const select = document.getElementById('pur-supplier');
+  const select = document.getElementById('purchase-supplier') || document.getElementById('pur-supplier');
   if (!select) return;
   if (!SUPPLIERS_CACHE || SUPPLIERS_CACHE.length === 0) {
     select.innerHTML = '<option value="">-- Belum ada supplier, klik "+ Baru" --</option>';
@@ -4072,7 +4077,7 @@ function openSupplierModal() {
 }
 
 function renderFarmerOptions(selectedId) {
-  const select = document.getElementById('pur-farmer');
+  const select = document.getElementById('purchase-farmer') || document.getElementById('pur-farmer');
   if (!select) return;
   const list = FARMERS_CACHE || [];
   let html = '<option value="">-- Pilih Petani Penangkar --</option>';
@@ -4158,8 +4163,9 @@ function onFarmerSelectedChange(farmerId) {
 }
 
 function submitPurchase() {
-  const supplierId = document.getElementById('pur-supplier').value;
-  const farmerEl = document.getElementById('pur-farmer');
+  const supplierEl = document.getElementById('purchase-supplier') || document.getElementById('pur-supplier');
+  const supplierId = supplierEl ? supplierEl.value : '';
+  const farmerEl = document.getElementById('purchase-farmer') || document.getElementById('pur-farmer');
   let farmerName = '';
   let farmerId = '';
   if (farmerEl) {
@@ -4173,7 +4179,8 @@ function submitPurchase() {
       farmerName = (farmerEl.value || '').trim();
     }
   }
-  const invoiceNo = document.getElementById('pur-invoice').value.trim();
+  const invoiceEl = document.getElementById('purchase-invoice-no') || document.getElementById('pur-invoice');
+  const invoiceNo = invoiceEl ? invoiceEl.value.trim() : '';
   const todayStr = new Date().toISOString().split('T')[0];
 
   const rows = Array.from(document.querySelectorAll('#pur-items .price-tier-row'));

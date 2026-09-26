@@ -108,7 +108,8 @@ const DATA_CACHE = {
   productions: { data: null, timestamp: 0 },
   qc_records: { data: null, timestamp: 0 },
   settings: { data: null, timestamp: 0 },
-  recentInvoices: { data: null, timestamp: 0 }
+  recentInvoices: { data: null, timestamp: 0 },
+  batches: { data: null, timestamp: 0 }
 };
 
 function isCacheValid(key) {
@@ -1649,27 +1650,40 @@ function renderStok(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('products')) {
-    drawStokUI(DATA_CACHE.products.data);
+  if (!forceRefresh && isCacheValid('products') && DATA_CACHE.batches && DATA_CACHE.batches.data) {
+    drawStokUI(DATA_CACHE.products.data, DATA_CACHE.batches.data);
     return;
   }
 
   content.innerHTML = '<div class="card"><div class="empty-state">Memuat antrean stok &amp; batch...</div></div>';
 
-  api('getProducts', TOKEN).then(function (products) {
-    const list = Array.isArray(products) ? products : [];
-    DATA_CACHE.products = { data: list, timestamp: Date.now() };
-    drawStokUI(list);
+  Promise.all([
+    api('getProducts', TOKEN),
+    api('getStockBatches', TOKEN)
+  ]).then(function (results) {
+    const products = Array.isArray(results[0]) ? results[0] : [];
+    const batches = Array.isArray(results[1]) ? results[1] : [];
+    DATA_CACHE.products = { data: products, timestamp: Date.now() };
+    if (!DATA_CACHE.batches) DATA_CACHE.batches = {};
+    DATA_CACHE.batches = { data: batches, timestamp: Date.now() };
+    drawStokUI(products, batches);
   }).catch(function (err) {
-    showToast('Gagal memuat data stok: ' + (err.message || err), true);
+    api('getProducts', TOKEN).then(function (products) {
+      const list = Array.isArray(products) ? products : [];
+      DATA_CACHE.products = { data: list, timestamp: Date.now() };
+      drawStokUI(list, []);
+    }).catch(function (e2) {
+      showToast('Gagal memuat data stok: ' + (e2.message || e2), true);
+    });
   });
 }
 
-function drawStokUI(products) {
+function drawStokUI(products, batches) {
   const content = document.getElementById('content');
   if (!content) return;
 
   PRODUCTS_CACHE = products.filter(function (p) { return p && p.active; });
+  const allBatches = Array.isArray(batches) ? batches : [];
 
   content.innerHTML =
     '<div class="page-header">' +
@@ -1692,11 +1706,22 @@ function drawStokUI(products) {
     '</thead>' +
     '<tbody>' +
     PRODUCTS_CACHE.map(function (p) {
-      const typeBadge = isRawProduct(p.unit) ? '<span class="badge badge-warning">Curah Mentah</span>' : '<span class="badge badge-success">Kemasan Siap Jual</span>';
+      const isRaw = isRawProduct(p.unit);
+      const typeBadge = isRaw ? '<span class="badge badge-warning">Curah Mentah</span>' : '<span class="badge badge-success">Kemasan Siap Jual</span>';
+      
+      // Hitung total saldo persediaan produk secara dinamis berdasarkan total akumulasi qty_remaining dari seluruh batch aktif produk tersebut:
+      const productBatches = allBatches.filter(function (b) { return b.product_id === p.id; });
+      const totalBatchStock = productBatches.reduce(function (sum, b) { return sum + Number(b.qty_remaining || 0); }, 0);
+      const totalStock = productBatches.length > 0 ? totalBatchStock : Number(p.stock || 0);
+
+      // Format tampilan stok dengan satuan yang tepat: "X gr" untuk curah mentah, dan "X pcs" untuk kemasan siap jual.
+      const unitText = isRaw ? 'gr' : (p.unit && p.unit.toLowerCase() !== 'gram' && p.unit.toLowerCase() !== 'gr' ? p.unit : 'pcs');
+      const formattedStock = totalStock.toLocaleString('id-ID') + ' ' + unitText;
+
       return '<tr>' +
         '<td><strong>' + escapeHtml(p.name) + '</strong></td>' +
         '<td>' + typeBadge + '</td>' +
-        '<td><span class="badge badge-neutral">' + (p.stock || 0) + ' ' + escapeHtml(p.unit || '') + '</span></td>' +
+        '<td><span class="badge badge-neutral" style="font-weight:700;font-size:13px;">' + formattedStock + '</span></td>' +
         '<td style="text-align:right;">' +
         '<button type="button" class="btn btn-secondary btn-sm" onclick="showBatchDetail(\'' + p.id + '\', \'' + escapeHtml(p.name) + '\')">Lihat Batch FIFO</button>' +
         '</td>' +
@@ -2099,10 +2124,34 @@ function submitProduction() {
     pcs_produced: pcsActual,
     production_date: prodDate,
     expiry_date: expiry
-  }).then(function (res) {
+  }).then(async function (res) {
+    // Sinkronisasi tabel products di database Supabase secara langsung
+    try {
+      if (window.supabase) {
+        // A. Ambil sisa saldo terbaru seluruh batch aktif produk curah sumber & update produk curah
+        const { data: sBatches } = await window.supabase
+          .from('stock_batches')
+          .select('qty_remaining')
+          .eq('product_id', srcId);
+        const newSrcStock = (sBatches || []).reduce(function (sum, b) { return sum + Number(b.qty_remaining || 0); }, 0);
+        await window.supabase.from('products').update({ stock: newSrcStock, updated_at: new Date().toISOString() }).eq('id', srcId);
+
+        // B. Ambil total saldo terbaru seluruh batch produk kemasan target & update produk kemasan
+        const { data: tBatches } = await window.supabase
+          .from('stock_batches')
+          .select('qty_remaining')
+          .eq('product_id', tgtId);
+        const newTgtStock = (tBatches || []).reduce(function (sum, b) { return sum + Number(b.qty_remaining || 0); }, 0);
+        await window.supabase.from('products').update({ stock: newTgtStock, updated_at: new Date().toISOString() }).eq('id', tgtId);
+      }
+    } catch (syncErr) {
+      console.warn('Gagal sinkronisasi sekunder tabel products:', syncErr);
+    }
+
     invalidateCache('productions');
     invalidateCache('products');
     invalidateCache('dashboard');
+    invalidateCache('batches');
     showToast('Pengemasan berhasil! HPP baru: ' + formatRupiah(res.hpp_per_piece) + '/pcs');
     renderProduksi(true);
   }).catch(function (err) {
@@ -2115,6 +2164,8 @@ function deleteProductionUI(prodId) {
     api('deleteProduction', TOKEN, prodId).then(function () {
       invalidateCache('productions');
       invalidateCache('products');
+      invalidateCache('dashboard');
+      invalidateCache('batches');
       showToast('Produksi dibatalkan & stok dikembalikan.');
       renderProduksi(true);
     }).catch(function (err) { showToast('Gagal: ' + (err.message || err), true); });

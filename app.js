@@ -490,6 +490,7 @@ function handleLogin(e) {
 function handleLogout() {
   TOKEN = null;
   USER_NAME = '';
+  USER_ROLE = '';
   CURRENT_USER = null;
   CURRENT_USER_PERMISSIONS = null;
   removeSafeSession('ekasir_token');

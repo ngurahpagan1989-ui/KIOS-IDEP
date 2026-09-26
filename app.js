@@ -2120,7 +2120,13 @@ function drawProduksiUI(allProducts, history, allBatches) {
     '<div>' +
     '<label class="field-label">Pcs Riil Dihasilkan</label>' +
     '<div class="input-wrapper">' +
-    '<input type="number" id="prod-pcs-actual" placeholder="Pcs nyata" style="padding-left:14px;">' +
+    '<input type="number" id="prod-pcs-actual" placeholder="Pcs nyata" oninput="calculateTheoreticalPcs()" style="padding-left:14px;">' +
+    '</div>' +
+    '</div>' +
+    '<div>' +
+    '<label class="field-label">BIAYA KEMASAN / PCS (PLASTIK &amp; LABEL)</label>' +
+    '<div class="input-wrapper">' +
+    '<input type="number" id="pack-packaging-cost" value="0" min="0" placeholder="0" oninput="calculateTheoreticalPcs()" style="padding-left:14px;">' +
     '</div>' +
     '</div>' +
     '<div>' +
@@ -2156,16 +2162,20 @@ function drawProduksiUI(allProducts, history, allBatches) {
     '</tr>' +
     '</thead>' +
     '<tbody>' +
-    (history.length ? history.map(function (h) {
-      const batchTag = h.source_batch_id ? ('<br><span class="badge badge-neutral" style="font-size:10px;font-family:\'JetBrains Mono\',monospace;margin-top:2px;">' + escapeHtml(h.source_batch_id) + '</span>') : '';
+    (history.length ? history.map(function (row) {
+      const batchTag = row.source_batch_id ? ('<br><span class="badge badge-neutral" style="font-size:10px;font-family:\'JetBrains Mono\',monospace;margin-top:2px;">' + escapeHtml(row.source_batch_id) + '</span>') : '';
+      const hppVal = (row.cost_per_unit !== undefined && row.cost_per_unit !== null)
+        ? Number(row.cost_per_unit)
+        : Number(row.hpp_per_piece || 0);
+      const hppDisplay = `Rp ${Number(hppVal || 0).toLocaleString('id-ID')}`;
       return '<tr>' +
-        '<td>' + formatDateIndo(h.created_at) + '</td>' +
-        '<td><strong>' + escapeHtml(h.source_name) + '</strong>' + batchTag + '</td>' +
-        '<td>' + h.gram_used + ' gr</td>' +
-        '<td><strong>' + escapeHtml(h.target_name) + '</strong></td>' +
-        '<td><span class="badge badge-success">+' + h.pcs_produced + ' pcs</span></td>' +
-        '<td><strong>' + formatRupiah(h.hpp_per_piece) + '</strong></td>' +
-        '<td style="text-align:right;"><button type="button" class="btn btn-danger btn-sm" onclick="deleteProductionUI(\'' + h.id + '\')">Batal</button></td>' +
+        '<td>' + formatDateIndo(row.created_at) + '</td>' +
+        '<td><strong>' + escapeHtml(row.source_name) + '</strong>' + batchTag + '</td>' +
+        '<td>' + row.gram_used + ' gr</td>' +
+        '<td><strong>' + escapeHtml(row.target_name) + '</strong></td>' +
+        '<td><span class="badge badge-success">+' + row.pcs_produced + ' pcs</span></td>' +
+        '<td><strong>' + hppDisplay + '</strong></td>' +
+        '<td style="text-align:right;"><button type="button" class="btn btn-danger btn-sm" onclick="deleteProductionUI(\'' + row.id + '\')">Batal</button></td>' +
         '</tr>';
     }).join('') : '<tr><td colspan="7"><div style="text-align:center;padding:20px;">Belum ada riwayat pengemasan.</div></td></tr>') +
     '</tbody>' +
@@ -2230,7 +2240,8 @@ function updateProductionSourceInfo() {
     available.forEach(function (b) {
       const expStr = b.expiry_date ? (' | Exp: ' + formatDate(b.expiry_date)) : '';
       const prodStr = b.production_date ? ('Tgl: ' + formatDate(b.production_date)) : ('Masuk: ' + formatDate(b.received_at));
-      optionsHtml += '<option value="' + escapeHtml(b.id) + '" data-remaining="' + b.qty_remaining + '" data-expiry="' + escapeHtml(b.expiry_date || '') + '" data-proddate="' + escapeHtml(b.production_date || '') + '" data-price="' + (b.buy_price || 0) + '">' +
+      const hppPerGram = Number(b.cost_per_unit !== undefined && b.cost_per_unit !== null ? b.cost_per_unit : (b.buy_price || 0));
+      optionsHtml += '<option value="' + escapeHtml(b.id) + '" data-remaining="' + b.qty_remaining + '" data-expiry="' + escapeHtml(b.expiry_date || '') + '" data-proddate="' + escapeHtml(b.production_date || '') + '" data-price="' + (b.buy_price || 0) + '" data-cost="' + hppPerGram + '">' +
         escapeHtml(b.id) + ' — Sisa ' + b.qty_remaining + ' gr (' + prodStr + expStr + ')' +
         '</option>';
     });
@@ -2263,7 +2274,7 @@ function onProductionBatchChange() {
   const remain = Number(selectedOpt.dataset.remaining || 0);
   const expiry = selectedOpt.dataset.expiry || '';
   const prodDate = selectedOpt.dataset.proddate || '';
-  const price = Number(selectedOpt.dataset.price || 0);
+  const price = Number(selectedOpt.dataset.cost !== undefined ? selectedOpt.dataset.cost : (selectedOpt.dataset.price || 0));
 
   // Otomatis sinkronkan kode batch kemasan sama persis 1:1 dengan batch asal
   if (lotNoInput) {
@@ -2295,6 +2306,8 @@ function submitProduction() {
   const gramUsed = Number(document.getElementById('prod-gram-used').value || 0);
   const gramPack = Number(document.getElementById('prod-gram-pack').value || 0);
   const pcsActual = Number(document.getElementById('prod-pcs-actual').value || 0);
+  const packagingCostInput = document.getElementById('pack-packaging-cost');
+  const biayaKemasanPerPcs = packagingCostInput ? Math.max(0, Number(packagingCostInput.value || 0)) : 0;
   const prodDate = document.getElementById('prod-date') ? document.getElementById('prod-date').value : '';
   const expiry = document.getElementById('prod-expiry').value;
 
@@ -2303,9 +2316,13 @@ function submitProduction() {
   if (gramUsed <= 0) { showToast('Gram terpakai harus lebih dari 0.', true); return; }
   if (pcsActual <= 0) { showToast('Jumlah pcs dihasilkan harus lebih dari 0.', true); return; }
 
+  let hppPerGram = 0;
   if (batchSelect) {
     const opt = batchSelect.options[batchSelect.selectedIndex];
     const remain = opt ? Number(opt.dataset.remaining || 0) : 0;
+    hppPerGram = opt ? Number(opt.dataset.cost !== undefined ? opt.dataset.cost : (opt.dataset.price || 0)) : 0;
+    if (isNaN(hppPerGram) || !isFinite(hppPerGram)) hppPerGram = 0;
+
     if (remain <= 0) {
       showToast('Batch terpilih tidak memiliki sisa stok!', true);
       return;
@@ -2315,6 +2332,18 @@ function submitProduction() {
       return;
     }
   }
+
+  // Hitung kalkulasi HPP otomatis:
+  // - modalBenihPerPcs = (gramDiambil * hppPerGram) / pcsRiil
+  // - hppFinalSachet = modalBenihPerPcs + biayaKemasanPerPcs
+  let modalBenihPerPcs = pcsActual > 0 ? ((gramUsed * hppPerGram) / pcsActual) : 0;
+  if (isNaN(modalBenihPerPcs) || !isFinite(modalBenihPerPcs)) modalBenihPerPcs = 0;
+
+  let hppFinalSachet = Math.round(modalBenihPerPcs + biayaKemasanPerPcs);
+  if (isNaN(hppFinalSachet) || !isFinite(hppFinalSachet)) hppFinalSachet = 0;
+
+  let buyPriceRounded = Math.round(modalBenihPerPcs);
+  if (isNaN(buyPriceRounded) || !isFinite(buyPriceRounded)) buyPriceRounded = 0;
 
   const tgtSelect = document.getElementById('prod-target');
   const tgtName = (tgtSelect && tgtSelect.selectedIndex >= 0) ? tgtSelect.options[tgtSelect.selectedIndex].text.trim() : '';
@@ -2335,9 +2364,18 @@ function submitProduction() {
     gram_per_pack: gramPack,
     pcs_produced: pcsActual,
     production_date: prodDate,
-    expiry_date: expiry
+    expiry_date: expiry,
+    hpp_per_piece: hppFinalSachet,
+    cost_per_unit: hppFinalSachet,
+    buy_price: buyPriceRounded,
+    seed_cost_per_unit: buyPriceRounded,
+    modal_benih_per_pcs: buyPriceRounded,
+    packaging_cost_per_unit: biayaKemasanPerPcs,
+    packaging_cost: Math.round(biayaKemasanPerPcs * pcsActual),
+    seed_cost: Math.round(gramUsed * hppPerGram),
+    hpp_per_gram: hppPerGram
   }).then(async function (res) {
-    // Sinkronisasi tabel products di database Supabase secara langsung
+    // Sinkronisasi tabel products & packaging_logs di database Supabase secara langsung
     try {
       if (window.supabase) {
         // A. Ambil sisa saldo terbaru seluruh batch aktif produk curah sumber & update produk curah
@@ -2355,6 +2393,23 @@ function submitProduction() {
           .eq('product_id', tgtId);
         const newTgtStock = (tBatches || []).reduce(function (sum, b) { return sum + Number(b.qty_remaining || 0); }, 0);
         await window.supabase.from('products').update({ stock: newTgtStock, updated_at: new Date().toISOString() }).eq('id', tgtId);
+
+        // C. Simpan riwayat ke packaging_logs jika tabel tersedia
+        try {
+          await window.supabase.from('packaging_logs').insert({
+            source_product_id: srcId,
+            target_product_id: tgtId,
+            source_batch_id: srcBatchId,
+            gram_used: gramUsed,
+            pcs_produced: pcsActual,
+            cost_per_unit: hppFinalSachet,
+            packaging_cost_per_unit: biayaKemasanPerPcs,
+            buy_price: buyPriceRounded,
+            created_at: new Date().toISOString()
+          });
+        } catch (pLogErr) {
+          // Abaikan jika tabel opsional
+        }
       }
     } catch (syncErr) {
       console.warn('Gagal sinkronisasi sekunder tabel products:', syncErr);
@@ -2366,7 +2421,7 @@ function submitProduction() {
     invalidateCache('batches');
     invalidateCache('mutations');
     invalidateCache('stock_mutations');
-    showToast('Pengemasan berhasil! HPP baru: ' + formatRupiah(res.hpp_per_piece) + '/pcs');
+    showToast('Pengemasan berhasil! HPP baru: Rp ' + Number(hppFinalSachet).toLocaleString('id-ID') + '/pcs');
     renderProduksi(true);
   }).catch(function (err) {
     showToast('Gagal: ' + (err.message || err), true);

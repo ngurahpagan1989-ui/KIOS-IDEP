@@ -3523,11 +3523,21 @@ function openPurchaseModal() {
   }
 }
 
+function isCurahInventoryProduct(p) {
+  if (!p) return false;
+  const invType = String(p.inventory_type || '').trim().toLowerCase();
+  const unit = String(p.unit || '').trim().toLowerCase();
+  if (p.inventory_type === 'curah' || p.inventory_type === 'Curah Mentah') return true;
+  if (invType === 'curah' || invType === 'curah mentah' || invType === 'curah_mentah') return true;
+  if (unit === 'gr' || unit === 'gram' || unit === 'g' || isRawProduct(p.unit)) return true;
+  return false;
+}
+
 function buildProductOptionsHTML(category, selectedId) {
   const list = PRODUCTS_CACHE || [];
   const filtered = list.filter(function (p) {
     if (!p || !p.active) return false;
-    const isRaw = isRawProduct(p.unit);
+    const isRaw = isCurahInventoryProduct(p);
     if (category === 'mentah') return isRaw;
     if (category === 'jadi') return !isRaw;
     return true;
@@ -3536,11 +3546,43 @@ function buildProductOptionsHTML(category, selectedId) {
   if (filtered.length === 0) return '<option value="">-- Tidak ada produk --</option>';
 
   return filtered.map(function (p) {
-    let tag = isRawProduct(p.unit) ? '🌾 [Curah] ' : '📦 [Kemasan] ';
+    let tag = isCurahInventoryProduct(p) ? '🌾 [Curah] ' : '📦 [Kemasan] ';
     const varTag = p.variant ? ' [' + escapeHtml(p.variant) + ']' : '';
     const isSel = (p.id === selectedId) ? ' selected' : '';
     return '<option value="' + p.id + '"' + isSel + '>' + tag + escapeHtml(p.name) + varTag + ' (' + escapeHtml(p.unit || '') + ')</option>';
   }).join('');
+}
+
+function onPurchaseRowProductChange(row) {
+  if (!row) return;
+  const prodSelect = row.querySelector('.pi-product, .pur-item-product');
+  const extraInput = row.querySelector('.pur-item-cost-extra, .pi-cost-extra');
+  if (!prodSelect || !extraInput) return;
+
+  const prodId = prodSelect.value;
+  const allProds = (DATA_CACHE.products && DATA_CACHE.products.data) || PRODUCTS_CACHE || [];
+  const prodObj = allProds.find(function (p) { return p && String(p.id) === String(prodId); });
+  const isCurah = isCurahInventoryProduct(prodObj);
+
+  if (isCurah) {
+    extraInput.value = 0;
+    extraInput.disabled = true;
+    extraInput.placeholder = 'Khusus Kemas Mandiri';
+    extraInput.title = 'Produk curah: Biaya kemasan/ekstra dibebankan nanti saat Kemas Mandiri.';
+    extraInput.style.backgroundColor = 'var(--surface-muted, #f1f5f9)';
+    extraInput.style.color = 'var(--text-secondary, #64748b)';
+    extraInput.style.cursor = 'not-allowed';
+  } else {
+    extraInput.disabled = false;
+    extraInput.placeholder = '0';
+    extraInput.title = 'Biaya tambahan/kemasan/ekstra landed cost per pcs';
+    extraInput.style.backgroundColor = '';
+    extraInput.style.color = '';
+    extraInput.style.cursor = '';
+  }
+
+  autoFillPurchaseRowBatch(row, false);
+  calculatePurchaseRowHPP(row);
 }
 
 function calculatePurchaseRowHPP(targetEl) {
@@ -3548,13 +3590,30 @@ function calculatePurchaseRowHPP(targetEl) {
   const row = targetEl.closest ? targetEl.closest('.price-tier-row') : targetEl;
   if (!row) return;
 
+  const prodSelect = row.querySelector('.pi-product, .pur-item-product');
   const priceInput = row.querySelector('.pi-price, .pur-item-buy-price');
-  const extraInput = row.querySelector('.pur-item-cost-extra');
+  const extraInput = row.querySelector('.pur-item-cost-extra, .pi-cost-extra');
   const hppDisplay = row.querySelector('.pur-item-hpp-display');
 
+  const prodId = prodSelect ? prodSelect.value : '';
+  const allProds = (DATA_CACHE.products && DATA_CACHE.products.data) || PRODUCTS_CACHE || [];
+  const prodObj = allProds.find(function (p) { return p && String(p.id) === String(prodId); });
+  const isCurah = isCurahInventoryProduct(prodObj);
+
   const buyPrice = parseFloat(priceInput ? priceInput.value : 0) || 0;
-  const extraCost = parseFloat(extraInput ? extraInput.value : 0) || 0;
-  const hppFinal = Math.max(0, buyPrice + extraCost);
+  let extraCost = parseFloat(extraInput ? extraInput.value : 0) || 0;
+
+  if (isCurah) {
+    extraCost = 0;
+    if (extraInput) {
+      extraInput.value = 0;
+      extraInput.disabled = true;
+      extraInput.placeholder = 'Khusus Kemas Mandiri';
+    }
+  }
+
+  // Nilai HPP baris curah otomatis 100% sama dengan Harga Beli
+  const hppFinal = isCurah ? buyPrice : Math.max(0, buyPrice + extraCost);
 
   if (hppDisplay) {
     const formatted = formatRupiah(hppFinal);
@@ -3580,7 +3639,8 @@ function updatePurchaseModalTotal() {
   rows.forEach(function (r) {
     const qty = parseFloat(r.querySelector('.pi-qty') ? r.querySelector('.pi-qty').value : 0) || 0;
     const price = parseFloat(r.querySelector('.pi-price, .pur-item-buy-price') ? r.querySelector('.pi-price, .pur-item-buy-price').value : 0) || 0;
-    const extra = parseFloat(r.querySelector('.pur-item-cost-extra') ? r.querySelector('.pur-item-cost-extra').value : 0) || 0;
+    const extraInput = r.querySelector('.pur-item-cost-extra, .pi-cost-extra');
+    const extra = (extraInput && !extraInput.disabled) ? (parseFloat(extraInput.value) || 0) : 0;
     const hpp = price + extra;
     grandTotal += (qty * hpp);
     totalQty += qty;
@@ -3601,7 +3661,7 @@ function addPurchaseItemRow() {
 
   row.innerHTML =
     '<div>' +
-    '<select class="pi-product pur-item-product" onchange="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;font-size:12px;font-weight:600;">' +
+    '<select class="pi-product pur-item-product" onchange="onPurchaseRowProductChange(this.closest(\'.price-tier-row\'))" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;font-size:12px;font-weight:600;">' +
     buildProductOptionsHTML(catFilter) +
     '</select>' +
     '</div>' +
@@ -3634,8 +3694,7 @@ function addPurchaseItemRow() {
     '</div>';
 
   container.appendChild(row);
-  autoFillPurchaseRowBatch(row, false);
-  calculatePurchaseRowHPP(row);
+  onPurchaseRowProductChange(row);
 }
 
 function cleanFarmerInitialClient(farmerName) {
@@ -3928,6 +3987,10 @@ function filterPurchaseProductOptions(category) {
   document.querySelectorAll('#pur-items .pi-product').forEach(function (select) {
     const val = select.value;
     select.innerHTML = buildProductOptionsHTML(category, val);
+    const row = select.closest('.price-tier-row');
+    if (row) {
+      onPurchaseRowProductChange(row);
+    }
   });
 }
 
@@ -4111,21 +4174,16 @@ function submitPurchase() {
       batchNo = generateClientBatchCode(farmerId || farmerName, expVal, idx + 1);
     }
 
-    const buyPrice = Number(row.querySelector('.pi-price, .pur-item-buy-price') ? row.querySelector('.pi-price, .pur-item-buy-price').value : 0) || 0;
-    const additionalCost = Number(row.querySelector('.pur-item-cost-extra') ? row.querySelector('.pur-item-cost-extra').value : 0) || 0;
-    const hppDisplay = row.querySelector('.pur-item-hpp-display');
-    let costPerUnit = (hppDisplay && hppDisplay.dataset && hppDisplay.dataset.value !== undefined)
-      ? Number(hppDisplay.dataset.value)
-      : (buyPrice + additionalCost);
-    if (isNaN(costPerUnit) || costPerUnit <= 0) {
-      costPerUnit = buyPrice + additionalCost;
-    }
-
     const prodId = row.querySelector('.pi-product').value;
     const allProds = (DATA_CACHE.products && DATA_CACHE.products.data) || PRODUCTS_CACHE || [];
-    const prodObj = allProds.find(function (p) { return p && p.id === prodId; });
-    const isCurah = prodObj && isRawProduct(prodObj.unit);
+    const prodObj = allProds.find(function (p) { return p && String(p.id) === String(prodId); });
+    const isCurah = isCurahInventoryProduct(prodObj);
     const itemUnit = (prodObj && prodObj.unit) ? prodObj.unit : (isCurah ? 'gr' : 'pcs');
+
+    const buyPrice = Number(row.querySelector('.pi-price, .pur-item-buy-price') ? row.querySelector('.pi-price, .pur-item-buy-price').value : 0) || 0;
+    const rawAdditionalCost = Number(row.querySelector('.pur-item-cost-extra') ? row.querySelector('.pur-item-cost-extra').value : 0) || 0;
+    const additionalCost = isCurah ? 0 : rawAdditionalCost;
+    const costPerUnit = isCurah ? buyPrice : (buyPrice + additionalCost);
 
     return {
       product_id: prodId,
@@ -4133,8 +4191,10 @@ function submitPurchase() {
       qty: Number(row.querySelector('.pi-qty').value || 0),
       unit: itemUnit,
       buy_price: buyPrice,
-      additional_cost: additionalCost,
+      additional_cost: isCurah ? 0 : additionalCost,
       cost_per_unit: costPerUnit,
+      is_curah: isCurah,
+      inventory_type: (prodObj && prodObj.inventory_type) ? prodObj.inventory_type : (isCurah ? 'curah' : 'kemasan'),
       production_date: prodDateVal || todayStr,
       expiry_date: row.querySelector('.pi-expiry').value || ''
     };

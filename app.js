@@ -7890,108 +7890,7 @@ function openConsignmentAuditModal(outletId) {
     const bodyHtml =
       '<div style="margin-bottom:14px;background:#FAF7F2;border:1px solid #E4D8CE;padding:12px 14px;border-radius:var(--radius-sm);">' +
       '<div style="font-size:14px;font-weight:700;color:var(--primary);">' + escapeHtml(o.name) + '</div>' +
-      '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Audit Opname Lapangan, Penanganan Selisih Fisik, Mutasi Retur, Restock...</div>' +
-      '</div>' +
-      '<div class="audit-table-wrap" style="margin-top:14px;">' +
-      '<table class="audit-table">' +
-      '<thead>' +
-      '<tr>' +
-      '<th>Produk &amp; Batch</th>' +
-      '<th style="text-align:center;">Sistem</th>' +
-      '<th style="text-align:center;">Fisik Rak</th>' +
-      '<th style="text-align:center;">Retur Exp</th>' +
-      '<th style="text-align:center;">Hilang/Selisih</th>' +
-      '<th>Beban Selisih</th>' +
-      '<th style="text-align:center;">Terjual</th>' +
-      '<th style="text-align:center;">Drop Restock</th>' +
-      '<th style="text-align:center;">Saldo Akhir</th>' +
-      '<th>Keterangan</th>' +
-      '</tr>' +
-      '</thead>' +
-      '<tbody id="audit-tbody">' + tableRowsHtml + '</tbody>' +
-      '</table>' +
-      '</div>' +
-      '</div>'; // Penutup string bodyHtml
-
-    const footerHtml = 
-      '<button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
-      '<button type="button" class="btn btn-primary" onclick="alert(\'Fungsi simpan opname sedang disempurnakan\')">Simpan Opname</button>';
-
-    openModal('Stok Opname Lapangan (MOV)', bodyHtml, footerHtml, true);
-  }).catch(function (err) {
-    showToast('Gagal memuat form opname: ' + (err.message || err), true);
-  });
-}
-
-// =========================================================
-// FUNGSI WAJIB: PENGELUARAN & KALKULASI QRIS KASIR
-// =========================================================
-
-// 1. Helper kalkulasi potongan fee QRIS di modal checkout kasir
-function handleCheckoutQrisFeeChange(method, total) {
-  const feeBox = document.getElementById('chk-qris-fee-box');
-  if (!feeBox) return;
-
-  if (method === 'QRIS') {
-    const qrisCfg = JSON.parse(localStorage.getItem('idep_pos_qris_config') || '{"mdr":0.3,"burden":"merchant"}');
-    const mdrRate = Number(qrisCfg.mdr || 0.3) / 100;
-    const feeNominal = Math.round(total * mdrRate);
-
-    feeBox.style.display = 'block';
-    feeBox.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span>Potongan MDR QRIS (${(mdrRate * 100).toFixed(1)}%):</span>
-        <strong style="color:var(--primary); font-family:monospace;">${formatRupiah(feeNominal)}</strong>
-      </div>
-      <div style="font-size:11px;color:var(--text-secondary);margin-top:3px;">
-        ${qrisCfg.burden === 'customer' ? 'Ditambahkan ke tagihan pelanggan' : 'Dipotong dari penerimaan kas kios'}
-      </div>
-    `;
-  } else {
-    feeBox.style.display = 'none';
-  }
-}
-
-// 2. Modul Halaman Pengeluaran (Menu Sidebar)
-function renderExpenses(forceRefresh) {
-  const content = document.getElementById('content');
-  if (!content) return;
-  content.innerHTML = '<div class="card"><div class="empty-state">Halaman Pengeluaran sedang memuat...</div></div>';
-  
-  api('getExpenses', TOKEN).then(expenses => {
-    const list = Array.isArray(expenses) ? expenses : [];
-    let rows = list.map(e => `
-      <tr>
-        <td>${formatDateIndo(e.expense_date)}</td>
-        <td><span class="badge badge-neutral">${escapeHtml(e.category_name)}</span></td>
-        <td>${escapeHtml(e.notes)}</td>
-        <td><span class="badge badge-info">${escapeHtml(e.payment_method)}</span></td>
-        <td style="color:var(--danger); font-weight:bold; font-family:monospace;">${formatRupiah(e.amount)}</td>
-        <td style="text-align:right;"><button class="btn btn-danger btn-sm" onclick="api('deleteExpense', TOKEN, '${e.id}').then(()=>renderExpenses(true))">Hapus</button></td>
-      </tr>
-    `).join('');
-    
-    content.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Pengeluaran & Biaya</h1>
-          <p class="page-subtitle">Pencatatan kas operasional dan fee logistik Kios.</p>
-        </div>
-      </div>
-      <div class="card">
-        <h3 style="margin-bottom:14px;">Riwayat Pengeluaran Kas</h3>
-        <div class="table-container">
-          <table>
-            <thead><tr><th>Tanggal</th><th>Kategori</th><th>Keterangan</th><th>Metode</th><th>Nominal</th><th style="text-align:right;">Aksi</th></tr></thead>
-            <tbody>${rows || '<tr><td colspan="6" style="text-align:center;padding:16px;">Tidak ada data pengeluaran.</td></tr>'}</tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  }).catch(err => {
-    showToast('Gagal memuat pengeluaran: ' + err.message, true);
-  });
-}
+      '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Audit Opname Lapangan, Penanganan Selisih Fisik, Mutasi Retur, Restock Baru di Rak &amp; Rekonsiliasi Berita Acara MOV Resmi</div>' +
       '</div>' +
 
       // 1. Informasi Kunjungan
@@ -14280,12 +14179,22 @@ function resetDefaultExpenseCategories() {
   );
 }
 
+function deleteExpenseUI(id) {
+  showConfirmDialog('Hapus Pengeluaran', 'Hapus catatan pengeluaran ini?', function () {
+    api('deleteExpense', TOKEN, id).then(() => {
+      showToast('Pengeluaran dihapus.');
+      renderExpenses(true);
+    });
+  }, true);
+}
+
 // Ekspor ke window global
 window.renderExpenses = renderExpenses;
 window.switchExpensesTab = switchExpensesTab;
 window.onExpenseAmountInput = onExpenseAmountInput;
 window.submitNewExpense = submitNewExpense;
 window.deleteExpenseRecord = deleteExpenseRecord;
+window.deleteExpenseUI = deleteExpenseUI;
 window.onExpenseSearch = onExpenseSearch;
 window.onExpenseCategoryFilter = onExpenseCategoryFilter;
 window.onExpenseMonthFilter = onExpenseMonthFilter;

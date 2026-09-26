@@ -717,13 +717,18 @@ async function dispatchApiCall(fnName, args) {
 
       if (error) throw error;
 
-      return (data || []).map(p => ({
-        ...p,
-        source_name: p.source_product ? p.source_product.name : '(dihapus)',
-        target_name: p.target_product ? p.target_product.name : '(dihapus)',
-        seed_cost: Number(p.seed_cost || 0),
-        packaging_cost: Number(p.packaging_cost || 0)
-      }));
+      return (data || []).map(p => {
+        const costPerUnit = Number(p.cost_per_unit !== undefined && p.cost_per_unit !== null ? p.cost_per_unit : (p.hpp_per_piece || 0));
+        return {
+          ...p,
+          source_name: p.source_product ? p.source_product.name : '(dihapus)',
+          target_name: p.target_product ? p.target_product.name : '(dihapus)',
+          seed_cost: Number(p.seed_cost || 0),
+          packaging_cost: Number(p.packaging_cost || 0),
+          cost_per_unit: costPerUnit,
+          hpp_per_piece: costPerUnit
+        };
+      });
     }
 
     case 'processProduction': {
@@ -734,12 +739,6 @@ async function dispatchApiCall(fnName, args) {
       const pcs = Number(payload.pcs_produced || 0);
       const seedCost = Number(payload.seed_cost || 0);
       const packagingCost = Number(payload.packaging_cost || 0);
-
-      // Hitung otomatis HPP jika bernilai 0
-      let hppPerPiece = Number(payload.hpp_per_piece || 0);
-      if (hppPerPiece <= 0) {
-        hppPerPiece = pcs > 0 ? ((seedCost + packagingCost) / pcs) : (seedCost + packagingCost);
-      }
 
       // 1. Validasi dan potong stok batch bahan baku curah
       const { data: srcBatch, error: srcErr } = await supabase
@@ -752,6 +751,22 @@ async function dispatchApiCall(fnName, args) {
       if (Number(srcBatch.qty_remaining) < grams) {
         throw new Error(`Stok batch asal tidak mencukupi (${srcBatch.qty_remaining} gr tersedia, butuh ${grams} gr).`);
       }
+
+      // Ambil HPP per gram dari batch curah terpilih (sourceBatch.cost_per_unit atau fallback ke sourceBatch.buy_price)
+      const hppPerGram = Number(srcBatch.cost_per_unit !== undefined && srcBatch.cost_per_unit !== null
+        ? srcBatch.cost_per_unit
+        : (srcBatch.buy_price || payload.hpp_per_gram || 0));
+
+      const biayaKemasanPerPcs = Number(payload.packaging_cost_per_unit !== undefined
+        ? payload.packaging_cost_per_unit
+        : (pcs > 0 ? (packagingCost / pcs) : 0));
+
+      // Hitung:
+      // modalBenihPerPcs = (gramDiambil * hppPerGram) / pcsRiil
+      // hppFinalSachet = modalBenihPerPcs + biayaKemasanPerPcs
+      const modalBenihPerPcs = pcs > 0 ? ((grams * hppPerGram) / pcs) : 0;
+      const modalBenihRounded = Math.round(modalBenihPerPcs || 0);
+      const hppFinalSachet = Math.round((modalBenihPerPcs || 0) + (biayaKemasanPerPcs || 0));
 
       await supabase
         .from('stock_batches')
@@ -771,7 +786,7 @@ async function dispatchApiCall(fnName, args) {
         created_by: user ? user.id : null
       });
 
-      // 2. Buat batch baru untuk produk kemasan jadi
+      // 2. Buat batch baru untuk produk kemasan jadi (stock_batches)
       const targetBatchId = crypto.randomUUID();
       const targetBatchCode = `PK-${Date.now().toString().slice(-6)}`;
 
@@ -781,7 +796,8 @@ async function dispatchApiCall(fnName, args) {
         product_id: payload.target_product_id,
         qty_in: pcs,
         qty_remaining: pcs,
-        buy_price: hppPerPiece,
+        buy_price: modalBenihRounded,
+        cost_per_unit: hppFinalSachet,
         production_date: srcBatch.production_date || new Date().toISOString().split('T')[0],
         expiry_date: srcBatch.expiry_date || null,
         quality_status: 'NORMAL',
@@ -808,30 +824,26 @@ async function dispatchApiCall(fnName, args) {
         const srcBatchCode = srcBatch.batch_code || payload.source_batch_id || '-';
 
         // a. Pengeluaran bahan baku curah:
-        // - mutation_type: 'KELUAR_PRODUKSI', qty: -gramDiambil (negatif), unit: 'gr'
-        // - notes: mencantumkan nama kemasan target dan batch asal
         const curahMutation = {
           id: crypto.randomUUID(),
           product_id: payload.source_product_id,
           batch_id: payload.source_batch_id,
           reference_no: srcBatchCode,
           mutation_type: 'KELUAR_PRODUKSI',
-          qty: -grams, // angka negatif
+          qty: -grams,
           unit: 'gr',
           notes: `Kemas Mandiri -> ${targetProdName || 'Kemasan Sachet'} (Batch Asal: ${srcBatchCode})`,
           created_at: new Date().toISOString()
         };
 
         // b. Pemasukan sachet hasil kemasan:
-        // - mutation_type: 'MASUK_PRODUKSI', qty: +pcsDihasilkan (positif), unit: 'pcs'
-        // - notes: mencantumkan batch baru yang diterbitkan
         const sachetMutation = {
           id: crypto.randomUUID(),
           product_id: payload.target_product_id,
           batch_id: targetBatchId,
           reference_no: targetBatchCode,
           mutation_type: 'MASUK_PRODUKSI',
-          qty: pcs, // angka positif
+          qty: pcs,
           unit: 'pcs',
           notes: `Hasil Kemas Mandiri Batch: ${targetBatchCode}`,
           created_at: new Date().toISOString()
@@ -907,16 +919,40 @@ async function dispatchApiCall(fnName, args) {
         gram_used: grams,
         pcs_produced: pcs,
         gram_per_pack: Number(payload.gram_per_pack || 0),
-        hpp_per_piece: hppPerPiece,
-        seed_cost: Number(payload.seed_cost || 0),
-        packaging_cost: Number(payload.packaging_cost || 0)
+        hpp_per_piece: hppFinalSachet,
+        cost_per_unit: hppFinalSachet,
+        packaging_cost_per_unit: biayaKemasanPerPcs,
+        seed_cost: Math.round(grams * hppPerGram),
+        packaging_cost: Math.round(biayaKemasanPerPcs * pcs)
       }).select().single();
 
       if (prdErr) throw prdErr;
 
+      // 5. Simpan riwayat di tabel packaging_logs jika tersedia
+      try {
+        await supabase.from('packaging_logs').insert({
+          id: prodId,
+          production_id: prodId,
+          source_product_id: payload.source_product_id,
+          target_product_id: payload.target_product_id,
+          source_batch_id: payload.source_batch_id,
+          target_batch_id: targetBatchId,
+          gram_used: grams,
+          pcs_produced: pcs,
+          cost_per_unit: hppFinalSachet,
+          packaging_cost_per_unit: biayaKemasanPerPcs,
+          buy_price: modalBenihRounded,
+          created_at: new Date().toISOString()
+        });
+      } catch (pLogErr) {
+        console.warn('[Supabase] Warning saat insert packaging_logs:', pLogErr);
+      }
+
       return {
         success: true,
         id: prodId,
+        hpp_per_piece: hppFinalSachet,
+        cost_per_unit: hppFinalSachet,
         message: `Berhasil mengemas ${pcs} kemasan benih siap jual.`
       };
     }

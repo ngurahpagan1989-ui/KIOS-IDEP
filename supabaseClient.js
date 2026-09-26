@@ -573,8 +573,14 @@ async function dispatchApiCall(fnName, args) {
         const batchCode = item.batch_no ? String(item.batch_no).trim() : `B-${Date.now().toString().slice(-6)}`;
         const qtyIn = Number(item.qty || 0);
         const buyPrice = Number(item.buy_price || 0);
-        const additionalCost = Number(item.additional_cost || 0);
-        const costPerUnit = Number(item.cost_per_unit !== undefined ? item.cost_per_unit : (buyPrice + additionalCost));
+
+        // Identifikasi apakah produk curah (berdasarkan unit 'gr'/'gram', inventory_type 'curah', atau flag is_curah)
+        const unitLower = String(item.unit || '').toLowerCase().trim();
+        const invLower = String(item.inventory_type || '').toLowerCase().trim();
+        const isCurah = Boolean(item.is_curah) || unitLower === 'gr' || unitLower === 'gram' || invLower === 'curah' || invLower === 'curah mentah';
+
+        const additionalCost = isCurah ? 0 : Number(item.additional_cost || 0);
+        const costPerUnit = isCurah ? buyPrice : Number(item.cost_per_unit !== undefined ? item.cost_per_unit : (buyPrice + additionalCost));
 
         // Benih curah masuk ke antrean PENDING_QC; non-benih/pabrikan langsung APPROVED & NORMAL
         const isSeed = item.is_seed !== false && item.category !== 'Non-Benih';
@@ -589,9 +595,9 @@ async function dispatchApiCall(fnName, args) {
             batch_no: batchCode,
             qty: qtyIn,
             buy_price: buyPrice,
-            additional_cost: additionalCost,
-            cost_per_unit: costPerUnit,
-            subtotal: qtyIn * costPerUnit,
+            additional_cost: isCurah ? 0 : additionalCost,
+            cost_per_unit: isCurah ? buyPrice : costPerUnit,
+            subtotal: qtyIn * (isCurah ? buyPrice : costPerUnit),
             production_date: item.production_date || null,
             expiry_date: item.expiry_date || null
           });
@@ -608,7 +614,7 @@ async function dispatchApiCall(fnName, args) {
           qty_in: qtyIn,
           qty_remaining: qtyIn,
           buy_price: buyPrice,
-          cost_per_unit: costPerUnit,
+          cost_per_unit: isCurah ? buyPrice : costPerUnit,
           production_date: item.production_date || null,
           expiry_date: item.expiry_date || null,
           quality_status: qualityStatus,

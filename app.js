@@ -258,6 +258,15 @@ function syncModalOpenState() {
 function closeModal() {
   const modalContainer = document.getElementById('modal-container');
   if (modalContainer) modalContainer.style.display = 'none';
+  const dialog = document.getElementById('modal-dialog');
+  if (dialog) {
+    dialog.className = 'modal-dialog';
+    dialog.style.width = '';
+    dialog.style.maxWidth = '';
+    dialog.style.maxHeight = '';
+    dialog.style.overflowY = '';
+    dialog.style.padding = '';
+  }
   document.querySelectorAll('.modal-overlay:not(#confirm-modal):not(#modal-container):not(#delivery-signature-modal):not(#delivery-receipt-modal):not(#pod-view-modal):not(#modal-reset-data):not(#modal-qc-entry):not(#modal-qc-photo-viewer)').forEach(function (m) {
     m.remove();
   });
@@ -398,6 +407,13 @@ function openModal(title, bodyHtml, footerHtml, isLarge) {
   const footerEl = document.getElementById('modal-footer');
 
   if (!container || !dialog) return;
+
+  dialog.className = 'modal-dialog';
+  dialog.style.width = '';
+  dialog.style.maxWidth = '';
+  dialog.style.maxHeight = '';
+  dialog.style.overflowY = '';
+  dialog.style.padding = '';
 
   if (isLarge) {
     dialog.classList.add('modal-dialog-lg');
@@ -3477,21 +3493,23 @@ function openPurchaseModal() {
     '<label class="field-label" style="margin-bottom:0;">Daftar Item Pembelian &amp; Perhitungan HPP (Landed Cost)</label>' +
     '<span style="font-size:11px;color:var(--text-secondary);"><i class="fas fa-calculator" style="margin-right:4px;"></i>Rumus: <strong>HPP Final = Harga Beli + Biaya Tambahan/Pcs</strong></span>' +
     '</div>' +
-    '<div class="w-full overflow-x-auto border rounded-lg purchase-items-wrapper">' +
-    '<div class="purchase-items-table min-w-[950px]">' +
-    '<div class="purchase-grid-header">' +
-    '<div class="pl-4">Nama Produk</div>' +
-    '<div class="min-w-[210px]" style="min-width:210px;">No. Batch / Lot</div>' +
-    '<div style="text-align:center;">Qty</div>' +
-    '<div>Harga Beli (Rp)</div>' +
-    '<div>Biaya Ekstra/Pcs (Rp)</div>' +
-    '<div>HPP Final/Pcs (Rp)</div>' +
-    '<div>Tgl Produksi</div>' +
-    '<div class="pr-4">Tgl Kadaluarsa</div>' +
-    '<div style="text-align:center;">Aksi</div>' +
-    '</div>' +
-    '<div id="pur-items" style="max-height:360px;overflow-y:auto;"></div>' +
-    '</div>' +
+    '<div class="w-full overflow-x-auto border border-stone-200 rounded-xl purchase-items-wrapper" style="border:1px solid #e7e5e4;border-radius:12px;overflow-x:auto;background:var(--surface,#fff);margin-bottom:10px;">' +
+    '<table class="w-full min-w-[1050px] purchase-items-table border-collapse" style="width:100%;min-width:1050px;border-collapse:collapse;">' +
+    '<thead>' +
+    '<tr class="purchase-grid-header" style="background-color:#FAF7E8;">' +
+    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left pl-4" style="background-color:#FAF7E8;color:#44403c;padding:10px 12px 10px 16px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Nama Produk</th>' +
+    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left min-w-[210px]" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;min-width:210px;white-space:nowrap;">No. Batch / Lot</th>' +
+    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-center" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:center;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Qty</th>' +
+    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Harga Beli (Rp)</th>' +
+    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Biaya Ekstra/Pcs (Rp)</th>' +
+    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">HPP Final/Pcs (Rp)</th>' +
+    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Tgl Produksi</th>' +
+    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left pr-4" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Tgl Kadaluarsa</th>' +
+    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-center" style="background-color:#FAF7E8;color:#44403c;padding:10px 16px 10px 8px;text-align:center;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Aksi</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody id="pur-items"></tbody>' +
+    '</table>' +
     '</div>' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:10px;">' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="addPurchaseItemRow()">+ Tambah Baris Barang</button>' +
@@ -3509,7 +3527,11 @@ function openPurchaseModal() {
   openModal('Pembelian / Pengadaan Baru', bodyHtml, footerHtml, true);
   const dialog = document.getElementById('modal-dialog');
   if (dialog) {
-    dialog.style.maxWidth = '1120px';
+    dialog.classList.add('w-[94vw]', 'max-w-7xl', 'max-h-[92vh]', 'overflow-y-auto', 'p-6');
+    dialog.style.width = '94vw';
+    dialog.style.maxWidth = '1280px';
+    dialog.style.maxHeight = '92vh';
+    dialog.style.overflowY = 'auto';
   }
   renderSupplierOptions();
   renderFarmerOptions();
@@ -3656,42 +3678,42 @@ function addPurchaseItemRow() {
   if (!container) return;
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const row = document.createElement('div');
+  const row = document.createElement('tr');
   row.className = 'price-tier-row pur-item-row';
 
   row.innerHTML =
-    '<div class="pl-4">' +
+    '<td class="pl-4">' +
     '<select class="pi-product pur-item-product" onchange="onPurchaseRowProductChange(this.closest(\'.price-tier-row\'))" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;font-size:12px;font-weight:600;">' +
     buildProductOptionsHTML(catFilter) +
     '</select>' +
-    '</div>' +
-    '<div class="min-w-[210px]" style="min-width:210px;">' +
+    '</td>' +
+    '<td class="min-w-[210px]" style="min-width:210px;">' +
     '<div class="flex items-center gap-1 min-w-[210px]" style="display:flex;align-items:center;gap:4px;min-width:210px;flex-wrap:nowrap;">' +
     '<input type="text" class="pi-lot pur-item-lot font-mono text-xs w-44 min-w-[175px]" oninput="this.dataset.manual=\'true\'" placeholder="Auto / Manual" style="flex:1;min-width:175px;width:100%;padding:6px 6px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);font-family:\'JetBrains Mono\',monospace;">' +
     '<button type="button" class="btn-regen-batch shrink-0" title="Generate ulang kode acak" onclick="regenerateBatchRow(this)" style="padding:4px 6px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-xs);cursor:pointer;font-size:12px;flex-shrink:0;">🔄</button>' +
     '</div>' +
-    '</div>' +
-    '<div>' +
+    '</td>' +
+    '<td style="text-align:center;">' +
     '<input type="number" class="pi-qty pur-item-qty" placeholder="Qty" min="1" value="1" oninput="calculatePurchaseRowHPP(this)" style="width:100%;padding:6px 4px;font-size:12px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
-    '</div>' +
-    '<div>' +
+    '</td>' +
+    '<td>' +
     '<input type="number" class="pi-price pur-item-buy-price" placeholder="0" min="0" oninput="calculatePurchaseRowHPP(this)" style="width:100%;padding:6px 6px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);text-align:right;">' +
-    '</div>' +
-    '<div>' +
+    '</td>' +
+    '<td>' +
     '<input type="number" class="pur-item-cost-extra pi-cost-extra" placeholder="0" min="0" value="0" oninput="calculatePurchaseRowHPP(this)" style="width:100%;padding:6px 6px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);text-align:right;">' +
-    '</div>' +
-    '<div>' +
+    '</td>' +
+    '<td>' +
     '<input type="text" class="pur-item-hpp-display" readonly value="Rp 0" data-value="0" title="HPP Final / Pcs = Harga Beli + Biaya Ekstra" style="width:100%;padding:6px 6px;font-size:12px;font-weight:700;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-xs);cursor:default;text-align:right;">' +
-    '</div>' +
-    '<div>' +
+    '</td>' +
+    '<td>' +
     '<input type="date" class="pi-prod-date pur-item-prod-date" value="' + todayStr + '" style="width:100%;padding:6px 4px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
-    '</div>' +
-    '<div class="pr-4">' +
+    '</td>' +
+    '<td class="pr-4">' +
     '<input type="date" class="pi-expiry pur-item-expiry" onchange="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" oninput="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" style="width:100%;padding:6px 4px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
-    '</div>' +
-    '<div style="text-align:center;">' +
+    '</td>' +
+    '<td style="text-align:center;">' +
     '<button type="button" class="btn btn-danger btn-sm" onclick="this.closest(\'.price-tier-row\').remove();renumberPurchaseBatchSequences();updatePurchaseModalTotal();" title="Hapus baris" style="padding:4px 8px;font-size:12px;line-height:1;">&times;</button>' +
-    '</div>';
+    '</td>';
 
   container.appendChild(row);
   onPurchaseRowProductChange(row);

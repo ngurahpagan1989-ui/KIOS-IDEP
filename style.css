@@ -4874,13 +4874,37 @@ tbody tr:hover {
 .purchase-items-wrapper {
   overflow-x: auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   background: var(--surface);
   margin-bottom: 10px;
 }
 
+.w-full {
+  width: 100%;
+}
+
+.overflow-x-auto {
+  overflow-x: auto;
+}
+
+.rounded-lg {
+  border-radius: 8px;
+}
+
+.min-w-\[950px\] {
+  min-width: 950px;
+}
+
+.pl-4 {
+  padding-left: 1rem;
+}
+
+.pr-4 {
+  padding-right: 1rem;
+}
+
 .purchase-items-table {
-  min-width: 1040px;
+  min-width: 950px;
   width: 100%;
 }
 

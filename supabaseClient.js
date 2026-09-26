@@ -13,29 +13,24 @@
  */
 
 // 1. KREDENSIAL KONEKSI SUPABASE
-const SUPABASE_URL = 'https://xozysfvihcyjytukisul.supabase.co';
+const SUPABASE_URL = 'https://xozysfvlhcyjytukisul.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvenlzZnZsaGN5anl0dWtpc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5NDg3MzYsImV4cCI6MjEwNTUyNDczNn0.SNlrOxV3jx3H3pYxu9BAMi1zxsW-cmvty_FZL0-RsdQ';
+
 const SUPABASE_CONFIG = {
   url: SUPABASE_URL,
   anonKey: SUPABASE_ANON_KEY
 };
 
-// Inisialisasi Supabase Client langsung ke window.supabase (menghindari error redeclaration of non-configurable global property)
 try {
   const _createClientFn = window.supabase?.createClient || (typeof createClient === 'function' ? createClient : null);
   if (_createClientFn) {
-    window.supabase = _createClientFn(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
-    });
+    window.supabase = _createClientFn(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase Client siap digunakan.');
   } else {
-    console.warn('[Supabase] Library @supabase/supabase-js belum termuat. Pastikan CDN sudah dipasang di HTML.');
+    console.error('❌ Library Supabase CDN belum termuat di index.html.');
   }
 } catch (err) {
-  console.error('[Supabase] Inisialisasi client gagal:', err);
+  console.error('❌ Gagal inisialisasi Supabase Client:', err);
 }
 
 // Global state untuk sesi pengguna lokal

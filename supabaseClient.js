@@ -33,8 +33,6 @@ try {
   console.error('❌ Gagal inisialisasi Supabase Client:', err);
 }
 
-const supabase = window.supabase;
-
 // Global state untuk sesi pengguna lokal
 window.CURRENT_SESSION = null;
 window.CURRENT_USER_PROFILE = null;

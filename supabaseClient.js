@@ -37,6 +37,24 @@ try {
 window.CURRENT_SESSION = null;
 window.CURRENT_USER_PROFILE = null;
 
+// Helper pencadangan lokal riwayat mutasi stok
+function saveMutationToLocalBackup(item) {
+  try {
+    const backup = JSON.parse(localStorage.getItem('idep_stock_mutations_backup') || '[]');
+    const idx = backup.findIndex(b => b && b.id === item.id);
+    if (idx >= 0) {
+      backup[idx] = Object.assign({}, backup[idx], item);
+    } else {
+      backup.unshift(item);
+    }
+    if (backup.length > 500) backup.length = 500;
+    localStorage.setItem('idep_stock_mutations_backup', JSON.stringify(backup));
+  } catch (e) {
+    console.warn('[LocalBackup] Gagal simpan mutasi:', e);
+  }
+}
+window.saveMutationToLocalBackup = saveMutationToLocalBackup;
+
 // ==============================================================================
 // 2. HELPER UTILS (STORAGE & CONVERSIONS)
 // ==============================================================================
@@ -597,7 +615,7 @@ async function dispatchApiCall(fnName, args) {
           qc_status: qcStatus
         });
 
-        // 2c. Simpan riwayat mutasi masuk
+        // 2c. Simpan riwayat mutasi masuk (legacy)
         await supabase.from('stock_movements').insert({
           product_id: item.product_id,
           batch_id: batchId,
@@ -606,6 +624,37 @@ async function dispatchApiCall(fnName, args) {
           ref_id: purchaseId,
           notes: `Pembelian #${invoiceNo}`
         });
+
+        // 2d. Integrasi Log Mutasi Terpusat: MASUK_PEMBELIAN (+qty, reference_no: invoiceNo)
+        try {
+          const itemUnit = item.unit || 'pcs';
+          const purchaseMutation = {
+            id: crypto.randomUUID(),
+            product_id: item.product_id,
+            batch_id: batchId,
+            reference_no: invoiceNo,
+            mutation_type: 'MASUK_PEMBELIAN',
+            qty: qtyIn, // angka positif
+            unit: itemUnit,
+            notes: `Faktur Pembelian #${invoiceNo} (Batch: ${batchCode})`,
+            created_at: now
+          };
+          await supabase.from('stock_mutations').insert(purchaseMutation);
+          saveMutationToLocalBackup(purchaseMutation);
+        } catch (mutErr) {
+          console.warn('[Supabase] Warning saat insert stock_mutations (createPurchase):', mutErr);
+          saveMutationToLocalBackup({
+            id: crypto.randomUUID(),
+            product_id: item.product_id,
+            batch_id: batchId,
+            reference_no: invoiceNo,
+            mutation_type: 'MASUK_PEMBELIAN',
+            qty: qtyIn,
+            unit: item.unit || 'pcs',
+            notes: `Faktur Pembelian #${invoiceNo} (Batch: ${batchCode})`,
+            created_at: now
+          });
+        }
       }
 
       return { success: true, id: purchaseId, message: 'Faktur pembelian berhasil disimpan.' };
@@ -748,6 +797,75 @@ async function dispatchApiCall(fnName, args) {
         notes: `Hasil pengemasan dari batch ${srcBatch.batch_code}`,
         created_by: user ? user.id : null
       });
+
+      // 2b. Integrasi Log Kemas Mandiri Terpusat ke tabel stock_mutations
+      try {
+        let targetProdName = payload.target_product_name || '';
+        if (!targetProdName) {
+          const { data: tProd } = await supabase.from('products').select('name').eq('id', payload.target_product_id).maybeSingle();
+          if (tProd) targetProdName = tProd.name;
+        }
+        const srcBatchCode = srcBatch.batch_code || payload.source_batch_id || '-';
+
+        // a. Pengeluaran bahan baku curah:
+        // - mutation_type: 'KELUAR_PRODUKSI', qty: -gramDiambil (negatif), unit: 'gr'
+        // - notes: mencantumkan nama kemasan target dan batch asal
+        const curahMutation = {
+          id: crypto.randomUUID(),
+          product_id: payload.source_product_id,
+          batch_id: payload.source_batch_id,
+          reference_no: srcBatchCode,
+          mutation_type: 'KELUAR_PRODUKSI',
+          qty: -grams, // angka negatif
+          unit: 'gr',
+          notes: `Kemas Mandiri -> ${targetProdName || 'Kemasan Sachet'} (Batch Asal: ${srcBatchCode})`,
+          created_at: new Date().toISOString()
+        };
+
+        // b. Pemasukan sachet hasil kemasan:
+        // - mutation_type: 'MASUK_PRODUKSI', qty: +pcsDihasilkan (positif), unit: 'pcs'
+        // - notes: mencantumkan batch baru yang diterbitkan
+        const sachetMutation = {
+          id: crypto.randomUUID(),
+          product_id: payload.target_product_id,
+          batch_id: targetBatchId,
+          reference_no: targetBatchCode,
+          mutation_type: 'MASUK_PRODUKSI',
+          qty: pcs, // angka positif
+          unit: 'pcs',
+          notes: `Hasil Kemas Mandiri Batch: ${targetBatchCode}`,
+          created_at: new Date().toISOString()
+        };
+
+        await supabase.from('stock_mutations').insert([curahMutation, sachetMutation]);
+        saveMutationToLocalBackup(curahMutation);
+        saveMutationToLocalBackup(sachetMutation);
+      } catch (mutErr) {
+        console.warn('[Supabase] Warning saat insert stock_mutations (processProduction):', mutErr);
+        const sCode = srcBatch.batch_code || payload.source_batch_id || '-';
+        saveMutationToLocalBackup({
+          id: crypto.randomUUID(),
+          product_id: payload.source_product_id,
+          batch_id: payload.source_batch_id,
+          reference_no: sCode,
+          mutation_type: 'KELUAR_PRODUKSI',
+          qty: -grams,
+          unit: 'gr',
+          notes: `Kemas Mandiri -> ${payload.target_product_name || 'Kemasan Sachet'} (Batch Asal: ${sCode})`,
+          created_at: new Date().toISOString()
+        });
+        saveMutationToLocalBackup({
+          id: crypto.randomUUID(),
+          product_id: payload.target_product_id,
+          batch_id: targetBatchId,
+          reference_no: targetBatchCode,
+          mutation_type: 'MASUK_PRODUKSI',
+          qty: pcs,
+          unit: 'pcs',
+          notes: `Hasil Kemas Mandiri Batch: ${targetBatchCode}`,
+          created_at: new Date().toISOString()
+        });
+      }
 
       // 3. Sinkronisasi saldo stok tabel products:
       // A. Update kolom stock produk curah terkait di tabel products dengan sisa saldo terbarunya
@@ -1647,6 +1765,78 @@ async function dispatchApiCall(fnName, args) {
       const { data, error } = await q;
       if (error) throw error;
       return data || [];
+    }
+
+    case 'getStockMutations': {
+      const [, productId] = args;
+      let remoteData = [];
+      try {
+        let q = supabase
+          .from('stock_mutations')
+          .select('*, product:products(name, unit)')
+          .order('created_at', { ascending: false })
+          .limit(150);
+        if (productId) q = q.eq('product_id', productId);
+        const { data, error } = await q;
+        if (error) {
+          let q2 = supabase
+            .from('stock_mutations')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(150);
+          if (productId) q2 = q2.eq('product_id', productId);
+          const { data: data2, error: err2 } = await q2;
+          if (err2) throw err2;
+          remoteData = data2 || [];
+        } else {
+          remoteData = data || [];
+        }
+      } catch (err) {
+        console.warn('[Supabase] Warning getStockMutations remote query:', err);
+      }
+
+      // Gabungkan dengan cadangan data mutasi lokal
+      try {
+        const localBackup = JSON.parse(localStorage.getItem('idep_stock_mutations_backup') || '[]');
+        const map = new Map();
+        remoteData.forEach(item => { if (item && item.id) map.set(item.id, item); });
+        localBackup.forEach(item => {
+          if (item && item.id && !map.has(item.id)) {
+            if (!productId || item.product_id === productId) {
+              map.set(item.id, item);
+            }
+          }
+        });
+        const combined = Array.from(map.values());
+        combined.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        return combined;
+      } catch (e) {
+        return remoteData;
+      }
+    }
+
+    case 'createStockMutation': {
+      const [, payload] = args;
+      const item = {
+        id: payload.id || crypto.randomUUID(),
+        product_id: payload.product_id,
+        batch_id: payload.batch_id || null,
+        reference_no: payload.reference_no || null,
+        mutation_type: payload.mutation_type,
+        qty: Number(payload.qty || 0),
+        unit: payload.unit || 'pcs',
+        notes: payload.notes || '',
+        created_at: payload.created_at || new Date().toISOString()
+      };
+      saveMutationToLocalBackup(item);
+      try {
+        const { data, error } = await supabase.from('stock_mutations').insert(item).select().maybeSingle();
+        if (error) throw error;
+        return data || item;
+      } catch (e) {
+        console.warn('[Supabase] createStockMutation local saved only:', e);
+        return item;
+      }
     }
 
     case 'saveOutlet': {

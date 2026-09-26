@@ -3481,7 +3481,7 @@ function openPurchaseModal() {
     '<div class="purchase-items-table">' +
     '<div class="purchase-grid-header">' +
     '<div>Nama Produk</div>' +
-    '<div>No. Batch / Lot</div>' +
+    '<div class="min-w-[210px]" style="min-width:210px;">No. Batch / Lot</div>' +
     '<div style="text-align:center;">Qty</div>' +
     '<div>Harga Beli (Rp)</div>' +
     '<div>Biaya Ekstra/Pcs (Rp)</div>' +
@@ -3665,10 +3665,10 @@ function addPurchaseItemRow() {
     buildProductOptionsHTML(catFilter) +
     '</select>' +
     '</div>' +
-    '<div>' +
-    '<div style="display:flex;gap:4px;">' +
-    '<input type="text" class="pi-lot pur-item-lot" oninput="this.dataset.manual=\'true\'" placeholder="Auto / Manual" style="flex:1;min-width:0;width:100%;padding:6px 6px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);font-family:\'JetBrains Mono\',monospace;">' +
-    '<button type="button" class="btn-regen-batch" title="Generate ulang kode acak" onclick="regenerateBatchRow(this)" style="padding:4px 6px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-xs);cursor:pointer;font-size:11px;">🔄</button>' +
+    '<div class="min-w-[210px]" style="min-width:210px;">' +
+    '<div class="flex items-center gap-1 min-w-[210px]" style="display:flex;align-items:center;gap:4px;min-width:210px;flex-wrap:nowrap;">' +
+    '<input type="text" class="pi-lot pur-item-lot font-mono text-xs w-44 min-w-[175px]" oninput="this.dataset.manual=\'true\'" placeholder="Auto / Manual" style="flex:1;min-width:175px;width:100%;padding:6px 6px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);font-family:\'JetBrains Mono\',monospace;">' +
+    '<button type="button" class="btn-regen-batch shrink-0" title="Generate ulang kode acak" onclick="regenerateBatchRow(this)" style="padding:4px 6px;border:1px solid var(--border);background:#fff;border-radius:var(--radius-xs);cursor:pointer;font-size:12px;flex-shrink:0;">🔄</button>' +
     '</div>' +
     '</div>' +
     '<div>' +

@@ -4880,13 +4880,13 @@ tbody tr:hover {
 }
 
 .purchase-items-table {
-  min-width: 960px;
+  min-width: 1040px;
   width: 100%;
 }
 
 .purchase-grid-header {
   display: grid;
-  grid-template-columns: minmax(180px, 2fr) minmax(130px, 1.3fr) 65px 105px 115px 125px 110px 110px 42px;
+  grid-template-columns: minmax(180px, 2fr) minmax(210px, 1.5fr) 65px 105px 115px 125px 110px 110px 42px;
   gap: 8px;
   padding: 8px 12px;
   background: var(--surface-muted);
@@ -4900,7 +4900,7 @@ tbody tr:hover {
 
 .pur-item-row {
   display: grid;
-  grid-template-columns: minmax(180px, 2fr) minmax(130px, 1.3fr) 65px 105px 115px 125px 110px 110px 42px;
+  grid-template-columns: minmax(180px, 2fr) minmax(210px, 1.5fr) 65px 105px 115px 125px 110px 110px 42px;
   gap: 8px;
   align-items: center;
   padding: 8px 12px;

@@ -1777,6 +1777,69 @@ async function dispatchApiCall(fnName, args) {
     }
 
     // --------------------------------------------------------------------------
+    // N. MODUL MANAJEMEN BIAYA & PENGELUARAN (OPERATIONAL EXPENSES)
+    // --------------------------------------------------------------------------
+    case 'getExpenses': {
+      const { data, error } = await supabase
+        .from('operational_expenses')
+        .select('*')
+        .order('expense_date', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    }
+
+    case 'createExpense': {
+      const [, payload] = args;
+      const { data, error } = await supabase
+        .from('operational_expenses')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, expense: data };
+    }
+
+    case 'deleteExpense': {
+      const [, expenseId] = args;
+      const { error } = await supabase
+        .from('operational_expenses')
+        .delete()
+        .eq('id', expenseId);
+      if (error) throw error;
+      return { success: true };
+    }
+
+    case 'getExpenseCategories': {
+      const { data, error } = await supabase
+        .from('expense_categories')
+        .select('*')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    }
+
+    case 'createExpenseCategory': {
+      const [, payload] = args;
+      const { data, error } = await supabase
+        .from('expense_categories')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, category: data };
+    }
+
+    case 'deleteExpenseCategory': {
+      const [, categoryId] = args;
+      const { error } = await supabase
+        .from('expense_categories')
+        .delete()
+        .eq('id', categoryId);
+      if (error) throw error;
+      return { success: true };
+    }
+
+    // --------------------------------------------------------------------------
     // DEFAULT FALLBACK: PANGGIL RPC ATAU TABEL POSTGREST SESUAI NAMA
     // --------------------------------------------------------------------------
     default: {

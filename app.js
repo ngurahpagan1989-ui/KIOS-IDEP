@@ -1957,8 +1957,8 @@ function renderProduksi(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('productions') && isCacheValid('products')) {
-    drawProduksiUI(DATA_CACHE.products.data, DATA_CACHE.productions.data);
+  if (!forceRefresh && isCacheValid('productions') && isCacheValid('products') && isCacheValid('batches') && DATA_CACHE.batches && DATA_CACHE.batches.data) {
+    drawProduksiUI(DATA_CACHE.products.data, DATA_CACHE.productions.data, DATA_CACHE.batches.data);
     return;
   }
 
@@ -1966,31 +1966,88 @@ function renderProduksi(forceRefresh) {
     content.innerHTML = '<div class="card"><div class="empty-state">Memuat formulir kemas mandiri...</div></div>';
   }
 
+  const fetchProducts = (!forceRefresh && isCacheValid('products')) ? Promise.resolve(DATA_CACHE.products.data) : api('getProducts', TOKEN);
+  const fetchProductions = api('getProductions', TOKEN);
+  const fetchBatches = (!forceRefresh && isCacheValid('batches') && DATA_CACHE.batches && DATA_CACHE.batches.data)
+    ? Promise.resolve(DATA_CACHE.batches.data)
+    : api('getStockBatches', TOKEN).catch(function (e) {
+        console.warn('Gagal memuat batch stok di renderProduksi:', e);
+        return [];
+      });
+
   Promise.all([
-    isCacheValid('products') ? Promise.resolve(DATA_CACHE.products.data) : api('getProducts', TOKEN),
-    api('getProductions', TOKEN)
+    fetchProducts,
+    fetchProductions,
+    fetchBatches
   ]).then(function (results) {
     const allProducts = Array.isArray(results[0]) ? results[0] : [];
     const history = Array.isArray(results[1]) ? results[1] : [];
+    const batches = Array.isArray(results[2]) ? results[2] : [];
+
     DATA_CACHE.products = { data: allProducts, timestamp: Date.now() };
     DATA_CACHE.productions = { data: history, timestamp: Date.now() };
-    drawProduksiUI(allProducts, history);
+    if (!DATA_CACHE.batches) DATA_CACHE.batches = {};
+    DATA_CACHE.batches = { data: batches, timestamp: Date.now() };
+
+    drawProduksiUI(allProducts, history, batches);
   }).catch(function (err) {
     showToast('Gagal memuat data: ' + (err.message || err), true);
   });
 }
 
-function drawProduksiUI(allProducts, history) {
+function drawProduksiUI(allProducts, history, allBatches) {
   const content = document.getElementById('content');
   if (!content) return;
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const rawSources = allProducts.filter(function (p) {
-    // Menu Quick Kemas: Sumber bahan baku curah hanya menampilkan benih curah yang aktif dan berstok
-    return p && p.active && Number(p.stock || 0) > 0 && isRawProduct(p.unit) && isSeedProductClient(p);
+  const batches = Array.isArray(allBatches)
+    ? allBatches
+    : (DATA_CACHE.batches && Array.isArray(DATA_CACHE.batches.data) ? DATA_CACHE.batches.data : []);
+
+  // Hitung akumulasi qty_remaining > 0 dari tabel stock_batches per produk
+  const batchStockMap = {};
+  batches.forEach(function (b) {
+    if (!b) return;
+    const pId = String(b.product_id !== undefined && b.product_id !== null ? b.product_id : '');
+    if (!pId) return;
+    const rem = Number(b.qty_remaining || 0);
+    if (rem > 0) {
+      batchStockMap[pId] = (batchStockMap[pId] || 0) + rem;
+    }
   });
-  const targetPacks = allProducts.filter(function (p) {
-    return p && p.active && !isRawProduct(p.unit);
+
+  function isCurahType(p) {
+    if (!p) return false;
+    const invType = String(p.inventory_type || '').trim().toLowerCase();
+    const unit = String(p.unit || '').trim().toLowerCase();
+    if (p.inventory_type === 'curah' || p.inventory_type === 'Curah Mentah') return true;
+    if (invType === 'curah' || invType === 'curah mentah' || invType === 'curah_mentah') return true;
+    if (unit === 'gr' || unit === 'gram' || unit === 'g' || isRawProduct(p.unit)) return true;
+    return false;
+  }
+
+  const rawSources = (allProducts || []).filter(function (p) {
+    if (!p) return false;
+    const isActive = p.active !== false && p.active !== 0 && p.active !== 'false';
+    if (!isActive) return false;
+
+    // Pastikan pengecekan tipe persediaan mencakup variasi: inventory_type === 'curah', inventory_type === 'Curah Mentah', atau unit === 'gr'
+    if (!isCurahType(p)) return false;
+
+    // Cek ketersediaan stok riil: akumulasi qty_remaining > 0 dari stock_batches atau master stock
+    const batchStock = batchStockMap[String(p.id)] || 0;
+    const masterStock = Number(p.stock || 0);
+    const realStock = batchStock > 0 ? batchStock : masterStock;
+
+    p._realStock = realStock;
+    return realStock > 0;
+  });
+
+  const targetPacks = (allProducts || []).filter(function (p) {
+    if (!p) return false;
+    const isActive = p.active !== false && p.active !== 0 && p.active !== 'false';
+    if (!isActive) return false;
+    return !isCurahType(p);
   });
 
   content.innerHTML =
@@ -2009,7 +2066,8 @@ function drawProduksiUI(allProducts, history) {
     '<select id="prod-source" onchange="updateProductionSourceInfo()" style="padding-left:14px;">' +
     '<option value="">-- Pilih Bahan Baku Curah --</option>' +
     rawSources.map(function (s) {
-      return '<option value="' + s.id + '">' + escapeHtml(s.name) + ' (Sisa: ' + s.stock + ' ' + escapeHtml(s.unit) + ')</option>';
+      const sisa = s._realStock !== undefined ? s._realStock : (batchStockMap[String(s.id)] || s.stock || 0);
+      return '<option value="' + escapeHtml(s.id) + '">' + escapeHtml(s.name) + ' (Sisa: ' + sisa + ' gr)</option>';
     }).join('') +
     '</select>' +
     '</div>' +
@@ -2157,7 +2215,8 @@ function updateProductionSourceInfo() {
   api('getStockBatches', TOKEN, srcId).then(function (batches) {
     batchSelect.disabled = false;
     const available = (Array.isArray(batches) ? batches : []).filter(function (b) {
-      const isApproved = String(b.qc_status || '').toUpperCase() === 'APPROVED';
+      const qcUpper = String(b.qc_status || '').toUpperCase();
+      const isApproved = !b.qc_status || qcUpper === 'APPROVED' || qcUpper === 'PASSED' || qcUpper === '';
       const isNotQuarantine = String(b.quality_status || '').toUpperCase() !== 'QUARANTINE';
       return Number(b.qty_remaining || 0) > 0 && isApproved && isNotQuarantine;
     });

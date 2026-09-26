@@ -198,17 +198,28 @@ function formatRupiah(num) {
   return 'Rp ' + num.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 }
 
+function formatDateIndo(dateStr) {
+  if (!dateStr || dateStr === '-' || dateStr === 'null' || dateStr === 'undefined') return '-';
+  try {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateStr.trim())) {
+      const clean = dateStr.trim().split(/[T\s]/)[0];
+      const parts = clean.split('-');
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      if (parts.length >= 3) {
+        return parts[2] + ' ' + (months[parseInt(parts[1], 10) - 1] || parts[1]) + ' ' + parts[0];
+      }
+    }
+  } catch (e) {}
+  return '-';
+}
+window.formatDateIndo = formatDateIndo;
+
 function formatDate(d) {
-  if (!d || d === '-' || d === 'null' || d === 'undefined') return '-';
-  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d.trim())) {
-    const raw = d.trim().split(' ')[0];
-    const parts = raw.split('-');
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-    return parts[2] + ' ' + (months[parseInt(parts[1], 10) - 1] || parts[1]) + ' ' + parts[0];
-  }
-  const date = new Date(d);
-  if (isNaN(date.getTime())) return String(d);
-  return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  return formatDateIndo(d);
 }
 
 function showToast(message, isError) {
@@ -1716,14 +1727,14 @@ function showBatchDetail(productId, productName) {
       if (b.expiry_date) {
         const days = Math.ceil((new Date(b.expiry_date) - today) / (1000 * 60 * 60 * 24));
         const cls = days < 7 ? 'badge-danger' : days < 30 ? 'badge-warning' : 'badge-success';
-        expiryBadge = '<span class="badge ' + cls + '">' + formatDate(b.expiry_date) + '</span>';
+        expiryBadge = '<span class="badge ' + cls + '">' + formatDateIndo(b.expiry_date) + '</span>';
       }
-      const prodDateStr = b.production_date ? formatDate(b.production_date) : (b.received_at ? formatDate(b.received_at) : '-');
+      const prodDateStr = b.production_date ? formatDateIndo(b.production_date) : (b.received_at ? formatDateIndo(b.received_at) : '-');
 
       return '<tr>' +
         '<td><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);">' + escapeHtml(b.id) + '</strong></td>' +
         '<td>' + prodDateStr + '</td>' +
-        '<td>' + formatDate(b.received_at) + '</td>' +
+        '<td>' + formatDateIndo(b.received_at) + '</td>' +
         '<td>' + (b.qty_in || 0) + '</td>' +
         '<td><strong style="color:var(--primary);">' + (b.qty_remaining || 0) + '</strong></td>' +
         '<td><strong style="color:var(--primary);">' + formatRupiah(b.cost_per_unit || b.buy_price) + '</strong>' +
@@ -1921,7 +1932,7 @@ function drawProduksiUI(allProducts, history) {
     (history.length ? history.map(function (h) {
       const batchTag = h.source_batch_id ? ('<br><span class="badge badge-neutral" style="font-size:10px;font-family:\'JetBrains Mono\',monospace;margin-top:2px;">' + escapeHtml(h.source_batch_id) + '</span>') : '';
       return '<tr>' +
-        '<td>' + formatDate(h.created_at) + '</td>' +
+        '<td>' + formatDateIndo(h.created_at) + '</td>' +
         '<td><strong>' + escapeHtml(h.source_name) + '</strong>' + batchTag + '</td>' +
         '<td>' + h.gram_used + ' gr</td>' +
         '<td><strong>' + escapeHtml(h.target_name) + '</strong></td>' +

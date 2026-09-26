@@ -749,7 +749,38 @@ async function dispatchApiCall(fnName, args) {
         created_by: user ? user.id : null
       });
 
-      // 3. Simpan riwayat di tabel productions
+      // 3. Sinkronisasi saldo stok tabel products:
+      // A. Update kolom stock produk curah terkait di tabel products dengan sisa saldo terbarunya
+      const { data: curSrcBatches } = await supabase
+        .from('stock_batches')
+        .select('qty_remaining')
+        .eq('product_id', payload.source_product_id);
+      const newSourceStock = (curSrcBatches || []).reduce((sum, b) => sum + Number(b.qty_remaining || 0), 0);
+
+      await supabase
+        .from('products')
+        .update({
+          stock: newSourceStock,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', payload.source_product_id);
+
+      // B. Tambahkan pcs ke kolom stock produk kemasan sachet target di tabel products
+      const { data: curTgtBatches } = await supabase
+        .from('stock_batches')
+        .select('qty_remaining')
+        .eq('product_id', payload.target_product_id);
+      const newTargetStock = (curTgtBatches || []).reduce((sum, b) => sum + Number(b.qty_remaining || 0), 0);
+
+      await supabase
+        .from('products')
+        .update({
+          stock: newTargetStock,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', payload.target_product_id);
+
+      // 4. Simpan riwayat di tabel productions
       const { data: prodRecord, error: prdErr } = await supabase.from('productions').insert({
         id: prodId,
         source_product_id: payload.source_product_id,

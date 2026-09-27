@@ -11913,133 +11913,141 @@ function drawPengaturanUI(settings) {
     '</div>' +
 
     '<!-- PANEL 2: FORMAT BATCH & MULTI-TIER -->' +
-    '<div id="panel-set-pricing" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'pricing' ? 'block' : 'none') + ';">' +
-      '<div class="card" style="margin-bottom:16px;">' +
-        '<h3 style="margin-bottom:6px;">Format Kode Batch FIFO</h3>' +
-        '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Template otomatis untuk menghasilkan kode lot/batch benih saat pembelian atau produksi.</p>' +
-        '<div class="field-group">' +
-          '<label class="field-label">Template Format Kode Batch</label>' +
-          '<div class="input-wrapper">' +
-            '<input type="text" id="set-batch-format" value="' + escapeHtml(settings['batch_format_template'] || settings['batch_format'] || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}') + '" style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;">' +
+    '<div id="panel-set-pricing" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'pricing' ? 'block' : 'none') + ';">' +
+      '<div id="pane-batch" class="setting-pane" style="display:block;">' +
+        '<div class="card" style="margin-bottom:16px;">' +
+          '<h3 style="margin-bottom:6px;">Format Kode Batch FIFO</h3>' +
+          '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Template otomatis untuk menghasilkan kode lot/batch benih saat pembelian atau produksi.</p>' +
+          '<div class="field-group">' +
+            '<label class="field-label">Template Format Kode Batch</label>' +
+            '<div class="input-wrapper">' +
+              '<input type="text" id="set-batch-format" value="' + escapeHtml(settings['batch_format_template'] || settings['batch_format'] || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}') + '" style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;">' +
+            '</div>' +
+            '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Gunakan token dinamis: <code>{FARMER}</code> (inisial petani), <code>{YYMM}</code> (thn+bln exp), <code>{RAND4}</code> (4 karakter acak), <code>{SEQ}</code> (nomor urut 01, 02). Contoh: <code>BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}</code>.</small>' +
           '</div>' +
-          '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Gunakan token dinamis: <code>{FARMER}</code> (inisial petani), <code>{YYMM}</code> (thn+bln exp), <code>{RAND4}</code> (4 karakter acak), <code>{SEQ}</code> (nomor urut 01, 02). Contoh: <code>BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}</code>.</small>' +
         '</div>' +
-      '</div>' +
-      '<div class="card">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:gap:8px;">' +
-          '<div>' +
-            '<h3 style="margin-bottom:4px;">Preset Tingkat Harga (Multi-Tier Pricing)</h3>' +
-            '<p style="font-size:12px;color:var(--text-secondary);margin:0;">' +
-              'Standarisasi tingkatan harga jual produk (Reguler untuk eceran kasir POS, Outlet untuk cabang/mitra konsinyasi, dan Bali Buda untuk mitra khusus).' +
-            '</p>' +
+        '<div class="card">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
+            '<div>' +
+              '<h3 style="margin-bottom:4px;">Preset Tingkat Harga (Multi-Tier Pricing)</h3>' +
+              '<p style="font-size:12px;color:var(--text-secondary);margin:0;">' +
+                'Standarisasi tingkatan harga jual produk (Reguler untuk eceran kasir POS, Outlet untuk cabang/mitra konsinyasi, dan Bali Buda untuk mitra khusus).' +
+              '</p>' +
+            '</div>' +
+            '<button type="button" class="btn btn-secondary btn-sm" onclick="addPriceTierPresetRow()">+ Tambah Preset Tier Baru</button>' +
           '</div>' +
-          '<button type="button" class="btn btn-secondary btn-sm" onclick="addPriceTierPresetRow()">+ Tambah Preset Tier Baru</button>' +
-        '</div>' +
-        '<div class="table-container" style="overflow-x:auto;">' +
-          '<table style="width:100%;margin-bottom:0;">' +
-            '<thead>' +
-              '<tr>' +
-                '<th style="width:45%;padding:10px 14px;">Nama Tingkat Harga (Tier)</th>' +
-                '<th style="width:40%;padding:10px 14px;">Nominal Bawaan / Default (Rp)</th>' +
-                '<th style="width:15%;text-align:center;padding:10px 14px;">Aksi</th>' +
-              '</tr>' +
-            '</thead>' +
-            '<tbody id="price-tier-presets-body"></tbody>' +
-          '</table>' +
-        '</div>' +
-        '<div style="margin-top:16px;display:flex;justify-content:flex-end;">' +
-          '<button type="button" class="btn btn-primary" onclick="saveStoreSettings()">💾 Simpan Format Batch &amp; Multi-Tier</button>' +
+          '<div class="table-container" style="overflow-x:auto;">' +
+            '<table style="width:100%;margin-bottom:0;">' +
+              '<thead>' +
+                '<tr>' +
+                  '<th style="width:45%;padding:10px 14px;">Nama Tingkat Harga (Tier)</th>' +
+                  '<th style="width:40%;padding:10px 14px;">Nominal Bawaan / Default (Rp)</th>' +
+                  '<th style="width:15%;text-align:center;padding:10px 14px;">Aksi</th>' +
+                '</tr>' +
+              '</thead>' +
+              '<tbody id="price-tier-presets-body"></tbody>' +
+            '</table>' +
+          '</div>' +
+          '<div style="margin-top:16px;display:flex;justify-content:flex-end;">' +
+            '<button type="button" class="btn btn-primary" onclick="saveStoreSettings()">💾 Simpan Format Batch &amp; Multi-Tier</button>' +
+          '</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
 
     '<!-- PANEL 3: MATRIKS HAK AKSES -->' +
     (isUserAdmin
-      ? '<div id="panel-set-roles" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'roles' ? 'block' : 'none') + ';">' +
-          '<div class="card" id="role-matrix-container">' +
-            '<div class="empty-state">⏳ Memuat matriks hak akses...</div>' +
+      ? '<div id="panel-set-roles" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'roles' ? 'block' : 'none') + ';">' +
+          '<div id="pane-roles" class="setting-pane" style="display:block;">' +
+            '<div class="card" id="role-matrix-container">' +
+              '<div class="empty-state">⏳ Memuat matriks hak akses...</div>' +
+            '</div>' +
           '</div>' +
         '</div>'
       : '') +
 
     '<!-- PANEL 4: MANAJEMEN PENGGUNA -->' +
     (isUserAdmin
-      ? '<div id="panel-set-users" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'users' ? 'block' : 'none') + ';">' +
-          '<div class="card" id="users-management-container">' +
-            '<div class="empty-state">⏳ Memuat daftar pengguna...</div>' +
+      ? '<div id="panel-set-users" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'users' ? 'block' : 'none') + ';">' +
+          '<div id="pane-users" class="setting-pane" style="display:block;">' +
+            '<div class="card" id="users-management-container">' +
+              '<div class="empty-state">⏳ Memuat daftar pengguna...</div>' +
+            '</div>' +
           '</div>' +
         '</div>'
       : '') +
 
     '<!-- PANEL 5: INTEGRASI BOT TELEGRAM -->' +
     (isUserAdmin
-      ? '<div id="panel-set-telegram" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'telegram' ? 'block' : 'none') + ';">' +
-          '<div class="card" style="max-width:850px;">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--border);">' +
-              '<div style="display:flex;align-items:center;gap:12px;">' +
-                '<span style="font-size:28px;">🤖</span>' +
-                '<div>' +
-                  '<h3 style="margin:0;">Integrasi Bot Telegram</h3>' +
-                  '<p style="font-size:12px;color:var(--text-secondary);margin:2px 0 0 0;">Push alert operasional otomatis &amp; asisten perintah dua arah E-KASIR v2.</p>' +
+      ? '<div id="panel-set-telegram" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'telegram' ? 'block' : 'none') + ';">' +
+          '<div id="pane-telegram" class="setting-pane" style="display:block;">' +
+            '<div class="card" style="max-width:850px;">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--border);">' +
+                '<div style="display:flex;align-items:center;gap:12px;">' +
+                  '<span style="font-size:28px;">🤖</span>' +
+                  '<div>' +
+                    '<h3 style="margin:0;">Integrasi Bot Telegram</h3>' +
+                    '<p style="font-size:12px;color:var(--text-secondary);margin:2px 0 0 0;">Push alert operasional otomatis &amp; asisten perintah dua arah E-KASIR v2.</p>' +
+                  '</div>' +
+                '</div>' +
+                '<div id="telegram-status-badge">' +
+                  (Boolean(settings['telegram_bot_token'] && settings['telegram_chat_id'])
+                    ? '<span class="badge badge-success" style="padding:6px 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">🟢 Aktif Terhubung</span>'
+                    : '<span class="badge" style="background:var(--surface-muted);color:var(--text-secondary);border:1px solid var(--border);padding:6px 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">⚪ Belum Dikonfigurasi</span>') +
                 '</div>' +
               '</div>' +
-              '<div id="telegram-status-badge">' +
-                (Boolean(settings['telegram_bot_token'] && settings['telegram_chat_id'])
-                  ? '<span class="badge badge-success" style="padding:6px 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">🟢 Aktif Terhubung</span>'
-                  : '<span class="badge" style="background:var(--surface-muted);color:var(--text-secondary);border:1px solid var(--border);padding:6px 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">⚪ Belum Dikonfigurasi</span>') +
+
+              '<div class="field-group">' +
+                '<label class="field-label">Telegram Bot Token <span style="color:var(--danger)">*</span></label>' +
+                '<div class="input-wrapper" style="position:relative;">' +
+                  '<input type="password" id="set-tg-token" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Contoh: 123456789:ABCdefGhIJKlmNoPQRstuvWXyz" style="padding-left:14px;padding-right:42px;font-family:\'JetBrains Mono\',monospace;">' +
+                  '<button type="button" class="input-action-btn" onclick="toggleTgTokenVisibility()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:14px;" title="Intip Token">👁️</button>' +
+                '</div>' +
+                '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Cara mendapatkannya: buka Telegram, cari <code>@BotFather</code>, kirim perintah <code>/newbot</code>, lalu salin Token bot yang diberikan ke field ini.</small>' +
               '</div>' +
-            '</div>' +
 
-            '<div class="field-group">' +
-              '<label class="field-label">Telegram Bot Token <span style="color:var(--danger)">*</span></label>' +
-              '<div class="input-wrapper" style="position:relative;">' +
-                '<input type="password" id="set-tg-token" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Contoh: 123456789:ABCdefGhIJKlmNoPQRstuvWXyz" style="padding-left:14px;padding-right:42px;font-family:\'JetBrains Mono\',monospace;">' +
-                '<button type="button" class="input-action-btn" onclick="toggleTgTokenVisibility()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:14px;" title="Intip Token">👁️</button>' +
+              '<div class="field-group">' +
+                '<label class="field-label">Target Chat ID / Channel ID <span style="color:var(--danger)">*</span></label>' +
+                '<div class="input-wrapper">' +
+                  '<input type="text" id="set-tg-chat-id" value="' + escapeHtml(settings['telegram_chat_id'] || '') + '" placeholder="Contoh: -1001234567890 (ID Grup/Channel) atau 987654321 (ID Akun)" style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;">' +
+                '</div>' +
+                '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">ID akun atau grup Telegram tujuan pengiriman notifikasi (gunakan bot seperti <code>@userinfobot</code> untuk cek ID).</small>' +
               '</div>' +
-              '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Token otentikasi bot resmi yang diperoleh dari <code>@BotFather</code> di Telegram.</small>' +
-            '</div>' +
 
-            '<div class="field-group">' +
-              '<label class="field-label">Target Chat ID / Channel ID <span style="color:var(--danger)">*</span></label>' +
-              '<div class="input-wrapper">' +
-                '<input type="text" id="set-tg-chat-id" value="' + escapeHtml(settings['telegram_chat_id'] || '') + '" placeholder="Contoh: -1001234567890 (ID Grup/Channel) atau 987654321 (ID Akun)" style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;">' +
+              '<div style="background:var(--surface-muted);padding:14px 16px;border-radius:var(--radius-xs);border:1px solid var(--border);margin-bottom:18px;">' +
+                '<div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:10px;">Pilihan Notifikasi Otomatis (Push Alerts)</div>' +
+                '<div style="display:flex;flex-direction:column;gap:10px;">' +
+                  '<label style="display:flex;align-items:center;gap:10px;font-size:12.5px;cursor:pointer;">' +
+                    '<input type="checkbox" id="set-tg-notif-void" class="role-checkbox-custom" ' + (settings['telegram_notif_void'] !== 'false' ? 'checked' : '') + '>' +
+                    '<span>⚠️ <strong>Alert Void Transaksi:</strong> Notifikasi instan saat nota kasir dibatalkan/void oleh admin.</span>' +
+                  '</label>' +
+                  '<label style="display:flex;align-items:center;gap:10px;font-size:12.5px;cursor:pointer;">' +
+                    '<input type="checkbox" id="set-tg-notif-dht" class="role-checkbox-custom" ' + (settings['telegram_notif_dht'] !== 'false' ? 'checked' : '') + '>' +
+                    '<span>🔥 <strong>Pengingat Oven DHT:</strong> Notifikasi saat sesi oven 24 jam dimulai dan saat selesai dikeluarkan.</span>' +
+                  '</label>' +
+                  '<label style="display:flex;align-items:center;gap:10px;font-size:12.5px;cursor:pointer;">' +
+                    '<input type="checkbox" id="set-tg-notif-qc" class="role-checkbox-custom" ' + (settings['telegram_notif_qc'] !== 'false' ? 'checked' : '') + '>' +
+                    '<span>⛔ <strong>Karantina &amp; Kelulusan QC:</strong> Peringatan batch benih gagal (&lt;80%) atau lolos uji mutu pasca-DHT.</span>' +
+                  '</label>' +
+                '</div>' +
               '</div>' +
-              '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">ID akun atau grup Telegram tujuan pengiriman notifikasi (gunakan bot seperti <code>@userinfobot</code> untuk cek ID).</small>' +
-            '</div>' +
 
-            '<div style="background:var(--surface-muted);padding:14px 16px;border-radius:var(--radius-xs);border:1px solid var(--border);margin-bottom:18px;">' +
-              '<div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:10px;">Pilihan Notifikasi Otomatis (Push Alerts)</div>' +
-              '<div style="display:flex;flex-direction:column;gap:10px;">' +
-                '<label style="display:flex;align-items:center;gap:10px;font-size:12.5px;cursor:pointer;">' +
-                  '<input type="checkbox" id="set-tg-notif-void" class="role-checkbox-custom" ' + (settings['telegram_notif_void'] !== 'false' ? 'checked' : '') + '>' +
-                  '<span>⚠️ <strong>Alert Void Transaksi:</strong> Notifikasi instan saat nota kasir dibatalkan/void oleh admin.</span>' +
-                '</label>' +
-                '<label style="display:flex;align-items:center;gap:10px;font-size:12.5px;cursor:pointer;">' +
-                  '<input type="checkbox" id="set-tg-notif-dht" class="role-checkbox-custom" ' + (settings['telegram_notif_dht'] !== 'false' ? 'checked' : '') + '>' +
-                  '<span>🔥 <strong>Pengingat Oven DHT:</strong> Notifikasi saat sesi oven 24 jam dimulai dan saat selesai dikeluarkan.</span>' +
-                '</label>' +
-                '<label style="display:flex;align-items:center;gap:10px;font-size:12.5px;cursor:pointer;">' +
-                  '<input type="checkbox" id="set-tg-notif-qc" class="role-checkbox-custom" ' + (settings['telegram_notif_qc'] !== 'false' ? 'checked' : '') + '>' +
-                  '<span>⛔ <strong>Karantina &amp; Kelulusan QC:</strong> Peringatan batch benih gagal (&lt;80%) atau lolos uji mutu pasca-DHT.</span>' +
-                '</label>' +
+              '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">' +
+                '<button type="button" class="btn btn-primary" id="btn-save-tg" onclick="saveTelegramSettings()">💾 Simpan Pengaturan Telegram</button>' +
+                '<button type="button" class="btn btn-secondary" id="btn-test-tg" onclick="testTelegramConnectionUI()">🔔 Uji Kirim Notifikasi</button>' +
+                '<button type="button" class="btn btn-secondary" id="btn-webhook-tg" onclick="setupTelegramWebhookUI()">🔗 Sinkronkan Webhook Bot</button>' +
               '</div>' +
-            '</div>' +
 
-            '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">' +
-              '<button type="button" class="btn btn-primary" id="btn-save-tg" onclick="saveTelegramSettings()">💾 Simpan Pengaturan Bot</button>' +
-              '<button type="button" class="btn btn-secondary" id="btn-test-tg" onclick="testTelegramConnectionUI()">🔔 Uji Kirim Notifikasi</button>' +
-              '<button type="button" class="btn btn-secondary" id="btn-webhook-tg" onclick="setupTelegramWebhookUI()">🔗 Sinkronkan Webhook Bot</button>' +
-            '</div>' +
-
-            '<div style="background:var(--surface-muted);border-left:4px solid var(--primary);padding:14px 16px;border-radius:0 var(--radius-xs) var(--radius-xs) 0;">' +
-              '<div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:6px;">📖 Panduan Perintah Dua Arah (Bot Commands)</div>' +
-              '<div style="font-size:11.5px;color:var(--text-secondary);line-height:1.6;">' +
-                'Setelah Webhook disinkronkan, staf dapat mengetik perintah berikut di Telegram untuk cek data secara real-time:<br>' +
-                '• <code>/omzet</code> — Rekap total transaksi dan omzet kotor hari ini (tidak termasuk void)<br>' +
-                '• <code>/stok [kata_kunci]</code> — Cek sisa stok fisik benih kemasan dan curah<br>' +
-                '• <code>/dht</code> — Cek toples yang sedang di oven DHT dan hitung mundur sisa waktu<br>' +
-                '• <code>/qc</code> — Cek jumlah toples benih curah yang menunggu uji QC<br>' +
-                '• <code>/bantuan</code> — Tampilkan panduan daftar perintah' +
+              '<div style="background:var(--surface-muted);border-left:4px solid var(--primary);padding:14px 16px;border-radius:0 var(--radius-xs) var(--radius-xs) 0;">' +
+                '<div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:6px;">📖 Panduan Perintah Dua Arah (Bot Commands)</div>' +
+                '<div style="font-size:11.5px;color:var(--text-secondary);line-height:1.6;">' +
+                  'Setelah Webhook disinkronkan, staf dapat mengetik perintah berikut di Telegram untuk cek data secara real-time:<br>' +
+                  '• <code>/omzet</code> — Rekap total transaksi dan omzet kotor hari ini (tidak termasuk void)<br>' +
+                  '• <code>/stok [kata_kunci]</code> — Cek sisa stok fisik benih kemasan dan curah<br>' +
+                  '• <code>/dht</code> — Cek toples yang sedang di oven DHT dan hitung mundur sisa waktu<br>' +
+                  '• <code>/qc</code> — Cek jumlah toples benih curah yang menunggu uji QC<br>' +
+                  '• <code>/bantuan</code> — Tampilkan panduan daftar perintah' +
+                '</div>' +
               '</div>' +
             '</div>' +
           '</div>' +
@@ -12206,7 +12214,7 @@ function renderRoleMatrixUI() {
             '<th style="width:140px;text-align:center;">🗑️ [Hapus/Batal]</th>' +
           '</tr>' +
         '</thead>' +
-        '<tbody>';
+        '<tbody id="roles-matrix-body">';
 
   const modules = Object.keys(moduleNames);
   modules.forEach(function (mKey, idx) {
@@ -12392,7 +12400,7 @@ function renderUsersListUI() {
             '<th style="width:120px;text-align:center;">Aksi</th>' +
           '</tr>' +
         '</thead>' +
-        '<tbody>';
+        '<tbody id="users-table-body">';
 
   CURRENT_USERS_LIST.forEach(function (u, idx) {
     const isMainAdmin = String(u.username).toLowerCase() === 'admin';

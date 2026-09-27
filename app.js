@@ -11878,13 +11878,13 @@ function drawPengaturanUI(settings) {
     '</div>' +
 
     '<div id="pane-roles" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'roles' ? 'block' : 'none') + ';">' +
-      '<div class="card">' +
-        '<h3>Konfigurasi Hak Akses</h3>' +
-        '<div style="margin:12px 0 16px 0;">' +
-          '<button onclick="openRoleModal()">+ Tambah Peran Baru</button>' +
+      '<h3>Konfigurasi Hak Akses</h3>' +
+      '<div class="card" style="margin-top:14px;">' +
+        '<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">' +
+          '<button type="button" class="btn btn-primary" onclick="openRoleModal()">+ Tambah Peran Baru</button>' +
         '</div>' +
-        '<div class="table-container" style="overflow-x:auto;">' +
-          '<table style="width:100%;margin-bottom:0;">' +
+        '<div class="table-responsive" style="overflow-x:auto;">' +
+          '<table class="data-table" style="width:100%;margin-bottom:0;">' +
             '<thead>' +
               '<tr>' +
                 '<th>Peran/Role</th>' +
@@ -11896,22 +11896,22 @@ function drawPengaturanUI(settings) {
               '<tr>' +
                 '<td><strong>Admin</strong></td>' +
                 '<td>Semua Modul (Akses Penuh)</td>' +
-                '<td><button onclick="openRoleModal()">Edit</button></td>' +
+                '<td><button type="button" class="btn btn-xs btn-secondary" onclick="openRoleModal()">Edit</button></td>' +
               '</tr>' +
               '<tr>' +
                 '<td><strong>Kasir</strong></td>' +
                 '<td>Kasir (POS), Riwayat Transaksi</td>' +
-                '<td><button onclick="openRoleModal()">Edit</button></td>' +
+                '<td><button type="button" class="btn btn-xs btn-secondary" onclick="openRoleModal()">Edit</button></td>' +
               '</tr>' +
               '<tr>' +
                 '<td><strong>Koordinator</strong></td>' +
                 '<td>Semua Modul (Lihat Saja / View-Only)</td>' +
-                '<td><button onclick="openRoleModal()">Edit</button></td>' +
+                '<td><button type="button" class="btn btn-xs btn-secondary" onclick="openRoleModal()">Edit</button></td>' +
               '</tr>' +
               '<tr>' +
                 '<td><strong>QC</strong></td>' +
                 '<td>Quality Control (QC), Stok &amp; Batch FIFO</td>' +
-                '<td><button onclick="openRoleModal()">Edit</button></td>' +
+                '<td><button type="button" class="btn btn-xs btn-secondary" onclick="openRoleModal()">Edit</button></td>' +
               '</tr>' +
             '</tbody>' +
           '</table>' +
@@ -11920,13 +11920,13 @@ function drawPengaturanUI(settings) {
     '</div>' +
 
     '<div id="pane-users" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'users' ? 'block' : 'none') + ';">' +
-      '<div class="card">' +
-        '<h3>Manajemen Akun Pengguna</h3>' +
-        '<div style="margin:12px 0 16px 0;">' +
-          '<button onclick="openUserModal()">+ Tambah Akun</button>' +
+      '<h3>Manajemen Akun Pengguna</h3>' +
+      '<div class="card" style="margin-top:14px;">' +
+        '<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">' +
+          '<button type="button" class="btn btn-primary" onclick="openUserModal()">+ Tambah Akun</button>' +
         '</div>' +
-        '<div class="table-container" style="overflow-x:auto;">' +
-          '<table id="users-table-body" style="width:100%;margin-bottom:0;">' +
+        '<div class="table-responsive" style="overflow-x:auto;">' +
+          '<table id="users-table-body" class="data-table" style="width:100%;margin-bottom:0;">' +
             '<thead>' +
               '<tr>' +
                 '<th>Username</th>' +
@@ -11937,16 +11937,16 @@ function drawPengaturanUI(settings) {
             '</thead>' +
             '<tbody>' +
               '<tr>' +
-                '<td><strong>admin</strong></td>' +
+                '<td><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--text-main);">admin</strong></td>' +
                 '<td>Administrator Utama</td>' +
-                '<td>Admin</td>' +
-                '<td><button onclick="openUserModal(\'admin\')">Edit</button></td>' +
+                '<td><span class="badge badge-success">Admin</span></td>' +
+                '<td><button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'admin\')">Edit</button></td>' +
               '</tr>' +
               '<tr>' +
-                '<td><strong>kasir</strong></td>' +
+                '<td><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--text-main);">kasir</strong></td>' +
                 '<td>Staf Kasir Toko</td>' +
-                '<td>Kasir</td>' +
-                '<td><button onclick="openUserModal(\'kasir\')">Edit</button></td>' +
+                '<td><span class="badge badge-info">Kasir</span></td>' +
+                '<td><button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'kasir\')">Edit</button></td>' +
               '</tr>' +
             '</tbody>' +
           '</table>' +
@@ -11955,12 +11955,22 @@ function drawPengaturanUI(settings) {
     '</div>' +
 
     '<div id="pane-telegram" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'telegram' ? 'block' : 'none') + ';">' +
-      '<div class="card" style="max-width:700px;">' +
-        '<h3>Pengaturan Bot Telegram</h3>' +
-        '<div class="field-group"><label class="field-label">Telegram Bot Token</label><div class="input-wrapper"><input type="text" id="set-tg-token" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Telegram Bot Token" style="padding-left:14px;"></div></div>' +
-        '<div class="field-group"><label class="field-label">Telegram Chat ID</label><div class="input-wrapper"><input type="text" id="set-tg-chat-id" value="' + escapeHtml(settings['telegram_chat_id'] || '') + '" placeholder="Telegram Chat ID" style="padding-left:14px;"></div></div>' +
-        '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Cara mendapatkan token: buka Telegram, cari @BotFather, lalu ikuti langkah membuat bot baru dan salin token yang diberikan.</p>' +
-        '<button onclick="saveTelegramSettings()">Simpan Pengaturan Telegram</button>' +
+      '<h3>Pengaturan Bot Telegram</h3>' +
+      '<div class="card" style="max-width:700px;margin-top:14px;">' +
+        '<div class="field-group">' +
+          '<label class="field-label">Telegram Bot Token</label>' +
+          '<div class="input-wrapper">' +
+            '<input type="text" id="set-tg-token" class="input-field" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Telegram Bot Token" style="padding-left:14px;">' +
+          '</div>' +
+        '</div>' +
+        '<div class="field-group">' +
+          '<label class="field-label">Telegram Chat ID</label>' +
+          '<div class="input-wrapper">' +
+            '<input type="text" id="set-tg-chat-id" class="input-field" value="' + escapeHtml(settings['telegram_chat_id'] || '') + '" placeholder="Telegram Chat ID" style="padding-left:14px;">' +
+          '</div>' +
+        '</div>' +
+        '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">Cara mendapatkan token: buka Telegram, cari @BotFather, lalu ikuti langkah membuat bot baru dan salin token yang diberikan.</p>' +
+        '<button type="button" class="btn btn-primary" onclick="saveTelegramSettings()">Simpan Pengaturan Telegram</button>' +
       '</div>' +
     '</div>' +
 

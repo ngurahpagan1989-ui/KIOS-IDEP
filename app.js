@@ -11742,33 +11742,38 @@ function renderPengaturan(forceRefresh) {
   });
 }
 
-function switchSettingsSubtab(subtab) {
-  CURRENT_SETTINGS_SUBTAB = subtab;
-  const tabs = ['profile', 'pricing', 'users', 'roles', 'telegram', 'danger'];
-  tabs.forEach(function (t) {
-    const btn = document.getElementById('tab-set-btn-' + t);
-    const panel = document.getElementById('panel-set-' + t);
-    if (btn) {
-      if (t === subtab) {
-        btn.classList.add('active');
-        btn.style.background = 'var(--primary)';
-        btn.style.color = '#ffffff';
-        btn.style.borderColor = 'var(--primary)';
-      } else {
-        btn.classList.remove('active');
-        btn.style.background = 'var(--surface)';
-        btn.style.color = 'var(--text-secondary)';
-        btn.style.borderColor = 'var(--border)';
-      }
-    }
-    if (panel) panel.style.display = (t === subtab) ? 'block' : 'none';
+function switchSettingTab(tabName) {
+  const normalizedTab = (tabName === 'pricing' ? 'batch' : tabName);
+
+  document.querySelectorAll('.settings-tab-btn').forEach(function (btn) {
+    btn.classList.remove('active');
   });
 
-  if (subtab === 'roles') {
+  const activeBtn = document.querySelector('.settings-tab-btn[data-tab="' + normalizedTab + '"]') || document.getElementById('tab-set-btn-' + normalizedTab);
+  if (activeBtn) {
+    activeBtn.classList.add('active');
+  }
+
+  document.querySelectorAll('.setting-pane').forEach(function (pane) {
+    pane.style.display = 'none';
+  });
+
+  const targetPane = document.getElementById('pane-' + normalizedTab);
+  if (targetPane) {
+    targetPane.style.display = 'block';
+  }
+
+  CURRENT_SETTINGS_SUBTAB = normalizedTab === 'batch' ? 'pricing' : normalizedTab;
+
+  if (normalizedTab === 'roles') {
     loadRolePermissionsUI();
-  } else if (subtab === 'users') {
+  } else if (normalizedTab === 'users') {
     loadUsersManagementUI();
   }
+}
+
+function switchSettingsSubtab(subtab) {
+  switchSettingTab(subtab);
 }
 
 function drawPengaturanUI(settings) {
@@ -11788,273 +11793,121 @@ function drawPengaturanUI(settings) {
     '</div>' +
 
     '<!-- SUB-NAVIGASI TAB PENGATURAN -->' +
-    '<div class="nav-tabs" style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap;">' +
-      '<button type="button" id="tab-set-btn-profile" class="role-tab-btn active" style="background:var(--primary);color:#fff;border-color:var(--primary);" onclick="switchSettingsSubtab(\'profile\')">🏪 Profil Toko &amp; Pajak</button>' +
-      '<button type="button" id="tab-set-btn-pricing" class="role-tab-btn" onclick="switchSettingsSubtab(\'pricing\')">🏷️ Format Batch &amp; Multi-Tier</button>' +
-      '<button type="button" id="tab-set-btn-roles" class="role-tab-btn" onclick="switchSettingsSubtab(\'roles\')">🔐 Hak Akses &amp; Peran</button>' +
-      '<button type="button" id="tab-set-btn-users" class="role-tab-btn" onclick="switchSettingsSubtab(\'users\')">👥 Akun Pengguna</button>' +
-      '<button type="button" id="tab-set-btn-telegram" class="role-tab-btn" onclick="switchSettingsSubtab(\'telegram\')">🤖 Bot Telegram</button>' +
+    '<div class="settings-tabs-wrapper nav-tabs" style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap;">' +
+      '<button type="button" id="tab-set-btn-profile" class="settings-tab-btn active" data-tab="profile" onclick="switchSettingTab(\'profile\')">🏪 Profil Toko &amp; Pajak</button>' +
+      '<button type="button" id="tab-set-btn-batch" class="settings-tab-btn" data-tab="batch" onclick="switchSettingTab(\'batch\')">🏷️ Format Batch &amp; Multi-Tier</button>' +
+      '<button type="button" id="tab-set-btn-roles" class="settings-tab-btn" data-tab="roles" onclick="switchSettingTab(\'roles\')">🔐 Hak Akses &amp; Peran</button>' +
+      '<button type="button" id="tab-set-btn-users" class="settings-tab-btn" data-tab="users" onclick="switchSettingTab(\'users\')">👥 Akun Pengguna</button>' +
+      '<button type="button" id="tab-set-btn-telegram" class="settings-tab-btn" data-tab="telegram" onclick="switchSettingTab(\'telegram\')">🤖 Bot Telegram</button>' +
     '</div>' +
 
-    '<!-- PANEL 1: PROFIL TOKO & PAJAK -->' +
-    '<div id="panel-set-profile" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'profile' ? 'block' : 'none') + ';">' +
+    '<div id="pane-profile" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'profile' ? 'block' : 'none') + ';">' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">' +
         '<div class="card">' +
           '<h3 style="margin-bottom:16px;">Profil Toko &amp; Pajak</h3>' +
-          
-          '<!-- 1. LOGO PRIMER (FULL COLOR / LATAR TERANG) -->' +
           '<div class="field-group">' +
             '<label class="field-label">Logo Utama (Full Color / Layar Login &amp; Struk)</label>' +
             '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px;">' +
               '<div class="logo-preview-box" id="setting-logo-preview" style="background:#fff;border:1px solid var(--border);width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-xs);overflow:hidden;">' +
-                (currentLogo
-                  ? '<img src="' + escapeHtml(currentLogo) + '" alt="Logo Terpasang" style="max-width:100%;max-height:100%;object-fit:contain;">'
-                  : '<span style="font-size:10px;color:var(--text-muted);text-align:center;">Belum Ada</span>') +
+                (currentLogo ? '<img src="' + escapeHtml(currentLogo) + '" alt="Logo Terpasang" style="max-width:100%;max-height:100%;object-fit:contain;">' : '<span style="font-size:10px;color:var(--text-muted);text-align:center;">Belum Ada</span>') +
               '</div>' +
               '<div style="flex:1;min-width:180px;">' +
                 '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">' +
-                  '<label class="btn btn-secondary btn-sm" style="cursor:pointer;">' +
-                    '📁 Upload' +
-                    '<input type="file" id="set-logo-file" accept="image/*" style="display:none;" onchange="handleLogoFileUpload(this, \'set-store-logo\', \'setting-logo-preview\')">' +
-                  '</label>' +
+                  '<label class="btn btn-secondary btn-sm" style="cursor:pointer;">📁 Upload<input type="file" id="set-logo-file" accept="image/*" style="display:none;" onchange="handleLogoFileUpload(this, \'set-store-logo\', \'setting-logo-preview\')"></label>' +
                   '<button type="button" class="btn btn-secondary btn-sm" onclick="clearLogoSetting(\'set-store-logo\', \'set-logo-file\', \'setting-logo-preview\')">Hapus</button>' +
                 '</div>' +
-                '<div class="input-wrapper">' +
-                  '<input type="text" id="set-store-logo" placeholder="Atau paste link URL logo warna..." value="' + escapeHtml(currentLogo) + '" oninput="updateLogoPreview(this.value, \'setting-logo-preview\')" style="padding-left:14px;font-size:12px;">' +
-                '</div>' +
+                '<div class="input-wrapper"><input type="text" id="set-store-logo" placeholder="Atau paste link URL logo warna..." value="' + escapeHtml(currentLogo) + '" oninput="updateLogoPreview(this.value, \'setting-logo-preview\')" style="padding-left:14px;font-size:12px;"></div>' +
                 '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Digunakan untuk layar login, faktur minimalis, dan struk kasir.</small>' +
               '</div>' +
             '</div>' +
           '</div>' +
-
-          '<!-- 2. LOGO SEKUNDER (PUTIH / MONOKROM / LATAR GELAP) -->' +
           '<div class="field-group">' +
             '<label class="field-label">Logo Sekunder (Putih/Monokrom / Sidebar &amp; Faktur Formal)</label>' +
             '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px;">' +
               '<div class="logo-preview-box" id="setting-logo-light-preview" style="background:var(--primary);border:1px solid var(--border);width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-xs);overflow:hidden;">' +
-                (currentLogoLight
-                  ? '<img src="' + escapeHtml(currentLogoLight) + '" alt="Logo Terpasang" style="max-width:100%;max-height:100%;object-fit:contain;">'
-                  : '<span style="font-size:10px;color:#fff;text-align:center;opacity:0.8;">Belum Ada</span>') +
+                (currentLogoLight ? '<img src="' + escapeHtml(currentLogoLight) + '" alt="Logo Terpasang" style="max-width:100%;max-height:100%;object-fit:contain;">' : '<span style="font-size:10px;color:#fff;text-align:center;opacity:0.8;">Belum Ada</span>') +
               '</div>' +
               '<div style="flex:1;min-width:180px;">' +
                 '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">' +
-                  '<label class="btn btn-secondary btn-sm" style="cursor:pointer;">' +
-                    '📁 Upload' +
-                    '<input type="file" id="set-logo-light-file" accept="image/*" style="display:none;" onchange="handleLogoFileUpload(this, \'set-store-logo-light\', \'setting-logo-light-preview\')">' +
-                  '</label>' +
+                  '<label class="btn btn-secondary btn-sm" style="cursor:pointer;">📁 Upload<input type="file" id="set-logo-light-file" accept="image/*" style="display:none;" onchange="handleLogoFileUpload(this, \'set-store-logo-light\', \'setting-logo-light-preview\')"></label>' +
                   '<button type="button" class="btn btn-secondary btn-sm" onclick="clearLogoSetting(\'set-store-logo-light\', \'set-logo-light-file\', \'setting-logo-light-preview\')">Hapus</button>' +
                 '</div>' +
-                '<div class="input-wrapper">' +
-                  '<input type="text" id="set-store-logo-light" placeholder="Atau paste link URL logo putih/transparan..." value="' + escapeHtml(currentLogoLight) + '" oninput="updateLogoPreview(this.value, \'setting-logo-light-preview\')" style="padding-left:14px;font-size:12px;">' +
-                '</div>' +
+                '<div class="input-wrapper"><input type="text" id="set-store-logo-light" placeholder="Atau paste link URL logo putih/transparan..." value="' + escapeHtml(currentLogoLight) + '" oninput="updateLogoPreview(this.value, \'setting-logo-light-preview\')" style="padding-left:14px;font-size:12px;"></div>' +
                 '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Digunakan untuk menu samping (sidebar hijau tua) dan kop faktur formal.</small>' +
               '</div>' +
             '</div>' +
           '</div>' +
-
-          '<div class="field-group">' +
-            '<label class="field-label">Nama Toko / Kios</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="text" id="set-store-name" value="' + escapeHtml(settings['store_name'] || '') + '" style="padding-left:14px;">' +
-            '</div>' +
-          '</div>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Alamat Lengkap</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="text" id="set-store-address" value="' + escapeHtml(settings['store_address'] || '') + '" style="padding-left:14px;">' +
-            '</div>' +
-          '</div>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Kontak WhatsApp</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="text" id="set-store-phone" value="' + escapeHtml(settings['store_phone'] || '') + '" style="padding-left:14px;">' +
-            '</div>' +
-          '</div>' +
+          '<div class="field-group"><label class="field-label">Nama Toko / Kios</label><div class="input-wrapper"><input type="text" id="set-store-name" value="' + escapeHtml(settings['store_name'] || '') + '" style="padding-left:14px;"></div></div>' +
+          '<div class="field-group"><label class="field-label">Alamat Lengkap</label><div class="input-wrapper"><input type="text" id="set-store-address" value="' + escapeHtml(settings['store_address'] || '') + '" style="padding-left:14px;"></div></div>' +
+          '<div class="field-group"><label class="field-label">Kontak WhatsApp</label><div class="input-wrapper"><input type="text" id="set-store-phone" value="' + escapeHtml(settings['store_phone'] || '') + '" style="padding-left:14px;"></div></div>' +
           '<div class="field-group" style="padding:12px 14px;background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-xs);margin-bottom:12px;">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">' +
               '<label class="field-label" style="margin:0;">Rekening Bank Kios</label>' +
               '<button type="button" id="btn-unlock-bank-settings" class="btn btn-secondary btn-sm" onclick="unlockBankSettings()" style="white-space:nowrap;">🔒 Buka Kunci Rekening</button>' +
             '</div>' +
-            '<div class="field-group" style="margin-bottom:10px;">' +
-              '<label class="field-label">Nama Bank</label>' +
-              '<div class="input-wrapper">' +
-                '<input type="text" id="set-bank-name" value="' + escapeHtml(settings['bank_name'] || 'BNI') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;">' +
-              '</div>' +
-            '</div>' +
-            '<div class="field-group" style="margin-bottom:10px;">' +
-              '<label class="field-label">Nomor Rekening</label>' +
-              '<div class="input-wrapper">' +
-                '<input type="text" id="set-bank-account" value="' + escapeHtml(settings['bank_account'] || '0178 849 203') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;">' +
-              '</div>' +
-            '</div>' +
-            '<div class="field-group" style="margin-bottom:0;">' +
-              '<label class="field-label">Atas Nama</label>' +
-              '<div class="input-wrapper">' +
-                '<input type="text" id="set-bank-account-name" value="' + escapeHtml(settings['bank_account_name'] || 'Yayasan IDEP Selaras Alam') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;">' +
-              '</div>' +
-            '</div>' +
+            '<div class="field-group" style="margin-bottom:10px;"><label class="field-label">Nama Bank</label><div class="input-wrapper"><input type="text" id="set-bank-name" value="' + escapeHtml(settings['bank_name'] || 'BNI') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
+            '<div class="field-group" style="margin-bottom:10px;"><label class="field-label">Nomor Rekening</label><div class="input-wrapper"><input type="text" id="set-bank-account" value="' + escapeHtml(settings['bank_account'] || '0178 849 203') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
+            '<div class="field-group" style="margin-bottom:0;"><label class="field-label">Atas Nama</label><div class="input-wrapper"><input type="text" id="set-bank-account-name" value="' + escapeHtml(settings['bank_account_name'] || 'Yayasan IDEP Selaras Alam') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
           '</div>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Tarif Pajak (PPN %)</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="number" id="set-tax-rate" value="' + escapeHtml(settings['tax_rate'] !== undefined ? settings['tax_rate'] : '0') + '" min="0" max="100" step="0.1" style="padding-left:14px;">' +
-            '</div>' +
-            '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Persentase pajak yang dikenakan pada transaksi (misal: 0 untuk bebas pajak atau 11 untuk PPN 11%).</small>' +
-          '</div>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Catatan Kaki Faktur</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="text" id="set-invoice-footer" value="' + escapeHtml(settings['invoice_footer'] || 'Terima kasih atas kunjungan Anda!') + '" style="padding-left:14px;">' +
-            '</div>' +
-          '</div>' +
+          '<div class="field-group"><label class="field-label">Tarif Pajak (PPN %)</label><div class="input-wrapper"><input type="number" id="set-tax-rate" value="' + escapeHtml(settings['tax_rate'] !== undefined ? settings['tax_rate'] : '0') + '" min="0" max="100" step="0.1" style="padding-left:14px;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Persentase pajak yang dikenakan pada transaksi (misal: 0 untuk bebas pajak atau 11 untuk PPN 11%).</small></div>' +
+          '<div class="field-group"><label class="field-label">Catatan Kaki Faktur</label><div class="input-wrapper"><input type="text" id="set-invoice-footer" value="' + escapeHtml(settings['invoice_footer'] || 'Terima kasih atas kunjungan Anda!') + '" style="padding-left:14px;"></div></div>' +
           '<button type="button" class="btn btn-primary" onclick="saveStoreSettings()">Simpan Profil Toko &amp; Pajak</button>' +
         '</div>' +
       '</div>' +
     '</div>' +
 
-    '<!-- PANEL 2: FORMAT BATCH & MULTI-TIER -->' +
-    '<div id="panel-set-pricing" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'pricing' ? 'block' : 'none') + ';">' +
-      '<div id="pane-batch" class="setting-pane" style="display:block;">' +
-        '<div class="card" style="margin-bottom:16px;">' +
-          '<h3 style="margin-bottom:6px;">Format Kode Batch FIFO</h3>' +
-          '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Template otomatis untuk menghasilkan kode lot/batch benih saat pembelian atau produksi.</p>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Template Format Kode Batch</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="text" id="set-batch-format" value="' + escapeHtml(settings['batch_format_template'] || settings['batch_format'] || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}') + '" style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;">' +
-            '</div>' +
-            '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Gunakan token dinamis: <code>{FARMER}</code> (inisial petani), <code>{YYMM}</code> (thn+bln exp), <code>{RAND4}</code> (4 karakter acak), <code>{SEQ}</code> (nomor urut 01, 02). Contoh: <code>BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}</code>.</small>' +
-          '</div>' +
+    '<div id="pane-batch" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'batch' || CURRENT_SETTINGS_SUBTAB === 'pricing' ? 'block' : 'none') + ';">' +
+      '<div class="card" style="margin-bottom:16px;">' +
+        '<h3 style="margin-bottom:6px;">Format Kode Batch FIFO</h3>' +
+        '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Template otomatis untuk menghasilkan kode lot/batch benih saat pembelian atau produksi.</p>' +
+        '<div class="field-group"><label class="field-label">Template Format Kode Batch</label><div class="input-wrapper"><input type="text" id="set-batch-format" value="' + escapeHtml(settings['batch_format_template'] || settings['batch_format'] || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}') + '" style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Gunakan token dinamis: <code>{FARMER}</code>, <code>{YYMM}</code>, <code>{RAND4}</code>, <code>{SEQ}</code>. Contoh: <code>BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}</code>.</small></div>' +
+      '</div>' +
+      '<div class="card">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
+          '<div><h3 style="margin-bottom:4px;">Preset Tingkat Harga (Multi-Tier)</h3><p style="font-size:12px;color:var(--text-secondary);margin:0;">Standarisasi tingkatan harga jual produk dan penomoran batch.</p></div>' +
+          '<button type="button" class="btn btn-secondary btn-sm" onclick="addPriceTierPresetRow()">+ Tambah Preset Tier Baru</button>' +
         '</div>' +
-        '<div class="card">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
-            '<div>' +
-              '<h3 style="margin-bottom:4px;">Preset Tingkat Harga (Multi-Tier Pricing)</h3>' +
-              '<p style="font-size:12px;color:var(--text-secondary);margin:0;">' +
-                'Standarisasi tingkatan harga jual produk (Reguler untuk eceran kasir POS, Outlet untuk cabang/mitra konsinyasi, dan Bali Buda untuk mitra khusus).' +
-              '</p>' +
-            '</div>' +
-            '<button type="button" class="btn btn-secondary btn-sm" onclick="addPriceTierPresetRow()">+ Tambah Preset Tier Baru</button>' +
-          '</div>' +
-          '<div class="table-container" style="overflow-x:auto;">' +
-            '<table style="width:100%;margin-bottom:0;">' +
-              '<thead>' +
-                '<tr>' +
-                  '<th style="width:45%;padding:10px 14px;">Nama Tingkat Harga (Tier)</th>' +
-                  '<th style="width:40%;padding:10px 14px;">Nominal Bawaan / Default (Rp)</th>' +
-                  '<th style="width:15%;text-align:center;padding:10px 14px;">Aksi</th>' +
-                '</tr>' +
-              '</thead>' +
-              '<tbody id="price-tier-presets-body"></tbody>' +
-            '</table>' +
-          '</div>' +
-          '<div style="margin-top:16px;display:flex;justify-content:flex-end;">' +
-            '<button type="button" class="btn btn-primary" onclick="saveStoreSettings()">💾 Simpan Format Batch &amp; Multi-Tier</button>' +
-          '</div>' +
+        '<div class="table-container" style="overflow-x:auto;"><table style="width:100%;margin-bottom:0;"><thead><tr><th style="width:45%;padding:10px 14px;">Nama Tingkat Harga (Tier)</th><th style="width:40%;padding:10px 14px;">Nominal Bawaan / Default (Rp)</th><th style="width:15%;text-align:center;padding:10px 14px;">Aksi</th></tr></thead><tbody id="price-tier-presets-body"></tbody></table></div>' +
+        '<div style="margin-top:16px;display:flex;justify-content:flex-end;"><button type="button" class="btn btn-primary" onclick="saveStoreSettings()">💾 Simpan Format Batch &amp; Multi-Tier</button></div>' +
+      '</div>' +
+    '</div>' +
+
+    '<div id="pane-roles" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'roles' ? 'block' : 'none') + ';">' +
+      '<div class="card">' +
+        '<h3>Konfigurasi Hak Akses</h3>' +
+        '<button type="button" onclick="openRoleModal()">+ Tambah Peran Baru</button>' +
+        '<div class="table-container" style="overflow-x:auto;margin-top:16px;">' +
+          '<table style="width:100%;margin-bottom:0;">' +
+            '<thead><tr><th>Peran/Role</th><th>Akses Modul</th><th>Aksi</th></tr></thead>' +
+            '<tbody id="roles-matrix-body"></tbody>' +
+          '</table>' +
         '</div>' +
       '</div>' +
     '</div>' +
 
-    '<!-- PANEL 3: MATRIKS HAK AKSES -->' +
-    (isUserAdmin
-      ? '<div id="panel-set-roles" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'roles' ? 'block' : 'none') + ';">' +
-          '<div id="pane-roles" class="setting-pane" style="display:block;">' +
-            '<div class="card" id="role-matrix-container">' +
-              '<div class="empty-state">⏳ Memuat matriks hak akses...</div>' +
-            '</div>' +
-          '</div>' +
-        '</div>'
-      : '') +
+    '<div id="pane-users" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'users' ? 'block' : 'none') + ';">' +
+      '<div class="card">' +
+        '<h3>Manajemen Akun Pengguna</h3>' +
+        '<button type="button" onclick="openUserModal()">+ Tambah Akun</button>' +
+        '<div class="table-container" style="overflow-x:auto;margin-top:16px;">' +
+          '<table style="width:100%;margin-bottom:0;">' +
+            '<thead><tr><th>Username</th><th>Nama</th><th>Peran</th><th>Aksi</th></tr></thead>' +
+            '<tbody id="users-table-body"></tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
 
-    '<!-- PANEL 4: MANAJEMEN PENGGUNA -->' +
-    (isUserAdmin
-      ? '<div id="panel-set-users" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'users' ? 'block' : 'none') + ';">' +
-          '<div id="pane-users" class="setting-pane" style="display:block;">' +
-            '<div class="card" id="users-management-container">' +
-              '<div class="empty-state">⏳ Memuat daftar pengguna...</div>' +
-            '</div>' +
-          '</div>' +
-        '</div>'
-      : '') +
+    '<div id="pane-telegram" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'telegram' ? 'block' : 'none') + ';">' +
+      '<div class="card" style="max-width:700px;">' +
+        '<h3>Pengaturan Bot Telegram</h3>' +
+        '<div class="field-group"><label class="field-label">Telegram Bot Token</label><div class="input-wrapper"><input type="text" id="set-tg-token" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Masukkan telegram bot token" style="padding-left:14px;"></div></div>' +
+        '<div class="field-group"><label class="field-label">Telegram Chat ID</label><div class="input-wrapper"><input type="text" id="set-tg-chat-id" value="' + escapeHtml(settings['telegram_chat_id'] || '') + '" placeholder="Masukkan chat id tujuan" style="padding-left:14px;"></div></div>' +
+        '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Cara mendapatkan token: buka Telegram, cari @BotFather, lalu ikuti langkah membuat bot baru dan salin token yang diberikan.</p>' +
+        '<button type="button" class="btn btn-primary" onclick="saveTelegramSettings()">Simpan Pengaturan Telegram</button>' +
+      '</div>' +
+    '</div>' +
 
-    '<!-- PANEL 5: INTEGRASI BOT TELEGRAM -->' +
-    (isUserAdmin
-      ? '<div id="panel-set-telegram" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'telegram' ? 'block' : 'none') + ';">' +
-          '<div id="pane-telegram" class="setting-pane" style="display:block;">' +
-            '<div class="card" style="max-width:850px;">' +
-              '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--border);">' +
-                '<div style="display:flex;align-items:center;gap:12px;">' +
-                  '<span style="font-size:28px;">🤖</span>' +
-                  '<div>' +
-                    '<h3 style="margin:0;">Integrasi Bot Telegram</h3>' +
-                    '<p style="font-size:12px;color:var(--text-secondary);margin:2px 0 0 0;">Push alert operasional otomatis &amp; asisten perintah dua arah E-KASIR v2.</p>' +
-                  '</div>' +
-                '</div>' +
-                '<div id="telegram-status-badge">' +
-                  (Boolean(settings['telegram_bot_token'] && settings['telegram_chat_id'])
-                    ? '<span class="badge badge-success" style="padding:6px 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">🟢 Aktif Terhubung</span>'
-                    : '<span class="badge" style="background:var(--surface-muted);color:var(--text-secondary);border:1px solid var(--border);padding:6px 12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">⚪ Belum Dikonfigurasi</span>') +
-                '</div>' +
-              '</div>' +
-
-              '<div class="field-group">' +
-                '<label class="field-label">Telegram Bot Token <span style="color:var(--danger)">*</span></label>' +
-                '<div class="input-wrapper" style="position:relative;">' +
-                  '<input type="password" id="set-tg-token" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Contoh: 123456789:ABCdefGhIJKlmNoPQRstuvWXyz" style="padding-left:14px;padding-right:42px;font-family:\'JetBrains Mono\',monospace;">' +
-                  '<button type="button" class="input-action-btn" onclick="toggleTgTokenVisibility()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:14px;" title="Intip Token">👁️</button>' +
-                '</div>' +
-                '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Cara mendapatkannya: buka Telegram, cari <code>@BotFather</code>, kirim perintah <code>/newbot</code>, lalu salin Token bot yang diberikan ke field ini.</small>' +
-              '</div>' +
-
-              '<div class="field-group">' +
-                '<label class="field-label">Target Chat ID / Channel ID <span style="color:var(--danger)">*</span></label>' +
-                '<div class="input-wrapper">' +
-                  '<input type="text" id="set-tg-chat-id" value="' + escapeHtml(settings['telegram_chat_id'] || '') + '" placeholder="Contoh: -1001234567890 (ID Grup/Channel) atau 987654321 (ID Akun)" style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;">' +
-                '</div>' +
-                '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">ID akun atau grup Telegram tujuan pengiriman notifikasi (gunakan bot seperti <code>@userinfobot</code> untuk cek ID).</small>' +
-              '</div>' +
-
-              '<div style="background:var(--surface-muted);padding:14px 16px;border-radius:var(--radius-xs);border:1px solid var(--border);margin-bottom:18px;">' +
-                '<div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:10px;">Pilihan Notifikasi Otomatis (Push Alerts)</div>' +
-                '<div style="display:flex;flex-direction:column;gap:10px;">' +
-                  '<label style="display:flex;align-items:center;gap:10px;font-size:12.5px;cursor:pointer;">' +
-                    '<input type="checkbox" id="set-tg-notif-void" class="role-checkbox-custom" ' + (settings['telegram_notif_void'] !== 'false' ? 'checked' : '') + '>' +
-                    '<span>⚠️ <strong>Alert Void Transaksi:</strong> Notifikasi instan saat nota kasir dibatalkan/void oleh admin.</span>' +
-                  '</label>' +
-                  '<label style="display:flex;align-items:center;gap:10px;font-size:12.5px;cursor:pointer;">' +
-                    '<input type="checkbox" id="set-tg-notif-dht" class="role-checkbox-custom" ' + (settings['telegram_notif_dht'] !== 'false' ? 'checked' : '') + '>' +
-                    '<span>🔥 <strong>Pengingat Oven DHT:</strong> Notifikasi saat sesi oven 24 jam dimulai dan saat selesai dikeluarkan.</span>' +
-                  '</label>' +
-                  '<label style="display:flex;align-items:center;gap:10px;font-size:12.5px;cursor:pointer;">' +
-                    '<input type="checkbox" id="set-tg-notif-qc" class="role-checkbox-custom" ' + (settings['telegram_notif_qc'] !== 'false' ? 'checked' : '') + '>' +
-                    '<span>⛔ <strong>Karantina &amp; Kelulusan QC:</strong> Peringatan batch benih gagal (&lt;80%) atau lolos uji mutu pasca-DHT.</span>' +
-                  '</label>' +
-                '</div>' +
-              '</div>' +
-
-              '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">' +
-                '<button type="button" class="btn btn-primary" id="btn-save-tg" onclick="saveTelegramSettings()">💾 Simpan Pengaturan Telegram</button>' +
-                '<button type="button" class="btn btn-secondary" id="btn-test-tg" onclick="testTelegramConnectionUI()">🔔 Uji Kirim Notifikasi</button>' +
-                '<button type="button" class="btn btn-secondary" id="btn-webhook-tg" onclick="setupTelegramWebhookUI()">🔗 Sinkronkan Webhook Bot</button>' +
-              '</div>' +
-
-              '<div style="background:var(--surface-muted);border-left:4px solid var(--primary);padding:14px 16px;border-radius:0 var(--radius-xs) var(--radius-xs) 0;">' +
-                '<div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:6px;">📖 Panduan Perintah Dua Arah (Bot Commands)</div>' +
-                '<div style="font-size:11.5px;color:var(--text-secondary);line-height:1.6;">' +
-                  'Setelah Webhook disinkronkan, staf dapat mengetik perintah berikut di Telegram untuk cek data secara real-time:<br>' +
-                  '• <code>/omzet</code> — Rekap total transaksi dan omzet kotor hari ini (tidak termasuk void)<br>' +
-                  '• <code>/stok [kata_kunci]</code> — Cek sisa stok fisik benih kemasan dan curah<br>' +
-                  '• <code>/dht</code> — Cek toples yang sedang di oven DHT dan hitung mundur sisa waktu<br>' +
-                  '• <code>/qc</code> — Cek jumlah toples benih curah yang menunggu uji QC<br>' +
-                  '• <code>/bantuan</code> — Tampilkan panduan daftar perintah' +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-        '</div>'
-      : '') +
-
-    '<!-- PANEL 6: ZONA BAHAYA -->' +
     (isUserAdmin
       ? '<div id="panel-set-danger" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'danger' ? 'block' : 'none') + ';">' +
           '<div class="card card-danger-zone">' +
@@ -12064,13 +11917,9 @@ function drawPengaturanUI(settings) {
                   '<span style="font-size:20px;">🚨</span>' +
                   '<h3 style="margin:0;color:#b91c1c;">Zona Bahaya / Pembersihan Data Uji Coba</h3>' +
                 '</div>' +
-                '<p style="font-size:12.5px;color:#7f1d1d;margin:6px 0 0 0;line-height:1.4;">' +
-                  'Gunakan fitur ini untuk menghapus seluruh riwayat transaksi simulasi. Data master produk dan pengaturan tidak akan terhapus.' +
-                '</p>' +
+                '<p style="font-size:12.5px;color:#7f1d1d;margin:6px 0 0 0;line-height:1.4;">Gunakan fitur ini untuk menghapus seluruh riwayat transaksi simulasi. Data master produk dan pengaturan tidak akan terhapus.</p>' +
               '</div>' +
-              '<button type="button" class="btn btn-danger" onclick="openResetDataModal()" style="white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">' +
-                '🗑️ Buka Panel Reset Data' +
-              '</button>' +
+              '<button type="button" class="btn btn-danger" onclick="openResetDataModal()" style="white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">🗑️ Buka Panel Reset Data</button>' +
             '</div>' +
           '</div>' +
         '</div>'

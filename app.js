@@ -214,7 +214,7 @@ function formatDateIndo(dateStr) {
         return parts[2] + ' ' + (months[parseInt(parts[1], 10) - 1] || parts[1]) + ' ' + parts[0];
       }
     }
-  } catch (e) {}
+  } catch (e) { }
   return '-';
 }
 window.formatDateIndo = formatDateIndo;
@@ -1751,7 +1751,7 @@ function drawStokUI(products, batches, mutations) {
         if (!isNaN(dt.getTime())) {
           timeText = dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     const dateTimeHTML = '<div><strong style="color:var(--text-primary);">' + tglText + '</strong>' +
       (timeText ? '<br><span style="font-size:11px;color:var(--text-muted);">' + timeText + ' WITA</span>' : '') +
@@ -1813,7 +1813,7 @@ function drawStokUI(products, batches, mutations) {
     PRODUCTS_CACHE.map(function (p) {
       const isRaw = isRawProduct(p.unit);
       const typeBadge = isRaw ? '<span class="badge badge-warning">Curah Mentah</span>' : '<span class="badge badge-success">Kemasan Siap Jual</span>';
-      
+
       const productBatches = allBatches.filter(function (b) { return b.product_id === p.id; });
       const totalBatchStock = productBatches.reduce(function (sum, b) { return sum + Number(b.qty_remaining || 0); }, 0);
       const totalStock = productBatches.length > 0 ? totalBatchStock : Number(p.stock || 0);
@@ -1988,9 +1988,9 @@ function renderProduksi(forceRefresh) {
   const fetchBatches = (!forceRefresh && isCacheValid('batches') && DATA_CACHE.batches && DATA_CACHE.batches.data)
     ? Promise.resolve(DATA_CACHE.batches.data)
     : api('getStockBatches', TOKEN).catch(function (e) {
-        console.warn('Gagal memuat batch stok di renderProduksi:', e);
-        return [];
-      });
+      console.warn('Gagal memuat batch stok di renderProduksi:', e);
+      return [];
+    });
 
   Promise.all([
     fetchProducts,
@@ -8454,76 +8454,76 @@ function drawPiutangUI(list) {
 
   content.innerHTML =
     '<div class="page-header">' +
-      '<div>' +
-        '<h1 class="page-title">Piutang &amp; Cicilan Pelanggan</h1>' +
-        '<p class="page-subtitle">Monitoring tagihan belum lunas dan pencatatan pembayaran tempo.</p>' +
-      '</div>' +
+    '<div>' +
+    '<h1 class="page-title">Piutang &amp; Cicilan Pelanggan</h1>' +
+    '<p class="page-subtitle">Monitoring tagihan belum lunas dan pencatatan pembayaran tempo.</p>' +
+    '</div>' +
     '</div>' +
     '<div class="stat-grid">' +
-      '<div class="stat-card">' +
-        '<div class="stat-header">' +
-          '<span class="stat-label">Total Tagihan Aktif</span>' +
-          '<span class="stat-icon">&#128179;</span>' +
-        '</div>' +
-        '<div class="stat-value">' + formatRupiah(totalRemaining) + '</div>' +
-      '</div>' +
-      '<div class="stat-card">' +
-        '<div class="stat-header">' +
-          '<span class="stat-label">Jumlah Nota Tempo</span>' +
-          '<span class="stat-icon">&#128203;</span>' +
-        '</div>' +
-        '<div class="stat-value">' + active.length + ' Nota</div>' +
-      '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header">' +
+    '<span class="stat-label">Total Tagihan Aktif</span>' +
+    '<span class="stat-icon">&#128179;</span>' +
+    '</div>' +
+    '<div class="stat-value">' + formatRupiah(totalRemaining) + '</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header">' +
+    '<span class="stat-label">Jumlah Nota Tempo</span>' +
+    '<span class="stat-icon">&#128203;</span>' +
+    '</div>' +
+    '<div class="stat-value">' + active.length + ' Nota</div>' +
+    '</div>' +
     '</div>' +
     '<div class="card" style="margin-bottom:16px;">' +
-      '<h3 style="margin-bottom:14px;">Daftar Piutang Aktif</h3>' +
-      '<div class="table-container">' +
-        '<table>' +
-          '<thead>' +
-            '<tr>' +
-              '<th>Pelanggan</th>' +
-              '<th>Total Nota</th>' +
-              '<th>Sudah Bayar</th>' +
-              '<th>Sisa Tagihan</th>' +
-              '<th>Jatuh Tempo</th>' +
-              '<th style="text-align:right;">Aksi</th>' +
-            '</tr>' +
-          '</thead>' +
-          '<tbody>' +
-            (active.length ? active.map(function (r) {
-              const today = new Date();
-              const isLate = r.due_date && new Date(r.due_date) < today;
-              const badge = isLate ? '<span class="badge badge-danger">Terlambat</span>' : formatDate(r.due_date);
-              return '<tr>' +
-                '<td><strong>' + escapeHtml(r.customer_name) + '</strong></td>' +
-                '<td>' + formatRupiah(r.total) + '</td>' +
-                '<td>' + formatRupiah(r.paid) + '</td>' +
-                '<td><strong style="color:var(--danger);">' + formatRupiah(r.remaining) + '</strong></td>' +
-                '<td>' + badge + '</td>' +
-                '<td style="text-align:right;">' +
-                  '<button type="button" class="btn btn-primary btn-sm" onclick="openPaymentReceivableModal(\'' + r.id + '\',\'' + escapeHtml(r.customer_name) + '\',' + r.remaining + ')">Catat Bayar</button>' +
-                '</td>' +
-              '</tr>';
-            }).join('') : '<tr><td colspan="6"><div style="text-align:center;padding:20px;">Tidak ada tagihan piutang aktif.</div></td></tr>') +
-          '</tbody>' +
-        '</table>' +
-      '</div>' +
+    '<h3 style="margin-bottom:14px;">Daftar Piutang Aktif</h3>' +
+    '<div class="table-container">' +
+    '<table>' +
+    '<thead>' +
+    '<tr>' +
+    '<th>Pelanggan</th>' +
+    '<th>Total Nota</th>' +
+    '<th>Sudah Bayar</th>' +
+    '<th>Sisa Tagihan</th>' +
+    '<th>Jatuh Tempo</th>' +
+    '<th style="text-align:right;">Aksi</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' +
+    (active.length ? active.map(function (r) {
+      const today = new Date();
+      const isLate = r.due_date && new Date(r.due_date) < today;
+      const badge = isLate ? '<span class="badge badge-danger">Terlambat</span>' : formatDate(r.due_date);
+      return '<tr>' +
+        '<td><strong>' + escapeHtml(r.customer_name) + '</strong></td>' +
+        '<td>' + formatRupiah(r.total) + '</td>' +
+        '<td>' + formatRupiah(r.paid) + '</td>' +
+        '<td><strong style="color:var(--danger);">' + formatRupiah(r.remaining) + '</strong></td>' +
+        '<td>' + badge + '</td>' +
+        '<td style="text-align:right;">' +
+        '<button type="button" class="btn btn-primary btn-sm" onclick="openPaymentReceivableModal(\'' + r.id + '\',\'' + escapeHtml(r.customer_name) + '\',' + r.remaining + ')">Catat Bayar</button>' +
+        '</td>' +
+        '</tr>';
+    }).join('') : '<tr><td colspan="6"><div style="text-align:center;padding:20px;">Tidak ada tagihan piutang aktif.</div></td></tr>') +
+    '</tbody>' +
+    '</table>' +
+    '</div>' +
     '</div>';
 
   if (lunas.length > 0) {
     content.innerHTML +=
       '<div class="card">' +
-        '<h3 style="margin-bottom:14px;">Riwayat Tagihan Lunas</h3>' +
-        '<div class="table-container">' +
-          '<table>' +
-            '<thead><tr><th>Pelanggan</th><th>Total Tagihan</th><th>Status</th></tr></thead>' +
-            '<tbody>' +
-              lunas.map(function (r) {
-                return '<tr><td>' + escapeHtml(r.customer_name) + '</td><td>' + formatRupiah(r.total) + '</td><td><span class="badge badge-success">Lunas</span></td></tr>';
-              }).join('') +
-            '</tbody>' +
-          '</table>' +
-        '</div>' +
+      '<h3 style="margin-bottom:14px;">Riwayat Tagihan Lunas</h3>' +
+      '<div class="table-container">' +
+      '<table>' +
+      '<thead><tr><th>Pelanggan</th><th>Total Tagihan</th><th>Status</th></tr></thead>' +
+      '<tbody>' +
+      lunas.map(function (r) {
+        return '<tr><td>' + escapeHtml(r.customer_name) + '</td><td>' + formatRupiah(r.total) + '</td><td><span class="badge badge-success">Lunas</span></td></tr>';
+      }).join('') +
+      '</tbody>' +
+      '</table>' +
+      '</div>' +
       '</div>';
   }
 }
@@ -8539,27 +8539,27 @@ function openPaymentReceivableModal(recId, remaining, customerName) {
   customerName = customerName || 'Pelanggan';
   const bodyHtml =
     '<div style="text-align:center;padding:10px 0 16px;">' +
-      '<div style="font-size:12px;color:var(--text-secondary);">SISA TAGIHAN</div>' +
-      '<div style="font-size:28px;font-weight:800;color:var(--danger);">' + formatRupiah(remaining) + '</div>' +
-      '<div style="font-size:13px;margin-top:4px;">Pelanggan: <strong>' + escapeHtml(customerName) + '</strong></div>' +
+    '<div style="font-size:12px;color:var(--text-secondary);">SISA TAGIHAN</div>' +
+    '<div style="font-size:28px;font-weight:800;color:var(--danger);">' + formatRupiah(remaining) + '</div>' +
+    '<div style="font-size:13px;margin-top:4px;">Pelanggan: <strong>' + escapeHtml(customerName) + '</strong></div>' +
     '</div>' +
     '<div class="field-group">' +
-      '<label class="field-label">Nominal Pembayaran (Rp) <span style="color:red;">*</span></label>' +
-      '<div class="input-wrapper"><input type="number" id="pay-amount" value="' + remaining + '" min="1" max="' + remaining + '" style="padding-left:14px;"></div>' +
+    '<label class="field-label">Nominal Pembayaran (Rp) <span style="color:red;">*</span></label>' +
+    '<div class="input-wrapper"><input type="number" id="pay-amount" value="' + remaining + '" min="1" max="' + remaining + '" style="padding-left:14px;"></div>' +
     '</div>' +
     '<div class="field-group">' +
-      '<label class="field-label">Metode Pembayaran</label>' +
-      '<div class="input-wrapper">' +
-        '<select id="pay-method" style="padding-left:14px;">' +
-          '<option value="CASH">Tunai (Kas Kasir)</option>' +
-          '<option value="TRANSFER">Transfer Bank</option>' +
-          '<option value="QRIS">QRIS</option>' +
-        '</select>' +
-      '</div>' +
+    '<label class="field-label">Metode Pembayaran</label>' +
+    '<div class="input-wrapper">' +
+    '<select id="pay-method" style="padding-left:14px;">' +
+    '<option value="CASH">Tunai (Kas Kasir)</option>' +
+    '<option value="TRANSFER">Transfer Bank</option>' +
+    '<option value="QRIS">QRIS</option>' +
+    '</select>' +
+    '</div>' +
     '</div>' +
     '<div class="field-group">' +
-      '<label class="field-label">Catatan / Keterangan</label>' +
-      '<div class="input-wrapper"><input type="text" id="pay-notes" placeholder="Contoh: Angsuran nota tempo..." style="padding-left:14px;"></div>' +
+    '<label class="field-label">Catatan / Keterangan</label>' +
+    '<div class="input-wrapper"><input type="text" id="pay-notes" placeholder="Contoh: Angsuran nota tempo..." style="padding-left:14px;"></div>' +
     '</div>';
 
   const footerHtml =
@@ -8646,19 +8646,19 @@ function drawCRMUI(customers) {
   if (!content) return;
   content.innerHTML =
     '<div class="page-header">' +
-      '<div>' +
-        '<h1 class="page-title">Pelanggan (CRM)</h1>' +
-        '<p class="page-subtitle">Kelola kontak member, kategori diskon, dan histori belanja 360 derajat.</p>' +
-      '</div>' +
-      '<button type="button" class="btn btn-primary" onclick="openCustomerFormModal()">+ Tambah Pelanggan</button>' +
+    '<div>' +
+    '<h1 class="page-title">Pelanggan (CRM)</h1>' +
+    '<p class="page-subtitle">Kelola kontak member, kategori diskon, dan histori belanja 360 derajat.</p>' +
+    '</div>' +
+    '<button type="button" class="btn btn-primary" onclick="openCustomerFormModal()">+ Tambah Pelanggan</button>' +
     '</div>' +
     '<div class="table-container">' +
-      '<table>' +
-        '<thead>' +
-          '<tr><th>Nama Pelanggan</th><th>Kontak WhatsApp</th><th>Email</th><th>Kategori</th><th style="text-align:right;">Aksi</th></tr>' +
-        '</thead>' +
-        '<tbody id="crm-tbody"></tbody>' +
-      '</table>' +
+    '<table>' +
+    '<thead>' +
+    '<tr><th>Nama Pelanggan</th><th>Kontak WhatsApp</th><th>Email</th><th>Kategori</th><th style="text-align:right;">Aksi</th></tr>' +
+    '</thead>' +
+    '<tbody id="crm-tbody"></tbody>' +
+    '</table>' +
     '</div>' +
     '<div id="crm-detail" style="margin-top:20px;"></div>';
 
@@ -8682,11 +8682,11 @@ function renderCustomerTable(customers) {
       '<td>' + escapeHtml(c.email || '-') + '</td>' +
       '<td><span class="badge ' + cls + '">' + escapeHtml(c.category || 'Reguler') + '</span></td>' +
       '<td style="text-align:right;">' +
-        '<button type="button" class="btn btn-secondary btn-sm" onclick="showCustomerDetail(\'' + c.id + '\')">360° Detail</button> ' +
-        '<button type="button" class="btn btn-secondary btn-sm" onclick="openCustomerFormModal(\'' + c.id + '\')">Edit</button> ' +
-        '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCustomerUI(\'' + c.id + '\', \'' + escapeHtml(c.name) + '\')">Hapus</button>' +
+      '<button type="button" class="btn btn-secondary btn-sm" onclick="showCustomerDetail(\'' + c.id + '\')">360° Detail</button> ' +
+      '<button type="button" class="btn btn-secondary btn-sm" onclick="openCustomerFormModal(\'' + c.id + '\')">Edit</button> ' +
+      '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCustomerUI(\'' + c.id + '\', \'' + escapeHtml(c.name) + '\')">Hapus</button>' +
       '</td>' +
-    '</tr>';
+      '</tr>';
   }).join('');
 }
 
@@ -8698,10 +8698,10 @@ function openCustomerFormModal(customerId) {
     '<div class="field-group"><label class="field-label">Nomor WhatsApp / HP</label><div class="input-wrapper"><input type="text" id="cm-phone" value="' + (c ? escapeHtml(c.phone || '') : '') + '" style="padding-left:14px;" placeholder="08xxxxxxxxxx"></div></div>' +
     '<div class="field-group"><label class="field-label">Email</label><div class="input-wrapper"><input type="email" id="cm-email" value="' + (c ? escapeHtml(c.email || '') : '') + '" style="padding-left:14px;" placeholder="nama@email.com"></div></div>' +
     '<div class="field-group"><label class="field-label">Kategori Pelanggan</label><div class="input-wrapper"><select id="cm-category" style="padding-left:14px;">' +
-      '<option value="Reguler"' + (!c || c.category === 'Reguler' ? ' selected' : '') + '>Reguler</option>' +
-      '<option value="Member"' + (c && c.category === 'Member' ? ' selected' : '') + '>Member</option>' +
-      '<option value="Mitra"' + (c && c.category === 'Mitra' ? ' selected' : '') + '>Mitra</option>' +
-      '<option value="VIP"' + (c && c.category === 'VIP' ? ' selected' : '') + '>VIP</option>' +
+    '<option value="Reguler"' + (!c || c.category === 'Reguler' ? ' selected' : '') + '>Reguler</option>' +
+    '<option value="Member"' + (c && c.category === 'Member' ? ' selected' : '') + '>Member</option>' +
+    '<option value="Mitra"' + (c && c.category === 'Mitra' ? ' selected' : '') + '>Mitra</option>' +
+    '<option value="VIP"' + (c && c.category === 'VIP' ? ' selected' : '') + '>VIP</option>' +
     '</select></div></div>';
 
   const footerHtml =
@@ -8762,37 +8762,37 @@ function showCustomerDetail(customerId) {
 
     detailEl.innerHTML =
       '<div class="card">' +
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">' +
-          '<div>' +
-            '<h2>' + escapeHtml(c.name) + '</h2>' +
-            '<div style="color:var(--text-secondary);font-size:13px;margin-top:2px;">' + escapeHtml(c.phone || '-') + ' &bull; ' + escapeHtml(c.email || '-') + '</div>' +
-          '</div>' +
-          '<div style="text-align:right;">' +
-            '<div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;">Total Pengeluaran Belanja</div>' +
-            '<div style="font-size:24px;font-weight:800;color:var(--primary);">' + formatRupiah(data.totalSpending) + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
-          '<div>' +
-            '<h3 style="font-size:14px;margin-bottom:10px;">Riwayat Nota Belanja</h3>' +
-            '<div style="max-height:220px;overflow-y:auto;">' +
-              (txs.length ? txs.map(function (t) {
-                return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;cursor:pointer;" onclick="openTransactionDetailModal(\'' + t.id + '\')">' +
-                  '<span>#' + escapeHtml(t.id) + ' (' + formatDate(t.created_at) + ')</span>' +
-                  '<div style="display:flex;align-items:center;gap:6px;"><strong>' + formatRupiah(t.total) + '</strong><span class="badge badge-neutral" style="font-size:9px;">🔍 Rincian</span></div>' +
-                '</div>';
-              }).join('') : '<div style="color:var(--text-secondary);font-size:12px;">Belum pernah bertransaksi.</div>') +
-            '</div>' +
-          '</div>' +
-          '<div>' +
-            '<h3 style="font-size:14px;margin-bottom:10px;">Status Tagihan Piutang Aktif</h3>' +
-            (recs.length ? recs.map(function (r) {
-              return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">' +
-                '<span>Nota #' + escapeHtml(r.transaction_id) + '</span><strong style="color:var(--danger);">' + formatRupiah(r.remaining) + '</strong>' +
-              '</div>';
-            }).join('') : '<div style="color:var(--text-secondary);font-size:12px;">Tidak memiliki piutang aktif.</div>') +
-          '</div>' +
-        '</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">' +
+      '<div>' +
+      '<h2>' + escapeHtml(c.name) + '</h2>' +
+      '<div style="color:var(--text-secondary);font-size:13px;margin-top:2px;">' + escapeHtml(c.phone || '-') + ' &bull; ' + escapeHtml(c.email || '-') + '</div>' +
+      '</div>' +
+      '<div style="text-align:right;">' +
+      '<div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;">Total Pengeluaran Belanja</div>' +
+      '<div style="font-size:24px;font-weight:800;color:var(--primary);">' + formatRupiah(data.totalSpending) + '</div>' +
+      '</div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
+      '<div>' +
+      '<h3 style="font-size:14px;margin-bottom:10px;">Riwayat Nota Belanja</h3>' +
+      '<div style="max-height:220px;overflow-y:auto;">' +
+      (txs.length ? txs.map(function (t) {
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;cursor:pointer;" onclick="openTransactionDetailModal(\'' + t.id + '\')">' +
+          '<span>#' + escapeHtml(t.id) + ' (' + formatDate(t.created_at) + ')</span>' +
+          '<div style="display:flex;align-items:center;gap:6px;"><strong>' + formatRupiah(t.total) + '</strong><span class="badge badge-neutral" style="font-size:9px;">🔍 Rincian</span></div>' +
+          '</div>';
+      }).join('') : '<div style="color:var(--text-secondary);font-size:12px;">Belum pernah bertransaksi.</div>') +
+      '</div>' +
+      '</div>' +
+      '<div>' +
+      '<h3 style="font-size:14px;margin-bottom:10px;">Status Tagihan Piutang Aktif</h3>' +
+      (recs.length ? recs.map(function (r) {
+        return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">' +
+          '<span>Nota #' + escapeHtml(r.transaction_id) + '</span><strong style="color:var(--danger);">' + formatRupiah(r.remaining) + '</strong>' +
+          '</div>';
+      }).join('') : '<div style="color:var(--text-secondary);font-size:12px;">Tidak memiliki piutang aktif.</div>') +
+      '</div>' +
+      '</div>' +
       '</div>';
   }).catch(function (err) { showToast('Gagal: ' + (err.message || err), true); });
 }
@@ -8889,12 +8889,12 @@ function drawPurnaJualIntegratedUI() {
 
     quarantineBannerHtml =
       '<div class="pj-quarantine-banner">' +
-        '<div style="font-size:24px;line-height:1;">⚠️</div>' +
-        '<div>' +
-          '<h4>PERINGATAN MUTU: ' + quarantinedBatches.length + ' Batch Dalam Status QUARANTINE</h4>' +
-          '<p>Batch berikut otomatis dikarantina karena menerima &ge; 3 komplain daya tumbuh dan <strong>DIBLOKIR</strong> dari kasir POS maupun drop konsinyasi: ' +
-          batchListStr + '</p>' +
-        '</div>' +
+      '<div style="font-size:24px;line-height:1;">⚠️</div>' +
+      '<div>' +
+      '<h4>PERINGATAN MUTU: ' + quarantinedBatches.length + ' Batch Dalam Status QUARANTINE</h4>' +
+      '<p>Batch berikut otomatis dikarantina karena menerima &ge; 3 komplain daya tumbuh dan <strong>DIBLOKIR</strong> dari kasir POS maupun drop konsinyasi: ' +
+      batchListStr + '</p>' +
+      '</div>' +
       '</div>';
   }
 
@@ -8903,29 +8903,29 @@ function drawPurnaJualIntegratedUI() {
 
   content.innerHTML =
     '<div class="page-header">' +
-      '<div>' +
-        '<h1 class="page-title">Purna Jual & Kepuasan Pelanggan</h1>' +
-        '<p class="page-subtitle">Pusat kendali klaim garansi benih, pelacakan penarikan batch, sapaan panen via WA, dan konsultasi kebun.</p>' +
-      '</div>' +
+    '<div>' +
+    '<h1 class="page-title">Purna Jual & Kepuasan Pelanggan</h1>' +
+    '<p class="page-subtitle">Pusat kendali klaim garansi benih, pelacakan penarikan batch, sapaan panen via WA, dan konsultasi kebun.</p>' +
+    '</div>' +
     '</div>' +
     quarantineBannerHtml +
     '<div class="pj-subnav">' +
-      '<button type="button" class="pj-subnav-btn ' + (sub === 'claims' ? 'active' : '') + '" onclick="switchPJSubtab(\'claims\')">' +
-        '<span>🌱 Klaim Garansi Benih</span>' +
-        '<span class="pj-subnav-badge">' + (window._pjState.claims ? window._pjState.claims.length : 0) + '</span>' +
-      '</button>' +
-      '<button type="button" class="pj-subnav-btn ' + (sub === 'recall' ? 'active' : '') + '" onclick="switchPJSubtab(\'recall\')">' +
-        '<span>🚨 Penarikan Batch (Recall)</span>' +
-        (quarantinedBatches.length > 0 ? '<span class="pj-subnav-badge pj-badge-danger">' + quarantinedBatches.length + ' Karantina</span>' : '') +
-      '</button>' +
-      '<button type="button" class="pj-subnav-btn ' + (sub === 'harvest' ? 'active' : '') + '" onclick="switchPJSubtab(\'harvest\')">' +
-        '<span>🌾 Pengingat Panen & Sapaan</span>' +
-        '<span class="pj-subnav-badge ' + (totalFollowUpActive > 0 ? 'pj-badge-danger' : '') + '">' + totalFollowUpActive + '</span>' +
-      '</button>' +
-      '<button type="button" class="pj-subnav-btn ' + (sub === 'consultation' ? 'active' : '') + '" onclick="switchPJSubtab(\'consultation\')">' +
-        '<span>📋 Buku Log Konsultasi Kebun</span>' +
-        '<span class="pj-subnav-badge">' + (window._pjState.consultations ? window._pjState.consultations.length : 0) + '</span>' +
-      '</button>' +
+    '<button type="button" class="pj-subnav-btn ' + (sub === 'claims' ? 'active' : '') + '" onclick="switchPJSubtab(\'claims\')">' +
+    '<span>🌱 Klaim Garansi Benih</span>' +
+    '<span class="pj-subnav-badge">' + (window._pjState.claims ? window._pjState.claims.length : 0) + '</span>' +
+    '</button>' +
+    '<button type="button" class="pj-subnav-btn ' + (sub === 'recall' ? 'active' : '') + '" onclick="switchPJSubtab(\'recall\')">' +
+    '<span>🚨 Penarikan Batch (Recall)</span>' +
+    (quarantinedBatches.length > 0 ? '<span class="pj-subnav-badge pj-badge-danger">' + quarantinedBatches.length + ' Karantina</span>' : '') +
+    '</button>' +
+    '<button type="button" class="pj-subnav-btn ' + (sub === 'harvest' ? 'active' : '') + '" onclick="switchPJSubtab(\'harvest\')">' +
+    '<span>🌾 Pengingat Panen & Sapaan</span>' +
+    '<span class="pj-subnav-badge ' + (totalFollowUpActive > 0 ? 'pj-badge-danger' : '') + '">' + totalFollowUpActive + '</span>' +
+    '</button>' +
+    '<button type="button" class="pj-subnav-btn ' + (sub === 'consultation' ? 'active' : '') + '" onclick="switchPJSubtab(\'consultation\')">' +
+    '<span>📋 Buku Log Konsultasi Kebun</span>' +
+    '<span class="pj-subnav-badge">' + (window._pjState.consultations ? window._pjState.consultations.length : 0) + '</span>' +
+    '</button>' +
     '</div>' +
     '<div id="pj-subtab-container">' + renderPJSubtabContent() + '</div>';
 }
@@ -8971,86 +8971,86 @@ function renderPJClaimsSubtab() {
 
   return (
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">' +
-      '<div style="font-size:13px;color:var(--text-secondary);">' +
-        'Mencatat komplain daya tumbuh benih. Batch dengan &ge; 3 komplain otomatis masuk karantina mutu.' +
-      '</div>' +
-      '<button type="button" class="btn btn-primary" onclick="openClaimModal()">+ Ajukan Klaim Garansi</button>' +
+    '<div style="font-size:13px;color:var(--text-secondary);">' +
+    'Mencatat komplain daya tumbuh benih. Batch dengan &ge; 3 komplain otomatis masuk karantina mutu.' +
+    '</div>' +
+    '<button type="button" class="btn btn-primary" onclick="openClaimModal()">+ Ajukan Klaim Garansi</button>' +
     '</div>' +
     '<div class="table-container">' +
-      '<table>' +
-        '<thead>' +
-          '<tr>' +
-            '<th>Tgl / ID</th>' +
-            '<th>Pelanggan</th>' +
-            '<th>Produk & Batch</th>' +
-            '<th>Kendala & Media Tanam</th>' +
-            '<th>Foto Semaian</th>' +
-            '<th>Resolusi</th>' +
-            '<th>Status</th>' +
-            '<th style="text-align:right;">Ubah Status</th>' +
-          '</tr>' +
-        '</thead>' +
-        '<tbody>' +
-          (list.length ? list.map(function (c) {
-            const statusCls = {
-              'Diproses': 'badge-warning',
-              'Selesai': 'badge-success',
-              'Ditolak': 'badge-danger'
-            }[c.status] || 'badge-neutral';
+    '<table>' +
+    '<thead>' +
+    '<tr>' +
+    '<th>Tgl / ID</th>' +
+    '<th>Pelanggan</th>' +
+    '<th>Produk & Batch</th>' +
+    '<th>Kendala & Media Tanam</th>' +
+    '<th>Foto Semaian</th>' +
+    '<th>Resolusi</th>' +
+    '<th>Status</th>' +
+    '<th style="text-align:right;">Ubah Status</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' +
+    (list.length ? list.map(function (c) {
+      const statusCls = {
+        'Diproses': 'badge-warning',
+        'Selesai': 'badge-success',
+        'Ditolak': 'badge-danger'
+      }[c.status] || 'badge-neutral';
 
-            let phoneLink = '';
-            if (c.customer_phone) {
-              let clean = String(c.customer_phone).replace(/[^0-9]/g, '');
-              if (clean.startsWith('0')) clean = '62' + clean.slice(1);
-              phoneLink = '<br><a href="https://wa.me/' + clean + '" target="_blank" class="text-link" style="font-size:12px;">📱 ' + escapeHtml(c.customer_phone) + '</a>';
-            }
+      let phoneLink = '';
+      if (c.customer_phone) {
+        let clean = String(c.customer_phone).replace(/[^0-9]/g, '');
+        if (clean.startsWith('0')) clean = '62' + clean.slice(1);
+        phoneLink = '<br><a href="https://wa.me/' + clean + '" target="_blank" class="text-link" style="font-size:12px;">📱 ' + escapeHtml(c.customer_phone) + '</a>';
+      }
 
-            let photoThumbnail = '<span style="color:var(--text-secondary);font-size:12px;">(Tanpa foto)</span>';
-            if (c.photo_url) {
-              photoThumbnail =
-                '<div style="width:48px;height:48px;border-radius:4px;overflow:hidden;border:1px solid var(--border);cursor:pointer;" onclick="openClaimPhotoView(\'' + escapeHtml(c.id) + '\')">' +
-                  '<img src="' + c.photo_url + '" style="width:100%;height:100%;object-fit:cover;" alt="Bukti Foto">' +
-                '</div>';
-            }
+      let photoThumbnail = '<span style="color:var(--text-secondary);font-size:12px;">(Tanpa foto)</span>';
+      if (c.photo_url) {
+        photoThumbnail =
+          '<div style="width:48px;height:48px;border-radius:4px;overflow:hidden;border:1px solid var(--border);cursor:pointer;" onclick="openClaimPhotoView(\'' + escapeHtml(c.id) + '\')">' +
+          '<img src="' + c.photo_url + '" style="width:100%;height:100%;object-fit:cover;" alt="Bukti Foto">' +
+          '</div>';
+      }
 
-            return '<tr>' +
-              '<td>' +
-                '<strong>' + escapeHtml(c.id) + '</strong><br>' +
-                '<span style="font-size:11px;color:var(--text-secondary);">' + escapeHtml(c.claim_date || '') + '</span>' +
-              '</td>' +
-              '<td>' +
-                '<strong>' + escapeHtml(c.customer_name || 'Pelanggan') + '</strong>' +
-                phoneLink +
-              '</td>' +
-              '<td>' +
-                '<strong>' + escapeHtml(c.product_name || '-') + '</strong><br>' +
-                '<span class="badge badge-neutral" style="font-size:11px;">Batch: ' + escapeHtml(c.batch_id || '-') + '</span>' +
-              '</td>' +
-              '<td style="max-width:240px;">' +
-                '<div>' + escapeHtml(c.claim_reason || '-') + '</div>' +
-                '<div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">' +
-                  (c.sowing_date ? 'Semai: ' + escapeHtml(c.sowing_date) + ' | ' : '') +
-                  (c.media_type ? 'Media: ' + escapeHtml(c.media_type) : '') +
-                '</div>' +
-              '</td>' +
-              '<td>' + photoThumbnail + '</td>' +
-              '<td>' +
-                '<div><strong>' + escapeHtml(c.resolution_type || '-') + '</strong></div>' +
-                (c.resolution_notes ? '<div style="font-size:11px;color:var(--text-secondary);">' + escapeHtml(c.resolution_notes) + '</div>' : '') +
-              '</td>' +
-              '<td><span class="badge ' + statusCls + '">' + escapeHtml(c.status) + '</span></td>' +
-              '<td style="text-align:right;">' +
-                '<select class="btn btn-secondary btn-sm" onchange="updateClaimStatusQuick(\'' + c.id + '\', this.value)">' +
-                  '<option value="">Ubah...</option>' +
-                  '<option value="Diproses"' + (c.status === 'Diproses' ? ' selected' : '') + '>Diproses</option>' +
-                  '<option value="Selesai"' + (c.status === 'Selesai' ? ' selected' : '') + '>Selesai</option>' +
-                  '<option value="Ditolak"' + (c.status === 'Ditolak' ? ' selected' : '') + '>Ditolak</option>' +
-                '</select>' +
-              '</td>' +
-            '</tr>';
-          }).join('') : '<tr><td colspan="8"><div style="text-align:center;padding:32px;color:var(--text-secondary);">Belum ada catatan klaim garansi benih.</div></td></tr>') +
-        '</tbody>' +
-      '</table>' +
+      return '<tr>' +
+        '<td>' +
+        '<strong>' + escapeHtml(c.id) + '</strong><br>' +
+        '<span style="font-size:11px;color:var(--text-secondary);">' + escapeHtml(c.claim_date || '') + '</span>' +
+        '</td>' +
+        '<td>' +
+        '<strong>' + escapeHtml(c.customer_name || 'Pelanggan') + '</strong>' +
+        phoneLink +
+        '</td>' +
+        '<td>' +
+        '<strong>' + escapeHtml(c.product_name || '-') + '</strong><br>' +
+        '<span class="badge badge-neutral" style="font-size:11px;">Batch: ' + escapeHtml(c.batch_id || '-') + '</span>' +
+        '</td>' +
+        '<td style="max-width:240px;">' +
+        '<div>' + escapeHtml(c.claim_reason || '-') + '</div>' +
+        '<div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">' +
+        (c.sowing_date ? 'Semai: ' + escapeHtml(c.sowing_date) + ' | ' : '') +
+        (c.media_type ? 'Media: ' + escapeHtml(c.media_type) : '') +
+        '</div>' +
+        '</td>' +
+        '<td>' + photoThumbnail + '</td>' +
+        '<td>' +
+        '<div><strong>' + escapeHtml(c.resolution_type || '-') + '</strong></div>' +
+        (c.resolution_notes ? '<div style="font-size:11px;color:var(--text-secondary);">' + escapeHtml(c.resolution_notes) + '</div>' : '') +
+        '</td>' +
+        '<td><span class="badge ' + statusCls + '">' + escapeHtml(c.status) + '</span></td>' +
+        '<td style="text-align:right;">' +
+        '<select class="btn btn-secondary btn-sm" onchange="updateClaimStatusQuick(\'' + c.id + '\', this.value)">' +
+        '<option value="">Ubah...</option>' +
+        '<option value="Diproses"' + (c.status === 'Diproses' ? ' selected' : '') + '>Diproses</option>' +
+        '<option value="Selesai"' + (c.status === 'Selesai' ? ' selected' : '') + '>Selesai</option>' +
+        '<option value="Ditolak"' + (c.status === 'Ditolak' ? ' selected' : '') + '>Ditolak</option>' +
+        '</select>' +
+        '</td>' +
+        '</tr>';
+    }).join('') : '<tr><td colspan="8"><div style="text-align:center;padding:32px;color:var(--text-secondary);">Belum ada catatan klaim garansi benih.</div></td></tr>') +
+    '</tbody>' +
+    '</table>' +
     '</div>'
   );
 }
@@ -9082,136 +9082,136 @@ function openClaimModal(prefillData) {
 
   const bodyHtml =
     '<div style="background:#FAF7F2;border:1.5px solid #E8DFD8;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">' +
-        '<label class="field-label" style="margin-bottom:0;font-weight:700;color:var(--text-main);display:flex;align-items:center;gap:6px;">' +
-          '<span>🔍 Cari Nota / Nama Pelanggan / No. HP / Kode Batch</span>' +
-        '</label>' +
-        '<label class="clm-mode-toggle" title="Centang jika pelanggan membawa fisik kemasan sachet tanpa membawa struk/nota">' +
-          '<input type="checkbox" id="clm-no-invoice-toggle" onchange="toggleClaimNoInvoiceMode(this.checked)">' +
-          '<span>🏷️ Klaim Tanpa Nota (Bawa Fisik Sachet)</span>' +
-        '</label>' +
-      '</div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">' +
+    '<label class="field-label" style="margin-bottom:0;font-weight:700;color:var(--text-main);display:flex;align-items:center;gap:6px;">' +
+    '<span>🔍 Cari Nota / Nama Pelanggan / No. HP / Kode Batch</span>' +
+    '</label>' +
+    '<label class="clm-mode-toggle" title="Centang jika pelanggan membawa fisik kemasan sachet tanpa membawa struk/nota">' +
+    '<input type="checkbox" id="clm-no-invoice-toggle" onchange="toggleClaimNoInvoiceMode(this.checked)">' +
+    '<span>🏷️ Klaim Tanpa Nota (Bawa Fisik Sachet)</span>' +
+    '</label>' +
+    '</div>' +
 
-      '<div id="clm-search-wrap" class="clm-search-box">' +
-        '<div class="clm-search-input-wrap">' +
-          '<input type="text" id="clm-search-tx" class="clm-search-input" placeholder="Ketik minimal 2 karakter (contoh: TRX, Budi, 0812, atau BATCH-01)..." oninput="debounceSearchClaimTx(this.value)" autocomplete="off">' +
-          '<span id="clm-search-spinner" class="clm-search-spinner" style="display:none;">⏳</span>' +
-        '</div>' +
-        '<div id="clm-tx-autocomplete-dropdown" class="clm-autocomplete-dropdown"></div>' +
-        '<div id="clm-tx-selected-banner" class="clm-selected-tx-banner" style="display:none;">' +
-          '<div style="display:flex;align-items:center;gap:8px;">' +
-            '<span style="font-size:16px;">🧾</span>' +
-            '<div>' +
-              '<div>Terhubung ke: <strong id="clm-selected-tx-id" style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);"></strong></div>' +
-              '<div id="clm-selected-tx-cust" style="font-size:11px;color:var(--text-secondary);"></div>' +
-            '</div>' +
-          '</div>' +
-          '<button type="button" class="btn btn-secondary btn-xs" onclick="clearSelectedClaimTx()" style="padding:3px 8px;font-size:11px;">Ganti / Lepas</button>' +
-        '</div>' +
-      '</div>' +
-      '<div id="clm-no-invoice-notice" style="display:none;font-size:11.5px;color:var(--accent);font-weight:600;padding:4px 0;">' +
-        '🏷️ Mode Fisik Sachet Aktif: Nomor nota opsional. Kasir cukup memilih varietas benih dan kode batch toples kemasan.' +
-      '</div>' +
-      '<input type="hidden" id="clm-tx-id" value="">' +
+    '<div id="clm-search-wrap" class="clm-search-box">' +
+    '<div class="clm-search-input-wrap">' +
+    '<input type="text" id="clm-search-tx" class="clm-search-input" placeholder="Ketik minimal 2 karakter (contoh: TRX, Budi, 0812, atau BATCH-01)..." oninput="debounceSearchClaimTx(this.value)" autocomplete="off">' +
+    '<span id="clm-search-spinner" class="clm-search-spinner" style="display:none;">⏳</span>' +
+    '</div>' +
+    '<div id="clm-tx-autocomplete-dropdown" class="clm-autocomplete-dropdown"></div>' +
+    '<div id="clm-tx-selected-banner" class="clm-selected-tx-banner" style="display:none;">' +
+    '<div style="display:flex;align-items:center;gap:8px;">' +
+    '<span style="font-size:16px;">🧾</span>' +
+    '<div>' +
+    '<div>Terhubung ke: <strong id="clm-selected-tx-id" style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);"></strong></div>' +
+    '<div id="clm-selected-tx-cust" style="font-size:11px;color:var(--text-secondary);"></div>' +
+    '</div>' +
+    '</div>' +
+    '<button type="button" class="btn btn-secondary btn-xs" onclick="clearSelectedClaimTx()" style="padding:3px 8px;font-size:11px;">Ganti / Lepas</button>' +
+    '</div>' +
+    '</div>' +
+    '<div id="clm-no-invoice-notice" style="display:none;font-size:11.5px;color:var(--accent);font-weight:600;padding:4px 0;">' +
+    '🏷️ Mode Fisik Sachet Aktif: Nomor nota opsional. Kasir cukup memilih varietas benih dan kode batch toples kemasan.' +
+    '</div>' +
+    '<input type="hidden" id="clm-tx-id" value="">' +
     '</div>' +
 
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-      '<div class="field-group">' +
-        '<label class="field-label">Nama Pelanggan <span style="color:red;">*</span></label>' +
-        '<div class="input-wrapper">' +
-          '<input type="text" id="clm-cust-name" list="clm-cust-list" placeholder="Ketik / pilih pelanggan..." oninput="onClaimCustSelect(this.value)" style="padding-left:14px;">' +
-          '<datalist id="clm-cust-list">' + custOptions + '</datalist>' +
-        '</div>' +
-      '</div>' +
-      '<div class="field-group">' +
-        '<label class="field-label">No. WhatsApp / HP</label>' +
-        '<div class="input-wrapper">' +
-          '<input type="text" id="clm-cust-phone" placeholder="08xxxxxxxxxx" style="padding-left:14px;">' +
-        '</div>' +
-      '</div>' +
+    '<div class="field-group">' +
+    '<label class="field-label">Nama Pelanggan <span style="color:red;">*</span></label>' +
+    '<div class="input-wrapper">' +
+    '<input type="text" id="clm-cust-name" list="clm-cust-list" placeholder="Ketik / pilih pelanggan..." oninput="onClaimCustSelect(this.value)" style="padding-left:14px;">' +
+    '<datalist id="clm-cust-list">' + custOptions + '</datalist>' +
+    '</div>' +
+    '</div>' +
+    '<div class="field-group">' +
+    '<label class="field-label">No. WhatsApp / HP</label>' +
+    '<div class="input-wrapper">' +
+    '<input type="text" id="clm-cust-phone" placeholder="08xxxxxxxxxx" style="padding-left:14px;">' +
+    '</div>' +
+    '</div>' +
     '</div>' +
 
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-      '<div class="field-group">' +
-        '<label class="field-label">Tanggal Semai</label>' +
-        '<div class="input-wrapper">' +
-          '<input type="date" id="clm-sowing-date" style="padding-left:14px;">' +
-        '</div>' +
-      '</div>' +
-      '<div class="field-group">' +
-        '<label class="field-label">Jenis Media Tanam</label>' +
-        '<div class="input-wrapper">' +
-          '<select id="clm-media-type" style="padding-left:14px;">' +
-            '<option value="Tanah + Kompos">Tanah Kebun + Kompos</option>' +
-            '<option value="Cocopeat">Cocopeat Murni</option>' +
-            '<option value="Rockwool">Rockwool / Spons Semai</option>' +
-            '<option value="Sekam Bakar">Sekam Bakar Campur</option>' +
-            '<option value="Tray Semai Komersial">Tray Semai Khusus</option>' +
-            '<option value="Lainnya">Lainnya</option>' +
-          '</select>' +
-        '</div>' +
-      '</div>' +
+    '<div class="field-group">' +
+    '<label class="field-label">Tanggal Semai</label>' +
+    '<div class="input-wrapper">' +
+    '<input type="date" id="clm-sowing-date" style="padding-left:14px;">' +
+    '</div>' +
+    '</div>' +
+    '<div class="field-group">' +
+    '<label class="field-label">Jenis Media Tanam</label>' +
+    '<div class="input-wrapper">' +
+    '<select id="clm-media-type" style="padding-left:14px;">' +
+    '<option value="Tanah + Kompos">Tanah Kebun + Kompos</option>' +
+    '<option value="Cocopeat">Cocopeat Murni</option>' +
+    '<option value="Rockwool">Rockwool / Spons Semai</option>' +
+    '<option value="Sekam Bakar">Sekam Bakar Campur</option>' +
+    '<option value="Tray Semai Komersial">Tray Semai Khusus</option>' +
+    '<option value="Lainnya">Lainnya</option>' +
+    '</select>' +
+    '</div>' +
+    '</div>' +
     '</div>' +
 
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-      '<div class="field-group">' +
-        '<label class="field-label">Produk Benih <span style="color:red;">*</span></label>' +
-        '<div class="input-wrapper">' +
-          '<select id="clm-product-id" onchange="onClaimProductChange(this.value)" style="padding-left:14px;">' +
-            '<option value="">-- Pilih Produk --</option>' + prodOptions +
-          '</select>' +
-        '</div>' +
-      '</div>' +
-      '<div class="field-group">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
-          '<label class="field-label" style="margin-bottom:0;">Kode Batch Bermasalah <span style="color:red;">*</span></label>' +
-          '<button type="button" id="clm-btn-toggle-manual-batch" onclick="toggleManualBatchInput()" style="background:none;border:none;color:var(--primary);font-size:11px;cursor:pointer;text-decoration:underline;padding:0;">' +
-            'Ketik Manual?' +
-          '</button>' +
-        '</div>' +
-        '<div class="input-wrapper" id="clm-batch-select-wrap">' +
-          '<select id="clm-batch-id" style="padding-left:14px;">' +
-            '<option value="">-- Pilih Batch --</option>' +
-          '</select>' +
-        '</div>' +
-        '<div class="input-wrapper" id="clm-batch-manual-wrap" style="display:none;margin-top:4px;">' +
-          '<input type="text" id="clm-batch-manual-id" placeholder="Ketik kode batch dari fisik sachet..." style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;">' +
-        '</div>' +
-      '</div>' +
+    '<div class="field-group">' +
+    '<label class="field-label">Produk Benih <span style="color:red;">*</span></label>' +
+    '<div class="input-wrapper">' +
+    '<select id="clm-product-id" onchange="onClaimProductChange(this.value)" style="padding-left:14px;">' +
+    '<option value="">-- Pilih Produk --</option>' + prodOptions +
+    '</select>' +
+    '</div>' +
+    '</div>' +
+    '<div class="field-group">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
+    '<label class="field-label" style="margin-bottom:0;">Kode Batch Bermasalah <span style="color:red;">*</span></label>' +
+    '<button type="button" id="clm-btn-toggle-manual-batch" onclick="toggleManualBatchInput()" style="background:none;border:none;color:var(--primary);font-size:11px;cursor:pointer;text-decoration:underline;padding:0;">' +
+    'Ketik Manual?' +
+    '</button>' +
+    '</div>' +
+    '<div class="input-wrapper" id="clm-batch-select-wrap">' +
+    '<select id="clm-batch-id" style="padding-left:14px;">' +
+    '<option value="">-- Pilih Batch --</option>' +
+    '</select>' +
+    '</div>' +
+    '<div class="input-wrapper" id="clm-batch-manual-wrap" style="display:none;margin-top:4px;">' +
+    '<input type="text" id="clm-batch-manual-id" placeholder="Ketik kode batch dari fisik sachet..." style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;">' +
+    '</div>' +
+    '</div>' +
     '</div>' +
 
     '<div class="field-group">' +
-      '<label class="field-label">Solusi / Resolusi Garansi</label>' +
-      '<div class="input-wrapper">' +
-        '<select id="clm-res-type" style="padding-left:14px;">' +
-          '<option value="Ganti Benih Baru Batch Lain">Ganti Benih Baru Batch Lain (Retur Stok)</option>' +
-          '<option value="Voucher Belanja">Voucher Belanja / Potongan Pembelian</option>' +
-          '<option value="Penjelasan Teknis">Penjelasan Teknis & Tips Semai Ulang</option>' +
-        '</select>' +
-      '</div>' +
+    '<label class="field-label">Solusi / Resolusi Garansi</label>' +
+    '<div class="input-wrapper">' +
+    '<select id="clm-res-type" style="padding-left:14px;">' +
+    '<option value="Ganti Benih Baru Batch Lain">Ganti Benih Baru Batch Lain (Retur Stok)</option>' +
+    '<option value="Voucher Belanja">Voucher Belanja / Potongan Pembelian</option>' +
+    '<option value="Penjelasan Teknis">Penjelasan Teknis & Tips Semai Ulang</option>' +
+    '</select>' +
+    '</div>' +
     '</div>' +
 
     '<div class="field-group">' +
-      '<label class="field-label">Rincian Kendala Daya Tumbuh <span style="color:red;">*</span></label>' +
-      '<div class="input-wrapper">' +
-        '<textarea id="clm-reason" rows="2" placeholder="Contoh: Dari 50 benih disemai pada media cocopeat, hanya 5 yang berkecambah setelah 10 hari..." style="padding:10px 14px;"></textarea>' +
-      '</div>' +
+    '<label class="field-label">Rincian Kendala Daya Tumbuh <span style="color:red;">*</span></label>' +
+    '<div class="input-wrapper">' +
+    '<textarea id="clm-reason" rows="2" placeholder="Contoh: Dari 50 benih disemai pada media cocopeat, hanya 5 yang berkecambah setelah 10 hari..." style="padding:10px 14px;"></textarea>' +
+    '</div>' +
     '</div>' +
 
     '<div class="field-group">' +
-      '<label class="field-label">Foto Bukti Semaian (Dikompres Otomatis via Kanvas)</label>' +
-      '<input type="file" id="clm-photo-file" accept="image/*" onchange="handleClaimPhotoFile(this)" style="margin-bottom:6px;">' +
-      '<input type="hidden" id="clm-photo-base64" value="">' +
-      '<div id="clm-photo-preview-wrap" class="pj-photo-preview-box">' +
-        '<span style="font-size:12px;color:var(--text-secondary);">Belum ada foto</span>' +
-      '</div>' +
+    '<label class="field-label">Foto Bukti Semaian (Dikompres Otomatis via Kanvas)</label>' +
+    '<input type="file" id="clm-photo-file" accept="image/*" onchange="handleClaimPhotoFile(this)" style="margin-bottom:6px;">' +
+    '<input type="hidden" id="clm-photo-base64" value="">' +
+    '<div id="clm-photo-preview-wrap" class="pj-photo-preview-box">' +
+    '<span style="font-size:12px;color:var(--text-secondary);">Belum ada foto</span>' +
+    '</div>' +
     '</div>' +
 
     '<div class="field-group">' +
-      '<label class="field-label">Catatan Tambahan Penanganan</label>' +
-      '<div class="input-wrapper">' +
-        '<input type="text" id="clm-notes" placeholder="Catatan internal kasir/staf..." style="padding-left:14px;">' +
-      '</div>' +
+    '<label class="field-label">Catatan Tambahan Penanganan</label>' +
+    '<div class="input-wrapper">' +
+    '<input type="text" id="clm-notes" placeholder="Catatan internal kasir/staf..." style="padding-left:14px;">' +
+    '</div>' +
     '</div>';
 
   const footerHtml =
@@ -9304,7 +9304,7 @@ function searchClaimTransactions(query) {
     if (spinner) spinner.style.display = 'none';
     const localList = (window._fakturTxList || []).filter(function (t) {
       return String(t.id || '').toLowerCase().includes(query.toLowerCase()) ||
-             String(t.customer_name || '').toLowerCase().includes(query.toLowerCase());
+        String(t.customer_name || '').toLowerCase().includes(query.toLowerCase());
     });
     renderClaimTxAutocomplete(localList, query);
   });
@@ -9335,15 +9335,15 @@ function renderClaimTxAutocomplete(results, query) {
 
     return '<div class="clm-tx-item" onclick="selectClaimTxFromSearch(' + idx + ')">' +
       '<div class="clm-tx-header">' +
-        '<span class="clm-tx-id">#' + escapeHtml(tx.id) + '</span>' +
-        '<span class="clm-tx-date">' + formatDate(tx.created_at) + '</span>' +
+      '<span class="clm-tx-id">#' + escapeHtml(tx.id) + '</span>' +
+      '<span class="clm-tx-date">' + formatDate(tx.created_at) + '</span>' +
       '</div>' +
       '<div class="clm-tx-customer">' +
-        '👤 ' + escapeHtml(tx.customer_name || 'Pelanggan Umum') +
-        (tx.customer_phone ? ' &bull; <span style="color:var(--text-secondary);font-family:\'JetBrains Mono\',monospace;">' + escapeHtml(tx.customer_phone) + '</span>' : '') +
+      '👤 ' + escapeHtml(tx.customer_name || 'Pelanggan Umum') +
+      (tx.customer_phone ? ' &bull; <span style="color:var(--text-secondary);font-family:\'JetBrains Mono\',monospace;">' + escapeHtml(tx.customer_phone) + '</span>' : '') +
       '</div>' +
       (itemPills ? ('<div class="clm-tx-items">' + itemPills + moreTag + '</div>') : '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">(Tidak ada rincian item)</div>') +
-    '</div>';
+      '</div>';
   }).join('');
 
   dropdown.innerHTML = html;
@@ -9525,7 +9525,7 @@ function onClaimProductChange(productId, defaultBatchId) {
       const statusNote = b.quality_status === 'QUARANTINE' ? ' [QUARANTINE]' : '';
       return '<option value="' + escapeHtml(b.id) + '"' + (isSelected ? ' selected' : '') + '>' +
         escapeHtml(b.id) + statusNote + ' (Sisa: ' + b.qty_remaining + ', Komplain: ' + (b.complaint_count || 0) + ')' +
-      '</option>';
+        '</option>';
     }).join('');
 
     let prefixOpt = '<option value="">-- Pilih Batch --</option>';
@@ -9634,10 +9634,10 @@ function openClaimPhotoView(claimId) {
 
   const bodyHtml =
     '<div style="text-align:center;padding:10px;">' +
-      '<img src="' + claim.photo_url + '" style="max-width:100%;max-height:70vh;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);" alt="Foto Semaian">' +
-      '<div style="margin-top:12px;font-size:13px;color:var(--text-secondary);">' +
-        'Klaim ID: <strong>' + escapeHtml(claim.id) + '</strong> | Pelanggan: <strong>' + escapeHtml(claim.customer_name) + '</strong>' +
-      '</div>' +
+    '<img src="' + claim.photo_url + '" style="max-width:100%;max-height:70vh;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);" alt="Foto Semaian">' +
+    '<div style="margin-top:12px;font-size:13px;color:var(--text-secondary);">' +
+    'Klaim ID: <strong>' + escapeHtml(claim.id) + '</strong> | Pelanggan: <strong>' + escapeHtml(claim.customer_name) + '</strong>' +
+    '</div>' +
     '</div>';
 
   openModal('Foto Bukti Semaian (' + escapeHtml(claim.id) + ')', bodyHtml, '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>');
@@ -9671,82 +9671,82 @@ function renderPJRecallSubtab() {
 
     detailHtml =
       '<div class="pj-recall-summary">' +
-        '<div class="pj-recall-item">' +
-          '<span class="pj-recall-label">Komoditas / Produk</span>' +
-          '<span class="pj-recall-val">' + escapeHtml(bInfo.product_name) + '</span>' +
-        '</div>' +
-        '<div class="pj-recall-item">' +
-          '<span class="pj-recall-label">Status Mutu Batch</span>' +
-          '<span class="pj-recall-val"><span class="badge ' + (isQuar ? 'badge-danger' : 'badge-success') + '">' + escapeHtml(bInfo.quality_status) + '</span></span>' +
-        '</div>' +
-        '<div class="pj-recall-item">' +
-          '<span class="pj-recall-label">Asal Petani / Pemasok</span>' +
-          '<span class="pj-recall-val">' + escapeHtml(bInfo.farmer_name || '-') + '</span>' +
-        '</div>' +
-        '<div class="pj-recall-item">' +
-          '<span class="pj-recall-label">Tgl Masuk / Expired</span>' +
-          '<span class="pj-recall-val">' + escapeHtml(bInfo.production_date) + ' / ' + escapeHtml(bInfo.expiry_date) + '</span>' +
-        '</div>' +
-        '<div class="pj-recall-item">' +
-          '<span class="pj-recall-label">Sisa Stok di Toko</span>' +
-          '<span class="pj-recall-val" style="color:var(--primary);">' + bInfo.qty_remaining + ' sachet</span>' +
-        '</div>' +
-        '<div class="pj-recall-item">' +
-          '<span class="pj-recall-label">Jumlah Komplain</span>' +
-          '<span class="pj-recall-val" style="color:' + (bInfo.complaint_count >= 3 ? 'red' : 'inherit') + ';">' + bInfo.complaint_count + ' tiket</span>' +
-        '</div>' +
+      '<div class="pj-recall-item">' +
+      '<span class="pj-recall-label">Komoditas / Produk</span>' +
+      '<span class="pj-recall-val">' + escapeHtml(bInfo.product_name) + '</span>' +
+      '</div>' +
+      '<div class="pj-recall-item">' +
+      '<span class="pj-recall-label">Status Mutu Batch</span>' +
+      '<span class="pj-recall-val"><span class="badge ' + (isQuar ? 'badge-danger' : 'badge-success') + '">' + escapeHtml(bInfo.quality_status) + '</span></span>' +
+      '</div>' +
+      '<div class="pj-recall-item">' +
+      '<span class="pj-recall-label">Asal Petani / Pemasok</span>' +
+      '<span class="pj-recall-val">' + escapeHtml(bInfo.farmer_name || '-') + '</span>' +
+      '</div>' +
+      '<div class="pj-recall-item">' +
+      '<span class="pj-recall-label">Tgl Masuk / Expired</span>' +
+      '<span class="pj-recall-val">' + escapeHtml(bInfo.production_date) + ' / ' + escapeHtml(bInfo.expiry_date) + '</span>' +
+      '</div>' +
+      '<div class="pj-recall-item">' +
+      '<span class="pj-recall-label">Sisa Stok di Toko</span>' +
+      '<span class="pj-recall-val" style="color:var(--primary);">' + bInfo.qty_remaining + ' sachet</span>' +
+      '</div>' +
+      '<div class="pj-recall-item">' +
+      '<span class="pj-recall-label">Jumlah Komplain</span>' +
+      '<span class="pj-recall-val" style="color:' + (bInfo.complaint_count >= 3 ? 'red' : 'inherit') + ';">' + bInfo.complaint_count + ' tiket</span>' +
+      '</div>' +
       '</div>' +
 
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
-        '<h3 style="font-size:15px;margin:0;font-weight:700;">Daftar Kontak Penerima Batch (' + (recall.contacts ? recall.contacts.length : 0) + ' Terdata)</h3>' +
-        '<div style="font-size:12px;color:var(--text-secondary);">Total Benih Terditribusi: <strong>' + (recall.total_qty_distributed || 0) + ' sachet</strong></div>' +
+      '<h3 style="font-size:15px;margin:0;font-weight:700;">Daftar Kontak Penerima Batch (' + (recall.contacts ? recall.contacts.length : 0) + ' Terdata)</h3>' +
+      '<div style="font-size:12px;color:var(--text-secondary);">Total Benih Terditribusi: <strong>' + (recall.total_qty_distributed || 0) + ' sachet</strong></div>' +
       '</div>' +
 
       '<div class="table-container">' +
-        '<table>' +
-          '<thead>' +
-            '<tr>' +
-              '<th>Kategori Sumber</th>' +
-              '<th>Ref Faktur / SJ</th>' +
-              '<th>Tanggal</th>' +
-              '<th>Nama Penerima / Cabang</th>' +
-              '<th>No. WhatsApp</th>' +
-              '<th>Jumlah</th>' +
-              '<th style="text-align:right;">Aksi Penarikan</th>' +
-            '</tr>' +
-          '</thead>' +
-          '<tbody>' +
-            ((recall.contacts && recall.contacts.length) ? recall.contacts.map(function (c) {
-              const waButton = c.wa_link
-                ? '<a href="' + c.wa_link + '" target="_blank" class="btn-wa">📲 Hubungi via WhatsApp</a>'
-                : '<span style="font-size:12px;color:var(--text-secondary);">(Tanpa No. WA)</span>';
+      '<table>' +
+      '<thead>' +
+      '<tr>' +
+      '<th>Kategori Sumber</th>' +
+      '<th>Ref Faktur / SJ</th>' +
+      '<th>Tanggal</th>' +
+      '<th>Nama Penerima / Cabang</th>' +
+      '<th>No. WhatsApp</th>' +
+      '<th>Jumlah</th>' +
+      '<th style="text-align:right;">Aksi Penarikan</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody>' +
+      ((recall.contacts && recall.contacts.length) ? recall.contacts.map(function (c) {
+        const waButton = c.wa_link
+          ? '<a href="' + c.wa_link + '" target="_blank" class="btn-wa">📲 Hubungi via WhatsApp</a>'
+          : '<span style="font-size:12px;color:var(--text-secondary);">(Tanpa No. WA)</span>';
 
-              return '<tr>' +
-                '<td><span class="badge ' + (c.category === 'Pelanggan POS' ? 'badge-info' : 'badge-warning') + '">' + escapeHtml(c.category) + '</span></td>' +
-                '<td><strong>' + escapeHtml(c.ref_no) + '</strong></td>' +
-                '<td>' + escapeHtml(c.date) + '</td>' +
-                '<td><strong>' + escapeHtml(c.name) + '</strong></td>' +
-                '<td>' + escapeHtml(c.phone || '-') + '</td>' +
-                '<td><strong>' + c.qty + '</strong> sachet</td>' +
-                '<td style="text-align:right;">' + waButton + '</td>' +
-              '</tr>';
-            }).join('') : '<tr><td colspan="7"><div style="text-align:center;padding:24px;color:var(--text-secondary);">Tidak ada catatan penjualan atau drop konsinyasi yang menggunakan batch ini.</div></td></tr>') +
-          '</tbody>' +
-        '</table>' +
+        return '<tr>' +
+          '<td><span class="badge ' + (c.category === 'Pelanggan POS' ? 'badge-info' : 'badge-warning') + '">' + escapeHtml(c.category) + '</span></td>' +
+          '<td><strong>' + escapeHtml(c.ref_no) + '</strong></td>' +
+          '<td>' + escapeHtml(c.date) + '</td>' +
+          '<td><strong>' + escapeHtml(c.name) + '</strong></td>' +
+          '<td>' + escapeHtml(c.phone || '-') + '</td>' +
+          '<td><strong>' + c.qty + '</strong> sachet</td>' +
+          '<td style="text-align:right;">' + waButton + '</td>' +
+          '</tr>';
+      }).join('') : '<tr><td colspan="7"><div style="text-align:center;padding:24px;color:var(--text-secondary);">Tidak ada catatan penjualan atau drop konsinyasi yang menggunakan batch ini.</div></td></tr>') +
+      '</tbody>' +
+      '</table>' +
       '</div>';
   }
 
   return (
     '<div class="card" style="margin-bottom:16px;">' +
-      '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
-        '<label style="font-weight:700;font-size:13px;white-space:nowrap;">Pilih Kode Batch:</label>' +
-        '<select id="recall-batch-selector" style="flex:1;min-width:260px;padding:9px 12px;" onchange="loadBatchRecallData(this.value)">' +
-          batchOptions +
-        '</select>' +
-        '<button type="button" class="btn btn-primary" onclick="loadBatchRecallData(document.getElementById(\'recall-batch-selector\').value)">' +
-          '🔍 Lacak Distribusi' +
-        '</button>' +
-      '</div>' +
+    '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">' +
+    '<label style="font-weight:700;font-size:13px;white-space:nowrap;">Pilih Kode Batch:</label>' +
+    '<select id="recall-batch-selector" style="flex:1;min-width:260px;padding:9px 12px;" onchange="loadBatchRecallData(this.value)">' +
+    batchOptions +
+    '</select>' +
+    '<button type="button" class="btn btn-primary" onclick="loadBatchRecallData(document.getElementById(\'recall-batch-selector\').value)">' +
+    '🔍 Lacak Distribusi' +
+    '</button>' +
+    '</div>' +
     '</div>' +
     detailHtml
   );
@@ -9849,22 +9849,22 @@ function renderPJHarvestSubtab() {
       if (fu.status === 'PENDING') {
         actionButtons =
           '<button type="button" class="btn-fu-wa" onclick="openWhatsAppFollowUpChat(\'' + escapeHtml(fu.id) + '\')">' +
-            '💬 Buka Chat WA' +
+          '💬 Buka Chat WA' +
           '</button>' +
           '<button type="button" class="btn-fu-done" onclick="markFollowUpDirect(\'' + escapeHtml(fu.id) + '\', \'GREETED\')" title="Tandai sudah disapa manual">' +
-            '✓ Selesai' +
+          '✓ Selesai' +
           '</button>' +
           '<button type="button" class="btn-fu-skip" onclick="markFollowUpDirect(\'' + escapeHtml(fu.id) + '\', \'SKIPPED\')" title="Lewati / jangan sapa">' +
-            'Lewati' +
+          'Lewati' +
           '</button>';
       } else {
         actionButtons =
           '<button type="button" class="btn btn-secondary btn-xs" onclick="openWhatsAppFollowUpChat(\'' + escapeHtml(fu.id) + '\', true)" style="padding:4px 8px;font-size:11px;">' +
-            '💬 Chat Ulang WA' +
+          '💬 Chat Ulang WA' +
           '</button>' +
           (fu.status === 'SKIPPED' ?
             '<button type="button" class="btn btn-secondary btn-xs" onclick="markFollowUpDirect(\'' + escapeHtml(fu.id) + '\', \'PENDING\')" style="padding:4px 8px;font-size:11px;">' +
-              '↩ Buka Kembali' +
+            '↩ Buka Kembali' +
             '</button>' : '');
       }
 
@@ -9872,45 +9872,45 @@ function renderPJHarvestSubtab() {
       if (fu.greeted_at) {
         historyMeta =
           '<div style="font-size:11.5px;color:var(--text-secondary);margin-top:4px;">' +
-            'Disapa: <strong>' + escapeHtml(fu.greeted_at) + '</strong> &bull; Oleh: <strong>' + escapeHtml(fu.greeted_by || 'Kasir') + '</strong>' +
-            (fu.notes ? ' &bull; <em>' + escapeHtml(fu.notes) + '</em>' : '') +
+          'Disapa: <strong>' + escapeHtml(fu.greeted_at) + '</strong> &bull; Oleh: <strong>' + escapeHtml(fu.greeted_by || 'Kasir') + '</strong>' +
+          (fu.notes ? ' &bull; <em>' + escapeHtml(fu.notes) + '</em>' : '') +
           '</div>';
       }
 
       return (
         '<div class="fu-card">' +
-          '<div class="fu-card-header">' +
-            '<div class="fu-card-customer">' +
-              '<div style="font-size:20px;">👤</div>' +
-              '<div>' +
-                '<div class="fu-customer-name">' + escapeHtml(fu.customer_name || 'Pelanggan') + '</div>' +
-                '<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">' +
-                  '<span class="fu-customer-phone">📱 ' + escapeHtml(fu.customer_phone || '-') + '</span>' +
-                  (fu.transaction_id ? '<span style="font-size:11px;color:var(--text-secondary);font-family:\'JetBrains Mono\',monospace;">Nota #' + escapeHtml(fu.transaction_id) + '</span>' : '') +
-                '</div>' +
-              '</div>' +
-            '</div>' +
-            '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
-              typeBadge +
-              statusBadge +
-            '</div>' +
-          '</div>' +
+        '<div class="fu-card-header">' +
+        '<div class="fu-card-customer">' +
+        '<div style="font-size:20px;">👤</div>' +
+        '<div>' +
+        '<div class="fu-customer-name">' + escapeHtml(fu.customer_name || 'Pelanggan') + '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">' +
+        '<span class="fu-customer-phone">📱 ' + escapeHtml(fu.customer_phone || '-') + '</span>' +
+        (fu.transaction_id ? '<span style="font-size:11px;color:var(--text-secondary);font-family:\'JetBrains Mono\',monospace;">Nota #' + escapeHtml(fu.transaction_id) + '</span>' : '') +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+        typeBadge +
+        statusBadge +
+        '</div>' +
+        '</div>' +
 
-          '<div class="fu-card-body">' +
-            '<div class="fu-product-box">' +
-              '🌱 <strong>Komoditas / Benih Dibeli:</strong> ' + escapeHtml(fu.products_summary || 'Produk Benih') +
-            '</div>' +
-            historyMeta +
-          '</div>' +
+        '<div class="fu-card-body">' +
+        '<div class="fu-product-box">' +
+        '🌱 <strong>Komoditas / Benih Dibeli:</strong> ' + escapeHtml(fu.products_summary || 'Produk Benih') +
+        '</div>' +
+        historyMeta +
+        '</div>' +
 
-          '<div class="fu-card-footer">' +
-            '<div class="fu-due-info">' +
-              '📅 Jatuh Tempo: <strong>' + escapeHtml(fu.trigger_date || '-') + '</strong>' +
-            '</div>' +
-            '<div class="fu-action-group">' +
-              actionButtons +
-            '</div>' +
-          '</div>' +
+        '<div class="fu-card-footer">' +
+        '<div class="fu-due-info">' +
+        '📅 Jatuh Tempo: <strong>' + escapeHtml(fu.trigger_date || '-') + '</strong>' +
+        '</div>' +
+        '<div class="fu-action-group">' +
+        actionButtons +
+        '</div>' +
+        '</div>' +
         '</div>'
       );
     }).join('') + '</div>';
@@ -9918,36 +9918,36 @@ function renderPJHarvestSubtab() {
 
   return (
     '<div class="fu-segmented-bar">' +
-      '<button type="button" class="fu-tab-pill ' + (activeTab === 'h7' ? 'active' : '') + '" onclick="switchFollowUpTab(\'h7\')">' +
-        '<span>🟢 Cek Semai (H+7)</span>' +
-        '<span class="fu-pill-badge badge-green">' + (counts.h7Count || 0) + '</span>' +
-      '</button>' +
-      '<button type="button" class="fu-tab-pill ' + (activeTab === 'harvest' ? 'active' : '') + '" onclick="switchFollowUpTab(\'harvest\')">' +
-        '<span>🌾 Siap Panen &amp; Rotasi</span>' +
-        '<span class="fu-pill-badge badge-amber">' + (counts.harvestCount || 0) + '</span>' +
-      '</button>' +
-      '<button type="button" class="fu-tab-pill ' + (activeTab === 'history' ? 'active' : '') + '" onclick="switchFollowUpTab(\'history\')">' +
-        '<span>📁 Riwayat Sudah Disapa</span>' +
-        '<span class="fu-pill-badge">' + (counts.historyCount || 0) + '</span>' +
-      '</button>' +
+    '<button type="button" class="fu-tab-pill ' + (activeTab === 'h7' ? 'active' : '') + '" onclick="switchFollowUpTab(\'h7\')">' +
+    '<span>🟢 Cek Semai (H+7)</span>' +
+    '<span class="fu-pill-badge badge-green">' + (counts.h7Count || 0) + '</span>' +
+    '</button>' +
+    '<button type="button" class="fu-tab-pill ' + (activeTab === 'harvest' ? 'active' : '') + '" onclick="switchFollowUpTab(\'harvest\')">' +
+    '<span>🌾 Siap Panen &amp; Rotasi</span>' +
+    '<span class="fu-pill-badge badge-amber">' + (counts.harvestCount || 0) + '</span>' +
+    '</button>' +
+    '<button type="button" class="fu-tab-pill ' + (activeTab === 'history' ? 'active' : '') + '" onclick="switchFollowUpTab(\'history\')">' +
+    '<span>📁 Riwayat Sudah Disapa</span>' +
+    '<span class="fu-pill-badge">' + (counts.historyCount || 0) + '</span>' +
+    '</button>' +
     '</div>' +
 
     '<div style="margin-bottom:14px;background:#F8FAFC;border:1px solid #E2E8F0;border-left:4px solid var(--primary);border-radius:var(--radius-md);padding:10px 16px;color:var(--text-main);font-size:12.5px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">' +
-      '<div>' +
-        '<strong>' + tabTitle + ':</strong> ' + tabDesc +
-      '</div>' +
-      '<button type="button" class="btn btn-secondary btn-xs" onclick="reloadFollowUpData()" title="Sinkronkan ulang data sapaan pelanggan dari spreadsheet">' +
-        '🔄 Refresh Antrean' +
-      '</button>' +
+    '<div>' +
+    '<strong>' + tabTitle + ':</strong> ' + tabDesc +
+    '</div>' +
+    '<button type="button" class="btn btn-secondary btn-xs" onclick="reloadFollowUpData()" title="Sinkronkan ulang data sapaan pelanggan dari spreadsheet">' +
+    '🔄 Refresh Antrean' +
+    '</button>' +
     '</div>' +
 
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">' +
-      '<div style="display:flex;align-items:center;gap:8px;flex:1;max-width:420px;">' +
-        '<input type="text" id="fu-search-input" value="' + escapeHtml(window._pjState.followUpSearch || '') + '" placeholder="Cari nama pelanggan, no. WA, atau nama benih..." oninput="filterFollowUpList(this.value)" style="padding:8px 12px;font-size:13px;width:100%;">' +
-      '</div>' +
-      '<div style="font-size:12px;color:var(--text-secondary);">' +
-        'Menampilkan <strong>' + filteredList.length + '</strong> antrean' +
-      '</div>' +
+    '<div style="display:flex;align-items:center;gap:8px;flex:1;max-width:420px;">' +
+    '<input type="text" id="fu-search-input" value="' + escapeHtml(window._pjState.followUpSearch || '') + '" placeholder="Cari nama pelanggan, no. WA, atau nama benih..." oninput="filterFollowUpList(this.value)" style="padding:8px 12px;font-size:13px;width:100%;">' +
+    '</div>' +
+    '<div style="font-size:12px;color:var(--text-secondary);">' +
+    'Menampilkan <strong>' + filteredList.length + '</strong> antrean' +
+    '</div>' +
     '</div>' +
 
     listContentHtml
@@ -10066,24 +10066,24 @@ function showFollowUpAntiSpamModal(fu) {
 
   const bodyHtml =
     '<div style="text-align:left;line-height:1.5;">' +
-      '<div style="background:#FAF7F2;border:1px solid #E8DFD8;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">' +
-        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Tujuan Sapaan (' + typeLabel + '):</div>' +
-        '<div style="font-size:15px;font-weight:700;color:var(--text-main);">' + escapeHtml(fu.customer_name) + ' (' + escapeHtml(fu.customer_phone) + ')</div>' +
-        '<div style="font-size:12px;color:var(--primary);margin-top:2px;">🌱 ' + escapeHtml(fu.products_summary) + '</div>' +
-      '</div>' +
-      '<p style="font-size:13px;color:var(--text-main);margin-bottom:8px;">' +
-        'Tautan WhatsApp telah dibuka di jendela baru. <strong>Apakah pesan WhatsApp sudah berhasil dikirim?</strong>' +
-      '</p>' +
-      '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:0;">' +
-        '💡 <em>Catatan Anti-Spam:</em> Memilih "Ya, Berhasil" akan memindahkan pelanggan ini langsung ke tab <strong>Riwayat Sudah Disapa</strong> sehingga kasir lain tidak mengirim sapaan ganda.' +
-      '</p>' +
+    '<div style="background:#FAF7F2;border:1px solid #E8DFD8;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">' +
+    '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Tujuan Sapaan (' + typeLabel + '):</div>' +
+    '<div style="font-size:15px;font-weight:700;color:var(--text-main);">' + escapeHtml(fu.customer_name) + ' (' + escapeHtml(fu.customer_phone) + ')</div>' +
+    '<div style="font-size:12px;color:var(--primary);margin-top:2px;">🌱 ' + escapeHtml(fu.products_summary) + '</div>' +
+    '</div>' +
+    '<p style="font-size:13px;color:var(--text-main);margin-bottom:8px;">' +
+    'Tautan WhatsApp telah dibuka di jendela baru. <strong>Apakah pesan WhatsApp sudah berhasil dikirim?</strong>' +
+    '</p>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:0;">' +
+    '💡 <em>Catatan Anti-Spam:</em> Memilih "Ya, Berhasil" akan memindahkan pelanggan ini langsung ke tab <strong>Riwayat Sudah Disapa</strong> sehingga kasir lain tidak mengirim sapaan ganda.' +
+    '</p>' +
     '</div>';
 
   const footerHtml =
     '<button type="button" class="btn btn-secondary" onclick="closeModal()">Belum / Nanti Saja</button>' +
     '<button type="button" class="btn btn-secondary" onclick="markFollowUpDirect(\'' + escapeHtml(fu.id) + '\', \'SKIPPED\');closeModal();" style="color:var(--danger);border-color:var(--danger);">Lewati Sapaan</button>' +
     '<button type="button" class="btn btn-primary" onclick="markFollowUpDirect(\'' + escapeHtml(fu.id) + '\', \'GREETED\');closeModal();">' +
-      '✅ Ya, Berhasil' +
+    '✅ Ya, Berhasil' +
     '</button>';
 
   openModal('Konfirmasi Sapaan WhatsApp', bodyHtml, footerHtml);
@@ -10158,40 +10158,40 @@ function renderPJConsultationSubtab() {
 
   return (
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">' +
-      '<div style="display:flex;align-items:center;gap:8px;flex:1;max-width:380px;">' +
-        '<input type="text" id="consult-search-input" value="' + escapeHtml(window._pjState.searchConsult || '') + '" placeholder="Cari nomor HP / nama / topik..." oninput="filterConsultationLogs(this.value)" style="padding:8px 12px;font-size:13px;width:100%;">' +
-      '</div>' +
-      '<button type="button" class="btn btn-primary" onclick="openConsultationModal()">+ Catat Konsultasi Baru</button>' +
+    '<div style="display:flex;align-items:center;gap:8px;flex:1;max-width:380px;">' +
+    '<input type="text" id="consult-search-input" value="' + escapeHtml(window._pjState.searchConsult || '') + '" placeholder="Cari nomor HP / nama / topik..." oninput="filterConsultationLogs(this.value)" style="padding:8px 12px;font-size:13px;width:100%;">' +
+    '</div>' +
+    '<button type="button" class="btn btn-primary" onclick="openConsultationModal()">+ Catat Konsultasi Baru</button>' +
     '</div>' +
 
     '<div class="pj-consultation-list">' +
-      (filteredLogs.length ? filteredLogs.map(function (log) {
-        let cleanPhone = String(log.customer_phone || '').replace(/[^0-9]/g, '');
-        if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
-        const waFollowupLink = cleanPhone ? 'https://wa.me/' + cleanPhone : '';
+    (filteredLogs.length ? filteredLogs.map(function (log) {
+      let cleanPhone = String(log.customer_phone || '').replace(/[^0-9]/g, '');
+      if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
+      const waFollowupLink = cleanPhone ? 'https://wa.me/' + cleanPhone : '';
 
-        return (
-          '<div class="pj-consultation-card">' +
-            '<div class="pj-consultation-header">' +
-              '<div>' +
-                '<strong style="font-size:15px;color:var(--text-main);">' + escapeHtml(log.customer_name || 'Pelanggan') + '</strong> ' +
-                (log.customer_phone ? '<span style="font-size:12px;color:var(--text-secondary);">(' + escapeHtml(log.customer_phone) + ')</span>' : '') +
-                (waFollowupLink ? ' <a href="' + waFollowupLink + '" target="_blank" style="font-size:12px;text-decoration:none;">📱 Chat WA</a>' : '') +
-                '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">' +
-                  '📅 ' + escapeHtml(log.log_date || '') + ' &bull; Ditangani oleh: <strong>' + escapeHtml(log.handled_by || 'Staf') + '</strong>' +
-                '</div>' +
-              '</div>' +
-              '<span class="pj-topic-tag">' + escapeHtml(log.crop_topic || 'Umum') + '</span>' +
-            '</div>' +
-            '<div class="pj-problem-box">' +
-              '<strong>⚠️ Kendala / Masalah:</strong> ' + escapeHtml(log.problem_details || '-') +
-            '</div>' +
-            '<div class="pj-solution-box">' +
-              '<strong>💡 Solusi & Rekomendasi:</strong> ' + escapeHtml(log.solution_given || '-') +
-            '</div>' +
-          '</div>'
-        );
-      }).join('') : '<div class="card"><div class="empty-state">Belum ada rekam catatan konsultasi kebun.</div></div>') +
+      return (
+        '<div class="pj-consultation-card">' +
+        '<div class="pj-consultation-header">' +
+        '<div>' +
+        '<strong style="font-size:15px;color:var(--text-main);">' + escapeHtml(log.customer_name || 'Pelanggan') + '</strong> ' +
+        (log.customer_phone ? '<span style="font-size:12px;color:var(--text-secondary);">(' + escapeHtml(log.customer_phone) + ')</span>' : '') +
+        (waFollowupLink ? ' <a href="' + waFollowupLink + '" target="_blank" style="font-size:12px;text-decoration:none;">📱 Chat WA</a>' : '') +
+        '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">' +
+        '📅 ' + escapeHtml(log.log_date || '') + ' &bull; Ditangani oleh: <strong>' + escapeHtml(log.handled_by || 'Staf') + '</strong>' +
+        '</div>' +
+        '</div>' +
+        '<span class="pj-topic-tag">' + escapeHtml(log.crop_topic || 'Umum') + '</span>' +
+        '</div>' +
+        '<div class="pj-problem-box">' +
+        '<strong>⚠️ Kendala / Masalah:</strong> ' + escapeHtml(log.problem_details || '-') +
+        '</div>' +
+        '<div class="pj-solution-box">' +
+        '<strong>💡 Solusi & Rekomendasi:</strong> ' + escapeHtml(log.solution_given || '-') +
+        '</div>' +
+        '</div>'
+      );
+    }).join('') : '<div class="card"><div class="empty-state">Belum ada rekam catatan konsultasi kebun.</div></div>') +
     '</div>'
   );
 }
@@ -10211,57 +10211,57 @@ function openConsultationModal() {
 
   const bodyHtml =
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-      '<div class="field-group">' +
-        '<label class="field-label">Nama Pelanggan <span style="color:red;">*</span></label>' +
-        '<div class="input-wrapper">' +
-          '<input type="text" id="csl-cust-name" list="csl-cust-list" placeholder="Pilih / ketik nama..." oninput="onConsultCustSelect(this.value)" style="padding-left:14px;">' +
-          '<datalist id="csl-cust-list">' + custOptions + '</datalist>' +
-        '</div>' +
-      '</div>' +
-      '<div class="field-group">' +
-        '<label class="field-label">No. WhatsApp / HP</label>' +
-        '<div class="input-wrapper">' +
-          '<input type="text" id="csl-cust-phone" placeholder="08xxxxxxxxxx" style="padding-left:14px;">' +
-        '</div>' +
-      '</div>' +
+    '<div class="field-group">' +
+    '<label class="field-label">Nama Pelanggan <span style="color:red;">*</span></label>' +
+    '<div class="input-wrapper">' +
+    '<input type="text" id="csl-cust-name" list="csl-cust-list" placeholder="Pilih / ketik nama..." oninput="onConsultCustSelect(this.value)" style="padding-left:14px;">' +
+    '<datalist id="csl-cust-list">' + custOptions + '</datalist>' +
+    '</div>' +
+    '</div>' +
+    '<div class="field-group">' +
+    '<label class="field-label">No. WhatsApp / HP</label>' +
+    '<div class="input-wrapper">' +
+    '<input type="text" id="csl-cust-phone" placeholder="08xxxxxxxxxx" style="padding-left:14px;">' +
+    '</div>' +
+    '</div>' +
     '</div>' +
 
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-      '<div class="field-group">' +
-        '<label class="field-label">Topik Tanaman / Komoditas <span style="color:red;">*</span></label>' +
-        '<div class="input-wrapper">' +
-          '<select id="csl-topic" style="padding-left:14px;">' +
-            '<option value="Cabai & Solanaceae">Cabai, Tomat & Terung</option>' +
-            '<option value="Sayuran Daun">Sayuran Daun (Bayam, Kangkung, Sawi)</option>' +
-            '<option value="Kacang & Polong">Kacang & Polong-polongan</option>' +
-            '<option value="Herbal & Obat">Tanaman Herbal & Obat</option>' +
-            '<option value="Pembenihan & Semai">Daya Tumbuh & Teknik Semai</option>' +
-            '<option value="Media & Pupuk Kompos">Media Tanam & Pemupukan Organik</option>' +
-            '<option value="Hama & Penyakit">Pengendalian Hama & Jamur</option>' +
-            '<option value="Lainnya">Lainnya</option>' +
-          '</select>' +
-        '</div>' +
-      '</div>' +
-      '<div class="field-group">' +
-        '<label class="field-label">Petugas / Staf yang Menangani</label>' +
-        '<div class="input-wrapper">' +
-          '<input type="text" id="csl-handled-by" value="' + escapeHtml(currentUser) + '" style="padding-left:14px;">' +
-        '</div>' +
-      '</div>' +
+    '<div class="field-group">' +
+    '<label class="field-label">Topik Tanaman / Komoditas <span style="color:red;">*</span></label>' +
+    '<div class="input-wrapper">' +
+    '<select id="csl-topic" style="padding-left:14px;">' +
+    '<option value="Cabai & Solanaceae">Cabai, Tomat & Terung</option>' +
+    '<option value="Sayuran Daun">Sayuran Daun (Bayam, Kangkung, Sawi)</option>' +
+    '<option value="Kacang & Polong">Kacang & Polong-polongan</option>' +
+    '<option value="Herbal & Obat">Tanaman Herbal & Obat</option>' +
+    '<option value="Pembenihan & Semai">Daya Tumbuh & Teknik Semai</option>' +
+    '<option value="Media & Pupuk Kompos">Media Tanam & Pemupukan Organik</option>' +
+    '<option value="Hama & Penyakit">Pengendalian Hama & Jamur</option>' +
+    '<option value="Lainnya">Lainnya</option>' +
+    '</select>' +
+    '</div>' +
+    '</div>' +
+    '<div class="field-group">' +
+    '<label class="field-label">Petugas / Staf yang Menangani</label>' +
+    '<div class="input-wrapper">' +
+    '<input type="text" id="csl-handled-by" value="' + escapeHtml(currentUser) + '" style="padding-left:14px;">' +
+    '</div>' +
+    '</div>' +
     '</div>' +
 
     '<div class="field-group">' +
-      '<label class="field-label">Rincian Kendala Kebun Pelanggan <span style="color:red;">*</span></label>' +
-      '<div class="input-wrapper">' +
-        '<textarea id="csl-problem" rows="3" placeholder="Contoh: Daun cabai menguning keriting, media tanam terasa padat dan asam..." style="padding:10px 14px;"></textarea>' +
-      '</div>' +
+    '<label class="field-label">Rincian Kendala Kebun Pelanggan <span style="color:red;">*</span></label>' +
+    '<div class="input-wrapper">' +
+    '<textarea id="csl-problem" rows="3" placeholder="Contoh: Daun cabai menguning keriting, media tanam terasa padat dan asam..." style="padding:10px 14px;"></textarea>' +
+    '</div>' +
     '</div>' +
 
     '<div class="field-group">' +
-      '<label class="field-label">Solusi & Rekomendasi Teknis yang Diberikan <span style="color:red;">*</span></label>' +
-      '<div class="input-wrapper">' +
-        '<textarea id="csl-solution" rows="3" placeholder="Contoh: Berikan kapur dolomit untuk menetralkan pH, semprotkan pestisida nabati neem oil sore hari..." style="padding:10px 14px;"></textarea>' +
-      '</div>' +
+    '<label class="field-label">Solusi & Rekomendasi Teknis yang Diberikan <span style="color:red;">*</span></label>' +
+    '<div class="input-wrapper">' +
+    '<textarea id="csl-solution" rows="3" placeholder="Contoh: Berikan kapur dolomit untuk menetralkan pH, semprotkan pestisida nabati neem oil sore hari..." style="padding:10px 14px;"></textarea>' +
+    '</div>' +
     '</div>';
 
   const footerHtml =
@@ -10377,10 +10377,10 @@ function renderLaporan(forceRefresh) {
 
   content.innerHTML =
     '<div class="card">' +
-      '<div class="empty-state">' +
-        '<span class="sync-spinner" style="display:inline-block;width:28px;height:28px;margin-bottom:10px;"></span><br>' +
-        'Mengkalkulasi pembukuan omzet, HPP FIFO riil, dan penyerapan petani...' +
-      '</div>' +
+    '<div class="empty-state">' +
+    '<span class="sync-spinner" style="display:inline-block;width:28px;height:28px;margin-bottom:10px;"></span><br>' +
+    'Mengkalkulasi pembukuan omzet, HPP FIFO riil, dan penyerapan petani...' +
+    '</div>' +
     '</div>';
 
   loadReport(CURRENT_REPORT_FILTER);
@@ -10510,29 +10510,29 @@ function renderReportTransactionRows(list) {
       '<td style="font-size:12px;white-space:nowrap;color:var(--text-secondary);">' + formatReportDateTime(tx.created_at) + '</td>' +
       '<td><span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;font-weight:700;color:var(--primary);">' + escapeHtml(tx.id) + '</span></td>' +
       '<td>' +
-        '<div style="font-weight:600;color:var(--text-main);font-size:12.5px;">' + escapeHtml(tx.customer_name || 'Umum') + '</div>' +
+      '<div style="font-weight:600;color:var(--text-main);font-size:12.5px;">' + escapeHtml(tx.customer_name || 'Umum') + '</div>' +
       '</td>' +
       '<td><span class="badge badge-neutral" style="font-size:11px;display:inline-flex;align-items:center;gap:3px;">' + srcIcon + ' ' + escapeHtml(tx.source || 'Offline') + '</span></td>' +
       '<td>' +
-        '<div style="max-width:260px;font-size:12px;line-height:1.4;color:var(--text-main);" title="' + escapeHtml(tx.items_summary) + '">' +
-          '<span>' + escapeHtml(tx.items_summary) + '</span>' +
-          '<span class="badge badge-neutral" style="font-size:10px;margin-left:4px;white-space:nowrap;font-weight:700;">' + (tx.item_count || 0) + ' pcs</span>' +
-        '</div>' +
+      '<div style="max-width:260px;font-size:12px;line-height:1.4;color:var(--text-main);" title="' + escapeHtml(tx.items_summary) + '">' +
+      '<span>' + escapeHtml(tx.items_summary) + '</span>' +
+      '<span class="badge badge-neutral" style="font-size:10px;margin-left:4px;white-space:nowrap;font-weight:700;">' + (tx.item_count || 0) + ' pcs</span>' +
+      '</div>' +
       '</td>' +
       '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:600;color:var(--text-main);font-size:12.5px;">' + formatRupiah(tx.subtotal) + '</td>' +
       '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;color:var(--text-secondary);font-size:12.5px;">' + formatRupiah(tx.cogs) + '</td>' +
       '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--success);font-size:13px;background:rgba(46,125,50,0.06);padding:4px 8px;border-radius:var(--radius-xs);">' + formatRupiah(tx.gross_profit) + '</td>' +
       '<td style="text-align:center;"><span class="badge ' + marginClass + '" style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;">' + marginPct + '%</span></td>' +
       '<td style="text-align:center;">' +
-        '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">' +
-          '<span style="font-size:11.5px;font-weight:600;color:var(--text-secondary);">' + escapeHtml(tx.payment_method || 'Tunai') + '</span>' +
-          statusBadge +
-        '</div>' +
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">' +
+      '<span style="font-size:11.5px;font-weight:600;color:var(--text-secondary);">' + escapeHtml(tx.payment_method || 'Tunai') + '</span>' +
+      statusBadge +
+      '</div>' +
       '</td>' +
       '<td style="text-align:center;">' +
-        '<button type="button" class="btn btn-secondary btn-xs" onclick="openTransactionDetailModal(\'' + escapeHtml(tx.id) + '\')" title="Lihat rincian nota & struk #' + escapeHtml(tx.id) + '" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 8px;font-weight:600;">🔍 Rincian</button>' +
+      '<button type="button" class="btn btn-secondary btn-xs" onclick="openTransactionDetailModal(\'' + escapeHtml(tx.id) + '\')" title="Lihat rincian nota & struk #' + escapeHtml(tx.id) + '" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 8px;font-weight:600;">🔍 Rincian</button>' +
       '</td>' +
-    '</tr>';
+      '</tr>';
   }).join('');
 }
 
@@ -10554,14 +10554,14 @@ function updateReportTableFooter(list) {
 
   tfoot.innerHTML =
     '<tr>' +
-      '<th colspan="6" style="text-align:right;padding:12px;font-weight:700;color:var(--text-main);background:var(--surface-muted);font-size:12.5px;">' +
-        'TOTAL AKUMULASI (' + list.length + ' Nota):' +
-      '</th>' +
-      '<th style="text-align:right;padding:12px;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--text-main);background:var(--surface-muted);font-size:13px;">' + formatRupiah(subtotalAcc) + '</th>' +
-      '<th style="text-align:right;padding:12px;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--text-secondary);background:var(--surface-muted);font-size:13px;">' + formatRupiah(cogsAcc) + '</th>' +
-      '<th style="text-align:right;padding:12px;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--success);background:rgba(46,125,50,0.12);font-size:13.5px;">' + formatRupiah(grossAcc) + '</th>' +
-      '<th style="text-align:center;padding:12px;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--primary);background:var(--surface-muted);font-size:12.5px;">' + marginAccPct + '%</th>' +
-      '<th colspan="2" style="background:var(--surface-muted);"></th>' +
+    '<th colspan="6" style="text-align:right;padding:12px;font-weight:700;color:var(--text-main);background:var(--surface-muted);font-size:12.5px;">' +
+    'TOTAL AKUMULASI (' + list.length + ' Nota):' +
+    '</th>' +
+    '<th style="text-align:right;padding:12px;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--text-main);background:var(--surface-muted);font-size:13px;">' + formatRupiah(subtotalAcc) + '</th>' +
+    '<th style="text-align:right;padding:12px;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--text-secondary);background:var(--surface-muted);font-size:13px;">' + formatRupiah(cogsAcc) + '</th>' +
+    '<th style="text-align:right;padding:12px;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--success);background:rgba(46,125,50,0.12);font-size:13.5px;">' + formatRupiah(grossAcc) + '</th>' +
+    '<th style="text-align:center;padding:12px;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--primary);background:var(--surface-muted);font-size:12.5px;">' + marginAccPct + '%</th>' +
+    '<th colspan="2" style="background:var(--surface-muted);"></th>' +
     '</tr>';
 }
 
@@ -10599,41 +10599,41 @@ function drawLaporanUI(data, filter) {
   if (data.channelsBreakdown && data.channelsBreakdown.length > 0) {
     channelsHtml =
       '<div class="table-container" style="overflow-x:auto;">' +
-        '<table style="width:100%;">' +
-          '<thead>' +
-            '<tr>' +
-              '<th style="width:30%;">Kanal Penjualan</th>' +
-              '<th style="width:15%;text-align:right;">Jumlah Nota</th>' +
-              '<th style="width:25%;text-align:right;">Total Omzet (Rp)</th>' +
-              '<th style="width:30%;">Kontribusi Omzet</th>' +
-            '</tr>' +
-          '</thead>' +
-          '<tbody>' +
-            data.channelsBreakdown.map(function (ch) {
-              let icon = '🏪';
-              const sLower = ch.source.toLowerCase();
-              if (sLower.includes('whatsapp') || sLower.includes('wa')) icon = '💬';
-              else if (sLower.includes('shopee')) icon = '🟠';
-              else if (sLower.includes('tokopedia')) icon = '🟢';
-              else if (sLower.includes('tiktok')) icon = '🎵';
-              else if (sLower.includes('konsinyasi')) icon = '📦';
+      '<table style="width:100%;">' +
+      '<thead>' +
+      '<tr>' +
+      '<th style="width:30%;">Kanal Penjualan</th>' +
+      '<th style="width:15%;text-align:right;">Jumlah Nota</th>' +
+      '<th style="width:25%;text-align:right;">Total Omzet (Rp)</th>' +
+      '<th style="width:30%;">Kontribusi Omzet</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody>' +
+      data.channelsBreakdown.map(function (ch) {
+        let icon = '🏪';
+        const sLower = ch.source.toLowerCase();
+        if (sLower.includes('whatsapp') || sLower.includes('wa')) icon = '💬';
+        else if (sLower.includes('shopee')) icon = '🟠';
+        else if (sLower.includes('tokopedia')) icon = '🟢';
+        else if (sLower.includes('tiktok')) icon = '🎵';
+        else if (sLower.includes('konsinyasi')) icon = '📦';
 
-              return '<tr>' +
-                '<td><strong>' + icon + ' ' + escapeHtml(ch.source) + '</strong></td>' +
-                '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;">' + ch.transactions_count + '</td>' +
-                '<td style="text-align:right;font-weight:700;font-family:\'JetBrains Mono\',monospace;color:var(--text-main);">' + formatRupiah(ch.total_revenue) + '</td>' +
-                '<td>' +
-                  '<div style="display:flex;align-items:center;gap:8px;">' +
-                    '<div class="channel-progress-bar" style="flex:1;">' +
-                      '<div class="channel-progress-fill" style="width:' + ch.percentage + '%;"></div>' +
-                    '</div>' +
-                    '<span style="font-size:11.5px;font-weight:700;color:var(--primary);min-width:34px;text-align:right;">' + ch.percentage + '%</span>' +
-                  '</div>' +
-                '</td>' +
-              '</tr>';
-            }).join('') +
-          '</tbody>' +
-        '</table>' +
+        return '<tr>' +
+          '<td><strong>' + icon + ' ' + escapeHtml(ch.source) + '</strong></td>' +
+          '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;">' + ch.transactions_count + '</td>' +
+          '<td style="text-align:right;font-weight:700;font-family:\'JetBrains Mono\',monospace;color:var(--text-main);">' + formatRupiah(ch.total_revenue) + '</td>' +
+          '<td>' +
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<div class="channel-progress-bar" style="flex:1;">' +
+          '<div class="channel-progress-fill" style="width:' + ch.percentage + '%;"></div>' +
+          '</div>' +
+          '<span style="font-size:11.5px;font-weight:700;color:var(--primary);min-width:34px;text-align:right;">' + ch.percentage + '%</span>' +
+          '</div>' +
+          '</td>' +
+          '</tr>';
+      }).join('') +
+      '</tbody>' +
+      '</table>' +
       '</div>';
   } else {
     channelsHtml = '<div style="text-align:center;padding:32px;color:var(--text-secondary);">Belum ada data penjualan pada rentang periode ini.</div>';
@@ -10644,40 +10644,40 @@ function drawLaporanUI(data, filter) {
   if (data.outletsBreakdown && data.outletsBreakdown.length > 0) {
     outletsHtml =
       '<div class="table-container" style="overflow-x:auto;">' +
-        '<table style="width:100%;">' +
-          '<thead>' +
-            '<tr>' +
-              '<th style="width:25%;">Outlet Mitra / Cabang</th>' +
-              '<th style="width:12%;">Tier Harga</th>' +
-              '<th style="width:12%;text-align:right;">Pcs Terjual</th>' +
-              '<th style="width:12%;text-align:right;">Pcs Retur</th>' +
-              '<th style="width:18%;text-align:center;">Pcs Selisih / Hilang</th>' +
-              '<th style="width:21%;text-align:right;">Total Tagihan (Rp)</th>' +
-            '</tr>' +
-          '</thead>' +
-          '<tbody>' +
-            data.outletsBreakdown.map(function (o) {
-              const missingBadge = (o.total_missing_chargeable > 0 || o.total_missing_writeoff > 0)
-                ? '<div style="font-size:11px;display:flex;flex-direction:column;gap:2px;align-items:center;">' +
-                    (o.total_missing_chargeable > 0 ? '<span class="badge badge-warning" style="font-size:10px;">Ditagih: ' + o.total_missing_chargeable + ' pcs</span>' : '') +
-                    (o.total_missing_writeoff > 0 ? '<span class="badge badge-neutral" style="font-size:10px;">Write-off: ' + o.total_missing_writeoff + ' pcs</span>' : '') +
-                  '</div>'
-                : '<span style="color:var(--text-muted);font-size:11px;">0 pcs</span>';
+      '<table style="width:100%;">' +
+      '<thead>' +
+      '<tr>' +
+      '<th style="width:25%;">Outlet Mitra / Cabang</th>' +
+      '<th style="width:12%;">Tier Harga</th>' +
+      '<th style="width:12%;text-align:right;">Pcs Terjual</th>' +
+      '<th style="width:12%;text-align:right;">Pcs Retur</th>' +
+      '<th style="width:18%;text-align:center;">Pcs Selisih / Hilang</th>' +
+      '<th style="width:21%;text-align:right;">Total Tagihan (Rp)</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody>' +
+      data.outletsBreakdown.map(function (o) {
+        const missingBadge = (o.total_missing_chargeable > 0 || o.total_missing_writeoff > 0)
+          ? '<div style="font-size:11px;display:flex;flex-direction:column;gap:2px;align-items:center;">' +
+          (o.total_missing_chargeable > 0 ? '<span class="badge badge-warning" style="font-size:10px;">Ditagih: ' + o.total_missing_chargeable + ' pcs</span>' : '') +
+          (o.total_missing_writeoff > 0 ? '<span class="badge badge-neutral" style="font-size:10px;">Write-off: ' + o.total_missing_writeoff + ' pcs</span>' : '') +
+          '</div>'
+          : '<span style="color:var(--text-muted);font-size:11px;">0 pcs</span>';
 
-              return '<tr>' +
-                '<td>' +
-                  '<strong>' + escapeHtml(o.outlet_name) + '</strong>' +
-                  '<div style="font-size:10.5px;color:var(--text-muted);">' + o.audits_count + ' kali audit opname</div>' +
-                '</td>' +
-                '<td><span class="badge badge-neutral">' + escapeHtml(o.price_tier) + '</span></td>' +
-                '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:600;color:var(--success);">' + o.total_sold + ' pcs</td>' +
-                '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;color:var(--warning);">' + o.total_returned + ' pcs</td>' +
-                '<td style="text-align:center;">' + missingBadge + '</td>' +
-                '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--accent);font-size:13.5px;">' + formatRupiah(o.total_invoice) + '</td>' +
-              '</tr>';
-            }).join('') +
-          '</tbody>' +
-        '</table>' +
+        return '<tr>' +
+          '<td>' +
+          '<strong>' + escapeHtml(o.outlet_name) + '</strong>' +
+          '<div style="font-size:10.5px;color:var(--text-muted);">' + o.audits_count + ' kali audit opname</div>' +
+          '</td>' +
+          '<td><span class="badge badge-neutral">' + escapeHtml(o.price_tier) + '</span></td>' +
+          '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:600;color:var(--success);">' + o.total_sold + ' pcs</td>' +
+          '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;color:var(--warning);">' + o.total_returned + ' pcs</td>' +
+          '<td style="text-align:center;">' + missingBadge + '</td>' +
+          '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--accent);font-size:13.5px;">' + formatRupiah(o.total_invoice) + '</td>' +
+          '</tr>';
+      }).join('') +
+      '</tbody>' +
+      '</table>' +
       '</div>';
   } else {
     outletsHtml = '<div style="text-align:center;padding:32px;color:var(--text-secondary);">Tidak ada audit konsinyasi atau penjualan outlet mitra dalam periode ini.</div>';
@@ -10688,33 +10688,33 @@ function drawLaporanUI(data, filter) {
   if (data.farmersAbsorption && data.farmersAbsorption.length > 0) {
     farmersHtml =
       '<div class="table-container" style="overflow-x:auto;">' +
-        '<table style="width:100%;">' +
-          '<thead>' +
-            '<tr>' +
-              '<th style="width:25%;">Nama Petani / Kelompok Tani</th>' +
-              '<th style="width:30%;">Varietas Benih Diserap</th>' +
-              '<th style="width:15%;text-align:right;">Benih Curah</th>' +
-              '<th style="width:15%;text-align:right;">Kemasan Sachet</th>' +
-              '<th style="width:15%;text-align:right;">Dana Pengadaan (Rp)</th>' +
-            '</tr>' +
-          '</thead>' +
-          '<tbody>' +
-            data.farmersAbsorption.map(function (f) {
-              const rawStr = f.total_raw_gram >= 1000
-                ? (f.total_raw_gram / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' kg'
-                : (f.total_raw_gram > 0 ? f.total_raw_gram.toLocaleString('id-ID') + ' gr' : '-');
-              const sachetStr = f.total_sachet_pcs > 0 ? f.total_sachet_pcs.toLocaleString('id-ID') + ' pcs' : '-';
+      '<table style="width:100%;">' +
+      '<thead>' +
+      '<tr>' +
+      '<th style="width:25%;">Nama Petani / Kelompok Tani</th>' +
+      '<th style="width:30%;">Varietas Benih Diserap</th>' +
+      '<th style="width:15%;text-align:right;">Benih Curah</th>' +
+      '<th style="width:15%;text-align:right;">Kemasan Sachet</th>' +
+      '<th style="width:15%;text-align:right;">Dana Pengadaan (Rp)</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody>' +
+      data.farmersAbsorption.map(function (f) {
+        const rawStr = f.total_raw_gram >= 1000
+          ? (f.total_raw_gram / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' kg'
+          : (f.total_raw_gram > 0 ? f.total_raw_gram.toLocaleString('id-ID') + ' gr' : '-');
+        const sachetStr = f.total_sachet_pcs > 0 ? f.total_sachet_pcs.toLocaleString('id-ID') + ' pcs' : '-';
 
-              return '<tr>' +
-                '<td><strong>🌾 ' + escapeHtml(f.farmer_name) + '</strong></td>' +
-                '<td style="font-size:12px;color:var(--text-secondary);">' + escapeHtml(f.varieties) + '</td>' +
-                '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:600;">' + rawStr + '</td>' +
-                '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:600;">' + sachetStr + '</td>' +
-                '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--primary);font-size:13.5px;">' + formatRupiah(f.total_payout) + '</td>' +
-              '</tr>';
-            }).join('') +
-          '</tbody>' +
-        '</table>' +
+        return '<tr>' +
+          '<td><strong>🌾 ' + escapeHtml(f.farmer_name) + '</strong></td>' +
+          '<td style="font-size:12px;color:var(--text-secondary);">' + escapeHtml(f.varieties) + '</td>' +
+          '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:600;">' + rawStr + '</td>' +
+          '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:600;">' + sachetStr + '</td>' +
+          '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--primary);font-size:13.5px;">' + formatRupiah(f.total_payout) + '</td>' +
+          '</tr>';
+      }).join('') +
+      '</tbody>' +
+      '</table>' +
       '</div>';
   } else {
     farmersHtml = '<div style="text-align:center;padding:32px;color:var(--text-secondary);">Belum ada data pengadaan benih dari petani penangkar pada periode ini.</div>';
@@ -10725,37 +10725,37 @@ function drawLaporanUI(data, filter) {
   if (data.criticalBatches && data.criticalBatches.length > 0) {
     stocksHtml =
       '<div class="table-container" style="overflow-x:auto;">' +
-        '<table style="width:100%;">' +
-          '<thead>' +
-            '<tr>' +
-              '<th style="width:28%;">Varietas Produk Benih</th>' +
-              '<th style="width:22%;">No. Batch / Lot</th>' +
-              '<th style="width:12%;text-align:right;">Sisa Stok</th>' +
-              '<th style="width:12%;">Tgl Expired</th>' +
-              '<th style="width:12%;text-align:center;">Status Hari</th>' +
-              '<th style="width:14%;text-align:right;">Valuasi Risiko (Rp)</th>' +
-            '</tr>' +
-          '</thead>' +
-          '<tbody>' +
-            data.criticalBatches.map(function (b) {
-              const isDanger = b.days_left <= 30;
-              const badgeClass = isDanger ? 'report-badge-risk-danger' : 'report-badge-risk-warning';
-              const daysStr = b.days_left <= 0 ? 'Kedaluwarsa' : b.days_left + ' hari lagi';
+      '<table style="width:100%;">' +
+      '<thead>' +
+      '<tr>' +
+      '<th style="width:28%;">Varietas Produk Benih</th>' +
+      '<th style="width:22%;">No. Batch / Lot</th>' +
+      '<th style="width:12%;text-align:right;">Sisa Stok</th>' +
+      '<th style="width:12%;">Tgl Expired</th>' +
+      '<th style="width:12%;text-align:center;">Status Hari</th>' +
+      '<th style="width:14%;text-align:right;">Valuasi Risiko (Rp)</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody>' +
+      data.criticalBatches.map(function (b) {
+        const isDanger = b.days_left <= 30;
+        const badgeClass = isDanger ? 'report-badge-risk-danger' : 'report-badge-risk-warning';
+        const daysStr = b.days_left <= 0 ? 'Kedaluwarsa' : b.days_left + ' hari lagi';
 
-              return '<tr>' +
-                '<td>' +
-                  '<strong>' + escapeHtml(b.product_name) + '</strong>' +
-                  (b.variant ? ' <span class="badge badge-neutral" style="font-size:10px;">' + escapeHtml(b.variant) + '</span>' : '') +
-                '</td>' +
-                '<td><code style="font-size:11px;">' + escapeHtml(b.batch_id) + '</code></td>' +
-                '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:600;">' + b.qty_remaining + ' ' + escapeHtml(b.unit) + '</td>' +
-                '<td style="font-size:12px;">' + escapeHtml(b.expiry_date) + '</td>' +
-                '<td style="text-align:center;"><span class="' + badgeClass + '">' + daysStr + '</span></td>' +
-                '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--danger);">' + formatRupiah(b.risk_valuation) + '</td>' +
-              '</tr>';
-            }).join('') +
-          '</tbody>' +
-        '</table>' +
+        return '<tr>' +
+          '<td>' +
+          '<strong>' + escapeHtml(b.product_name) + '</strong>' +
+          (b.variant ? ' <span class="badge badge-neutral" style="font-size:10px;">' + escapeHtml(b.variant) + '</span>' : '') +
+          '</td>' +
+          '<td><code style="font-size:11px;">' + escapeHtml(b.batch_id) + '</code></td>' +
+          '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:600;">' + b.qty_remaining + ' ' + escapeHtml(b.unit) + '</td>' +
+          '<td style="font-size:12px;">' + escapeHtml(b.expiry_date) + '</td>' +
+          '<td style="text-align:center;"><span class="' + badgeClass + '">' + daysStr + '</span></td>' +
+          '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--danger);">' + formatRupiah(b.risk_valuation) + '</td>' +
+          '</tr>';
+      }).join('') +
+      '</tbody>' +
+      '</table>' +
       '</div>';
   } else {
     stocksHtml = '<div style="text-align:center;padding:32px;color:var(--success);">✅ Semua persediaan benih berada dalam kondisi aman (> 60 hari dari kedaluwarsa).</div>';
@@ -10764,165 +10764,165 @@ function drawLaporanUI(data, filter) {
   // 5. Render Tab Rotasi Produk (Top 5 Laris vs 5 Slow-Moving)
   let productsHtml =
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">' +
-      '<div>' +
-        '<h4 style="margin-bottom:10px;color:var(--primary);display:flex;align-items:center;gap:6px;">' +
-          '<span>🚀 5 Produk Paling Laris</span>' +
-          '<span style="font-size:11px;font-weight:normal;color:var(--text-secondary);">(Rotasi Cepat)</span>' +
-        '</h4>' +
-        '<div class="table-container">' +
-          '<table style="width:100%;">' +
-            '<thead><tr><th>Nama Produk</th><th style="text-align:right;">Terjual</th></tr></thead>' +
-            '<tbody>' +
-              ((data.topProducts && data.topProducts.length > 0) ? data.topProducts.map(function (p) {
-                return '<tr>' +
-                  '<td><strong>' + escapeHtml(p.product_name) + '</strong></td>' +
-                  '<td style="text-align:right;"><span class="badge badge-success" style="font-family:\'JetBrains Mono\',monospace;">' + p.qty + ' ' + escapeHtml(p.unit) + '</span></td>' +
-                '</tr>';
-              }).join('') : '<tr><td colspan="2"><div style="text-align:center;padding:16px;color:var(--text-secondary);">Belum ada data transaksi.</div></td></tr>') +
-            '</tbody>' +
-          '</table>' +
-        '</div>' +
-      '</div>' +
-      '<div>' +
-        '<h4 style="margin-bottom:10px;color:var(--warning);display:flex;align-items:center;gap:6px;">' +
-          '<span>🐢 5 Produk Slow-Moving</span>' +
-          '<span style="font-size:11px;font-weight:normal;color:var(--text-secondary);">(Perputaran Lambat)</span>' +
-        '</h4>' +
-        '<div class="table-container">' +
-          '<table style="width:100%;">' +
-            '<thead><tr><th>Nama Produk</th><th style="text-align:right;">Terjual</th></tr></thead>' +
-            '<tbody>' +
-              ((data.slowProducts && data.slowProducts.length > 0) ? data.slowProducts.map(function (p) {
-                return '<tr>' +
-                  '<td><strong>' + escapeHtml(p.product_name) + '</strong></td>' +
-                  '<td style="text-align:right;"><span class="badge badge-neutral" style="font-family:\'JetBrains Mono\',monospace;">' + p.qty + ' ' + escapeHtml(p.unit) + '</span></td>' +
-                '</tr>';
-              }).join('') : '<tr><td colspan="2"><div style="text-align:center;padding:16px;color:var(--text-secondary);">Belum ada data produk.</div></td></tr>') +
-            '</tbody>' +
-          '</table>' +
-        '</div>' +
-      '</div>' +
+    '<div>' +
+    '<h4 style="margin-bottom:10px;color:var(--primary);display:flex;align-items:center;gap:6px;">' +
+    '<span>🚀 5 Produk Paling Laris</span>' +
+    '<span style="font-size:11px;font-weight:normal;color:var(--text-secondary);">(Rotasi Cepat)</span>' +
+    '</h4>' +
+    '<div class="table-container">' +
+    '<table style="width:100%;">' +
+    '<thead><tr><th>Nama Produk</th><th style="text-align:right;">Terjual</th></tr></thead>' +
+    '<tbody>' +
+    ((data.topProducts && data.topProducts.length > 0) ? data.topProducts.map(function (p) {
+      return '<tr>' +
+        '<td><strong>' + escapeHtml(p.product_name) + '</strong></td>' +
+        '<td style="text-align:right;"><span class="badge badge-success" style="font-family:\'JetBrains Mono\',monospace;">' + p.qty + ' ' + escapeHtml(p.unit) + '</span></td>' +
+        '</tr>';
+    }).join('') : '<tr><td colspan="2"><div style="text-align:center;padding:16px;color:var(--text-secondary);">Belum ada data transaksi.</div></td></tr>') +
+    '</tbody>' +
+    '</table>' +
+    '</div>' +
+    '</div>' +
+    '<div>' +
+    '<h4 style="margin-bottom:10px;color:var(--warning);display:flex;align-items:center;gap:6px;">' +
+    '<span>🐢 5 Produk Slow-Moving</span>' +
+    '<span style="font-size:11px;font-weight:normal;color:var(--text-secondary);">(Perputaran Lambat)</span>' +
+    '</h4>' +
+    '<div class="table-container">' +
+    '<table style="width:100%;">' +
+    '<thead><tr><th>Nama Produk</th><th style="text-align:right;">Terjual</th></tr></thead>' +
+    '<tbody>' +
+    ((data.slowProducts && data.slowProducts.length > 0) ? data.slowProducts.map(function (p) {
+      return '<tr>' +
+        '<td><strong>' + escapeHtml(p.product_name) + '</strong></td>' +
+        '<td style="text-align:right;"><span class="badge badge-neutral" style="font-family:\'JetBrains Mono\',monospace;">' + p.qty + ' ' + escapeHtml(p.unit) + '</span></td>' +
+        '</tr>';
+    }).join('') : '<tr><td colspan="2"><div style="text-align:center;padding:16px;color:var(--text-secondary);">Belum ada data produk.</div></td></tr>') +
+    '</tbody>' +
+    '</table>' +
+    '</div>' +
+    '</div>' +
     '</div>';
 
   content.innerHTML =
     '<div class="page-header">' +
-      '<div>' +
-        '<h1 class="page-title">Laporan Penjualan &amp; Margin FIFO</h1>' +
-        '<p class="page-subtitle">Analisis menyeluruh kinerja keuangan, margin FIFO asli per transaksi belanja, penyerapan petani, dan rotasi stok.</p>' +
-      '</div>' +
+    '<div>' +
+    '<h1 class="page-title">Laporan Penjualan &amp; Margin FIFO</h1>' +
+    '<p class="page-subtitle">Analisis menyeluruh kinerja keuangan, margin FIFO asli per transaksi belanja, penyerapan petani, dan rotasi stok.</p>' +
+    '</div>' +
     '</div>' +
 
     '<!-- SWITCHER TAB UTAMA MODUL LAPORAN -->' +
     '<div class="laporan-nav-switcher">' +
-      '<button type="button" class="laporan-nav-tab-btn active" onclick="switchLaporanMainView(\'sales\')">📈 Laporan Penjualan &amp; Margin FIFO</button>' +
-      '<button type="button" class="laporan-nav-tab-btn" onclick="switchLaporanMainView(\'stock_valuation\')">📦 Posisi Stok &amp; Valuasi Aset</button>' +
+    '<button type="button" class="laporan-nav-tab-btn active" onclick="switchLaporanMainView(\'sales\')">📈 Laporan Penjualan &amp; Margin FIFO</button>' +
+    '<button type="button" class="laporan-nav-tab-btn" onclick="switchLaporanMainView(\'stock_valuation\')">📦 Posisi Stok &amp; Valuasi Aset</button>' +
     '</div>' +
 
     '<!-- BAR FILTER PERIODE FLEKSIBEL & TOMBOL AKSI -->' +
     '<div class="report-filter-bar">' +
-      '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
-        '<span style="font-size:11.5px;font-weight:700;color:var(--text-secondary);margin-right:4px;">PILIHAN CEPAT:</span>' +
-        '<button type="button" class="btn ' + (period === 'today' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="loadReport(\'today\')">Hari Ini</button>' +
-        '<button type="button" class="btn ' + (period === 'week' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="loadReport(\'week\')">7 Hari</button>' +
-        '<button type="button" class="btn ' + (period === 'month' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="loadReport(\'month\')">Bulan Ini</button>' +
-      '</div>' +
-      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
-        '<div style="display:flex;align-items:center;gap:4px;">' +
-          '<label style="font-size:11.5px;font-weight:600;color:var(--text-secondary);">Dari Tgl:</label>' +
-          '<input type="date" id="report-start-date" value="' + escapeHtml(startDateVal) + '" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;">' +
-        '</div>' +
-        '<div style="display:flex;align-items:center;gap:4px;">' +
-          '<label style="font-size:11.5px;font-weight:600;color:var(--text-secondary);">Sampai Tgl:</label>' +
-          '<input type="date" id="report-end-date" value="' + escapeHtml(endDateVal) + '" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;">' +
-        '</div>' +
-        '<button type="button" class="btn btn-primary btn-sm" onclick="applyCustomReportFilter()">🔎 Terapkan</button>' +
-      '</div>' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">' +
-        '<button type="button" class="btn btn-secondary btn-sm" onclick="exportReportToCSV()" title="Unduh data laporan lengkap ke format CSV / Excel">📥 Ekspor CSV/Excel</button>' +
-        '<button type="button" class="btn btn-secondary btn-sm" onclick="printReportSummary()" title="Cetak rekapitulasi laporan resmi (format A4/PDF)">🖨️ Cetak Rekap Laporan (A4/PDF)</button>' +
-      '</div>' +
+    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+    '<span style="font-size:11.5px;font-weight:700;color:var(--text-secondary);margin-right:4px;">PILIHAN CEPAT:</span>' +
+    '<button type="button" class="btn ' + (period === 'today' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="loadReport(\'today\')">Hari Ini</button>' +
+    '<button type="button" class="btn ' + (period === 'week' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="loadReport(\'week\')">7 Hari</button>' +
+    '<button type="button" class="btn ' + (period === 'month' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="loadReport(\'month\')">Bulan Ini</button>' +
+    '</div>' +
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+    '<div style="display:flex;align-items:center;gap:4px;">' +
+    '<label style="font-size:11.5px;font-weight:600;color:var(--text-secondary);">Dari Tgl:</label>' +
+    '<input type="date" id="report-start-date" value="' + escapeHtml(startDateVal) + '" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;">' +
+    '</div>' +
+    '<div style="display:flex;align-items:center;gap:4px;">' +
+    '<label style="font-size:11.5px;font-weight:600;color:var(--text-secondary);">Sampai Tgl:</label>' +
+    '<input type="date" id="report-end-date" value="' + escapeHtml(endDateVal) + '" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;">' +
+    '</div>' +
+    '<button type="button" class="btn btn-primary btn-sm" onclick="applyCustomReportFilter()">🔎 Terapkan</button>' +
+    '</div>' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="exportReportToCSV()" title="Unduh data laporan lengkap ke format CSV / Excel">📥 Ekspor CSV/Excel</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="printReportSummary()" title="Cetak rekapitulasi laporan resmi (format A4/PDF)">🖨️ Cetak Rekap Laporan (A4/PDF)</button>' +
+    '</div>' +
     '</div>' +
 
     '<!-- 4 KARTU RINGKASAN METRIK -->' +
     '<div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:18px;">' +
-      '<div class="stat-card">' +
-        '<div class="stat-header"><span class="stat-label">Total Omzet</span><span class="stat-icon">&#128176;</span></div>' +
-        '<div class="stat-value" style="font-size:22px;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(summary.totalSubtotal) + '</div>' +
-        '<div class="stat-meta">Kotor: ' + formatRupiah(summary.totalRevenue) + ' • ' + summary.totalTransactions + ' Nota</div>' +
-      '</div>' +
-      '<div class="stat-card">' +
-        '<div class="stat-header"><span class="stat-label">Total Laba Kotor FIFO</span><span class="stat-icon">&#128200;</span></div>' +
-        '<div class="stat-value" style="font-size:22px;color:var(--success);font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(summary.grossMargin) + '</div>' +
-        '<div class="stat-meta">Modal HPP: ' + formatRupiah(summary.totalCost) + '</div>' +
-      '</div>' +
-      '<div class="stat-card">' +
-        '<div class="stat-header"><span class="stat-label">Rata-rata Margin (%)</span><span class="stat-icon">&#128202;</span></div>' +
-        '<div class="stat-value" style="font-size:22px;color:var(--primary);font-family:\'JetBrains Mono\',monospace;">' + summary.grossMarginPct + '%</div>' +
-        '<div class="stat-meta">Margin Laba Terhadap Omzet</div>' +
-      '</div>' +
-      '<div class="stat-card">' +
-        '<div class="stat-header"><span class="stat-label">Volume Nota</span><span class="stat-icon">&#129534;</span></div>' +
-        '<div class="stat-value" style="font-size:22px;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">' + summary.totalTransactions + '</div>' +
-        '<div class="stat-meta">Nota Belanja Selesai Diproses</div>' +
-      '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Total Omzet</span><span class="stat-icon">&#128176;</span></div>' +
+    '<div class="stat-value" style="font-size:22px;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(summary.totalSubtotal) + '</div>' +
+    '<div class="stat-meta">Kotor: ' + formatRupiah(summary.totalRevenue) + ' • ' + summary.totalTransactions + ' Nota</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Total Laba Kotor FIFO</span><span class="stat-icon">&#128200;</span></div>' +
+    '<div class="stat-value" style="font-size:22px;color:var(--success);font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(summary.grossMargin) + '</div>' +
+    '<div class="stat-meta">Modal HPP: ' + formatRupiah(summary.totalCost) + '</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Rata-rata Margin (%)</span><span class="stat-icon">&#128202;</span></div>' +
+    '<div class="stat-value" style="font-size:22px;color:var(--primary);font-family:\'JetBrains Mono\',monospace;">' + summary.grossMarginPct + '%</div>' +
+    '<div class="stat-meta">Margin Laba Terhadap Omzet</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Volume Nota</span><span class="stat-icon">&#129534;</span></div>' +
+    '<div class="stat-value" style="font-size:22px;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">' + summary.totalTransactions + '</div>' +
+    '<div class="stat-meta">Nota Belanja Selesai Diproses</div>' +
+    '</div>' +
     '</div>' +
 
     '<!-- TABEL RINCIAN PENJUALAN KOMPREHENSIF PER TRANSAKSI BELANJA -->' +
     '<div class="card" style="margin-bottom:20px;padding:16px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">' +
-        '<div>' +
-          '<h3 style="font-size:16px;font-weight:700;color:var(--primary);display:flex;align-items:center;gap:6px;margin:0 0 2px 0;">' +
-            '<span>🧾</span> Tabel Rincian Penjualan &amp; Margin FIFO' +
-          '</h3>' +
-          '<div style="font-size:11.5px;color:var(--text-secondary);">Daftar transaksi belanja per nota lengkap dengan HPP modal riil dan margin keuntungan.</div>' +
-        '</div>' +
-        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
-          '<input type="text" id="report-tx-search" placeholder="🔍 Cari nomor nota, pelanggan, atau metode bayar..." oninput="filterReportTransactions(this.value)" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:340px;background:#FFF;">' +
-          '<span id="report-tx-count" class="badge badge-neutral" style="font-size:11.5px;font-weight:600;padding:6px 10px;">Menampilkan ' + transactionsList.length + ' transaksi</span>' +
-        '</div>' +
-      '</div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">' +
+    '<div>' +
+    '<h3 style="font-size:16px;font-weight:700;color:var(--primary);display:flex;align-items:center;gap:6px;margin:0 0 2px 0;">' +
+    '<span>🧾</span> Tabel Rincian Penjualan &amp; Margin FIFO' +
+    '</h3>' +
+    '<div style="font-size:11.5px;color:var(--text-secondary);">Daftar transaksi belanja per nota lengkap dengan HPP modal riil dan margin keuntungan.</div>' +
+    '</div>' +
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+    '<input type="text" id="report-tx-search" placeholder="🔍 Cari nomor nota, pelanggan, atau metode bayar..." oninput="filterReportTransactions(this.value)" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:340px;background:#FFF;">' +
+    '<span id="report-tx-count" class="badge badge-neutral" style="font-size:11.5px;font-weight:600;padding:6px 10px;">Menampilkan ' + transactionsList.length + ' transaksi</span>' +
+    '</div>' +
+    '</div>' +
 
-      '<div class="table-container" style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--border);">' +
-        '<table id="report-transactions-table" style="width:100%;min-width:1150px;border-collapse:collapse;">' +
-          '<thead>' +
-            '<tr>' +
-              '<th style="width:40px;text-align:center;">No</th>' +
-              '<th style="width:130px;">Waktu Transaksi</th>' +
-              '<th style="width:125px;">No. Nota</th>' +
-              '<th style="width:140px;">Pelanggan</th>' +
-              '<th style="width:100px;">Kanal</th>' +
-              '<th style="width:230px;">Item Terjual</th>' +
-              '<th style="width:125px;text-align:right;">Omzet (Subtotal)</th>' +
-              '<th style="width:115px;text-align:right;">HPP FIFO</th>' +
-              '<th style="width:125px;text-align:right;">Laba Kotor</th>' +
-              '<th style="width:75px;text-align:center;">Margin</th>' +
-              '<th style="width:110px;text-align:center;">Metode Bayar</th>' +
-              '<th style="width:85px;text-align:center;">Aksi</th>' +
-            '</tr>' +
-          '</thead>' +
-          '<tbody id="report-tx-tbody"></tbody>' +
-          '<tfoot id="report-tx-tfoot"></tfoot>' +
-        '</table>' +
-      '</div>' +
+    '<div class="table-container" style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--border);">' +
+    '<table id="report-transactions-table" style="width:100%;min-width:1150px;border-collapse:collapse;">' +
+    '<thead>' +
+    '<tr>' +
+    '<th style="width:40px;text-align:center;">No</th>' +
+    '<th style="width:130px;">Waktu Transaksi</th>' +
+    '<th style="width:125px;">No. Nota</th>' +
+    '<th style="width:140px;">Pelanggan</th>' +
+    '<th style="width:100px;">Kanal</th>' +
+    '<th style="width:230px;">Item Terjual</th>' +
+    '<th style="width:125px;text-align:right;">Omzet (Subtotal)</th>' +
+    '<th style="width:115px;text-align:right;">HPP FIFO</th>' +
+    '<th style="width:125px;text-align:right;">Laba Kotor</th>' +
+    '<th style="width:75px;text-align:center;">Margin</th>' +
+    '<th style="width:110px;text-align:center;">Metode Bayar</th>' +
+    '<th style="width:85px;text-align:center;">Aksi</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody id="report-tx-tbody"></tbody>' +
+    '<tfoot id="report-tx-tfoot"></tfoot>' +
+    '</table>' +
+    '</div>' +
     '</div>' +
 
     '<!-- TABULASI ANALITIK PENDUKUNG (KANAL, KONSINYASI, SERAPAN PETANI, STOK EXPIRED) -->' +
     '<div class="card" style="padding:0;overflow:hidden;">' +
-      '<div style="display:flex;border-bottom:1px solid var(--border);background:var(--surface-muted);padding:0 12px;overflow-x:auto;gap:4px;">' +
-        '<button type="button" class="report-tab-btn ' + (CURRENT_REPORT_SUBTAB === 'channels' ? 'active' : '') + '" data-tab="channels" onclick="switchReportSubtab(\'channels\')">🏢 Kontribusi Kanal</button>' +
-        '<button type="button" class="report-tab-btn ' + (CURRENT_REPORT_SUBTAB === 'outlets' ? 'active' : '') + '" data-tab="outlets" onclick="switchReportSubtab(\'outlets\')">🏪 Konsinyasi &amp; Cabang</button>' +
-        '<button type="button" class="report-tab-btn ' + (CURRENT_REPORT_SUBTAB === 'farmers' ? 'active' : '') + '" data-tab="farmers" onclick="switchReportSubtab(\'farmers\')">🌾 Penyerapan Petani Penangkar</button>' +
-        '<button type="button" class="report-tab-btn ' + (CURRENT_REPORT_SUBTAB === 'stocks' ? 'active' : '') + '" data-tab="stocks" onclick="switchReportSubtab(\'stocks\')">⚠️ Kesehatan Stok &amp; Expired</button>' +
-        '<button type="button" class="report-tab-btn ' + (CURRENT_REPORT_SUBTAB === 'products' ? 'active' : '') + '" data-tab="products" onclick="switchReportSubtab(\'products\')">📊 Rotasi Produk (Top &amp; Slow)</button>' +
-        '<button type="button" class="report-tab-btn" data-tab="stock_valuation" onclick="switchLaporanMainView(\'stock_valuation\')">📦 Posisi Stok &amp; Valuasi</button>' +
-      '</div>' +
-      '<div style="padding:16px;">' +
-        '<div class="report-subtab-pane" id="report-subtab-channels" style="display:' + (CURRENT_REPORT_SUBTAB === 'channels' ? 'block' : 'none') + ';">' + channelsHtml + '</div>' +
-        '<div class="report-subtab-pane" id="report-subtab-outlets" style="display:' + (CURRENT_REPORT_SUBTAB === 'outlets' ? 'block' : 'none') + ';">' + outletsHtml + '</div>' +
-        '<div class="report-subtab-pane" id="report-subtab-farmers" style="display:' + (CURRENT_REPORT_SUBTAB === 'farmers' ? 'block' : 'none') + ';">' + farmersHtml + '</div>' +
-        '<div class="report-subtab-pane" id="report-subtab-stocks" style="display:' + (CURRENT_REPORT_SUBTAB === 'stocks' ? 'block' : 'none') + ';">' + stocksHtml + '</div>' +
-        '<div class="report-subtab-pane" id="report-subtab-products" style="display:' + (CURRENT_REPORT_SUBTAB === 'products' ? 'block' : 'none') + ';">' + productsHtml + '</div>' +
-      '</div>' +
+    '<div style="display:flex;border-bottom:1px solid var(--border);background:var(--surface-muted);padding:0 12px;overflow-x:auto;gap:4px;">' +
+    '<button type="button" class="report-tab-btn ' + (CURRENT_REPORT_SUBTAB === 'channels' ? 'active' : '') + '" data-tab="channels" onclick="switchReportSubtab(\'channels\')">🏢 Kontribusi Kanal</button>' +
+    '<button type="button" class="report-tab-btn ' + (CURRENT_REPORT_SUBTAB === 'outlets' ? 'active' : '') + '" data-tab="outlets" onclick="switchReportSubtab(\'outlets\')">🏪 Konsinyasi &amp; Cabang</button>' +
+    '<button type="button" class="report-tab-btn ' + (CURRENT_REPORT_SUBTAB === 'farmers' ? 'active' : '') + '" data-tab="farmers" onclick="switchReportSubtab(\'farmers\')">🌾 Penyerapan Petani Penangkar</button>' +
+    '<button type="button" class="report-tab-btn ' + (CURRENT_REPORT_SUBTAB === 'stocks' ? 'active' : '') + '" data-tab="stocks" onclick="switchReportSubtab(\'stocks\')">⚠️ Kesehatan Stok &amp; Expired</button>' +
+    '<button type="button" class="report-tab-btn ' + (CURRENT_REPORT_SUBTAB === 'products' ? 'active' : '') + '" data-tab="products" onclick="switchReportSubtab(\'products\')">📊 Rotasi Produk (Top &amp; Slow)</button>' +
+    '<button type="button" class="report-tab-btn" data-tab="stock_valuation" onclick="switchLaporanMainView(\'stock_valuation\')">📦 Posisi Stok &amp; Valuasi</button>' +
+    '</div>' +
+    '<div style="padding:16px;">' +
+    '<div class="report-subtab-pane" id="report-subtab-channels" style="display:' + (CURRENT_REPORT_SUBTAB === 'channels' ? 'block' : 'none') + ';">' + channelsHtml + '</div>' +
+    '<div class="report-subtab-pane" id="report-subtab-outlets" style="display:' + (CURRENT_REPORT_SUBTAB === 'outlets' ? 'block' : 'none') + ';">' + outletsHtml + '</div>' +
+    '<div class="report-subtab-pane" id="report-subtab-farmers" style="display:' + (CURRENT_REPORT_SUBTAB === 'farmers' ? 'block' : 'none') + ';">' + farmersHtml + '</div>' +
+    '<div class="report-subtab-pane" id="report-subtab-stocks" style="display:' + (CURRENT_REPORT_SUBTAB === 'stocks' ? 'block' : 'none') + ';">' + stocksHtml + '</div>' +
+    '<div class="report-subtab-pane" id="report-subtab-products" style="display:' + (CURRENT_REPORT_SUBTAB === 'products' ? 'block' : 'none') + ';">' + productsHtml + '</div>' +
+    '</div>' +
     '</div>';
 
   // Render baris transaksi belanja & footer tabel
@@ -11097,7 +11097,7 @@ function printReportSummary() {
       '<td style="border:1px solid #ddd;padding:4px;text-align:right;font-family:monospace;font-weight:bold;color:#1e7e34;">' + formatRupiah(t.gross_profit) + '</td>' +
       '<td style="border:1px solid #ddd;padding:4px;text-align:center;font-family:monospace;">' + (t.margin_pct || 0) + '%</td>' +
       '<td style="border:1px solid #ddd;padding:4px;text-align:center;">' + escapeHtml(t.payment_method || 'Tunai') + ' (' + (t.status === 'paid' ? 'LUNAS' : 'TEMPO') + ')</td>' +
-    '</tr>';
+      '</tr>';
   }).join('');
 
   const reportLogoHeaderHtml = storeLogo
@@ -11106,82 +11106,82 @@ function printReportSummary() {
 
   printContainer.innerHTML =
     '<div style="text-align:center;border-bottom:2.5px solid #333;padding-bottom:12px;margin-bottom:16px;">' +
-      reportLogoHeaderHtml +
-      '<div style="font-size:11px;color:#555;margin-top:2px;">' + escapeHtml(storeAddress) + (storePhone ? ' • Telp/WA: ' + escapeHtml(storePhone) : '') + '</div>' +
-      '<div style="margin-top:8px;display:inline-block;padding:4px 14px;background:#f0f0f0;border-radius:4px;font-size:12px;font-weight:700;">' +
-        'REKAPITULASI LAPORAN PENJUALAN &amp; MARGIN FIFO' +
-      '</div>' +
-      '<div style="font-size:11px;color:#666;margin-top:4px;">' +
-        'Periode Transaksi: <strong>' + escapeHtml(d.startDate) + '</strong> s/d <strong>' + escapeHtml(d.endDate) + '</strong> &bull; Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) +
-      '</div>' +
+    reportLogoHeaderHtml +
+    '<div style="font-size:11px;color:#555;margin-top:2px;">' + escapeHtml(storeAddress) + (storePhone ? ' • Telp/WA: ' + escapeHtml(storePhone) : '') + '</div>' +
+    '<div style="margin-top:8px;display:inline-block;padding:4px 14px;background:#f0f0f0;border-radius:4px;font-size:12px;font-weight:700;">' +
+    'REKAPITULASI LAPORAN PENJUALAN &amp; MARGIN FIFO' +
+    '</div>' +
+    '<div style="font-size:11px;color:#666;margin-top:4px;">' +
+    'Periode Transaksi: <strong>' + escapeHtml(d.startDate) + '</strong> s/d <strong>' + escapeHtml(d.endDate) + '</strong> &bull; Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) +
+    '</div>' +
     '</div>' +
 
     '<!-- 1. RINGKASAN FINANSIAL -->' +
     '<h4 style="font-size:12px;margin-bottom:6px;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:3px;">1. Ringkasan Kinerja Penjualan &amp; Laba FIFO</h4>' +
     '<table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px;">' +
-      '<tr>' +
-        '<td style="padding:4px 8px;border:1px solid #ddd;width:25%;background:#f9f9f9;">Total Omzet Bersih:</td>' +
-        '<td style="padding:4px 8px;border:1px solid #ddd;width:25%;font-weight:700;font-family:monospace;">' + formatRupiah(summary.totalSubtotal) + '</td>' +
-        '<td style="padding:4px 8px;border:1px solid #ddd;width:25%;background:#f9f9f9;">Total Modal HPP FIFO:</td>' +
-        '<td style="padding:4px 8px;border:1px solid #ddd;width:25%;font-weight:700;font-family:monospace;">' + formatRupiah(summary.totalCost) + '</td>' +
-      '</tr>' +
-      '<tr>' +
-        '<td style="padding:4px 8px;border:1px solid #ddd;background:#f9f9f9;">Laba Kotor (FIFO Riil):</td>' +
-        '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:700;color:#1e7e34;font-family:monospace;">' + formatRupiah(summary.grossMargin) + ' (' + summary.grossMarginPct + '%)</td>' +
-        '<td style="padding:4px 8px;border:1px solid #ddd;background:#f9f9f9;">Volume Nota Transaksi:</td>' +
-        '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:700;font-family:monospace;">' + summary.totalTransactions + ' Nota</td>' +
-      '</tr>' +
+    '<tr>' +
+    '<td style="padding:4px 8px;border:1px solid #ddd;width:25%;background:#f9f9f9;">Total Omzet Bersih:</td>' +
+    '<td style="padding:4px 8px;border:1px solid #ddd;width:25%;font-weight:700;font-family:monospace;">' + formatRupiah(summary.totalSubtotal) + '</td>' +
+    '<td style="padding:4px 8px;border:1px solid #ddd;width:25%;background:#f9f9f9;">Total Modal HPP FIFO:</td>' +
+    '<td style="padding:4px 8px;border:1px solid #ddd;width:25%;font-weight:700;font-family:monospace;">' + formatRupiah(summary.totalCost) + '</td>' +
+    '</tr>' +
+    '<tr>' +
+    '<td style="padding:4px 8px;border:1px solid #ddd;background:#f9f9f9;">Laba Kotor (FIFO Riil):</td>' +
+    '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:700;color:#1e7e34;font-family:monospace;">' + formatRupiah(summary.grossMargin) + ' (' + summary.grossMarginPct + '%)</td>' +
+    '<td style="padding:4px 8px;border:1px solid #ddd;background:#f9f9f9;">Volume Nota Transaksi:</td>' +
+    '<td style="padding:4px 8px;border:1px solid #ddd;font-weight:700;font-family:monospace;">' + summary.totalTransactions + ' Nota</td>' +
+    '</tr>' +
     '</table>' +
 
     '<!-- 2. TABEL RINCIAN TRANSAKSI PER NOTA -->' +
     '<h4 style="font-size:12px;margin-bottom:6px;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:3px;">2. Rincian Transaksi Belanja &amp; Laba Kotor FIFO</h4>' +
     '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:10px;">' +
-      '<thead>' +
-        '<tr style="background:#f0f0f0;">' +
-          '<th style="border:1px solid #ddd;padding:4px;">No</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;">Waktu</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;">No. Nota</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;">Pelanggan</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;">Kanal</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;">Item Terjual</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;text-align:right;">Subtotal</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;text-align:right;">HPP FIFO</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;text-align:right;">Laba Kotor</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;text-align:center;">Margin</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;text-align:center;">Pembayaran</th>' +
-        '</tr>' +
-      '</thead>' +
-      '<tbody>' +
-        (txRowsHtml || '<tr><td colspan="11" style="border:1px solid #ddd;text-align:center;padding:10px;">Tidak ada transaksi belanja dalam periode ini.</td></tr>') +
-      '</tbody>' +
-      '<tfoot>' +
-        '<tr style="background:#f0f0f0;font-weight:bold;">' +
-          '<td colspan="6" style="border:1px solid #ddd;padding:6px;text-align:right;">TOTAL AKUMULASI:</td>' +
-          '<td style="border:1px solid #ddd;padding:6px;text-align:right;font-family:monospace;">' + formatRupiah(summary.totalSubtotal) + '</td>' +
-          '<td style="border:1px solid #ddd;padding:6px;text-align:right;font-family:monospace;">' + formatRupiah(summary.totalCost) + '</td>' +
-          '<td style="border:1px solid #ddd;padding:6px;text-align:right;font-family:monospace;color:#1e7e34;">' + formatRupiah(summary.grossMargin) + '</td>' +
-          '<td style="border:1px solid #ddd;padding:6px;text-align:center;font-family:monospace;">' + summary.grossMarginPct + '%</td>' +
-          '<td style="border:1px solid #ddd;padding:6px;"></td>' +
-        '</tr>' +
-      '</tfoot>' +
+    '<thead>' +
+    '<tr style="background:#f0f0f0;">' +
+    '<th style="border:1px solid #ddd;padding:4px;">No</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;">Waktu</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;">No. Nota</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;">Pelanggan</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;">Kanal</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;">Item Terjual</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;text-align:right;">Subtotal</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;text-align:right;">HPP FIFO</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;text-align:right;">Laba Kotor</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;text-align:center;">Margin</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;text-align:center;">Pembayaran</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' +
+    (txRowsHtml || '<tr><td colspan="11" style="border:1px solid #ddd;text-align:center;padding:10px;">Tidak ada transaksi belanja dalam periode ini.</td></tr>') +
+    '</tbody>' +
+    '<tfoot>' +
+    '<tr style="background:#f0f0f0;font-weight:bold;">' +
+    '<td colspan="6" style="border:1px solid #ddd;padding:6px;text-align:right;">TOTAL AKUMULASI:</td>' +
+    '<td style="border:1px solid #ddd;padding:6px;text-align:right;font-family:monospace;">' + formatRupiah(summary.totalSubtotal) + '</td>' +
+    '<td style="border:1px solid #ddd;padding:6px;text-align:right;font-family:monospace;">' + formatRupiah(summary.totalCost) + '</td>' +
+    '<td style="border:1px solid #ddd;padding:6px;text-align:right;font-family:monospace;color:#1e7e34;">' + formatRupiah(summary.grossMargin) + '</td>' +
+    '<td style="border:1px solid #ddd;padding:6px;text-align:center;font-family:monospace;">' + summary.grossMarginPct + '%</td>' +
+    '<td style="border:1px solid #ddd;padding:6px;"></td>' +
+    '</tr>' +
+    '</tfoot>' +
     '</table>' +
 
     '<!-- 3. TANDA TANGAN PENGESAHAN -->' +
     '<div style="display:flex;justify-content:space-between;margin-top:28px;padding:0 24px;font-size:11px;page-break-inside:avoid;">' +
-      '<div style="text-align:center;width:200px;">' +
-        '<div>Disusun Oleh,</div>' +
-        '<div style="font-weight:700;margin-top:2px;">Petugas / Kasir Toko</div>' +
-        '<div style="height:55px;"></div>' +
-        '<div style="border-bottom:1px solid #333;width:160px;margin:0 auto;"></div>' +
-        '<div style="font-size:10px;color:#666;margin-top:3px;">Tanggal: ________________</div>' +
-      '</div>' +
-      '<div style="text-align:center;width:200px;">' +
-        '<div>Diverifikasi &amp; Disetujui,</div>' +
-        '<div style="font-weight:700;margin-top:2px;">Manajer / Keuangan Kios IDEP</div>' +
-        '<div style="height:55px;"></div>' +
-        '<div style="border-bottom:1px solid #333;width:160px;margin:0 auto;"></div>' +
-        '<div style="font-size:10px;color:#666;margin-top:3px;">Tanggal: ________________</div>' +
-      '</div>' +
+    '<div style="text-align:center;width:200px;">' +
+    '<div>Disusun Oleh,</div>' +
+    '<div style="font-weight:700;margin-top:2px;">Petugas / Kasir Toko</div>' +
+    '<div style="height:55px;"></div>' +
+    '<div style="border-bottom:1px solid #333;width:160px;margin:0 auto;"></div>' +
+    '<div style="font-size:10px;color:#666;margin-top:3px;">Tanggal: ________________</div>' +
+    '</div>' +
+    '<div style="text-align:center;width:200px;">' +
+    '<div>Diverifikasi &amp; Disetujui,</div>' +
+    '<div style="font-weight:700;margin-top:2px;">Manajer / Keuangan Kios IDEP</div>' +
+    '<div style="height:55px;"></div>' +
+    '<div style="border-bottom:1px solid #333;width:160px;margin:0 auto;"></div>' +
+    '<div style="font-size:10px;color:#666;margin-top:3px;">Tanggal: ________________</div>' +
+    '</div>' +
     '</div>';
 
   document.body.appendChild(printContainer);
@@ -11231,10 +11231,10 @@ function loadStockValuationReport(forceRefresh) {
 
   content.innerHTML =
     '<div class="card">' +
-      '<div class="empty-state">' +
-        '<span class="sync-spinner" style="display:inline-block;width:28px;height:28px;margin-bottom:10px;"></span><br>' +
-        'Mengambil posisi stok riil, menghitung valuasi aset FIFO, dan memetakan status benih...' +
-      '</div>' +
+    '<div class="empty-state">' +
+    '<span class="sync-spinner" style="display:inline-block;width:28px;height:28px;margin-bottom:10px;"></span><br>' +
+    'Mengambil posisi stok riil, menghitung valuasi aset FIFO, dan memetakan status benih...' +
+    '</div>' +
     '</div>';
 
   setProgressLoading(true);
@@ -11274,85 +11274,85 @@ function drawStockValuationUI(data) {
 
   content.innerHTML =
     '<div class="page-header">' +
-      '<div>' +
-        '<h1 class="page-title">Laporan Posisi Stok &amp; Valuasi Aset</h1>' +
-        '<p class="page-subtitle">Monitoring posisi inventaris benih aktif, valuasi modal metode FIFO, kesegaran lot batch, dan lembar kerja opname fisik.</p>' +
-      '</div>' +
+    '<div>' +
+    '<h1 class="page-title">Laporan Posisi Stok &amp; Valuasi Aset</h1>' +
+    '<p class="page-subtitle">Monitoring posisi inventaris benih aktif, valuasi modal metode FIFO, kesegaran lot batch, dan lembar kerja opname fisik.</p>' +
+    '</div>' +
     '</div>' +
 
     '<!-- SWITCHER TAB UTAMA MODUL LAPORAN -->' +
     '<div class="laporan-nav-switcher">' +
-      '<button type="button" class="laporan-nav-tab-btn" onclick="switchLaporanMainView(\'sales\')">📈 Laporan Penjualan &amp; Margin FIFO</button>' +
-      '<button type="button" class="laporan-nav-tab-btn active" onclick="switchLaporanMainView(\'stock_valuation\')">📦 Posisi Stok &amp; Valuasi Aset</button>' +
+    '<button type="button" class="laporan-nav-tab-btn" onclick="switchLaporanMainView(\'sales\')">📈 Laporan Penjualan &amp; Margin FIFO</button>' +
+    '<button type="button" class="laporan-nav-tab-btn active" onclick="switchLaporanMainView(\'stock_valuation\')">📦 Posisi Stok &amp; Valuasi Aset</button>' +
     '</div>' +
 
     '<!-- 4 KARTU RINGKASAN METRIK (KPI) -->' +
     '<div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:18px;">' +
-      '<div class="stat-card">' +
-        '<div class="stat-header"><span class="stat-label">Varietas Aktif</span><span class="stat-icon">🌱</span></div>' +
-        '<div class="stat-value" style="font-size:24px;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">' + summary.totalVarieties + '</div>' +
-        '<div class="stat-meta">Ragam Varietas Benih Siap Salur</div>' +
-      '</div>' +
-      '<div class="stat-card">' +
-        '<div class="stat-header"><span class="stat-label">Total Sachet Siap Jual</span><span class="stat-icon">📦</span></div>' +
-        '<div class="stat-value" style="font-size:24px;color:var(--primary);font-family:\'JetBrains Mono\',monospace;">' + (Number(summary.totalPackedPcs) || 0).toLocaleString('id-ID') + ' pcs</div>' +
-        '<div class="stat-meta">Kemasan Retail Eceran Toko</div>' +
-      '</div>' +
-      '<div class="stat-card">' +
-        '<div class="stat-header"><span class="stat-label">Total Stok Curah</span><span class="stat-icon">🌾</span></div>' +
-        '<div class="stat-value" style="font-size:24px;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">' + bulkStr + '</div>' +
-        '<div class="stat-meta">Bahan Baku Gudang Penangkaran</div>' +
-      '</div>' +
-      '<div class="stat-card">' +
-        '<div class="stat-header"><span class="stat-label">Total Valuasi Aset</span><span class="stat-icon">💰</span></div>' +
-        '<div class="stat-value" style="font-size:24px;color:var(--success);font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(summary.totalAssetValue) + '</div>' +
-        '<div class="stat-meta">Akumulasi Nilai Modal FIFO Riil</div>' +
-      '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Varietas Aktif</span><span class="stat-icon">🌱</span></div>' +
+    '<div class="stat-value" style="font-size:24px;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">' + summary.totalVarieties + '</div>' +
+    '<div class="stat-meta">Ragam Varietas Benih Siap Salur</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Total Sachet Siap Jual</span><span class="stat-icon">📦</span></div>' +
+    '<div class="stat-value" style="font-size:24px;color:var(--primary);font-family:\'JetBrains Mono\',monospace;">' + (Number(summary.totalPackedPcs) || 0).toLocaleString('id-ID') + ' pcs</div>' +
+    '<div class="stat-meta">Kemasan Retail Eceran Toko</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Total Stok Curah</span><span class="stat-icon">🌾</span></div>' +
+    '<div class="stat-value" style="font-size:24px;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">' + bulkStr + '</div>' +
+    '<div class="stat-meta">Bahan Baku Gudang Penangkaran</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Total Valuasi Aset</span><span class="stat-icon">💰</span></div>' +
+    '<div class="stat-value" style="font-size:24px;color:var(--success);font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(summary.totalAssetValue) + '</div>' +
+    '<div class="stat-meta">Akumulasi Nilai Modal FIFO Riil</div>' +
+    '</div>' +
     '</div>' +
 
     '<!-- BILAH FILTER & AKSI INTERAKTIF -->' +
     '<div class="card" style="margin-bottom:20px;padding:16px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">' +
-        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:280px;">' +
-          '<input type="text" id="stock-val-search" placeholder="🔍 Cari varietas benih atau ID batch..." oninput="filterStockValuationTable()" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:260px;background:#FFF;">' +
-          '<select id="stock-val-type-filter" onchange="filterStockValuationTable()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#FFF;">' +
-            '<option value="all">Semua Tipe Stok</option>' +
-            '<option value="packed">Kemasan Sachet (Pcs)</option>' +
-            '<option value="bulk">Baku / Curah (Gr)</option>' +
-          '</select>' +
-          '<select id="stock-val-status-filter" onchange="filterStockValuationTable()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#FFF;">' +
-            '<option value="all">Semua Peringatan / Status</option>' +
-            '<option value="AMAN">🟢 Aman &amp; Segar</option>' +
-            '<option value="MENIPIS">⚠️ Stok Menipis</option>' +
-            '<option value="UJI_ULANG">🔬 Butuh Uji Semai Ulang</option>' +
-            '<option value="KEDALUWARSA">⛔ Kedaluwarsa</option>' +
-          '</select>' +
-          '<button type="button" class="btn btn-secondary btn-sm" onclick="loadStockValuationReport(true)" title="Segarkan Data">&#8635; Segarkan</button>' +
-        '</div>' +
-        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
-          '<button type="button" class="btn btn-primary btn-sm" onclick="printStockValuationA4()" title="Cetak Laporan Valuasi Aset Modal format A4 Resmi">🖨️ Cetak Valuasi Aset (A4)</button>' +
-          '<button type="button" class="btn btn-secondary btn-sm" onclick="printStockOpnameSheetA4()" title="Cetak Lembar Kerja Stock Opname Fisik format A4 (Harga disembunyikan)">📋 Cetak Lembar Opname Fisik (A4)</button>' +
-        '</div>' +
-      '</div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">' +
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:280px;">' +
+    '<input type="text" id="stock-val-search" placeholder="🔍 Cari varietas benih atau ID batch..." oninput="filterStockValuationTable()" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:260px;background:#FFF;">' +
+    '<select id="stock-val-type-filter" onchange="filterStockValuationTable()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#FFF;">' +
+    '<option value="all">Semua Tipe Stok</option>' +
+    '<option value="packed">Kemasan Sachet (Pcs)</option>' +
+    '<option value="bulk">Baku / Curah (Gr)</option>' +
+    '</select>' +
+    '<select id="stock-val-status-filter" onchange="filterStockValuationTable()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#FFF;">' +
+    '<option value="all">Semua Peringatan / Status</option>' +
+    '<option value="AMAN">🟢 Aman &amp; Segar</option>' +
+    '<option value="MENIPIS">⚠️ Stok Menipis</option>' +
+    '<option value="UJI_ULANG">🔬 Butuh Uji Semai Ulang</option>' +
+    '<option value="KEDALUWARSA">⛔ Kedaluwarsa</option>' +
+    '</select>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="loadStockValuationReport(true)" title="Segarkan Data">&#8635; Segarkan</button>' +
+    '</div>' +
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+    '<button type="button" class="btn btn-primary btn-sm" onclick="printStockValuationA4()" title="Cetak Laporan Valuasi Aset Modal format A4 Resmi">🖨️ Cetak Valuasi Aset (A4)</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="printStockOpnameSheetA4()" title="Cetak Lembar Kerja Stock Opname Fisik format A4 (Harga disembunyikan)">📋 Cetak Lembar Opname Fisik (A4)</button>' +
+    '</div>' +
+    '</div>' +
 
-      '<div class="table-container" style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--border);">' +
-        '<table id="stock-valuation-table" style="width:100%;min-width:1050px;border-collapse:collapse;">' +
-          '<thead>' +
-            '<tr>' +
-              '<th style="width:40px;text-align:center;">No</th>' +
-              '<th style="width:240px;">Varietas Benih</th>' +
-              '<th style="width:130px;">Tipe</th>' +
-              '<th style="width:180px;">Kode Batch FIFO</th>' +
-              '<th style="width:110px;text-align:right;">Sisa Stok</th>' +
-              '<th style="width:120px;text-align:right;">HPP Satuan</th>' +
-              '<th style="width:130px;text-align:right;">Nilai Valuasi (Rp)</th>' +
-              '<th style="width:160px;text-align:center;">Status &amp; Usia</th>' +
-            '</tr>' +
-          '</thead>' +
-          '<tbody id="stock-val-tbody"></tbody>' +
-          '<tfoot id="stock-val-tfoot"></tfoot>' +
-        '</table>' +
-      '</div>' +
+    '<div class="table-container" style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--border);">' +
+    '<table id="stock-valuation-table" style="width:100%;min-width:1050px;border-collapse:collapse;">' +
+    '<thead>' +
+    '<tr>' +
+    '<th style="width:40px;text-align:center;">No</th>' +
+    '<th style="width:240px;">Varietas Benih</th>' +
+    '<th style="width:130px;">Tipe</th>' +
+    '<th style="width:180px;">Kode Batch FIFO</th>' +
+    '<th style="width:110px;text-align:right;">Sisa Stok</th>' +
+    '<th style="width:120px;text-align:right;">HPP Satuan</th>' +
+    '<th style="width:130px;text-align:right;">Nilai Valuasi (Rp)</th>' +
+    '<th style="width:160px;text-align:center;">Status &amp; Usia</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody id="stock-val-tbody"></tbody>' +
+    '<tfoot id="stock-val-tfoot"></tfoot>' +
+    '</table>' +
+    '</div>' +
     '</div>';
 
   filterStockValuationTable();
@@ -11424,31 +11424,31 @@ function renderStockValuationRows(items) {
     return '<tr>' +
       '<td style="text-align:center;font-size:12px;color:var(--text-muted);">' + (idx + 1) + '</td>' +
       '<td>' +
-        '<div style="font-weight:600;color:var(--text-main);font-size:12.5px;">' + escapeHtml(item.product_name) + '</div>' +
-        '<div style="font-size:10.5px;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;">ID: ' + escapeHtml(item.product_id) + '</div>' +
+      '<div style="font-weight:600;color:var(--text-main);font-size:12.5px;">' + escapeHtml(item.product_name) + '</div>' +
+      '<div style="font-size:10.5px;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;">ID: ' + escapeHtml(item.product_id) + '</div>' +
       '</td>' +
       '<td>' + typeBadge + '</td>' +
       '<td>' +
-        '<code style="font-family:\'JetBrains Mono\',monospace;font-size:12px;font-weight:700;color:var(--primary);">' + escapeHtml(item.batch_id) + '</code>' +
-        '<div style="font-size:10.5px;color:var(--text-muted);">Exp: ' + escapeHtml(item.expiry_date || '-') + '</div>' +
+      '<code style="font-family:\'JetBrains Mono\',monospace;font-size:12px;font-weight:700;color:var(--primary);">' + escapeHtml(item.batch_id) + '</code>' +
+      '<div style="font-size:10.5px;color:var(--text-muted);">Exp: ' + escapeHtml(item.expiry_date || '-') + '</div>' +
       '</td>' +
       '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--text-main);font-size:13px;">' +
-        (Number(item.current_stock) || 0).toLocaleString('id-ID') + ' <span style="font-size:11px;font-weight:normal;color:var(--text-secondary);">' + escapeHtml(item.unit) + '</span>' +
+      (Number(item.current_stock) || 0).toLocaleString('id-ID') + ' <span style="font-size:11px;font-weight:normal;color:var(--text-secondary);">' + escapeHtml(item.unit) + '</span>' +
       '</td>' +
       '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;color:var(--text-secondary);font-size:12.5px;">' +
-        formatRupiah(item.hpp_unit) +
+      formatRupiah(item.hpp_unit) +
       '</td>' +
       '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--success);font-size:13px;background:rgba(46,125,50,0.04);">' +
-        formatRupiah(item.total_value) +
+      formatRupiah(item.total_value) +
       '</td>' +
       '<td style="text-align:center;">' +
-        badgeHtml +
-        '<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Usia simpan: ' + item.age_days + ' hari</div>' +
-        (item.status === 'UJI_ULANG'
-          ? '<button type="button" class="btn btn-xs" style="margin-top:4px;background:#f59e0b;color:#ffffff;border:none;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:4px;" onclick="openQCEntryModal(\'' + escapeHtml(item.batch_id) + '\', \'UJI_BERKALA\')">🔬 Uji Berkala</button>'
-          : '') +
+      badgeHtml +
+      '<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Usia simpan: ' + item.age_days + ' hari</div>' +
+      (item.status === 'UJI_ULANG'
+        ? '<button type="button" class="btn btn-xs" style="margin-top:4px;background:#f59e0b;color:#ffffff;border:none;padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:4px;" onclick="openQCEntryModal(\'' + escapeHtml(item.batch_id) + '\', \'UJI_BERKALA\')">🔬 Uji Berkala</button>'
+        : '') +
       '</td>' +
-    '</tr>';
+      '</tr>';
   }).join('');
 }
 
@@ -11462,13 +11462,13 @@ function updateStockValuationFooter(items) {
 
   tfoot.innerHTML =
     '<tr>' +
-      '<th colspan="6" style="text-align:right;padding:12px;font-weight:700;color:var(--text-main);background:var(--surface-muted);font-size:12.5px;">' +
-        'TOTAL AKUMULASI NILAI ASET (' + totalBatches + ' Batch):' +
-      '</th>' +
-      '<th style="text-align:right;padding:12px;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--success);background:rgba(46,125,50,0.12);font-size:14px;">' +
-        formatRupiah(totalVal) +
-      '</th>' +
-      '<th style="background:var(--surface-muted);"></th>' +
+    '<th colspan="6" style="text-align:right;padding:12px;font-weight:700;color:var(--text-main);background:var(--surface-muted);font-size:12.5px;">' +
+    'TOTAL AKUMULASI NILAI ASET (' + totalBatches + ' Batch):' +
+    '</th>' +
+    '<th style="text-align:right;padding:12px;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--success);background:rgba(46,125,50,0.12);font-size:14px;">' +
+    formatRupiah(totalVal) +
+    '</th>' +
+    '<th style="background:var(--surface-muted);"></th>' +
     '</tr>';
 }
 
@@ -11515,79 +11515,79 @@ function printStockValuationA4() {
       '<td style="border:1px solid #ddd;padding:4px;text-align:right;font-family:monospace;">' + formatRupiah(it.hpp_unit) + '</td>' +
       '<td style="border:1px solid #ddd;padding:4px;text-align:right;font-family:monospace;font-weight:bold;color:#1e7e34;">' + formatRupiah(it.total_value) + '</td>' +
       '<td style="border:1px solid #ddd;padding:4px;text-align:center;font-size:10px;">' + escapeHtml(it.status) + ' (' + it.age_days + ' hr)</td>' +
-    '</tr>';
+      '</tr>';
   }).join('');
 
   printContainer.innerHTML =
     '<div style="text-align:center;border-bottom:2.5px solid #333;padding-bottom:12px;margin-bottom:14px;">' +
-      logoHtml +
-      '<div style="font-size:11px;color:#555;margin-top:2px;">' + escapeHtml(storeAddress) + (storePhone ? ' • Telp/WA: ' + escapeHtml(storePhone) : '') + '</div>' +
-      '<div style="margin-top:8px;display:inline-block;padding:4px 14px;background:#f0f0f0;border-radius:4px;font-size:13px;font-weight:700;letter-spacing:0.5px;">' +
-        'LAPORAN VALUASI ASET &amp; POSISI STOK BENIH' +
-      '</div>' +
-      '<div style="font-size:10.5px;color:#666;margin-top:4px;">' +
-        'Dicetak Pada: ' + new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' &bull; Oleh: ' + escapeHtml(CURRENT_USER ? CURRENT_USER.name : 'Kasir / Admin Toko') +
-      '</div>' +
+    logoHtml +
+    '<div style="font-size:11px;color:#555;margin-top:2px;">' + escapeHtml(storeAddress) + (storePhone ? ' • Telp/WA: ' + escapeHtml(storePhone) : '') + '</div>' +
+    '<div style="margin-top:8px;display:inline-block;padding:4px 14px;background:#f0f0f0;border-radius:4px;font-size:13px;font-weight:700;letter-spacing:0.5px;">' +
+    'LAPORAN VALUASI ASET &amp; POSISI STOK BENIH' +
+    '</div>' +
+    '<div style="font-size:10.5px;color:#666;margin-top:4px;">' +
+    'Dicetak Pada: ' + new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' &bull; Oleh: ' + escapeHtml(CURRENT_USER ? CURRENT_USER.name : 'Kasir / Admin Toko') +
+    '</div>' +
     '</div>' +
 
     '<!-- 4 KOTAK KPI RINGKASAN HORIZONTAL -->' +
     '<table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px;">' +
-      '<tr>' +
-        '<td style="padding:6px 8px;border:1px solid #ddd;width:25%;background:#f9f9f9;">Varietas Aktif:</td>' +
-        '<td style="padding:6px 8px;border:1px solid #ddd;width:25%;font-weight:bold;font-family:monospace;">' + (summary.totalVarieties || 0) + ' Jenis Tanaman</td>' +
-        '<td style="padding:6px 8px;border:1px solid #ddd;width:25%;background:#f9f9f9;">Sachet Siap Jual:</td>' +
-        '<td style="padding:6px 8px;border:1px solid #ddd;width:25%;font-weight:bold;font-family:monospace;">' + (summary.totalPackedPcs || 0).toLocaleString('id-ID') + ' pcs</td>' +
-      '</tr>' +
-      '<tr>' +
-        '<td style="padding:6px 8px;border:1px solid #ddd;background:#f9f9f9;">Total Benih Curah:</td>' +
-        '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:bold;font-family:monospace;">' + bulkStr + '</td>' +
-        '<td style="padding:6px 8px;border:1px solid #ddd;background:#f9f9f9;">Total Valuasi Aset Modal:</td>' +
-        '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:bold;color:#1e7e34;font-family:monospace;">' + formatRupiah(summary.totalAssetValue || 0) + '</td>' +
-      '</tr>' +
+    '<tr>' +
+    '<td style="padding:6px 8px;border:1px solid #ddd;width:25%;background:#f9f9f9;">Varietas Aktif:</td>' +
+    '<td style="padding:6px 8px;border:1px solid #ddd;width:25%;font-weight:bold;font-family:monospace;">' + (summary.totalVarieties || 0) + ' Jenis Tanaman</td>' +
+    '<td style="padding:6px 8px;border:1px solid #ddd;width:25%;background:#f9f9f9;">Sachet Siap Jual:</td>' +
+    '<td style="padding:6px 8px;border:1px solid #ddd;width:25%;font-weight:bold;font-family:monospace;">' + (summary.totalPackedPcs || 0).toLocaleString('id-ID') + ' pcs</td>' +
+    '</tr>' +
+    '<tr>' +
+    '<td style="padding:6px 8px;border:1px solid #ddd;background:#f9f9f9;">Total Benih Curah:</td>' +
+    '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:bold;font-family:monospace;">' + bulkStr + '</td>' +
+    '<td style="padding:6px 8px;border:1px solid #ddd;background:#f9f9f9;">Total Valuasi Aset Modal:</td>' +
+    '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:bold;color:#1e7e34;font-family:monospace;">' + formatRupiah(summary.totalAssetValue || 0) + '</td>' +
+    '</tr>' +
     '</table>' +
 
     '<!-- TABEL RINCIAN VALUASI ASET PER BATCH -->' +
     '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:10px;">' +
-      '<thead>' +
-        '<tr style="background:#f0f0f0;">' +
-          '<th style="border:1px solid #ddd;padding:4px;width:28px;">No</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;">Varietas Benih</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;width:60px;">Tipe</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;width:140px;">Kode Batch FIFO</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;text-align:right;width:80px;">Sisa Stok</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;text-align:right;width:75px;">HPP Satuan</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;text-align:right;width:95px;">Nilai Valuasi (Rp)</th>' +
-          '<th style="border:1px solid #ddd;padding:4px;text-align:center;width:85px;">Status</th>' +
-        '</tr>' +
-      '</thead>' +
-      '<tbody>' +
-        (rowsHtml || '<tr><td colspan="8" style="border:1px solid #ddd;text-align:center;padding:10px;">Tidak ada batch persediaan aktif.</td></tr>') +
-      '</tbody>' +
-      '<tfoot>' +
-        '<tr style="background:#f0f0f0;font-weight:bold;">' +
-          '<td colspan="6" style="border:1px solid #ddd;padding:6px;text-align:right;">TOTAL AKUMULASI NILAI ASET MODAL:</td>' +
-          '<td style="border:1px solid #ddd;padding:6px;text-align:right;font-family:monospace;color:#1e7e34;font-size:11.5px;">' + formatRupiah(summary.totalAssetValue || 0) + '</td>' +
-          '<td style="border:1px solid #ddd;padding:6px;"></td>' +
-        '</tr>' +
-      '</tfoot>' +
+    '<thead>' +
+    '<tr style="background:#f0f0f0;">' +
+    '<th style="border:1px solid #ddd;padding:4px;width:28px;">No</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;">Varietas Benih</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;width:60px;">Tipe</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;width:140px;">Kode Batch FIFO</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;text-align:right;width:80px;">Sisa Stok</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;text-align:right;width:75px;">HPP Satuan</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;text-align:right;width:95px;">Nilai Valuasi (Rp)</th>' +
+    '<th style="border:1px solid #ddd;padding:4px;text-align:center;width:85px;">Status</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' +
+    (rowsHtml || '<tr><td colspan="8" style="border:1px solid #ddd;text-align:center;padding:10px;">Tidak ada batch persediaan aktif.</td></tr>') +
+    '</tbody>' +
+    '<tfoot>' +
+    '<tr style="background:#f0f0f0;font-weight:bold;">' +
+    '<td colspan="6" style="border:1px solid #ddd;padding:6px;text-align:right;">TOTAL AKUMULASI NILAI ASET MODAL:</td>' +
+    '<td style="border:1px solid #ddd;padding:6px;text-align:right;font-family:monospace;color:#1e7e34;font-size:11.5px;">' + formatRupiah(summary.totalAssetValue || 0) + '</td>' +
+    '<td style="border:1px solid #ddd;padding:6px;"></td>' +
+    '</tr>' +
+    '</tfoot>' +
     '</table>' +
 
     '<!-- 2 KOLOM TANDA TANGAN PENGESAHAN -->' +
     '<div style="display:flex;justify-content:space-between;margin-top:28px;padding:0 24px;font-size:11px;page-break-inside:avoid;">' +
-      '<div style="text-align:center;width:220px;">' +
-        '<div>Dibuat Oleh,</div>' +
-        '<div style="font-weight:700;margin-top:2px;">Kasir / Pengelola Persediaan</div>' +
-        '<div style="height:55px;"></div>' +
-        '<div style="border-bottom:1px solid #333;width:170px;margin:0 auto;"></div>' +
-        '<div style="font-size:10px;color:#666;margin-top:3px;">Tanggal: ________________</div>' +
-      '</div>' +
-      '<div style="text-align:center;width:220px;">' +
-        '<div>Diketahui Oleh,</div>' +
-        '<div style="font-weight:700;margin-top:2px;">Manajer Toko / Yayasan IDEP</div>' +
-        '<div style="height:55px;"></div>' +
-        '<div style="border-bottom:1px solid #333;width:170px;margin:0 auto;"></div>' +
-        '<div style="font-size:10px;color:#666;margin-top:3px;">Tanggal: ________________</div>' +
-      '</div>' +
+    '<div style="text-align:center;width:220px;">' +
+    '<div>Dibuat Oleh,</div>' +
+    '<div style="font-weight:700;margin-top:2px;">Kasir / Pengelola Persediaan</div>' +
+    '<div style="height:55px;"></div>' +
+    '<div style="border-bottom:1px solid #333;width:170px;margin:0 auto;"></div>' +
+    '<div style="font-size:10px;color:#666;margin-top:3px;">Tanggal: ________________</div>' +
+    '</div>' +
+    '<div style="text-align:center;width:220px;">' +
+    '<div>Diketahui Oleh,</div>' +
+    '<div style="font-weight:700;margin-top:2px;">Manajer Toko / Yayasan IDEP</div>' +
+    '<div style="height:55px;"></div>' +
+    '<div style="border-bottom:1px solid #333;width:170px;margin:0 auto;"></div>' +
+    '<div style="font-size:10px;color:#666;margin-top:3px;">Tanggal: ________________</div>' +
+    '</div>' +
     '</div>';
 
   document.body.appendChild(printContainer);
@@ -11642,60 +11642,60 @@ function printStockOpnameSheetA4() {
       '<td style="border:1px solid #333;padding:4px;width:75px;background:#fff;"><div style="height:22px;border:1px dashed #aaa;"></div></td>' +
       '<td style="border:1px solid #333;padding:4px;width:65px;background:#fff;"><div style="height:22px;border:1px dashed #aaa;"></div></td>' +
       '<td style="border:1px solid #333;padding:4px;width:120px;background:#fff;"><div style="height:22px;border:1px dashed #aaa;"></div></td>' +
-    '</tr>';
+      '</tr>';
   }).join('');
 
   printContainer.innerHTML =
     '<div style="text-align:center;border-bottom:2.5px solid #333;padding-bottom:12px;margin-bottom:12px;">' +
-      logoHtml +
-      '<div style="font-size:11px;color:#555;margin-top:2px;">' + escapeHtml(storeAddress) + (storePhone ? ' • Telp/WA: ' + escapeHtml(storePhone) : '') + '</div>' +
-      '<div style="margin-top:8px;display:inline-block;padding:4px 14px;background:#f0f0f0;border-radius:4px;font-size:13px;font-weight:700;letter-spacing:0.5px;">' +
-        'LEMBAR STOCK OPNAME FISIK PERSEDIAAN BENIH' +
-      '</div>' +
-      '<div style="font-size:10.5px;color:#666;margin-top:4px;">' +
-        'Tanggal Audit: ___________________ &bull; Lokasi Gudang: Gudang Utama Kios IDEP &bull; Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) +
-      '</div>' +
+    logoHtml +
+    '<div style="font-size:11px;color:#555;margin-top:2px;">' + escapeHtml(storeAddress) + (storePhone ? ' • Telp/WA: ' + escapeHtml(storePhone) : '') + '</div>' +
+    '<div style="margin-top:8px;display:inline-block;padding:4px 14px;background:#f0f0f0;border-radius:4px;font-size:13px;font-weight:700;letter-spacing:0.5px;">' +
+    'LEMBAR STOCK OPNAME FISIK PERSEDIAAN BENIH' +
+    '</div>' +
+    '<div style="font-size:10.5px;color:#666;margin-top:4px;">' +
+    'Tanggal Audit: ___________________ &bull; Lokasi Gudang: Gudang Utama Kios IDEP &bull; Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) +
+    '</div>' +
     '</div>' +
 
     '<div style="font-size:10px;color:#555;margin-bottom:8px;padding:4px 8px;background:#fdf6e2;border-left:3px solid #b78103;">' +
-      '<strong>Petunjuk Checker:</strong> Hitung kuantitas fisik riil di rak/wadah penyimpanan, tuliskan angka hasil hitung pada kolom <em>Hitungan Fisik Nyata</em>, hitung selisihnya (+/-), dan catat kondisi kemasan jika ada kerusakan.' +
+    '<strong>Petunjuk Checker:</strong> Hitung kuantitas fisik riil di rak/wadah penyimpanan, tuliskan angka hasil hitung pada kolom <em>Hitungan Fisik Nyata</em>, hitung selisihnya (+/-), dan catat kondisi kemasan jika ada kerusakan.' +
     '</div>' +
 
     '<!-- TABEL PENGHITUNGAN FISIK LAPANGAN -->' +
     '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:10px;">' +
-      '<thead>' +
-        '<tr style="background:#f0f0f0;">' +
-          '<th style="border:1px solid #333;padding:5px 3px;width:26px;text-align:center;">No</th>' +
-          '<th style="border:1px solid #333;padding:5px 6px;text-align:left;">Varietas Benih</th>' +
-          '<th style="border:1px solid #333;padding:5px 4px;width:55px;text-align:center;">Kemasan</th>' +
-          '<th style="border:1px solid #333;padding:5px 6px;width:150px;text-align:left;">Kode Batch FIFO</th>' +
-          '<th style="border:1px solid #333;padding:5px 6px;width:75px;text-align:right;">Stok Sistem</th>' +
-          '<th style="border:1px solid #333;padding:5px 4px;width:75px;text-align:center;background:#e9f5e9;">Hitungan Fisik Nyata</th>' +
-          '<th style="border:1px solid #333;padding:5px 4px;width:65px;text-align:center;background:#fff8e1;">Selisih (+/-)</th>' +
-          '<th style="border:1px solid #333;padding:5px 4px;width:120px;text-align:center;">Catatan Kondisi Fisik</th>' +
-        '</tr>' +
-      '</thead>' +
-      '<tbody>' +
-        (rowsHtml || '<tr><td colspan="8" style="border:1px solid #333;text-align:center;padding:10px;">Tidak ada batch persediaan aktif untuk diopname.</td></tr>') +
-      '</tbody>' +
+    '<thead>' +
+    '<tr style="background:#f0f0f0;">' +
+    '<th style="border:1px solid #333;padding:5px 3px;width:26px;text-align:center;">No</th>' +
+    '<th style="border:1px solid #333;padding:5px 6px;text-align:left;">Varietas Benih</th>' +
+    '<th style="border:1px solid #333;padding:5px 4px;width:55px;text-align:center;">Kemasan</th>' +
+    '<th style="border:1px solid #333;padding:5px 6px;width:150px;text-align:left;">Kode Batch FIFO</th>' +
+    '<th style="border:1px solid #333;padding:5px 6px;width:75px;text-align:right;">Stok Sistem</th>' +
+    '<th style="border:1px solid #333;padding:5px 4px;width:75px;text-align:center;background:#e9f5e9;">Hitungan Fisik Nyata</th>' +
+    '<th style="border:1px solid #333;padding:5px 4px;width:65px;text-align:center;background:#fff8e1;">Selisih (+/-)</th>' +
+    '<th style="border:1px solid #333;padding:5px 4px;width:120px;text-align:center;">Catatan Kondisi Fisik</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' +
+    (rowsHtml || '<tr><td colspan="8" style="border:1px solid #333;text-align:center;padding:10px;">Tidak ada batch persediaan aktif untuk diopname.</td></tr>') +
+    '</tbody>' +
     '</table>' +
 
     '<!-- 2 KOLOM TANDA TANGAN AUDIT OPNAME -->' +
     '<div style="display:flex;justify-content:space-between;margin-top:24px;padding:0 30px;font-size:11px;page-break-inside:avoid;">' +
-      '<div style="text-align:center;width:220px;">' +
-        '<div>Petugas Hitung Lapangan,</div>' +
-        '<div style="font-weight:700;margin-top:2px;">Checker Fisik Opname</div>' +
-        '<div style="height:55px;"></div>' +
-        '<div style="border-bottom:1px solid #333;width:170px;margin:0 auto;"></div>' +
-        '<div style="font-size:10px;color:#666;margin-top:3px;">Nama: ________________</div>' +
-      '</div>' +
-      '<div style="text-align:center;width:220px;">' +
-        '<div>Disaksikan &amp; Diperiksa Oleh,</div>' +
-        '<div style="font-weight:700;margin-top:2px;">Saksi / Pemeriksa Opname</div>' +
-        '<div style="height:55px;"></div>' +
-        '<div style="border-bottom:1px solid #333;width:170px;margin:0 auto;"></div>' +
-        '<div style="font-size:10px;color:#666;margin-top:3px;">Nama: ________________</div>' +
-      '</div>' +
+    '<div style="text-align:center;width:220px;">' +
+    '<div>Petugas Hitung Lapangan,</div>' +
+    '<div style="font-weight:700;margin-top:2px;">Checker Fisik Opname</div>' +
+    '<div style="height:55px;"></div>' +
+    '<div style="border-bottom:1px solid #333;width:170px;margin:0 auto;"></div>' +
+    '<div style="font-size:10px;color:#666;margin-top:3px;">Nama: ________________</div>' +
+    '</div>' +
+    '<div style="text-align:center;width:220px;">' +
+    '<div>Disaksikan &amp; Diperiksa Oleh,</div>' +
+    '<div style="font-weight:700;margin-top:2px;">Saksi / Pemeriksa Opname</div>' +
+    '<div style="height:55px;"></div>' +
+    '<div style="border-bottom:1px solid #333;width:170px;margin:0 auto;"></div>' +
+    '<div style="font-size:10px;color:#666;margin-top:3px;">Nama: ________________</div>' +
+    '</div>' +
     '</div>';
 
   document.body.appendChild(printContainer);
@@ -11791,204 +11791,276 @@ function drawPengaturanUI(settings) {
 
   content.innerHTML =
     '<div class="page-header">' +
-      '<div>' +
-        '<h1 class="page-title">Pengaturan Sistem</h1>' +
-        '<p class="page-subtitle">Konfigurasi profil toko, tarif pajak, format batch &amp; preset multi-tier, hak akses peran, akun pengguna, dan integrasi Bot Telegram.</p>' +
-      '</div>' +
+    '<div>' +
+    '<h1 class="page-title">Pengaturan Sistem</h1>' +
+    '<p class="page-subtitle">Konfigurasi profil toko, tarif pajak, format batch &amp; preset multi-tier, hak akses peran, akun pengguna, dan integrasi Bot Telegram.</p>' +
+    '</div>' +
     '</div>' +
 
     '<!-- SUB-NAVIGASI TAB PENGATURAN -->' +
     '<div class="settings-tabs-wrapper nav-tabs" style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap;">' +
-      '<button type="button" id="tab-set-btn-profile" class="settings-tab-btn active" data-tab="profile" onclick="switchSettingTab(\'profile\')">🏪 Profil Toko &amp; Pajak</button>' +
-      '<button type="button" id="tab-set-btn-batch" class="settings-tab-btn" data-tab="batch" onclick="switchSettingTab(\'batch\')">🏷️ Format Batch &amp; Multi-Tier</button>' +
-      '<button type="button" id="tab-set-btn-roles" class="settings-tab-btn" data-tab="roles" onclick="switchSettingTab(\'roles\')">🔐 Hak Akses &amp; Peran</button>' +
-      '<button type="button" id="tab-set-btn-users" class="settings-tab-btn" data-tab="users" onclick="switchSettingTab(\'users\')">👥 Akun Pengguna</button>' +
-      '<button type="button" id="tab-set-btn-telegram" class="settings-tab-btn" data-tab="telegram" onclick="switchSettingTab(\'telegram\')">🤖 Bot Telegram</button>' +
+    '<button type="button" id="tab-set-btn-profile" class="settings-tab-btn active" data-tab="profile" onclick="switchSettingTab(\'profile\')">🏪 Profil Toko &amp; Pajak</button>' +
+    '<button type="button" id="tab-set-btn-batch" class="settings-tab-btn" data-tab="batch" onclick="switchSettingTab(\'batch\')">🏷️ Format Batch &amp; Multi-Tier</button>' +
+    '<button type="button" id="tab-set-btn-roles" class="settings-tab-btn" data-tab="roles" onclick="switchSettingTab(\'roles\')">🔐 Hak Akses &amp; Peran</button>' +
+    '<button type="button" id="tab-set-btn-users" class="settings-tab-btn" data-tab="users" onclick="switchSettingTab(\'users\')">👥 Akun Pengguna</button>' +
+    '<button type="button" id="tab-set-btn-telegram" class="settings-tab-btn" data-tab="telegram" onclick="switchSettingTab(\'telegram\')">🤖 Bot Telegram</button>' +
     '</div>' +
 
     '<div id="pane-profile" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'profile' ? 'block' : 'none') + ';">' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">' +
-        '<div class="card">' +
-          '<h3 style="margin-bottom:16px;">Profil Toko &amp; Pajak</h3>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Logo Utama (Full Color / Layar Login &amp; Struk)</label>' +
-            '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px;">' +
-              '<div class="logo-preview-box" id="setting-logo-preview" style="background:#fff;border:1px solid var(--border);width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-xs);overflow:hidden;">' +
-                (currentLogo ? '<img src="' + escapeHtml(currentLogo) + '" alt="Logo Terpasang" style="max-width:100%;max-height:100%;object-fit:contain;">' : '<span style="font-size:10px;color:var(--text-muted);text-align:center;">Belum Ada</span>') +
-              '</div>' +
-              '<div style="flex:1;min-width:180px;">' +
-                '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">' +
-                  '<label class="btn btn-secondary btn-sm" style="cursor:pointer;">📁 Upload<input type="file" id="set-logo-file" accept="image/*" style="display:none;" onchange="handleLogoFileUpload(this, \'set-store-logo\', \'setting-logo-preview\')"></label>' +
-                  '<button type="button" class="btn btn-secondary btn-sm" onclick="clearLogoSetting(\'set-store-logo\', \'set-logo-file\', \'setting-logo-preview\')">Hapus</button>' +
-                '</div>' +
-                '<div class="input-wrapper"><input type="text" id="set-store-logo" placeholder="Atau paste link URL logo warna..." value="' + escapeHtml(currentLogo) + '" oninput="updateLogoPreview(this.value, \'setting-logo-preview\')" style="padding-left:14px;font-size:12px;"></div>' +
-                '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Digunakan untuk layar login, faktur minimalis, dan struk kasir.</small>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Logo Sekunder (Putih/Monokrom / Sidebar &amp; Faktur Formal)</label>' +
-            '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px;">' +
-              '<div class="logo-preview-box" id="setting-logo-light-preview" style="background:var(--primary);border:1px solid var(--border);width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-xs);overflow:hidden;">' +
-                (currentLogoLight ? '<img src="' + escapeHtml(currentLogoLight) + '" alt="Logo Terpasang" style="max-width:100%;max-height:100%;object-fit:contain;">' : '<span style="font-size:10px;color:#fff;text-align:center;opacity:0.8;">Belum Ada</span>') +
-              '</div>' +
-              '<div style="flex:1;min-width:180px;">' +
-                '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">' +
-                  '<label class="btn btn-secondary btn-sm" style="cursor:pointer;">📁 Upload<input type="file" id="set-logo-light-file" accept="image/*" style="display:none;" onchange="handleLogoFileUpload(this, \'set-store-logo-light\', \'setting-logo-light-preview\')"></label>' +
-                  '<button type="button" class="btn btn-secondary btn-sm" onclick="clearLogoSetting(\'set-store-logo-light\', \'set-logo-light-file\', \'setting-logo-light-preview\')">Hapus</button>' +
-                '</div>' +
-                '<div class="input-wrapper"><input type="text" id="set-store-logo-light" placeholder="Atau paste link URL logo putih/transparan..." value="' + escapeHtml(currentLogoLight) + '" oninput="updateLogoPreview(this.value, \'setting-logo-light-preview\')" style="padding-left:14px;font-size:12px;"></div>' +
-                '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Digunakan untuk menu samping (sidebar hijau tua) dan kop faktur formal.</small>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="field-group"><label class="field-label">Nama Toko / Kios</label><div class="input-wrapper"><input type="text" id="set-store-name" value="' + escapeHtml(settings['store_name'] || '') + '" style="padding-left:14px;"></div></div>' +
-          '<div class="field-group"><label class="field-label">Alamat Lengkap</label><div class="input-wrapper"><input type="text" id="set-store-address" value="' + escapeHtml(settings['store_address'] || '') + '" style="padding-left:14px;"></div></div>' +
-          '<div class="field-group"><label class="field-label">Kontak WhatsApp</label><div class="input-wrapper"><input type="text" id="set-store-phone" value="' + escapeHtml(settings['store_phone'] || '') + '" style="padding-left:14px;"></div></div>' +
-          '<div class="field-group" style="padding:12px 14px;background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-xs);margin-bottom:12px;">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">' +
-              '<label class="field-label" style="margin:0;">Rekening Bank Kios</label>' +
-              '<button type="button" id="btn-unlock-bank-settings" class="btn btn-secondary btn-sm" onclick="unlockBankSettings()" style="white-space:nowrap;">🔒 Buka Kunci Rekening</button>' +
-            '</div>' +
-            '<div class="field-group" style="margin-bottom:10px;"><label class="field-label">Nama Bank</label><div class="input-wrapper"><input type="text" id="set-bank-name" value="' + escapeHtml(settings['bank_name'] || 'BNI') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
-            '<div class="field-group" style="margin-bottom:10px;"><label class="field-label">Nomor Rekening</label><div class="input-wrapper"><input type="text" id="set-bank-account" value="' + escapeHtml(settings['bank_account'] || '0178 849 203') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
-            '<div class="field-group" style="margin-bottom:0;"><label class="field-label">Atas Nama</label><div class="input-wrapper"><input type="text" id="set-bank-account-name" value="' + escapeHtml(settings['bank_account_name'] || 'Yayasan IDEP Selaras Alam') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
-          '</div>' +
-          '<div class="field-group"><label class="field-label">Tarif Pajak (PPN %)</label><div class="input-wrapper"><input type="number" id="set-tax-rate" value="' + escapeHtml(settings['tax_rate'] !== undefined ? settings['tax_rate'] : '0') + '" min="0" max="100" step="0.1" style="padding-left:14px;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Persentase pajak yang dikenakan pada transaksi (misal: 0 untuk bebas pajak atau 11 untuk PPN 11%).</small></div>' +
-          '<div class="field-group"><label class="field-label">Catatan Kaki Faktur</label><div class="input-wrapper"><input type="text" id="set-invoice-footer" value="' + escapeHtml(settings['invoice_footer'] || 'Terima kasih atas kunjungan Anda!') + '" style="padding-left:14px;"></div></div>' +
-          '<button type="button" class="btn btn-primary" onclick="saveStoreSettings()">Simpan Profil Toko &amp; Pajak</button>' +
-        '</div>' +
-      '</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">' +
+    '<div class="card">' +
+    '<h3 style="margin-bottom:16px;">Profil Toko &amp; Pajak</h3>' +
+    '<div class="field-group">' +
+    '<label class="field-label">Logo Utama (Full Color / Layar Login &amp; Struk)</label>' +
+    '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px;">' +
+    '<div class="logo-preview-box" id="setting-logo-preview" style="background:#fff;border:1px solid var(--border);width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-xs);overflow:hidden;">' +
+    (currentLogo ? '<img src="' + escapeHtml(currentLogo) + '" alt="Logo Terpasang" style="max-width:100%;max-height:100%;object-fit:contain;">' : '<span style="font-size:10px;color:var(--text-muted);text-align:center;">Belum Ada</span>') +
+    '</div>' +
+    '<div style="flex:1;min-width:180px;">' +
+    '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">' +
+    '<label class="btn btn-secondary btn-sm" style="cursor:pointer;">📁 Upload<input type="file" id="set-logo-file" accept="image/*" style="display:none;" onchange="handleLogoFileUpload(this, \'set-store-logo\', \'setting-logo-preview\')"></label>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="clearLogoSetting(\'set-store-logo\', \'set-logo-file\', \'setting-logo-preview\')">Hapus</button>' +
+    '</div>' +
+    '<div class="input-wrapper"><input type="text" id="set-store-logo" placeholder="Atau paste link URL logo warna..." value="' + escapeHtml(currentLogo) + '" oninput="updateLogoPreview(this.value, \'setting-logo-preview\')" style="padding-left:14px;font-size:12px;"></div>' +
+    '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Digunakan untuk layar login, faktur minimalis, dan struk kasir.</small>' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
+    '<div class="field-group">' +
+    '<label class="field-label">Logo Sekunder (Putih/Monokrom / Sidebar &amp; Faktur Formal)</label>' +
+    '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px;">' +
+    '<div class="logo-preview-box" id="setting-logo-light-preview" style="background:var(--primary);border:1px solid var(--border);width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-xs);overflow:hidden;">' +
+    (currentLogoLight ? '<img src="' + escapeHtml(currentLogoLight) + '" alt="Logo Terpasang" style="max-width:100%;max-height:100%;object-fit:contain;">' : '<span style="font-size:10px;color:#fff;text-align:center;opacity:0.8;">Belum Ada</span>') +
+    '</div>' +
+    '<div style="flex:1;min-width:180px;">' +
+    '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">' +
+    '<label class="btn btn-secondary btn-sm" style="cursor:pointer;">📁 Upload<input type="file" id="set-logo-light-file" accept="image/*" style="display:none;" onchange="handleLogoFileUpload(this, \'set-store-logo-light\', \'setting-logo-light-preview\')"></label>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="clearLogoSetting(\'set-store-logo-light\', \'set-logo-light-file\', \'setting-logo-light-preview\')">Hapus</button>' +
+    '</div>' +
+    '<div class="input-wrapper"><input type="text" id="set-store-logo-light" placeholder="Atau paste link URL logo putih/transparan..." value="' + escapeHtml(currentLogoLight) + '" oninput="updateLogoPreview(this.value, \'setting-logo-light-preview\')" style="padding-left:14px;font-size:12px;"></div>' +
+    '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Digunakan untuk menu samping (sidebar hijau tua) dan kop faktur formal.</small>' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
+    '<div class="field-group"><label class="field-label">Nama Toko / Kios</label><div class="input-wrapper"><input type="text" id="set-store-name" value="' + escapeHtml(settings['store_name'] || '') + '" style="padding-left:14px;"></div></div>' +
+    '<div class="field-group"><label class="field-label">Alamat Lengkap</label><div class="input-wrapper"><input type="text" id="set-store-address" value="' + escapeHtml(settings['store_address'] || '') + '" style="padding-left:14px;"></div></div>' +
+    '<div class="field-group"><label class="field-label">Kontak WhatsApp</label><div class="input-wrapper"><input type="text" id="set-store-phone" value="' + escapeHtml(settings['store_phone'] || '') + '" style="padding-left:14px;"></div></div>' +
+    '<div class="field-group" style="padding:12px 14px;background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-xs);margin-bottom:12px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">' +
+    '<label class="field-label" style="margin:0;">Rekening Bank Kios</label>' +
+    '<button type="button" id="btn-unlock-bank-settings" class="btn btn-secondary btn-sm" onclick="unlockBankSettings()" style="white-space:nowrap;">🔒 Buka Kunci Rekening</button>' +
+    '</div>' +
+    '<div class="field-group" style="margin-bottom:10px;"><label class="field-label">Nama Bank</label><div class="input-wrapper"><input type="text" id="set-bank-name" value="' + escapeHtml(settings['bank_name'] || 'BNI') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
+    '<div class="field-group" style="margin-bottom:10px;"><label class="field-label">Nomor Rekening</label><div class="input-wrapper"><input type="text" id="set-bank-account" value="' + escapeHtml(settings['bank_account'] || '0178 849 203') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
+    '<div class="field-group" style="margin-bottom:0;"><label class="field-label">Atas Nama</label><div class="input-wrapper"><input type="text" id="set-bank-account-name" value="' + escapeHtml(settings['bank_account_name'] || 'Yayasan IDEP Selaras Alam') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
+    '</div>' +
+    '<div class="field-group"><label class="field-label">Tarif Pajak (PPN %)</label><div class="input-wrapper"><input type="number" id="set-tax-rate" value="' + escapeHtml(settings['tax_rate'] !== undefined ? settings['tax_rate'] : '0') + '" min="0" max="100" step="0.1" style="padding-left:14px;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Persentase pajak yang dikenakan pada transaksi (misal: 0 untuk bebas pajak atau 11 untuk PPN 11%).</small></div>' +
+    '<div class="field-group"><label class="field-label">Catatan Kaki Faktur</label><div class="input-wrapper"><input type="text" id="set-invoice-footer" value="' + escapeHtml(settings['invoice_footer'] || 'Terima kasih atas kunjungan Anda!') + '" style="padding-left:14px;"></div></div>' +
+    '<button type="button" class="btn btn-primary" onclick="saveStoreSettings()">Simpan Profil Toko &amp; Pajak</button>' +
+    '</div>' +
+    '</div>' +
     '</div>' +
 
     '<div id="pane-batch" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'batch' || CURRENT_SETTINGS_SUBTAB === 'pricing' ? 'block' : 'none') + ';">' +
-      '<div class="card" style="margin-bottom:16px;">' +
-        '<h3 style="margin-bottom:6px;">Format Kode Batch FIFO</h3>' +
-        '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Template otomatis untuk menghasilkan kode lot/batch benih saat pembelian atau produksi.</p>' +
-        '<div class="field-group"><label class="field-label">Template Format Kode Batch</label><div class="input-wrapper"><input type="text" id="set-batch-format" value="' + escapeHtml(settings['batch_format_template'] || settings['batch_format'] || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}') + '" style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Gunakan token dinamis: <code>{FARMER}</code>, <code>{YYMM}</code>, <code>{RAND4}</code>, <code>{SEQ}</code>. Contoh: <code>BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}</code>.</small></div>' +
-      '</div>' +
-      '<div class="card">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
-          '<div><h3 style="margin-bottom:4px;">Preset Tingkat Harga (Multi-Tier)</h3><p style="font-size:12px;color:var(--text-secondary);margin:0;">Standarisasi tingkatan harga jual produk dan penomoran batch.</p></div>' +
-          '<button type="button" class="btn btn-secondary btn-sm" onclick="addPriceTierPresetRow()">+ Tambah Preset Tier Baru</button>' +
-        '</div>' +
-        '<div class="table-container" style="overflow-x:auto;"><table style="width:100%;margin-bottom:0;"><thead><tr><th style="width:45%;padding:10px 14px;">Nama Tingkat Harga (Tier)</th><th style="width:40%;padding:10px 14px;">Nominal Bawaan / Default (Rp)</th><th style="width:15%;text-align:center;padding:10px 14px;">Aksi</th></tr></thead><tbody id="price-tier-presets-body"></tbody></table></div>' +
-        '<div style="margin-top:16px;display:flex;justify-content:flex-end;"><button type="button" class="btn btn-primary" onclick="saveStoreSettings()">💾 Simpan Format Batch &amp; Multi-Tier</button></div>' +
-      '</div>' +
+    '<div class="card" style="margin-bottom:16px;">' +
+    '<h3 style="margin-bottom:6px;">Format Kode Batch FIFO</h3>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Template otomatis untuk menghasilkan kode lot/batch benih saat pembelian atau produksi.</p>' +
+    '<div class="field-group"><label class="field-label">Template Format Kode Batch</label><div class="input-wrapper"><input type="text" id="set-batch-format" value="' + escapeHtml(settings['batch_format_template'] || settings['batch_format'] || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}') + '" style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Gunakan token dinamis: <code>{FARMER}</code>, <code>{YYMM}</code>, <code>{RAND4}</code>, <code>{SEQ}</code>. Contoh: <code>BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}</code>.</small></div>' +
+    '</div>' +
+    '<div class="card">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
+    '<div><h3 style="margin-bottom:4px;">Preset Tingkat Harga (Multi-Tier)</h3><p style="font-size:12px;color:var(--text-secondary);margin:0;">Standarisasi tingkatan harga jual produk dan penomoran batch.</p></div>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="addPriceTierPresetRow()">+ Tambah Preset Tier Baru</button>' +
+    '</div>' +
+    '<div class="table-container" style="overflow-x:auto;"><table style="width:100%;margin-bottom:0;"><thead><tr><th style="width:45%;padding:10px 14px;">Nama Tingkat Harga (Tier)</th><th style="width:40%;padding:10px 14px;">Nominal Bawaan / Default (Rp)</th><th style="width:15%;text-align:center;padding:10px 14px;">Aksi</th></tr></thead><tbody id="price-tier-presets-body"></tbody></table></div>' +
+    '<div style="margin-top:16px;display:flex;justify-content:flex-end;"><button type="button" class="btn btn-primary" onclick="saveStoreSettings()">💾 Simpan Format Batch &amp; Multi-Tier</button></div>' +
+    '</div>' +
     '</div>' +
 
     '<div id="pane-roles" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'roles' ? 'block' : 'none') + ';">' +
-      '<h3>Konfigurasi Hak Akses</h3>' +
-      '<div class="card" style="margin-top:14px;">' +
-        '<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">' +
-          '<button type="button" class="btn btn-primary" onclick="openRoleModal()">+ Tambah Peran Baru</button>' +
-        '</div>' +
-        '<div class="table-responsive" style="overflow-x:auto;">' +
-          '<table class="data-table" style="width:100%;margin-bottom:0;">' +
-            '<thead>' +
-              '<tr>' +
-                '<th>Peran/Role</th>' +
-                '<th>Akses Modul</th>' +
-                '<th>Aksi</th>' +
-              '</tr>' +
-            '</thead>' +
-            '<tbody>' +
-              '<tr>' +
-                '<td><strong>Admin</strong></td>' +
-                '<td>Semua Modul (Akses Penuh)</td>' +
-                '<td><button type="button" class="btn btn-xs btn-secondary" onclick="openRoleModal()">Edit</button></td>' +
-              '</tr>' +
-              '<tr>' +
-                '<td><strong>Kasir</strong></td>' +
-                '<td>Kasir (POS), Riwayat Transaksi</td>' +
-                '<td><button type="button" class="btn btn-xs btn-secondary" onclick="openRoleModal()">Edit</button></td>' +
-              '</tr>' +
-              '<tr>' +
-                '<td><strong>Koordinator</strong></td>' +
-                '<td>Semua Modul (Lihat Saja / View-Only)</td>' +
-                '<td><button type="button" class="btn btn-xs btn-secondary" onclick="openRoleModal()">Edit</button></td>' +
-              '</tr>' +
-              '<tr>' +
-                '<td><strong>QC</strong></td>' +
-                '<td>Quality Control (QC), Stok &amp; Batch FIFO</td>' +
-                '<td><button type="button" class="btn btn-xs btn-secondary" onclick="openRoleModal()">Edit</button></td>' +
-              '</tr>' +
-            '</tbody>' +
-          '</table>' +
-        '</div>' +
-      '</div>' +
+    '<div class="card" style="background: white; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">' +
+    '<div>' +
+    '<h3 style="margin:0 0 4px 0;color:#2C1810;font-size:18px;font-weight:700;">Konfigurasi Hak Akses &amp; Peran</h3>' +
+    '<p class="text-muted" style="margin:0;font-size:13px;color:#6B7280;">Kelola hak otorisasi matriks modul per jabatan pengguna sistem.</p>' +
+    '</div>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">' +
+    '<button type="button" class="btn" style="background:#5C3A21;color:#ffffff;border:1px solid #5C3A21;border-radius:6px;padding:8px 16px;font-weight:600;font-size:13px;cursor:pointer;">Admin</button>' +
+    '<button type="button" class="btn" style="background:#ffffff;color:#5C3A21;border:1px solid #D1C7BD;border-radius:6px;padding:8px 16px;font-weight:500;font-size:13px;cursor:pointer;">Kasir</button>' +
+    '<button type="button" class="btn" style="background:#ffffff;color:#5C3A21;border:1px solid #D1C7BD;border-radius:6px;padding:8px 16px;font-weight:500;font-size:13px;cursor:pointer;">QC</button>' +
+    '<button type="button" class="btn" style="background:#ffffff;color:#5C3A21;border:1px solid #D1C7BD;border-radius:6px;padding:8px 16px;font-weight:500;font-size:13px;cursor:pointer;">Koordinator (View-Only)</button>' +
+    '<button type="button" class="btn" onclick="openRoleModal()" style="background:transparent;color:#5C3A21;border:1px dashed #5C3A21;border-radius:6px;padding:8px 16px;font-weight:600;font-size:13px;cursor:pointer;">+ Tambah Peran Baru</button>' +
+    '</div>' +
+    '<div style="color:#1E40AF;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">' +
+    '💡 <strong>Administrator:</strong> Memiliki akses penuh (Lihat, Input/Ubah, Hapus) pada seluruh modul sistem demi integritas dan kelancaran operasional.' +
+    '</div>' +
+    '<div class="table-responsive" style="overflow-x:auto;">' +
+    '<table class="data-table" style="width:100%;border-collapse:collapse;margin-bottom:0;">' +
+    '<thead style="background-color:#F5F0E6;color:#5C3A21;text-transform:uppercase;font-size:12px;">' +
+    '<tr>' +
+    '<th style="width:50px;text-align:center;padding:12px 14px;">NO</th>' +
+    '<th style="text-align:left;padding:12px 14px;">MODUL SISTEM</th>' +
+    '<th style="width:130px;text-align:center;padding:12px 14px;">[LIHAT]</th>' +
+    '<th style="width:140px;text-align:center;padding:12px 14px;">[INPUT/UBAH]</th>' +
+    '<th style="width:140px;text-align:center;padding:12px 14px;">[HAPUS/BATAL]</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' +
+    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">1</td><td style="padding:10px 14px;"><strong>Dashboard Ringkasan</strong> <code style="font-size:11px;color:#888;">(dashboard)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
+    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">2</td><td style="padding:10px 14px;"><strong>Kasir (POS)</strong> <code style="font-size:11px;color:#888;">(pos)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
+    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">3</td><td style="padding:10px 14px;"><strong>Katalog Produk</strong> <code style="font-size:11px;color:#888;">(produk)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
+    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">4</td><td style="padding:10px 14px;"><strong>Stok &amp; Batch FIFO</strong> <code style="font-size:11px;color:#888;">(stok)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
+    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">5</td><td style="padding:10px 14px;"><strong>Kemas Mandiri (Produksi)</strong> <code style="font-size:11px;color:#888;">(produksi)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
+    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">6</td><td style="padding:10px 14px;"><strong>Quality Control (QC)</strong> <code style="font-size:11px;color:#888;">(qc)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
+    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">7</td><td style="padding:10px 14px;"><strong>Pembelian Stok</strong> <code style="font-size:11px;color:#888;">(pembelian)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
+    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">8</td><td style="padding:10px 14px;"><strong>Riwayat Transaksi &amp; Faktur</strong> <code style="font-size:11px;color:#888;">(faktur)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
+    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">9</td><td style="padding:10px 14px;"><strong>Laporan &amp; Valuasi Stok</strong> <code style="font-size:11px;color:#888;">(laporan)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
+    '<tr><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">10</td><td style="padding:10px 14px;"><strong>Pengaturan Sistem</strong> <code style="font-size:11px;color:#888;">(pengaturan)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
+    '</tbody>' +
+    '</table>' +
+    '</div>' +
+    '<div style="margin-top:18px;display:flex;justify-content:flex-end;">' +
+    '<button type="button" class="btn btn-primary" onclick="saveRoleMatrixSettings()">💾 Simpan Matriks Hak Akses</button>' +
+    '</div>' +
+    '</div>' +
     '</div>' +
 
     '<div id="pane-users" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'users' ? 'block' : 'none') + ';">' +
-      '<h3>Manajemen Akun Pengguna</h3>' +
-      '<div class="card" style="margin-top:14px;">' +
-        '<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">' +
-          '<button type="button" class="btn btn-primary" onclick="openUserModal()">+ Tambah Akun</button>' +
-        '</div>' +
-        '<div class="table-responsive" style="overflow-x:auto;">' +
-          '<table id="users-table-body" class="data-table" style="width:100%;margin-bottom:0;">' +
-            '<thead>' +
-              '<tr>' +
-                '<th>Username</th>' +
-                '<th>Nama</th>' +
-                '<th>Peran</th>' +
-                '<th>Aksi</th>' +
-              '</tr>' +
-            '</thead>' +
-            '<tbody>' +
-              '<tr>' +
-                '<td><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--text-main);">admin</strong></td>' +
-                '<td>Administrator Utama</td>' +
-                '<td><span class="badge badge-success">Admin</span></td>' +
-                '<td><button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'admin\')">Edit</button></td>' +
-              '</tr>' +
-              '<tr>' +
-                '<td><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--text-main);">kasir</strong></td>' +
-                '<td>Staf Kasir Toko</td>' +
-                '<td><span class="badge badge-info">Kasir</span></td>' +
-                '<td><button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'kasir\')">Edit</button></td>' +
-              '</tr>' +
-            '</tbody>' +
-          '</table>' +
-        '</div>' +
-      '</div>' +
+    '<div class="card" style="background: white; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">' +
+    '<div>' +
+    '<h3 style="margin:0 0 4px 0;color:#2C1810;font-size:18px;font-weight:700;">Daftar Akun Pengguna</h3>' +
+    '<p class="text-muted" style="margin:0;font-size:13px;color:#6B7280;">Kelola akun staf kasir, operator QC, koordinator, dan administrator.</p>' +
+    '</div>' +
+    '<button type="button" class="btn btn-primary" onclick="openUserModal()">+ Tambah Pengguna Baru</button>' +
+    '</div>' +
+    '<div class="table-responsive" style="overflow-x:auto;">' +
+    '<table class="data-table" style="width:100%;border-collapse:collapse;margin-bottom:0;">' +
+    '<thead style="background-color:#F5F0E6;color:#5C3A21;text-transform:uppercase;font-size:12px;">' +
+    '<tr>' +
+    '<th style="width:50px;text-align:center;padding:12px 14px;">NO</th>' +
+    '<th style="text-align:left;padding:12px 14px;">USERNAME</th>' +
+    '<th style="text-align:left;padding:12px 14px;">NAMA LENGKAP</th>' +
+    '<th style="text-align:left;padding:12px 14px;">PERAN / HAK AKSES</th>' +
+    '<th style="text-align:left;padding:12px 14px;">DIBUAT PADA</th>' +
+    '<th style="width:120px;text-align:center;padding:12px 14px;">AKSI</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody id="users-table-body">' +
+    '<tr style="border-bottom:1px solid #f0f0f0;">' +
+    '<td style="text-align:center;color:#888;font-size:13px;padding:12px 14px;">1</td>' +
+    '<td style="padding:12px 14px;"><strong style="font-family:\'JetBrains Mono\',monospace;color:#2C1810;">admin</strong></td>' +
+    '<td style="padding:12px 14px;font-weight:500;">Administrator Utama</td>' +
+    '<td style="padding:12px 14px;"><span class="badge badge-success" style="background:#2E7D32;color:#fff;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">Admin</span></td>' +
+    '<td style="padding:12px 14px;font-size:12px;color:#6B7280;">2024-01-01 08:00</td>' +
+    '<td style="text-align:center;padding:12px 14px;"><button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'admin\')" style="padding:4px 10px;font-size:12px;">✏️ Edit</button></td>' +
+    '</tr>' +
+    '<tr style="border-bottom:1px solid #f0f0f0;">' +
+    '<td style="text-align:center;color:#888;font-size:13px;padding:12px 14px;">2</td>' +
+    '<td style="padding:12px 14px;"><strong style="font-family:\'JetBrains Mono\',monospace;color:#2C1810;">kasir</strong></td>' +
+    '<td style="padding:12px 14px;font-weight:500;">Staf Kasir Toko</td>' +
+    '<td style="padding:12px 14px;"><span class="badge badge-info" style="background:#0288D1;color:#fff;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">Kasir</span></td>' +
+    '<td style="padding:12px 14px;font-size:12px;color:#6B7280;">2024-01-15 09:30</td>' +
+    '<td style="text-align:center;padding:12px 14px;">' +
+    '<div style="display:flex;gap:4px;justify-content:center;">' +
+    '<button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'kasir\')" style="padding:4px 8px;font-size:12px;">✏️ Edit</button>' +
+    '<button type="button" class="btn btn-xs btn-danger" onclick="deleteUserAccount(\'kasir\', \'kasir\')" style="padding:4px 8px;font-size:12px;color:#d32f2f;">🗑️</button>' +
+    '</div>' +
+    '</td>' +
+    '</tr>' +
+    '<tr style="border-bottom:1px solid #f0f0f0;">' +
+    '<td style="text-align:center;color:#888;font-size:13px;padding:12px 14px;">3</td>' +
+    '<td style="padding:12px 14px;"><strong style="font-family:\'JetBrains Mono\',monospace;color:#2C1810;">qc_staff</strong></td>' +
+    '<td style="padding:12px 14px;font-weight:500;">Operator Quality Control</td>' +
+    '<td style="padding:12px 14px;"><span class="badge" style="background:#FEF3C7;color:#92400E;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">QC</span></td>' +
+    '<td style="padding:12px 14px;font-size:12px;color:#6B7280;">2024-02-10 11:15</td>' +
+    '<td style="text-align:center;padding:12px 14px;">' +
+    '<div style="display:flex;gap:4px;justify-content:center;">' +
+    '<button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'qc_staff\')" style="padding:4px 8px;font-size:12px;">✏️ Edit</button>' +
+    '<button type="button" class="btn btn-xs btn-danger" onclick="deleteUserAccount(\'qc_staff\', \'qc_staff\')" style="padding:4px 8px;font-size:12px;color:#d32f2f;">🗑️</button>' +
+    '</div>' +
+    '</td>' +
+    '</tr>' +
+    '<tr>' +
+    '<td style="text-align:center;color:#888;font-size:13px;padding:12px 14px;">4</td>' +
+    '<td style="padding:12px 14px;"><strong style="font-family:\'JetBrains Mono\',monospace;color:#2C1810;">koordinator</strong></td>' +
+    '<td style="padding:12px 14px;font-weight:500;">Koordinator Lapangan &amp; Evaluasi</td>' +
+    '<td style="padding:12px 14px;"><span class="badge" style="background:#E0E7FF;color:#3730A3;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">Koordinator (View)</span></td>' +
+    '<td style="padding:12px 14px;font-size:12px;color:#6B7280;">2024-03-01 14:00</td>' +
+    '<td style="text-align:center;padding:12px 14px;">' +
+    '<div style="display:flex;gap:4px;justify-content:center;">' +
+    '<button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'koordinator\')" style="padding:4px 8px;font-size:12px;">✏️ Edit</button>' +
+    '<button type="button" class="btn btn-xs btn-danger" onclick="deleteUserAccount(\'koordinator\', \'koordinator\')" style="padding:4px 8px;font-size:12px;color:#d32f2f;">🗑️</button>' +
+    '</div>' +
+    '</td>' +
+    '</tr>' +
+    '</tbody>' +
+    '</table>' +
+    '</div>' +
+    '</div>' +
     '</div>' +
 
     '<div id="pane-telegram" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'telegram' ? 'block' : 'none') + ';">' +
-      '<h3>Pengaturan Bot Telegram</h3>' +
-      '<div class="card" style="max-width:700px;margin-top:14px;">' +
-        '<div class="field-group">' +
-          '<label class="field-label">Telegram Bot Token</label>' +
-          '<div class="input-wrapper">' +
-            '<input type="text" id="set-tg-token" class="input-field" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Telegram Bot Token" style="padding-left:14px;">' +
-          '</div>' +
-        '</div>' +
-        '<div class="field-group">' +
-          '<label class="field-label">Telegram Chat ID</label>' +
-          '<div class="input-wrapper">' +
-            '<input type="text" id="set-tg-chat-id" class="input-field" value="' + escapeHtml(settings['telegram_chat_id'] || '') + '" placeholder="Telegram Chat ID" style="padding-left:14px;">' +
-          '</div>' +
-        '</div>' +
-        '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">Cara mendapatkan token: buka Telegram, cari @BotFather, lalu ikuti langkah membuat bot baru dan salin token yang diberikan.</p>' +
-        '<button type="button" class="btn btn-primary" onclick="saveTelegramSettings()">Simpan Pengaturan Telegram</button>' +
-      '</div>' +
+    '<div class="card" style="background: white; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">' +
+    '<div>' +
+    '<h3 style="margin:0 0 4px 0;color:#2C1810;font-size:18px;font-weight:700;">🤖 Integrasi Bot Telegram</h3>' +
+    '<p class="text-muted" style="margin:0;font-size:13px;color:#6B7280;">Hubungkan sistem Kios IDEP dengan Bot Telegram untuk notifikasi otomatis instan ke pengelola.</p>' +
+    '</div>' +
+    '<div id="telegram-status-badge">' +
+    '<span style="background: #E8F5E9; color: #2E7D32; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">🟢 Aktif Terhubung</span>' +
+    '</div>' +
+    '</div>' +
+    '<div class="field-group" style="margin-bottom:16px;">' +
+    '<label class="field-label" style="display:block;font-weight:600;margin-bottom:6px;font-size:13px;color:#374151;">Telegram Bot Token</label>' +
+    '<input type="text" id="set-tg-token" class="input-field" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Contoh: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; font-family:monospace; font-size:13px; box-sizing:border-box;">' +
+    '<small style="color:#6B7280;font-size:12px;margin-top:4px;display:block;">Dapatkan token dari @BotFather di aplikasi Telegram saat membuat bot baru.</small>' +
+    '</div>' +
+    '<div class="field-group" style="margin-bottom:16px;">' +
+    '<label class="field-label" style="display:block;font-weight:600;margin-bottom:6px;font-size:13px;color:#374151;">Telegram Chat ID / Group ID</label>' +
+    '<input type="text" id="set-tg-chat-id" class="input-field" value="' + escapeHtml(settings['telegram_chat_id'] || '') + '" placeholder="Contoh: -1001234567890 atau 12345678" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; font-family:monospace; font-size:13px; box-sizing:border-box;">' +
+    '<small style="color:#6B7280;font-size:12px;margin-top:4px;display:block;">ID obrolan pribadi atau ID grup tempat notifikasi akan dikirimkan (gunakan bot @userinfobot atau sejenis).</small>' +
+    '</div>' +
+    '<div style="background: #FFF8E1; padding: 16px; border-radius: 8px; margin-top: 20px;">' +
+    '<h4 style="margin:0 0 12px 0;color:#854D0E;font-size:14px;font-weight:700;">Pilihan Notifikasi Otomatis (Push Alerts)</h4>' +
+    '<div style="display:flex;flex-direction:column;gap:10px;">' +
+    '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#374151;">' +
+    '<input type="checkbox" id="set-tg-notif-void" ' + (settings['telegram_notif_void'] === 'false' ? '' : 'checked') + ' style="width:16px;height:16px;accent-color:#5C3A21;">' +
+    '<span><strong>Alert Void Transaksi:</strong> Beritahu administrator seketika saat ada pembatalan / void nota transaksi kasir.</span>' +
+    '</label>' +
+    '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#374151;">' +
+    '<input type="checkbox" id="set-tg-notif-dht" ' + (settings['telegram_notif_dht'] === 'false' ? '' : 'checked') + ' style="width:16px;height:16px;accent-color:#5C3A21;">' +
+    '<span><strong>Pengingat Oven DHT:</strong> Peringatan jatuh tempo proses pengeringan / oven benih DHT.</span>' +
+    '</label>' +
+    '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#374151;">' +
+    '<input type="checkbox" id="set-tg-notif-qc" ' + (settings['telegram_notif_qc'] === 'false' ? '' : 'checked') + ' style="width:16px;height:16px;accent-color:#5C3A21;">' +
+    '<span><strong>Karantina QC:</strong> Peringatan saat ada lot benih atau bahan baku yang berstatus karantina / afkir QC.</span>' +
+    '</label>' +
+    '</div>' +
+    '</div>' +
+    '<div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">' +
+    '<button type="button" id="btn-save-tg" class="btn btn-primary" onclick="saveTelegramSettings()">Simpan Pengaturan Telegram</button>' +
+    '<button type="button" id="btn-test-tg" class="btn btn-secondary" onclick="testTelegramConnectionUI()">🔔 Uji Kirim Notifikasi</button>' +
+    '</div>' +
+    '</div>' +
     '</div>' +
 
     (isUserAdmin
       ? '<div id="panel-set-danger" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'danger' ? 'block' : 'none') + ';">' +
-          '<div class="card card-danger-zone">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">' +
-              '<div>' +
-                '<div style="display:flex;align-items:center;gap:8px;">' +
-                  '<span style="font-size:20px;">🚨</span>' +
-                  '<h3 style="margin:0;color:#b91c1c;">Zona Bahaya / Pembersihan Data Uji Coba</h3>' +
-                '</div>' +
-                '<p style="font-size:12.5px;color:#7f1d1d;margin:6px 0 0 0;line-height:1.4;">Gunakan fitur ini untuk menghapus seluruh riwayat transaksi simulasi. Data master produk dan pengaturan tidak akan terhapus.</p>' +
-              '</div>' +
-              '<button type="button" class="btn btn-danger" onclick="openResetDataModal()" style="white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">🗑️ Buka Panel Reset Data</button>' +
-            '</div>' +
-          '</div>' +
-        '</div>'
+      '<div class="card card-danger-zone">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">' +
+      '<div>' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+      '<span style="font-size:20px;">🚨</span>' +
+      '<h3 style="margin:0;color:#b91c1c;">Zona Bahaya / Pembersihan Data Uji Coba</h3>' +
+      '</div>' +
+      '<p style="font-size:12.5px;color:#7f1d1d;margin:6px 0 0 0;line-height:1.4;">Gunakan fitur ini untuk menghapus seluruh riwayat transaksi simulasi. Data master produk dan pengaturan tidak akan terhapus.</p>' +
+      '</div>' +
+      '<button type="button" class="btn btn-danger" onclick="openResetDataModal()" style="white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">🗑️ Buka Panel Reset Data</button>' +
+      '</div>' +
+      '</div>' +
+      '</div>'
       : '');
 
   // Inisialisasi baris preset tingkat harga
@@ -12029,21 +12101,21 @@ function addPriceTierPresetRow(name, price, isDefault) {
   tr.className = 'preset-tier-row';
   tr.innerHTML =
     '<td style="padding:8px 12px;">' +
-      '<div style="display:flex;align-items:center;gap:8px;">' +
-        '<input type="text" class="field-input preset-tier-name" value="' + escapeHtml(name || '') + '" placeholder="Misal: Reguler / Outlet / Grosir" style="width:100%;font-weight:600;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
-        (isReg ? '<span class="badge badge-success" style="font-size:10px;white-space:nowrap;">Default POS</span>' : '') +
-      '</div>' +
+    '<div style="display:flex;align-items:center;gap:8px;">' +
+    '<input type="text" class="field-input preset-tier-name" value="' + escapeHtml(name || '') + '" placeholder="Misal: Reguler / Outlet / Grosir" style="width:100%;font-weight:600;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    (isReg ? '<span class="badge badge-success" style="font-size:10px;white-space:nowrap;">Default POS</span>' : '') +
+    '</div>' +
     '</td>' +
     '<td style="padding:8px 12px;">' +
-      '<div class="input-wrapper" style="position:relative;">' +
-        '<span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);font-weight:600;">Rp</span>' +
-        '<input type="number" class="field-input preset-tier-price" value="' + (price !== undefined && price !== null && price !== '' ? Number(price) : '') + '" placeholder="0" min="0" step="100" style="width:100%;padding-left:32px;font-family:\'JetBrains Mono\',monospace;font-weight:700;padding-top:6px;padding-bottom:6px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
-      '</div>' +
+    '<div class="input-wrapper" style="position:relative;">' +
+    '<span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--text-muted);font-weight:600;">Rp</span>' +
+    '<input type="number" class="field-input preset-tier-price" value="' + (price !== undefined && price !== null && price !== '' ? Number(price) : '') + '" placeholder="0" min="0" step="100" style="width:100%;padding-left:32px;font-family:\'JetBrains Mono\',monospace;font-weight:700;padding-top:6px;padding-bottom:6px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '</div>' +
     '</td>' +
     '<td style="text-align:center;padding:8px 12px;">' +
-      (isReg
-        ? '<span style="font-size:11px;color:var(--text-muted);font-style:italic;">Tier Utama</span>'
-        : '<button type="button" class="btn btn-secondary btn-sm" style="color:var(--danger);padding:4px 8px;" onclick="this.closest(\'tr\').remove()" title="Hapus Tier">🗑️ Hapus</button>') +
+    (isReg
+      ? '<span style="font-size:11px;color:var(--text-muted);font-style:italic;">Tier Utama</span>'
+      : '<button type="button" class="btn btn-secondary btn-sm" style="color:var(--danger);padding:4px 8px;" onclick="this.closest(\'tr\').remove()" title="Hapus Tier">🗑️ Hapus</button>') +
     '</td>';
   tbody.appendChild(tr);
 }
@@ -12103,7 +12175,7 @@ function renderRoleMatrixUI() {
     const isActive = r === roleName;
     roleTabsHtml += '<button type="button" class="role-tab-btn' + (isActive ? ' active' : '') + '" onclick="selectRoleTab(\'' + escapeHtml(r) + '\')">' +
       escapeHtml(r) + (r === 'Koordinator' ? ' (View-Only)' : '') +
-    '</button>';
+      '</button>';
   });
   roleTabsHtml += '<button type="button" class="btn btn-secondary btn-sm" onclick="openRoleModal()" style="display:inline-flex;align-items:center;gap:4px;">+ Tambah Peran Baru</button>';
   roleTabsHtml += '</div>';
@@ -12119,17 +12191,17 @@ function renderRoleMatrixUI() {
 
   let tableHtml =
     '<div class="table-container" style="overflow-x:auto;">' +
-      '<table class="role-matrix-table" style="width:100%;margin-bottom:0;">' +
-        '<thead>' +
-          '<tr>' +
-            '<th style="width:40px;text-align:center;">No</th>' +
-            '<th>Modul Sistem</th>' +
-            '<th style="width:140px;text-align:center;">👁️ [Lihat]</th>' +
-            '<th style="width:140px;text-align:center;">✏️ [Input/Ubah]</th>' +
-            '<th style="width:140px;text-align:center;">🗑️ [Hapus/Batal]</th>' +
-          '</tr>' +
-        '</thead>' +
-        '<tbody id="roles-matrix-body">';
+    '<table class="role-matrix-table" style="width:100%;margin-bottom:0;">' +
+    '<thead>' +
+    '<tr>' +
+    '<th style="width:40px;text-align:center;">No</th>' +
+    '<th>Modul Sistem</th>' +
+    '<th style="width:140px;text-align:center;">👁️ [Lihat]</th>' +
+    '<th style="width:140px;text-align:center;">✏️ [Input/Ubah]</th>' +
+    '<th style="width:140px;text-align:center;">🗑️ [Hapus/Batal]</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody id="roles-matrix-body">';
 
   const modules = Object.keys(moduleNames);
   modules.forEach(function (mKey, idx) {
@@ -12147,42 +12219,42 @@ function renderRoleMatrixUI() {
 
     tableHtml +=
       '<tr>' +
-        '<td style="text-align:center;color:var(--text-muted);font-size:12px;">' + (idx + 1) + '</td>' +
-        '<td>' +
-          '<div style="font-weight:600;color:var(--text-main);">' + escapeHtml(moduleNames[mKey]) + '</div>' +
-          '<code style="font-size:10.5px;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;">' + escapeHtml(mKey) + '</code>' +
-        '</td>' +
-        '<td style="text-align:center;">' +
-          '<input type="checkbox" class="role-checkbox-custom ' + (isAdminRole ? 'role-checkbox-admin' : '') + '" ' +
-            (viewChecked ? 'checked ' : '') +
-            (viewDisabled ? 'disabled ' : '') +
-            'onchange="updateRoleMatrixPerm(\'' + escapeHtml(roleName) + '\', \'' + escapeHtml(mKey) + '\', \'can_view\', this.checked)">' +
-        '</td>' +
-        '<td style="text-align:center;">' +
-          '<input type="checkbox" class="role-checkbox-custom ' + (isAdminRole ? 'role-checkbox-admin' : '') + '" ' +
-            (editChecked ? 'checked ' : '') +
-            (editDisabled ? 'disabled ' : '') +
-            'onchange="updateRoleMatrixPerm(\'' + escapeHtml(roleName) + '\', \'' + escapeHtml(mKey) + '\', \'can_edit\', this.checked)">' +
-        '</td>' +
-        '<td style="text-align:center;">' +
-          '<input type="checkbox" class="role-checkbox-custom ' + (isAdminRole ? 'role-checkbox-admin' : '') + '" ' +
-            (delChecked ? 'checked ' : '') +
-            (delDisabled ? 'disabled ' : '') +
-            'onchange="updateRoleMatrixPerm(\'' + escapeHtml(roleName) + '\', \'' + escapeHtml(mKey) + '\', \'can_delete\', this.checked)">' +
-        '</td>' +
+      '<td style="text-align:center;color:var(--text-muted);font-size:12px;">' + (idx + 1) + '</td>' +
+      '<td>' +
+      '<div style="font-weight:600;color:var(--text-main);">' + escapeHtml(moduleNames[mKey]) + '</div>' +
+      '<code style="font-size:10.5px;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;">' + escapeHtml(mKey) + '</code>' +
+      '</td>' +
+      '<td style="text-align:center;">' +
+      '<input type="checkbox" class="role-checkbox-custom ' + (isAdminRole ? 'role-checkbox-admin' : '') + '" ' +
+      (viewChecked ? 'checked ' : '') +
+      (viewDisabled ? 'disabled ' : '') +
+      'onchange="updateRoleMatrixPerm(\'' + escapeHtml(roleName) + '\', \'' + escapeHtml(mKey) + '\', \'can_view\', this.checked)">' +
+      '</td>' +
+      '<td style="text-align:center;">' +
+      '<input type="checkbox" class="role-checkbox-custom ' + (isAdminRole ? 'role-checkbox-admin' : '') + '" ' +
+      (editChecked ? 'checked ' : '') +
+      (editDisabled ? 'disabled ' : '') +
+      'onchange="updateRoleMatrixPerm(\'' + escapeHtml(roleName) + '\', \'' + escapeHtml(mKey) + '\', \'can_edit\', this.checked)">' +
+      '</td>' +
+      '<td style="text-align:center;">' +
+      '<input type="checkbox" class="role-checkbox-custom ' + (isAdminRole ? 'role-checkbox-admin' : '') + '" ' +
+      (delChecked ? 'checked ' : '') +
+      (delDisabled ? 'disabled ' : '') +
+      'onchange="updateRoleMatrixPerm(\'' + escapeHtml(roleName) + '\', \'' + escapeHtml(mKey) + '\', \'can_delete\', this.checked)">' +
+      '</td>' +
       '</tr>';
   });
 
   tableHtml +=
-        '</tbody>' +
-      '</table>' +
+    '</tbody>' +
+    '</table>' +
     '</div>';
 
   const actionButtons =
     '<div style="margin-top:16px;display:flex;justify-content:flex-end;gap:10px;">' +
-      '<button type="button" class="btn btn-primary" onclick="saveRoleMatrixSettings()" ' + (roleName === 'Admin' ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '') + '>' +
-        '💾 Simpan Matriks Hak Akses' +
-      '</button>' +
+    '<button type="button" class="btn btn-primary" onclick="saveRoleMatrixSettings()" ' + (roleName === 'Admin' ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '') + '>' +
+    '💾 Simpan Matriks Hak Akses' +
+    '</button>' +
     '</div>';
 
   container.innerHTML = roleTabsHtml + roleDesc + tableHtml + actionButtons;
@@ -12290,11 +12362,11 @@ function renderUsersListUI() {
 
   const headerHtml =
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
-      '<div>' +
-        '<h3 style="margin-bottom:4px;">Daftar Akun Pengguna</h3>' +
-        '<p style="font-size:12px;color:var(--text-secondary);margin:0;">Kelola akun staf kasir, operator QC, koordinator, dan administrator.</p>' +
-      '</div>' +
-      '<button type="button" class="btn btn-primary btn-sm" onclick="openUserModal()">+ Tambah Pengguna Baru</button>' +
+    '<div>' +
+    '<h3 style="margin-bottom:4px;">Daftar Akun Pengguna</h3>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin:0;">Kelola akun staf kasir, operator QC, koordinator, dan administrator.</p>' +
+    '</div>' +
+    '<button type="button" class="btn btn-primary btn-sm" onclick="openUserModal()">+ Tambah Pengguna Baru</button>' +
     '</div>';
 
   if (!CURRENT_USERS_LIST || CURRENT_USERS_LIST.length === 0) {
@@ -12304,18 +12376,18 @@ function renderUsersListUI() {
 
   let tableHtml =
     '<div class="table-container" style="overflow-x:auto;">' +
-      '<table style="width:100%;margin-bottom:0;">' +
-        '<thead>' +
-          '<tr>' +
-            '<th style="width:40px;text-align:center;">No</th>' +
-            '<th>Username</th>' +
-            '<th>Nama Lengkap</th>' +
-            '<th>Peran / Hak Akses</th>' +
-            '<th>Dibuat Pada</th>' +
-            '<th style="width:120px;text-align:center;">Aksi</th>' +
-          '</tr>' +
-        '</thead>' +
-        '<tbody id="users-table-body">';
+    '<table style="width:100%;margin-bottom:0;">' +
+    '<thead>' +
+    '<tr>' +
+    '<th style="width:40px;text-align:center;">No</th>' +
+    '<th>Username</th>' +
+    '<th>Nama Lengkap</th>' +
+    '<th>Peran / Hak Akses</th>' +
+    '<th>Dibuat Pada</th>' +
+    '<th style="width:120px;text-align:center;">Aksi</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody id="users-table-body">';
 
   CURRENT_USERS_LIST.forEach(function (u, idx) {
     const isMainAdmin = String(u.username).toLowerCase() === 'admin';
@@ -12326,19 +12398,19 @@ function renderUsersListUI() {
 
     tableHtml +=
       '<tr>' +
-        '<td style="text-align:center;color:var(--text-muted);font-size:12px;">' + (idx + 1) + '</td>' +
-        '<td><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--text-main);">' + escapeHtml(u.username) + '</strong></td>' +
-        '<td>' + escapeHtml(u.name || '-') + '</td>' +
-        '<td>' + roleBadge + '</td>' +
-        '<td style="font-size:12px;color:var(--text-secondary);">' + (u.created_at ? formatDate(u.created_at) : '-') + '</td>' +
-        '<td style="text-align:center;">' +
-          '<div style="display:flex;gap:6px;justify-content:center;">' +
-            '<button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'' + escapeHtml(u.id) + '\')">✏️ Edit</button>' +
-            (!isMainAdmin
-              ? '<button type="button" class="btn btn-xs btn-danger" onclick="deleteUserAccount(\'' + escapeHtml(u.id) + '\', \'' + escapeHtml(u.username) + '\')">🗑️</button>'
-              : '') +
-          '</div>' +
-        '</td>' +
+      '<td style="text-align:center;color:var(--text-muted);font-size:12px;">' + (idx + 1) + '</td>' +
+      '<td><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--text-main);">' + escapeHtml(u.username) + '</strong></td>' +
+      '<td>' + escapeHtml(u.name || '-') + '</td>' +
+      '<td>' + roleBadge + '</td>' +
+      '<td style="font-size:12px;color:var(--text-secondary);">' + (u.created_at ? formatDate(u.created_at) : '-') + '</td>' +
+      '<td style="text-align:center;">' +
+      '<div style="display:flex;gap:6px;justify-content:center;">' +
+      '<button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'' + escapeHtml(u.id) + '\')">✏️ Edit</button>' +
+      (!isMainAdmin
+        ? '<button type="button" class="btn btn-xs btn-danger" onclick="deleteUserAccount(\'' + escapeHtml(u.id) + '\', \'' + escapeHtml(u.username) + '\')">🗑️</button>'
+        : '') +
+      '</div>' +
+      '</td>' +
       '</tr>';
   });
 
@@ -12475,20 +12547,20 @@ function unlockBankSettings() {
   overlay.innerHTML =
     '<div class="modal-backdrop"></div>' +
     '<div class="modal-dialog modal-dialog-sm" style="max-width:420px;">' +
-      '<div class="modal-header">' +
-        '<h3 class="modal-title">Verifikasi Password</h3>' +
-        '<button type="button" class="modal-close-btn" id="bank-lock-close">&times;</button>' +
-      '</div>' +
-      '<div class="modal-body">' +
-        '<p style="margin:0 0 12px;color:var(--text-secondary);font-size:13px;">Masukkan password akun Anda saat ini untuk membuka kunci data rekening bank.</p>' +
-        '<div class="input-wrapper">' +
-          '<input type="password" id="bank-lock-password" placeholder="Password saat ini" style="padding-left:14px;">' +
-        '</div>' +
-      '</div>' +
-      '<div class="modal-footer">' +
-        '<button type="button" class="btn btn-secondary" id="bank-lock-cancel">Batal</button>' +
-        '<button type="button" class="btn btn-primary" id="bank-lock-confirm">Verifikasi</button>' +
-      '</div>' +
+    '<div class="modal-header">' +
+    '<h3 class="modal-title">Verifikasi Password</h3>' +
+    '<button type="button" class="modal-close-btn" id="bank-lock-close">&times;</button>' +
+    '</div>' +
+    '<div class="modal-body">' +
+    '<p style="margin:0 0 12px;color:var(--text-secondary);font-size:13px;">Masukkan password akun Anda saat ini untuk membuka kunci data rekening bank.</p>' +
+    '<div class="input-wrapper">' +
+    '<input type="password" id="bank-lock-password" placeholder="Password saat ini" style="padding-left:14px;">' +
+    '</div>' +
+    '</div>' +
+    '<div class="modal-footer">' +
+    '<button type="button" class="btn btn-secondary" id="bank-lock-cancel">Batal</button>' +
+    '<button type="button" class="btn btn-primary" id="bank-lock-confirm">Verifikasi</button>' +
+    '</div>' +
     '</div>';
 
   document.body.appendChild(overlay);
@@ -12565,7 +12637,7 @@ function sendTelegramSecurityAlert(message) {
       chat_id: chatId,
       text: message
     })
-  }).catch(function () {});
+  }).catch(function () { });
 }
 
 function saveStoreSettingsUI() {
@@ -12834,8 +12906,8 @@ function validateResetConfirmInput() {
   const cbAftersales = document.getElementById('reset-mod-aftersales');
 
   const hasModuleSelected = (cbPos && cbPos.checked) ||
-                            (cbConsign && cbConsign.checked) ||
-                            (cbAftersales && cbAftersales.checked);
+    (cbConsign && cbConsign.checked) ||
+    (cbAftersales && cbAftersales.checked);
 
   if (isTextMatch && hasModuleSelected) {
     btn.disabled = false;
@@ -13009,60 +13081,60 @@ function drawFakturUI(list) {
 
   content.innerHTML =
     '<div class="page-header no-print" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">' +
-      '<div>' +
-        '<h1 class="page-title" style="margin:0;font-size:18px;">Riwayat Transaksi &amp; Faktur</h1>' +
-        '<p class="page-subtitle" style="margin:2px 0 0 0;font-size:12px;">Cetak faktur formal A4, simpan PDF, struk thermal kasir, dan kirim nota via WhatsApp.</p>' +
-      '</div>' +
-      '<div style="font-size:12px;color:var(--text-secondary);">' +
-        'Total: <strong style="color:var(--text-main);">' + list.length + ' Nota</strong>' +
-      '</div>' +
+    '<div>' +
+    '<h1 class="page-title" style="margin:0;font-size:18px;">Riwayat Transaksi &amp; Faktur</h1>' +
+    '<p class="page-subtitle" style="margin:2px 0 0 0;font-size:12px;">Cetak faktur formal A4, simpan PDF, struk thermal kasir, dan kirim nota via WhatsApp.</p>' +
+    '</div>' +
+    '<div style="font-size:12px;color:var(--text-secondary);">' +
+    'Total: <strong style="color:var(--text-main);">' + list.length + ' Nota</strong>' +
+    '</div>' +
     '</div>' +
 
     '<div style="display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start;">' +
-      '<div class="card" style="max-height:86vh;overflow-y:auto;padding:14px;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
-          '<h3 style="font-size:14px;margin:0;">Daftar Transaksi</h3>' +
-          '<span style="font-size:11px;color:var(--text-secondary);">' + list.length + ' Nota</span>' +
-        '</div>' +
+    '<div class="card" style="max-height:86vh;overflow-y:auto;padding:14px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+    '<h3 style="font-size:14px;margin:0;">Daftar Transaksi</h3>' +
+    '<span style="font-size:11px;color:var(--text-secondary);">' + list.length + ' Nota</span>' +
+    '</div>' +
 
-        // Bar Filter Rentang Tanggal
-        '<div class="faktur-filter-bar" style="background:var(--surface-muted);padding:10px;border-radius:var(--radius-xs);border:1px solid var(--border);margin-bottom:10px;">' +
-          '<div style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">Periode Tanggal</div>' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">' +
-            '<div>' +
-              '<label style="font-size:9px;color:var(--text-secondary);display:block;">Mulai:</label>' +
-              '<input type="date" id="faktur-start-date" value="' + currentStart + '" style="width:100%;padding:4px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;">' +
-            '</div>' +
-            '<div>' +
-              '<label style="font-size:9px;color:var(--text-secondary);display:block;">Sampai:</label>' +
-              '<input type="date" id="faktur-end-date" value="' + currentEnd + '" style="width:100%;padding:4px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;">' +
-            '</div>' +
-          '</div>' +
-          '<div style="display:flex;gap:6px;">' +
-            '<button type="button" class="btn btn-primary btn-sm" onclick="applyFakturDateFilter()" style="flex:1;padding:4px 8px;font-size:11px;">🔍 Filter</button>' +
-            '<button type="button" class="btn btn-secondary btn-sm" onclick="resetFakturDateFilter()" style="padding:4px 8px;font-size:11px;" title="Kembalikan ke 30 Hari Terakhir">🔄 30 Hari</button>' +
-          '</div>' +
-        '</div>' +
+    // Bar Filter Rentang Tanggal
+    '<div class="faktur-filter-bar" style="background:var(--surface-muted);padding:10px;border-radius:var(--radius-xs);border:1px solid var(--border);margin-bottom:10px;">' +
+    '<div style="font-size:10px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;">Periode Tanggal</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">' +
+    '<div>' +
+    '<label style="font-size:9px;color:var(--text-secondary);display:block;">Mulai:</label>' +
+    '<input type="date" id="faktur-start-date" value="' + currentStart + '" style="width:100%;padding:4px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;">' +
+    '</div>' +
+    '<div>' +
+    '<label style="font-size:9px;color:var(--text-secondary);display:block;">Sampai:</label>' +
+    '<input type="date" id="faktur-end-date" value="' + currentEnd + '" style="width:100%;padding:4px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;">' +
+    '</div>' +
+    '</div>' +
+    '<div style="display:flex;gap:6px;">' +
+    '<button type="button" class="btn btn-primary btn-sm" onclick="applyFakturDateFilter()" style="flex:1;padding:4px 8px;font-size:11px;">🔍 Filter</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="resetFakturDateFilter()" style="padding:4px 8px;font-size:11px;" title="Kembalikan ke 30 Hari Terakhir">🔄 30 Hari</button>' +
+    '</div>' +
+    '</div>' +
 
-        // Bar Filter Pencarian & Status
-        '<div style="margin-bottom:10px;display:flex;flex-direction:column;gap:6px;">' +
-          '<input type="text" id="faktur-search-input" class="topbar-search" placeholder="Cari nota, pelanggan, cara bayar..." oninput="filterFakturList()" style="width:100%;">' +
-          '<select id="faktur-status-filter" onchange="filterFakturList()" style="padding:6px 8px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
-            '<option value="all">Semua Status Pembayaran</option>' +
-            '<option value="paid">Lunas (Paid)</option>' +
-            '<option value="partial">Cicilan / Tempo</option>' +
-            '<option value="void">Dibatalkan (VOID)</option>' +
-          '</select>' +
-        '</div>' +
-        '<div id="faktur-list-container" style="display:flex;flex-direction:column;gap:8px;"></div>' +
-      '</div>' +
-      '<div id="invoice-panel">' +
-        '<div class="card" style="text-align:center;padding:60px 20px;color:var(--text-secondary);">' +
-          '<div style="font-size:40px;margin-bottom:10px;">🧾</div>' +
-          '<h3 style="font-size:16px;color:var(--text-main);margin-bottom:6px;">Pilih Transaksi</h3>' +
-          '<p style="font-size:13px;">Klik salah satu nota di panel kiri untuk membuka faktur dan menu aksinya.</p>' +
-        '</div>' +
-      '</div>' +
+    // Bar Filter Pencarian & Status
+    '<div style="margin-bottom:10px;display:flex;flex-direction:column;gap:6px;">' +
+    '<input type="text" id="faktur-search-input" class="topbar-search" placeholder="Cari nota, pelanggan, cara bayar..." oninput="filterFakturList()" style="width:100%;">' +
+    '<select id="faktur-status-filter" onchange="filterFakturList()" style="padding:6px 8px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '<option value="all">Semua Status Pembayaran</option>' +
+    '<option value="paid">Lunas (Paid)</option>' +
+    '<option value="partial">Cicilan / Tempo</option>' +
+    '<option value="void">Dibatalkan (VOID)</option>' +
+    '</select>' +
+    '</div>' +
+    '<div id="faktur-list-container" style="display:flex;flex-direction:column;gap:8px;"></div>' +
+    '</div>' +
+    '<div id="invoice-panel">' +
+    '<div class="card" style="text-align:center;padding:60px 20px;color:var(--text-secondary);">' +
+    '<div style="font-size:40px;margin-bottom:10px;">🧾</div>' +
+    '<h3 style="font-size:16px;color:var(--text-main);margin-bottom:6px;">Pilih Transaksi</h3>' +
+    '<p style="font-size:13px;">Klik salah satu nota di panel kiri untuk membuka faktur dan menu aksinya.</p>' +
+    '</div>' +
+    '</div>' +
     '</div>';
 
   filterFakturList();
@@ -13116,18 +13188,18 @@ function renderFakturRows(list) {
 
     return '<div style="' + cardStyle + '" onclick="loadInvoicePreview(\'' + t.id + '\')">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-        '<strong style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);font-size:12px;">#' + escapeHtml(t.id) + '</strong>' +
-        badge +
+      '<strong style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);font-size:12px;">#' + escapeHtml(t.id) + '</strong>' +
+      badge +
       '</div>' +
       '<div style="font-size:12px;color:var(--text-main);margin-top:4px;font-weight:600;">' +
-        escapeHtml(clientName) + profitHTML +
+      escapeHtml(clientName) + profitHTML +
       '</div>' +
       voidNoteHTML +
       '<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text-secondary);margin-top:3px;">' +
-        '<span>' + formatDate(t.created_at) + ' &bull; ' + escapeHtml(t.payment_method || 'Tunai') + '</span>' +
-        priceHTML +
+      '<span>' + formatDate(t.created_at) + ' &bull; ' + escapeHtml(t.payment_method || 'Tunai') + '</span>' +
+      priceHTML +
       '</div>' +
-    '</div>';
+      '</div>';
   }).join('');
 }
 
@@ -13201,67 +13273,67 @@ function renderInvoiceLayout(data, template) {
 
   const voidBannerHTML = isVoid ? (
     '<div class="tx-void-banner" style="background:#FEE2E2;border:1px solid #F87171;color:#991B1B;padding:12px 16px;border-radius:6px;margin-bottom:14px;display:flex;align-items:flex-start;gap:12px;">' +
-      '<span style="font-size:24px;line-height:1;">⚠️</span>' +
-      '<div style="flex:1;">' +
-        '<div style="font-size:13px;font-weight:800;letter-spacing:0.5px;">TRANSAKSI TELAH DIBATALKAN (VOID)</div>' +
-        '<div style="font-size:12px;margin-top:3px;line-height:1.4;">' +
-          'Dibatalkan pada: <strong>' + formatDate(tx.void_at || tx.updated_at) + '</strong> oleh <strong>' + escapeHtml(tx.void_by || 'Admin') + '</strong>.<br>' +
-          'Alasan: <em>"' + escapeHtml(tx.void_reason || '-') + '"</em>.<br>' +
-          '<span style="color:#065F46;font-weight:600;">✓ Kuantitas sachet/benih telah dikembalikan ke stok batch fisik.</span>' +
-        '</div>' +
-      '</div>' +
+    '<span style="font-size:24px;line-height:1;">⚠️</span>' +
+    '<div style="flex:1;">' +
+    '<div style="font-size:13px;font-weight:800;letter-spacing:0.5px;">TRANSAKSI TELAH DIBATALKAN (VOID)</div>' +
+    '<div style="font-size:12px;margin-top:3px;line-height:1.4;">' +
+    'Dibatalkan pada: <strong>' + formatDate(tx.void_at || tx.updated_at) + '</strong> oleh <strong>' + escapeHtml(tx.void_by || 'Admin') + '</strong>.<br>' +
+    'Alasan: <em>"' + escapeHtml(tx.void_reason || '-') + '"</em>.<br>' +
+    '<span style="color:#065F46;font-weight:600;">✓ Kuantitas sachet/benih telah dikembalikan ke stok batch fisik.</span>' +
+    '</div>' +
+    '</div>' +
     '</div>'
   ) : '';
 
   const totalCardHTML = isVoid ? (
     '<div style="text-align:right;">' +
-      '<div style="font-size:10px;color:#DC2626;text-transform:uppercase;font-weight:800;">NOTA BATAL (VOID)</div>' +
-      '<div style="font-size:20px;font-weight:800;color:var(--text-secondary);text-decoration:line-through;font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(tx.total) + '</div>' +
+    '<div style="font-size:10px;color:#DC2626;text-transform:uppercase;font-weight:800;">NOTA BATAL (VOID)</div>' +
+    '<div style="font-size:20px;font-weight:800;color:var(--text-secondary);text-decoration:line-through;font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(tx.total) + '</div>' +
     '</div>'
   ) : (
     '<div style="text-align:right;">' +
-      '<div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;font-weight:700;">TOTAL TAGIHAN</div>' +
-      '<div style="font-size:20px;font-weight:800;color:var(--accent);font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(tx.total) + '</div>' +
-      (adminUser && tx.gross_profit !== undefined ? (
-        '<div style="font-size:11px;color:#16A34A;font-weight:700;margin-top:2px;">Est. Laba: ' + formatRupiah(tx.gross_profit) + ' (' + (tx.margin_percent || 0) + '%)</div>'
-      ) : '') +
+    '<div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;font-weight:700;">TOTAL TAGIHAN</div>' +
+    '<div style="font-size:20px;font-weight:800;color:var(--accent);font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(tx.total) + '</div>' +
+    (adminUser && tx.gross_profit !== undefined ? (
+      '<div style="font-size:11px;color:#16A34A;font-weight:700;margin-top:2px;">Est. Laba: ' + formatRupiah(tx.gross_profit) + ' (' + (tx.margin_percent || 0) + '%)</div>'
+    ) : '') +
     '</div>'
   );
 
   panel.innerHTML =
     '<div class="card" style="margin-bottom:14px;padding:16px 20px;">' +
-      voidBannerHTML +
-      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">' +
-        '<div>' +
-          '<div style="display:flex;align-items:center;gap:8px;">' +
-            '<span style="font-family:\'JetBrains Mono\',monospace;font-size:16px;font-weight:800;color:var(--primary);">#' + escapeHtml(tx.id) + '</span>' +
-            statusBadge +
-          '</div>' +
-          '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">' +
-            'Klien: <strong style="color:var(--text-main);">' + escapeHtml(custName) + '</strong> &bull; ' + formatDate(tx.created_at) + ' (' + escapeHtml(tx.payment_method || 'Tunai') + ')' +
-          '</div>' +
-        '</div>' +
-        totalCardHTML +
-      '</div>' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;" class="no-print">' +
-        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
-          '<div class="invoice-format-tabs">' +
-            '<button type="button" class="invoice-format-tab-btn ' + (template === 'thermal' ? 'active' : '') + '" data-mode="thermal" onclick="switchInvoiceView(\'thermal\')">🧾 Struk Termal (58mm)</button>' +
-            '<button type="button" class="invoice-format-tab-btn ' + (template === 'minimalist' ? 'active' : '') + '" data-mode="minimalist" onclick="switchInvoiceView(\'minimalist\')">📄 Faktur Minimalis</button>' +
-            '<button type="button" class="invoice-format-tab-btn ' + (template === 'formal' ? 'active' : '') + '" data-mode="formal" onclick="switchInvoiceView(\'formal\')">🏛️ Faktur Formal (A4)</button>' +
-          '</div>' +
-        '</div>' +
-        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
-          '<button type="button" class="btn btn-primary btn-sm" onclick="printActiveInvoice()" style="font-weight:700;"><span style="font-size:13px;">🖨️</span> Cetak / Simpan PDF</button>' +
-          '<button type="button" class="btn btn-secondary btn-sm btn-tx-wa" onclick="sendReceiptToWhatsApp(window._curInv)" style="background:#25D366;color:#FFFFFF;border-color:#25D366;font-weight:600;">📲 Kirim WA</button>' +
-          '<button type="button" class="btn btn-secondary btn-sm" onclick="openTransactionDetailModal(\'' + tx.id + '\')">🔍 Rincian Lengkap</button>' +
-          '<button type="button" class="btn btn-warning btn-sm" onclick="openTransactionDetailModal(\'' + tx.id + '\')" title="Ajukan klaim garansi benih dari nota ini" style="font-weight:600;">🌱 Klaim Benih</button>' +
-          (!isVoid ? '<button type="button" class="btn btn-secondary btn-sm" onclick="startEditTransaction(\'' + tx.id + '\')">✏️ Koreksi Nota</button>' : '') +
-          (!isVoid && adminUser ? '<button type="button" class="btn btn-danger btn-sm btn-tx-void" onclick="promptVoidTransaction(\'' + tx.id + '\', \'' + escapeHtml(custName).replace(/'/g, "\\'") + '\')" style="font-weight:700;">⚠️ Batalkan (Void)</button>' : '') +
-          (adminUser ? '<button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTransactionUI(\'' + tx.id + '\')" style="color:#DC2626;border:1px solid #DC2626;padding:4px 8px;font-size:11px;" title="Hapus permanen darurat (khusus admin)">🗑️</button>' : '') +
-          '<button type="button" class="btn btn-secondary btn-sm" onclick="closeInvoicePanel()" title="Tutup pratinjau faktur">✕ Tutup</button>' +
-        '</div>' +
-      '</div>' +
+    voidBannerHTML +
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">' +
+    '<div>' +
+    '<div style="display:flex;align-items:center;gap:8px;">' +
+    '<span style="font-family:\'JetBrains Mono\',monospace;font-size:16px;font-weight:800;color:var(--primary);">#' + escapeHtml(tx.id) + '</span>' +
+    statusBadge +
+    '</div>' +
+    '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">' +
+    'Klien: <strong style="color:var(--text-main);">' + escapeHtml(custName) + '</strong> &bull; ' + formatDate(tx.created_at) + ' (' + escapeHtml(tx.payment_method || 'Tunai') + ')' +
+    '</div>' +
+    '</div>' +
+    totalCardHTML +
+    '</div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;" class="no-print">' +
+    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+    '<div class="invoice-format-tabs">' +
+    '<button type="button" class="invoice-format-tab-btn ' + (template === 'thermal' ? 'active' : '') + '" data-mode="thermal" onclick="switchInvoiceView(\'thermal\')">🧾 Struk Termal (58mm)</button>' +
+    '<button type="button" class="invoice-format-tab-btn ' + (template === 'minimalist' ? 'active' : '') + '" data-mode="minimalist" onclick="switchInvoiceView(\'minimalist\')">📄 Faktur Minimalis</button>' +
+    '<button type="button" class="invoice-format-tab-btn ' + (template === 'formal' ? 'active' : '') + '" data-mode="formal" onclick="switchInvoiceView(\'formal\')">🏛️ Faktur Formal (A4)</button>' +
+    '</div>' +
+    '</div>' +
+    '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+    '<button type="button" class="btn btn-primary btn-sm" onclick="printActiveInvoice()" style="font-weight:700;"><span style="font-size:13px;">🖨️</span> Cetak / Simpan PDF</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm btn-tx-wa" onclick="sendReceiptToWhatsApp(window._curInv)" style="background:#25D366;color:#FFFFFF;border-color:#25D366;font-weight:600;">📲 Kirim WA</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="openTransactionDetailModal(\'' + tx.id + '\')">🔍 Rincian Lengkap</button>' +
+    '<button type="button" class="btn btn-warning btn-sm" onclick="openTransactionDetailModal(\'' + tx.id + '\')" title="Ajukan klaim garansi benih dari nota ini" style="font-weight:600;">🌱 Klaim Benih</button>' +
+    (!isVoid ? '<button type="button" class="btn btn-secondary btn-sm" onclick="startEditTransaction(\'' + tx.id + '\')">✏️ Koreksi Nota</button>' : '') +
+    (!isVoid && adminUser ? '<button type="button" class="btn btn-danger btn-sm btn-tx-void" onclick="promptVoidTransaction(\'' + tx.id + '\', \'' + escapeHtml(custName).replace(/'/g, "\\'") + '\')" style="font-weight:700;">⚠️ Batalkan (Void)</button>' : '') +
+    (adminUser ? '<button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTransactionUI(\'' + tx.id + '\')" style="color:#DC2626;border:1px solid #DC2626;padding:4px 8px;font-size:11px;" title="Hapus permanen darurat (khusus admin)">🗑️</button>' : '') +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="closeInvoicePanel()" title="Tutup pratinjau faktur">✕ Tutup</button>' +
+    '</div>' +
+    '</div>' +
     '</div>' +
     '<div id="invoice-doc-body">' + buildInvoiceRenderAreaHTML(data, template) + '</div>';
 
@@ -13384,22 +13456,22 @@ function handleCheckoutQrisFeeChange(method, baseTotal) {
     const grandTotal = baseTotal + mdrFee;
     box.innerHTML =
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
-        '<span><i class="fas fa-qrcode"></i> Biaya Transaksi QRIS (' + rate + '%):</span>' +
-        '<strong style="color:var(--primary);font-size:13px;">' + formatRupiah(mdrFee) + '</strong>' +
+      '<span><i class="fas fa-qrcode"></i> Biaya Transaksi QRIS (' + rate + '%):</span>' +
+      '<strong style="color:var(--primary);font-size:13px;">' + formatRupiah(mdrFee) + '</strong>' +
       '</div>' +
       '<div style="font-size:11px;color:var(--text-muted);">' +
-        'Biaya MDR dibebankan ke pelanggan. Total yang wajib dibayar: <strong>' + formatRupiah(grandTotal) + '</strong>.' +
+      'Biaya MDR dibebankan ke pelanggan. Total yang wajib dibayar: <strong>' + formatRupiah(grandTotal) + '</strong>.' +
       '</div>';
     if (titleTotalEl) titleTotalEl.textContent = formatRupiah(grandTotal);
   } else {
     const netReceived = Math.max(0, baseTotal - mdrFee);
     box.innerHTML =
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
-        '<span><i class="fas fa-qrcode"></i> Biaya MDR QRIS (' + rate + '%):</span>' +
-        '<strong style="color:#d97706;font-size:13px;">' + formatRupiah(mdrFee) + '</strong>' +
+      '<span><i class="fas fa-qrcode"></i> Biaya MDR QRIS (' + rate + '%):</span>' +
+      '<strong style="color:#d97706;font-size:13px;">' + formatRupiah(mdrFee) + '</strong>' +
       '</div>' +
       '<div style="font-size:11px;color:var(--text-muted);">' +
-        'Biaya MDR ditanggung toko (Kios IDEP). Estimasi penerimaan bersih kasir: <strong>' + formatRupiah(netReceived) + '</strong> (Total pelanggan tetap ' + formatRupiah(baseTotal) + ').' +
+      'Biaya MDR ditanggung toko (Kios IDEP). Estimasi penerimaan bersih kasir: <strong>' + formatRupiah(netReceived) + '</strong> (Total pelanggan tetap ' + formatRupiah(baseTotal) + ').' +
       '</div>';
     if (titleTotalEl) titleTotalEl.textContent = formatRupiah(baseTotal);
   }
@@ -13441,7 +13513,7 @@ async function fetchExpensesData(forceRefresh) {
       EXPENSES_CACHE_DATA = JSON.parse(local);
       return EXPENSES_CACHE_DATA;
     }
-  } catch (e) {}
+  } catch (e) { }
 
   EXPENSES_CACHE_DATA = [];
   return EXPENSES_CACHE_DATA;
@@ -13473,7 +13545,7 @@ async function fetchExpenseCategoriesData(forceRefresh) {
       EXPENSE_CATEGORIES_CACHE_DATA = JSON.parse(local);
       return EXPENSE_CATEGORIES_CACHE_DATA;
     }
-  } catch (e) {}
+  } catch (e) { }
 
   EXPENSE_CATEGORIES_CACHE_DATA = [...DEFAULT_EXPENSE_CATEGORIES];
   return EXPENSE_CATEGORIES_CACHE_DATA;
@@ -13485,8 +13557,8 @@ async function renderExpenses(forceRefresh) {
 
   content.innerHTML =
     '<div class="card" style="padding:40px;text-align:center;">' +
-      '<div class="spinner" style="margin:0 auto 16px;width:32px;height:32px;"></div>' +
-      '<div style="color:var(--text-muted);font-weight:600;">Memuat modul Pengeluaran & Biaya Operasional...</div>' +
+    '<div class="spinner" style="margin:0 auto 16px;width:32px;height:32px;"></div>' +
+    '<div style="color:var(--text-muted);font-weight:600;">Memuat modul Pengeluaran & Biaya Operasional...</div>' +
     '</div>';
 
   try {
@@ -13499,9 +13571,9 @@ async function renderExpenses(forceRefresh) {
     console.error('Gagal renderExpenses:', err);
     content.innerHTML =
       '<div class="card" style="padding:24px;text-align:center;border-left:4px solid #ef4444;">' +
-        '<h3 style="color:#ef4444;margin-bottom:8px;">Gagal Memuat Modul Biaya</h3>' +
-        '<p style="color:var(--text-muted);">' + escapeHtml(err.message || String(err)) + '</p>' +
-        '<button type="button" class="btn btn-primary" style="margin-top:14px;" onclick="renderExpenses(true)">Coba Lagi</button>' +
+      '<h3 style="color:#ef4444;margin-bottom:8px;">Gagal Memuat Modul Biaya</h3>' +
+      '<p style="color:var(--text-muted);">' + escapeHtml(err.message || String(err)) + '</p>' +
+      '<button type="button" class="btn btn-primary" style="margin-top:14px;" onclick="renderExpenses(true)">Coba Lagi</button>' +
       '</div>';
   }
 }
@@ -13548,27 +13620,27 @@ function drawExpensesUI(expenses, categories) {
 
   let html =
     '<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">' +
-      '<div>' +
-        '<h2 style="font-size:22px;font-weight:700;margin:0 0 4px;color:var(--text-main);"><i class="fas fa-wallet" style="color:var(--primary);margin-right:8px;"></i>Manajemen Biaya & Pengeluaran</h2>' +
-        '<p style="font-size:13px;color:var(--text-muted);margin:0;">Pencatatan kas operasional toko (petty cash), histori belanja, dan pengaturan biaya MDR QRIS.</p>' +
-      '</div>' +
-      '<div style="display:flex;gap:8px;">' +
-        '<button type="button" class="btn btn-secondary btn-sm" onclick="renderExpenses(true)" title="Segarkan Data">' +
-          '<i class="fas fa-sync-alt"></i> Segarkan Data' +
-        '</button>' +
-      '</div>' +
+    '<div>' +
+    '<h2 style="font-size:22px;font-weight:700;margin:0 0 4px;color:var(--text-main);"><i class="fas fa-wallet" style="color:var(--primary);margin-right:8px;"></i>Manajemen Biaya & Pengeluaran</h2>' +
+    '<p style="font-size:13px;color:var(--text-muted);margin:0;">Pencatatan kas operasional toko (petty cash), histori belanja, dan pengaturan biaya MDR QRIS.</p>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;">' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="renderExpenses(true)" title="Segarkan Data">' +
+    '<i class="fas fa-sync-alt"></i> Segarkan Data' +
+    '</button>' +
+    '</div>' +
     '</div>' +
 
     '<div class="expenses-tabs" style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:10px;overflow-x:auto;">' +
-      '<button type="button" class="tab-button ' + (CURRENT_EXPENSES_TAB === 'entry' ? 'active' : '') + '" onclick="switchExpensesTab(\'entry\')">' +
-        '<i class="fas fa-receipt"></i> Catat Pengeluaran Operasional' +
-      '</button>' +
-      '<button type="button" class="tab-button ' + (CURRENT_EXPENSES_TAB === 'qris' ? 'active' : '') + '" onclick="switchExpensesTab(\'qris\')">' +
-        '<i class="fas fa-qrcode"></i> Pengaturan Biaya Transaksi & QRIS' +
-      '</button>' +
-      '<button type="button" class="tab-button ' + (CURRENT_EXPENSES_TAB === 'categories' ? 'active' : '') + '" onclick="switchExpensesTab(\'categories\')">' +
-        '<i class="fas fa-tags"></i> Kategori Biaya' +
-      '</button>' +
+    '<button type="button" class="tab-button ' + (CURRENT_EXPENSES_TAB === 'entry' ? 'active' : '') + '" onclick="switchExpensesTab(\'entry\')">' +
+    '<i class="fas fa-receipt"></i> Catat Pengeluaran Operasional' +
+    '</button>' +
+    '<button type="button" class="tab-button ' + (CURRENT_EXPENSES_TAB === 'qris' ? 'active' : '') + '" onclick="switchExpensesTab(\'qris\')">' +
+    '<i class="fas fa-qrcode"></i> Pengaturan Biaya Transaksi & QRIS' +
+    '</button>' +
+    '<button type="button" class="tab-button ' + (CURRENT_EXPENSES_TAB === 'categories' ? 'active' : '') + '" onclick="switchExpensesTab(\'categories\')">' +
+    '<i class="fas fa-tags"></i> Kategori Biaya' +
+    '</button>' +
     '</div>';
 
   if (CURRENT_EXPENSES_TAB === 'entry') {
@@ -13597,177 +13669,177 @@ function renderExpensesEntryTabHtml(filteredList, categories, totalMonth, totalC
   return (
     // 1. Ringkasan Kartu Metrik
     '<div class="dashboard-stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:16px;margin-bottom:24px;">' +
-      '<div class="card" style="padding:18px;border-left:4px solid var(--primary);">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-          '<div>' +
-            '<div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Total Pengeluaran Bulan Ini</div>' +
-            '<div style="font-size:24px;font-weight:800;color:var(--text-main);margin-top:4px;">' + formatRupiah(totalMonth) + '</div>' +
-            '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Periode: ' + currentMonth + '</div>' +
-          '</div>' +
-          '<div style="width:44px;height:44px;border-radius:50%;background:rgba(122,80,49,0.1);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:18px;">' +
-            '<i class="fas fa-calendar-alt"></i>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
+    '<div class="card" style="padding:18px;border-left:4px solid var(--primary);">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+    '<div>' +
+    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Total Pengeluaran Bulan Ini</div>' +
+    '<div style="font-size:24px;font-weight:800;color:var(--text-main);margin-top:4px;">' + formatRupiah(totalMonth) + '</div>' +
+    '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Periode: ' + currentMonth + '</div>' +
+    '</div>' +
+    '<div style="width:44px;height:44px;border-radius:50%;background:rgba(122,80,49,0.1);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:18px;">' +
+    '<i class="fas fa-calendar-alt"></i>' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
 
-      '<div class="card" style="padding:18px;border-left:4px solid #10b981;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-          '<div>' +
-            '<div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Kas Kecil / Tunai Kios</div>' +
-            '<div style="font-size:24px;font-weight:800;color:#047857;margin-top:4px;">' + formatRupiah(totalCash) + '</div>' +
-            '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Pengeluaran Petty Cash Fisik</div>' +
-          '</div>' +
-          '<div style="width:44px;height:44px;border-radius:50%;background:#ecfdf5;display:flex;align-items:center;justify-content:center;color:#059669;font-size:18px;">' +
-            '<i class="fas fa-money-bill-wave"></i>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
+    '<div class="card" style="padding:18px;border-left:4px solid #10b981;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+    '<div>' +
+    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Kas Kecil / Tunai Kios</div>' +
+    '<div style="font-size:24px;font-weight:800;color:#047857;margin-top:4px;">' + formatRupiah(totalCash) + '</div>' +
+    '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Pengeluaran Petty Cash Fisik</div>' +
+    '</div>' +
+    '<div style="width:44px;height:44px;border-radius:50%;background:#ecfdf5;display:flex;align-items:center;justify-content:center;color:#059669;font-size:18px;">' +
+    '<i class="fas fa-money-bill-wave"></i>' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
 
-      '<div class="card" style="padding:18px;border-left:4px solid #2563eb;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-          '<div>' +
-            '<div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Transfer Bank IDEP</div>' +
-            '<div style="font-size:24px;font-weight:800;color:#1d4ed8;margin-top:4px;">' + formatRupiah(totalTransfer) + '</div>' +
-            '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Pengeluaran Melalui Rekening</div>' +
-          '</div>' +
-          '<div style="width:44px;height:44px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;color:#2563eb;font-size:18px;">' +
-            '<i class="fas fa-university"></i>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
+    '<div class="card" style="padding:18px;border-left:4px solid #2563eb;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+    '<div>' +
+    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Transfer Bank IDEP</div>' +
+    '<div style="font-size:24px;font-weight:800;color:#1d4ed8;margin-top:4px;">' + formatRupiah(totalTransfer) + '</div>' +
+    '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Pengeluaran Melalui Rekening</div>' +
+    '</div>' +
+    '<div style="width:44px;height:44px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;color:#2563eb;font-size:18px;">' +
+    '<i class="fas fa-university"></i>' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
     '</div>' +
 
     // 2. Form Input Pengeluaran & Riwayat Grid
     '<div style="display:grid;grid-template-columns:minmax(320px, 380px) 1fr;gap:20px;align-items:start;">' +
-      // FORMULIR PENCATATAN PENGELUARAN
-      '<div class="card" style="padding:20px;">' +
-        '<h3 style="font-size:16px;font-weight:700;margin:0 0 16px;display:flex;align-items:center;gap:8px;">' +
-          '<i class="fas fa-plus-circle" style="color:var(--primary);"></i> Form Catat Pengeluaran' +
-        '</h3>' +
-        '<form id="form-new-expense" onsubmit="return submitNewExpense(event)">' +
-          '<div class="field-group" style="margin-bottom:12px;">' +
-            '<label class="field-label" for="exp-date">Tanggal Pengeluaran <span style="color:#ef4444;">*</span></label>' +
-            '<div class="input-wrapper">' +
-              '<input type="date" id="exp-date" value="' + todayStr + '" required style="padding-left:14px;">' +
-            '</div>' +
-          '</div>' +
+    // FORMULIR PENCATATAN PENGELUARAN
+    '<div class="card" style="padding:20px;">' +
+    '<h3 style="font-size:16px;font-weight:700;margin:0 0 16px;display:flex;align-items:center;gap:8px;">' +
+    '<i class="fas fa-plus-circle" style="color:var(--primary);"></i> Form Catat Pengeluaran' +
+    '</h3>' +
+    '<form id="form-new-expense" onsubmit="return submitNewExpense(event)">' +
+    '<div class="field-group" style="margin-bottom:12px;">' +
+    '<label class="field-label" for="exp-date">Tanggal Pengeluaran <span style="color:#ef4444;">*</span></label>' +
+    '<div class="input-wrapper">' +
+    '<input type="date" id="exp-date" value="' + todayStr + '" required style="padding-left:14px;">' +
+    '</div>' +
+    '</div>' +
 
-          '<div class="field-group" style="margin-bottom:12px;">' +
-            '<label class="field-label" for="exp-category">Pilihan Kategori <span style="color:#ef4444;">*</span></label>' +
-            '<div class="input-wrapper">' +
-              '<select id="exp-category" required style="padding-left:14px;">' +
-                catOptions +
-              '</select>' +
-            '</div>' +
-          '</div>' +
+    '<div class="field-group" style="margin-bottom:12px;">' +
+    '<label class="field-label" for="exp-category">Pilihan Kategori <span style="color:#ef4444;">*</span></label>' +
+    '<div class="input-wrapper">' +
+    '<select id="exp-category" required style="padding-left:14px;">' +
+    catOptions +
+    '</select>' +
+    '</div>' +
+    '</div>' +
 
-          '<div class="field-group" style="margin-bottom:12px;">' +
-            '<label class="field-label" for="exp-amount">Nominal Pengeluaran (Rp) <span style="color:#ef4444;">*</span></label>' +
-            '<div class="input-wrapper">' +
-              '<input type="number" id="exp-amount" min="1" step="500" placeholder="Contoh: 50000" required oninput="onExpenseAmountInput(this.value)" style="padding-left:14px;font-size:16px;font-weight:700;">' +
-            '</div>' +
-            '<div id="exp-amount-preview" style="font-size:13px;font-weight:700;color:var(--primary);margin-top:4px;">Rp 0</div>' +
-          '</div>' +
+    '<div class="field-group" style="margin-bottom:12px;">' +
+    '<label class="field-label" for="exp-amount">Nominal Pengeluaran (Rp) <span style="color:#ef4444;">*</span></label>' +
+    '<div class="input-wrapper">' +
+    '<input type="number" id="exp-amount" min="1" step="500" placeholder="Contoh: 50000" required oninput="onExpenseAmountInput(this.value)" style="padding-left:14px;font-size:16px;font-weight:700;">' +
+    '</div>' +
+    '<div id="exp-amount-preview" style="font-size:13px;font-weight:700;color:var(--primary);margin-top:4px;">Rp 0</div>' +
+    '</div>' +
 
-          '<div class="field-group" style="margin-bottom:12px;">' +
-            '<label class="field-label" for="exp-fund-source">Sumber Dana <span style="color:#ef4444;">*</span></label>' +
-            '<div class="input-wrapper">' +
-              '<select id="exp-fund-source" required style="padding-left:14px;">' +
-                '<option value="Kas Kecil / Tunai Kios">Kas Kecil / Tunai Kios</option>' +
-                '<option value="Transfer Bank IDEP">Transfer Bank IDEP</option>' +
-              '</select>' +
-            '</div>' +
-          '</div>' +
+    '<div class="field-group" style="margin-bottom:12px;">' +
+    '<label class="field-label" for="exp-fund-source">Sumber Dana <span style="color:#ef4444;">*</span></label>' +
+    '<div class="input-wrapper">' +
+    '<select id="exp-fund-source" required style="padding-left:14px;">' +
+    '<option value="Kas Kecil / Tunai Kios">Kas Kecil / Tunai Kios</option>' +
+    '<option value="Transfer Bank IDEP">Transfer Bank IDEP</option>' +
+    '</select>' +
+    '</div>' +
+    '</div>' +
 
-          '<div class="field-group" style="margin-bottom:16px;">' +
-            '<label class="field-label" for="exp-description">Keterangan / Keperluan <span style="color:#ef4444;">*</span></label>' +
-            '<textarea id="exp-description" rows="3" required placeholder="Catat detail pengeluaran, nomor nota bon, atau keperluan..." style="width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-family:inherit;font-size:13px;box-sizing:border-box;resize:vertical;"></textarea>' +
-          '</div>' +
+    '<div class="field-group" style="margin-bottom:16px;">' +
+    '<label class="field-label" for="exp-description">Keterangan / Keperluan <span style="color:#ef4444;">*</span></label>' +
+    '<textarea id="exp-description" rows="3" required placeholder="Catat detail pengeluaran, nomor nota bon, atau keperluan..." style="width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-family:inherit;font-size:13px;box-sizing:border-box;resize:vertical;"></textarea>' +
+    '</div>' +
 
-          '<button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-save-expense">' +
-            '<i class="fas fa-save" style="margin-right:6px;"></i> Simpan Pengeluaran' +
+    '<button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-save-expense">' +
+    '<i class="fas fa-save" style="margin-right:6px;"></i> Simpan Pengeluaran' +
+    '</button>' +
+    '</form>' +
+    '</div>' +
+
+    // TABEL RIWAYAT PENGELUARAN
+    '<div class="card" style="padding:20px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">' +
+    '<h3 style="font-size:16px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;">' +
+    '<i class="fas fa-history" style="color:var(--primary);"></i> Riwayat Pengeluaran' +
+    '<span class="badge" style="background:var(--surface-muted);color:var(--text-main);">' + (filteredList ? filteredList.length : 0) + ' Data</span>' +
+    '</h3>' +
+    '</div>' +
+
+    // Baris Filter Cepat
+    '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;background:var(--surface-muted);padding:10px;border-radius:var(--radius-sm);">' +
+    '<div style="flex:1;min-width:180px;">' +
+    '<input type="text" placeholder="Cari ID, keperluan, kategori..." value="' + escapeHtml(EXPENSES_FILTER_STATE.search) + '" oninput="onExpenseSearch(this.value)" style="width:100%;padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;box-sizing:border-box;">' +
+    '</div>' +
+    '<div style="width:170px;">' +
+    '<select onchange="onExpenseCategoryFilter(this.value)" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;">' +
+    filterCatOptions +
+    '</select>' +
+    '</div>' +
+    '<div style="width:140px;">' +
+    '<input type="month" value="' + (EXPENSES_FILTER_STATE.month || '') + '" onchange="onExpenseMonthFilter(this.value)" title="Pilih Bulan" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;box-sizing:border-box;">' +
+    '</div>' +
+    '<div>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="resetExpenseFilters()" title="Tampilkan Semua">' +
+    'Reset' +
+    '</button>' +
+    '</div>' +
+    '</div>' +
+
+    // Tabel Data
+    '<div class="table-container" style="max-height:600px;overflow-y:auto;">' +
+    '<table class="table" style="width:100%;border-collapse:collapse;font-size:13px;">' +
+    '<thead>' +
+    '<tr style="background:var(--surface-muted);text-align:left;">' +
+    '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">No / ID</th>' +
+    '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">Tanggal</th>' +
+    '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">Kategori</th>' +
+    '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">Keperluan</th>' +
+    '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">Sumber Dana</th>' +
+    '<th style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;">Nominal</th>' +
+    '<th style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;">Aksi</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' +
+    (filteredList.length === 0 ?
+      '<tr><td colspan="7" style="padding:32px;text-align:center;color:var(--text-muted);"><i class="fas fa-folder-open" style="font-size:28px;margin-bottom:8px;display:block;"></i>Belum ada catatan pengeluaran yang sesuai filter.</td></tr>' :
+      filteredList.map(function (item, idx) {
+        const isCash = String(item.fund_source || '').toLowerCase().includes('kas kecil') || String(item.fund_source || '').toLowerCase().includes('tunai');
+        const fundBadge = isCash
+          ? '<span class="badge" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;"><i class="fas fa-money-bill-wave" style="margin-right:4px;"></i>' + escapeHtml(item.fund_source) + '</span>'
+          : '<span class="badge" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;"><i class="fas fa-university" style="margin-right:4px;"></i>' + escapeHtml(item.fund_source) + '</span>';
+
+        const safeDesc = escapeHtml(item.description || '-').replace(/'/g, "\\'");
+
+        return (
+          '<tr style="border-bottom:1px solid var(--border);">' +
+          '<td style="padding:10px 12px;"><code style="font-weight:700;font-size:11px;">' + escapeHtml(item.id || ('EXP-' + (idx + 1))) + '</code></td>' +
+          '<td style="padding:10px 12px;white-space:nowrap;">' + formatDate(item.expense_date) + '</td>' +
+          '<td style="padding:10px 12px;"><span class="badge" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;">' + escapeHtml(item.category || '-') + '</span></td>' +
+          '<td style="padding:10px 12px;max-width:260px;word-break:break-word;">' +
+          '<div>' + escapeHtml(item.description || '-') + '</div>' +
+          (item.created_by ? '<small style="color:var(--text-muted);font-size:10px;"><i class="fas fa-user-edit"></i> ' + escapeHtml(item.created_by) + '</small>' : '') +
+          '</td>' +
+          '<td style="padding:10px 12px;white-space:nowrap;">' + fundBadge + '</td>' +
+          '<td style="padding:10px 12px;text-align:right;font-weight:700;color:var(--text-main);white-space:nowrap;">' + formatRupiah(item.amount) + '</td>' +
+          '<td style="padding:10px 12px;text-align:center;white-space:nowrap;">' +
+          '<button type="button" class="btn btn-danger btn-sm" onclick="deleteExpenseRecord(\'' + item.id + '\', \'' + safeDesc + '\', ' + Number(item.amount || 0) + ')" title="Hapus Pengeluaran">' +
+          '<i class="fas fa-trash-alt"></i>' +
           '</button>' +
-        '</form>' +
-      '</div>' +
-
-      // TABEL RIWAYAT PENGELUARAN
-      '<div class="card" style="padding:20px;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">' +
-          '<h3 style="font-size:16px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;">' +
-            '<i class="fas fa-history" style="color:var(--primary);"></i> Riwayat Pengeluaran' +
-            '<span class="badge" style="background:var(--surface-muted);color:var(--text-main);">' + (filteredList ? filteredList.length : 0) + ' Data</span>' +
-          '</h3>' +
-        '</div>' +
-
-        // Baris Filter Cepat
-        '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;background:var(--surface-muted);padding:10px;border-radius:var(--radius-sm);">' +
-          '<div style="flex:1;min-width:180px;">' +
-            '<input type="text" placeholder="Cari ID, keperluan, kategori..." value="' + escapeHtml(EXPENSES_FILTER_STATE.search) + '" oninput="onExpenseSearch(this.value)" style="width:100%;padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;box-sizing:border-box;">' +
-          '</div>' +
-          '<div style="width:170px;">' +
-            '<select onchange="onExpenseCategoryFilter(this.value)" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;">' +
-              filterCatOptions +
-            '</select>' +
-          '</div>' +
-          '<div style="width:140px;">' +
-            '<input type="month" value="' + (EXPENSES_FILTER_STATE.month || '') + '" onchange="onExpenseMonthFilter(this.value)" title="Pilih Bulan" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;box-sizing:border-box;">' +
-          '</div>' +
-          '<div>' +
-            '<button type="button" class="btn btn-secondary btn-sm" onclick="resetExpenseFilters()" title="Tampilkan Semua">' +
-              'Reset' +
-            '</button>' +
-          '</div>' +
-        '</div>' +
-
-        // Tabel Data
-        '<div class="table-container" style="max-height:600px;overflow-y:auto;">' +
-          '<table class="table" style="width:100%;border-collapse:collapse;font-size:13px;">' +
-            '<thead>' +
-              '<tr style="background:var(--surface-muted);text-align:left;">' +
-                '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">No / ID</th>' +
-                '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">Tanggal</th>' +
-                '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">Kategori</th>' +
-                '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">Keperluan</th>' +
-                '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">Sumber Dana</th>' +
-                '<th style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;">Nominal</th>' +
-                '<th style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;">Aksi</th>' +
-              '</tr>' +
-            '</thead>' +
-            '<tbody>' +
-              (filteredList.length === 0 ?
-                '<tr><td colspan="7" style="padding:32px;text-align:center;color:var(--text-muted);"><i class="fas fa-folder-open" style="font-size:28px;margin-bottom:8px;display:block;"></i>Belum ada catatan pengeluaran yang sesuai filter.</td></tr>' :
-                filteredList.map(function (item, idx) {
-                  const isCash = String(item.fund_source || '').toLowerCase().includes('kas kecil') || String(item.fund_source || '').toLowerCase().includes('tunai');
-                  const fundBadge = isCash
-                    ? '<span class="badge" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;"><i class="fas fa-money-bill-wave" style="margin-right:4px;"></i>' + escapeHtml(item.fund_source) + '</span>'
-                    : '<span class="badge" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;"><i class="fas fa-university" style="margin-right:4px;"></i>' + escapeHtml(item.fund_source) + '</span>';
-
-                  const safeDesc = escapeHtml(item.description || '-').replace(/'/g, "\\'");
-
-                  return (
-                    '<tr style="border-bottom:1px solid var(--border);">' +
-                      '<td style="padding:10px 12px;"><code style="font-weight:700;font-size:11px;">' + escapeHtml(item.id || ('EXP-' + (idx + 1))) + '</code></td>' +
-                      '<td style="padding:10px 12px;white-space:nowrap;">' + formatDate(item.expense_date) + '</td>' +
-                      '<td style="padding:10px 12px;"><span class="badge" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;">' + escapeHtml(item.category || '-') + '</span></td>' +
-                      '<td style="padding:10px 12px;max-width:260px;word-break:break-word;">' +
-                        '<div>' + escapeHtml(item.description || '-') + '</div>' +
-                        (item.created_by ? '<small style="color:var(--text-muted);font-size:10px;"><i class="fas fa-user-edit"></i> ' + escapeHtml(item.created_by) + '</small>' : '') +
-                      '</td>' +
-                      '<td style="padding:10px 12px;white-space:nowrap;">' + fundBadge + '</td>' +
-                      '<td style="padding:10px 12px;text-align:right;font-weight:700;color:var(--text-main);white-space:nowrap;">' + formatRupiah(item.amount) + '</td>' +
-                      '<td style="padding:10px 12px;text-align:center;white-space:nowrap;">' +
-                        '<button type="button" class="btn btn-danger btn-sm" onclick="deleteExpenseRecord(\'' + item.id + '\', \'' + safeDesc + '\', ' + Number(item.amount || 0) + ')" title="Hapus Pengeluaran">' +
-                          '<i class="fas fa-trash-alt"></i>' +
-                        '</button>' +
-                      '</td>' +
-                    '</tr>'
-                  );
-                }).join('')
-              ) +
-            '</tbody>' +
-          '</table>' +
-        '</div>' +
-      '</div>' +
+          '</td>' +
+          '</tr>'
+        );
+      }).join('')
+    ) +
+    '</tbody>' +
+    '</table>' +
+    '</div>' +
+    '</div>' +
     '</div>'
   );
 }
@@ -13781,80 +13853,80 @@ function renderExpensesQrisTabHtml() {
 
   return (
     '<div style="max-width:800px;margin:0 auto;">' +
-      '<div class="card" style="padding:24px;margin-bottom:20px;">' +
-        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);">' +
-          '<div style="width:48px;height:48px;border-radius:10px;background:rgba(122,80,49,0.1);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:24px;">' +
-            '<i class="fas fa-qrcode"></i>' +
-          '</div>' +
-          '<div>' +
-            '<h3 style="font-size:18px;font-weight:700;margin:0 0 4px;color:var(--text-main);">Konfigurasi Biaya Transaksi & QRIS POS</h3>' +
-            '<p style="font-size:13px;color:var(--text-muted);margin:0;">Atur persentase MDR (Merchant Discount Rate) QRIS dan tentukan skema pembebanan biaya.</p>' +
-          '</div>' +
-        '</div>' +
+    '<div class="card" style="padding:24px;margin-bottom:20px;">' +
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);">' +
+    '<div style="width:48px;height:48px;border-radius:10px;background:rgba(122,80,49,0.1);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:24px;">' +
+    '<i class="fas fa-qrcode"></i>' +
+    '</div>' +
+    '<div>' +
+    '<h3 style="font-size:18px;font-weight:700;margin:0 0 4px;color:var(--text-main);">Konfigurasi Biaya Transaksi & QRIS POS</h3>' +
+    '<p style="font-size:13px;color:var(--text-muted);margin:0;">Atur persentase MDR (Merchant Discount Rate) QRIS dan tentukan skema pembebanan biaya.</p>' +
+    '</div>' +
+    '</div>' +
 
-        '<form id="form-qris-config" onsubmit="return saveExpensesQrisConfig(event)">' +
-          '<div style="margin-bottom:20px;">' +
-            '<label class="field-label" for="qris-mdr-input" style="font-size:14px;font-weight:600;margin-bottom:6px;display:block;">' +
-              'Persentase MDR QRIS (%) <span style="color:#ef4444;">*</span>' +
-            '</label>' +
-            '<div style="display:flex;align-items:center;gap:12px;max-width:280px;">' +
-              '<input type="number" id="qris-mdr-input" min="0" max="10" step="0.05" value="' + (cfg.mdr_rate || 0.3) + '" required oninput="onQrisSimulateChange()" style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:16px;font-weight:700;">' +
-              '<span style="font-size:16px;font-weight:700;color:var(--text-muted);">%</span>' +
-            '</div>' +
-            '<small style="color:var(--text-muted);font-size:11px;display:block;margin-top:6px;">' +
-              '<i class="fas fa-info-circle"></i> Sesuai standar Bank Indonesia, tarif MDR QRIS untuk Usaha Mikro (UMI) adalah <strong>0.3%</strong> (atau 0% untuk donasi/nirlaba).' +
-            '</small>' +
-          '</div>' +
+    '<form id="form-qris-config" onsubmit="return saveExpensesQrisConfig(event)">' +
+    '<div style="margin-bottom:20px;">' +
+    '<label class="field-label" for="qris-mdr-input" style="font-size:14px;font-weight:600;margin-bottom:6px;display:block;">' +
+    'Persentase MDR QRIS (%) <span style="color:#ef4444;">*</span>' +
+    '</label>' +
+    '<div style="display:flex;align-items:center;gap:12px;max-width:280px;">' +
+    '<input type="number" id="qris-mdr-input" min="0" max="10" step="0.05" value="' + (cfg.mdr_rate || 0.3) + '" required oninput="onQrisSimulateChange()" style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:16px;font-weight:700;">' +
+    '<span style="font-size:16px;font-weight:700;color:var(--text-muted);">%</span>' +
+    '</div>' +
+    '<small style="color:var(--text-muted);font-size:11px;display:block;margin-top:6px;">' +
+    '<i class="fas fa-info-circle"></i> Sesuai standar Bank Indonesia, tarif MDR QRIS untuk Usaha Mikro (UMI) adalah <strong>0.3%</strong> (atau 0% untuk donasi/nirlaba).' +
+    '</small>' +
+    '</div>' +
 
-          '<div style="margin-bottom:24px;">' +
-            '<label class="field-label" style="font-size:14px;font-weight:600;margin-bottom:10px;display:block;">' +
-              'Skema Pembebanan Biaya Transaksi MDR' +
-            '</label>' +
-            '<div style="display:flex;flex-direction:column;gap:10px;">' +
-              '<label style="display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;background:' + (cfg.mdr_payer === 'merchant' ? 'var(--surface-muted)' : 'var(--surface)') + ';">' +
-                '<input type="radio" name="qris-mdr-payer" value="merchant" ' + (cfg.mdr_payer === 'merchant' ? 'checked' : '') + ' onchange="onQrisSimulateChange()" style="margin-top:3px;">' +
-                '<div>' +
-                  '<strong style="color:var(--text-main);font-size:14px;">Dipotong dari Penerimaan Kios (Toko Menanggung)</strong>' +
-                  '<p style="font-size:12px;color:var(--text-muted);margin:3px 0 0;">Total tagihan pelanggan tetap sama dengan harga belanja. Kios menerima dana bersih setelah dipotong biaya MDR QRIS.</p>' +
-                '</div>' +
-              '</label>' +
+    '<div style="margin-bottom:24px;">' +
+    '<label class="field-label" style="font-size:14px;font-weight:600;margin-bottom:10px;display:block;">' +
+    'Skema Pembebanan Biaya Transaksi MDR' +
+    '</label>' +
+    '<div style="display:flex;flex-direction:column;gap:10px;">' +
+    '<label style="display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;background:' + (cfg.mdr_payer === 'merchant' ? 'var(--surface-muted)' : 'var(--surface)') + ';">' +
+    '<input type="radio" name="qris-mdr-payer" value="merchant" ' + (cfg.mdr_payer === 'merchant' ? 'checked' : '') + ' onchange="onQrisSimulateChange()" style="margin-top:3px;">' +
+    '<div>' +
+    '<strong style="color:var(--text-main);font-size:14px;">Dipotong dari Penerimaan Kios (Toko Menanggung)</strong>' +
+    '<p style="font-size:12px;color:var(--text-muted);margin:3px 0 0;">Total tagihan pelanggan tetap sama dengan harga belanja. Kios menerima dana bersih setelah dipotong biaya MDR QRIS.</p>' +
+    '</div>' +
+    '</label>' +
 
-              '<label style="display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;background:' + (cfg.mdr_payer === 'customer' ? 'var(--surface-muted)' : 'var(--surface)') + ';">' +
-                '<input type="radio" name="qris-mdr-payer" value="customer" ' + (cfg.mdr_payer === 'customer' ? 'checked' : '') + ' onchange="onQrisSimulateChange()" style="margin-top:3px;">' +
-                '<div>' +
-                  '<strong style="color:var(--text-main);font-size:14px;">Dibebankan ke Pelanggan (Biaya Tambahan Transaksi)</strong>' +
-                  '<p style="font-size:12px;color:var(--text-muted);margin:3px 0 0;">Biaya MDR QRIS dihitung otomatis dan ditambahkan ke total belanja saat kasir memilih metode QRIS di checkout POS.</p>' +
-                '</div>' +
-              '</label>' +
-            '</div>' +
-          '</div>' +
+    '<label style="display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;background:' + (cfg.mdr_payer === 'customer' ? 'var(--surface-muted)' : 'var(--surface)') + ';">' +
+    '<input type="radio" name="qris-mdr-payer" value="customer" ' + (cfg.mdr_payer === 'customer' ? 'checked' : '') + ' onchange="onQrisSimulateChange()" style="margin-top:3px;">' +
+    '<div>' +
+    '<strong style="color:var(--text-main);font-size:14px;">Dibebankan ke Pelanggan (Biaya Tambahan Transaksi)</strong>' +
+    '<p style="font-size:12px;color:var(--text-muted);margin:3px 0 0;">Biaya MDR QRIS dihitung otomatis dan ditambahkan ke total belanja saat kasir memilih metode QRIS di checkout POS.</p>' +
+    '</div>' +
+    '</label>' +
+    '</div>' +
+    '</div>' +
 
-          // SIMULASI KALKULATOR
-          '<div id="qris-simulation-card" style="background:var(--surface-muted);border:1px dashed var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:24px;">' +
-            '<div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px;">' +
-              '<i class="fas fa-calculator"></i> Simulasi Transaksi QRIS (Contoh: Belanja Rp 100.000)' +
-            '</div>' +
-            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">' +
-              '<div>' +
-                '<span style="color:var(--text-muted);">Biaya MDR QRIS:</span>' +
-                '<div id="sim-mdr-fee" style="font-size:16px;font-weight:700;color:#d97706;margin-top:2px;">' + formatRupiah(sampleMdr) + ' (' + (cfg.mdr_rate || 0.3) + '%)</div>' +
-              '</div>' +
-              '<div>' +
-                '<span style="color:var(--text-muted);">Pelanggan Membayar:</span>' +
-                '<div id="sim-cust-pay" style="font-size:16px;font-weight:700;color:var(--primary);margin-top:2px;">' + formatRupiah(sampleGrandTotal) + '</div>' +
-              '</div>' +
-              '<div style="grid-column:1 / -1;border-top:1px solid var(--border);padding-top:8px;">' +
-                '<span style="color:var(--text-muted);">Penerimaan Bersih Kasir Kios:</span>' +
-                '<div id="sim-net-receive" style="font-size:18px;font-weight:800;color:#047857;margin-top:2px;">' + formatRupiah(sampleNetReceived) + '</div>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
+    // SIMULASI KALKULATOR
+    '<div id="qris-simulation-card" style="background:var(--surface-muted);border:1px dashed var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:24px;">' +
+    '<div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px;">' +
+    '<i class="fas fa-calculator"></i> Simulasi Transaksi QRIS (Contoh: Belanja Rp 100.000)' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">' +
+    '<div>' +
+    '<span style="color:var(--text-muted);">Biaya MDR QRIS:</span>' +
+    '<div id="sim-mdr-fee" style="font-size:16px;font-weight:700;color:#d97706;margin-top:2px;">' + formatRupiah(sampleMdr) + ' (' + (cfg.mdr_rate || 0.3) + '%)</div>' +
+    '</div>' +
+    '<div>' +
+    '<span style="color:var(--text-muted);">Pelanggan Membayar:</span>' +
+    '<div id="sim-cust-pay" style="font-size:16px;font-weight:700;color:var(--primary);margin-top:2px;">' + formatRupiah(sampleGrandTotal) + '</div>' +
+    '</div>' +
+    '<div style="grid-column:1 / -1;border-top:1px solid var(--border);padding-top:8px;">' +
+    '<span style="color:var(--text-muted);">Penerimaan Bersih Kasir Kios:</span>' +
+    '<div id="sim-net-receive" style="font-size:18px;font-weight:800;color:#047857;margin-top:2px;">' + formatRupiah(sampleNetReceived) + '</div>' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
 
-          '<button type="submit" class="btn btn-primary btn-lg" id="btn-save-qris-cfg">' +
-            '<i class="fas fa-save" style="margin-right:6px;"></i> Simpan Pengaturan Biaya Transaksi' +
-          '</button>' +
-        '</form>' +
-      '</div>' +
+    '<button type="submit" class="btn btn-primary btn-lg" id="btn-save-qris-cfg">' +
+    '<i class="fas fa-save" style="margin-right:6px;"></i> Simpan Pengaturan Biaya Transaksi' +
+    '</button>' +
+    '</form>' +
+    '</div>' +
     '</div>'
   );
 }
@@ -13869,85 +13941,85 @@ function renderExpensesCategoriesTabHtml(categories, expenses) {
 
   return (
     '<div style="display:grid;grid-template-columns:minmax(300px, 360px) 1fr;gap:20px;align-items:start;">' +
-      // FORM TAMBAH KATEGORI
-      '<div class="card" style="padding:20px;">' +
-        '<h3 style="font-size:16px;font-weight:700;margin:0 0 16px;display:flex;align-items:center;gap:8px;">' +
-          '<i class="fas fa-plus-circle" style="color:var(--primary);"></i> Tambah Kategori Biaya' +
-        '</h3>' +
-        '<form id="form-new-cat" onsubmit="return submitNewExpenseCategory(event)">' +
-          '<div class="field-group" style="margin-bottom:12px;">' +
-            '<label class="field-label" for="cat-name-input">Nama Kategori <span style="color:#ef4444;">*</span></label>' +
-            '<div class="input-wrapper">' +
-              '<input type="text" id="cat-name-input" required placeholder="Misal: Perbaikan Mesin & Oven" style="padding-left:14px;">' +
-            '</div>' +
-          '</div>' +
+    // FORM TAMBAH KATEGORI
+    '<div class="card" style="padding:20px;">' +
+    '<h3 style="font-size:16px;font-weight:700;margin:0 0 16px;display:flex;align-items:center;gap:8px;">' +
+    '<i class="fas fa-plus-circle" style="color:var(--primary);"></i> Tambah Kategori Biaya' +
+    '</h3>' +
+    '<form id="form-new-cat" onsubmit="return submitNewExpenseCategory(event)">' +
+    '<div class="field-group" style="margin-bottom:12px;">' +
+    '<label class="field-label" for="cat-name-input">Nama Kategori <span style="color:#ef4444;">*</span></label>' +
+    '<div class="input-wrapper">' +
+    '<input type="text" id="cat-name-input" required placeholder="Misal: Perbaikan Mesin & Oven" style="padding-left:14px;">' +
+    '</div>' +
+    '</div>' +
 
-          '<div class="field-group" style="margin-bottom:16px;">' +
-            '<label class="field-label" for="cat-desc-input">Keterangan / Peruntukan</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="text" id="cat-desc-input" placeholder="Deskripsi pemakaian kategori ini" style="padding-left:14px;">' +
-            '</div>' +
-          '</div>' +
+    '<div class="field-group" style="margin-bottom:16px;">' +
+    '<label class="field-label" for="cat-desc-input">Keterangan / Peruntukan</label>' +
+    '<div class="input-wrapper">' +
+    '<input type="text" id="cat-desc-input" placeholder="Deskripsi pemakaian kategori ini" style="padding-left:14px;">' +
+    '</div>' +
+    '</div>' +
 
-          '<button type="submit" class="btn btn-primary btn-block" id="btn-save-cat">' +
-            '<i class="fas fa-plus" style="margin-right:6px;"></i> Tambahkan Kategori' +
-          '</button>' +
-        '</form>' +
+    '<button type="submit" class="btn btn-primary btn-block" id="btn-save-cat">' +
+    '<i class="fas fa-plus" style="margin-right:6px;"></i> Tambahkan Kategori' +
+    '</button>' +
+    '</form>' +
 
-        '<hr style="margin:20px 0;border:none;border-top:1px solid var(--border);">' +
+    '<hr style="margin:20px 0;border:none;border-top:1px solid var(--border);">' +
 
-        '<div style="text-align:center;">' +
-          '<button type="button" class="btn btn-secondary btn-sm" onclick="resetDefaultExpenseCategories()">' +
-            '<i class="fas fa-undo"></i> Pulihkan Kategori Standar IDEP' +
-          '</button>' +
-          '<small style="display:block;color:var(--text-muted);font-size:11px;margin-top:6px;">' +
-            'Memuat ulang 7 kategori bawaan standar yayasan IDEP.' +
-          '</small>' +
-        '</div>' +
-      '</div>' +
+    '<div style="text-align:center;">' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="resetDefaultExpenseCategories()">' +
+    '<i class="fas fa-undo"></i> Pulihkan Kategori Standar IDEP' +
+    '</button>' +
+    '<small style="display:block;color:var(--text-muted);font-size:11px;margin-top:6px;">' +
+    'Memuat ulang 7 kategori bawaan standar yayasan IDEP.' +
+    '</small>' +
+    '</div>' +
+    '</div>' +
 
-      // DAFTAR KATEGORI
-      '<div class="card" style="padding:20px;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
-          '<h3 style="font-size:16px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;">' +
-            '<i class="fas fa-tags" style="color:var(--primary);"></i> Daftar Kategori Pengeluaran' +
-            '<span class="badge" style="background:var(--surface-muted);color:var(--text-main);">' + (categories ? categories.length : 0) + ' Kategori</span>' +
-          '</h3>' +
-        '</div>' +
+    // DAFTAR KATEGORI
+    '<div class="card" style="padding:20px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
+    '<h3 style="font-size:16px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;">' +
+    '<i class="fas fa-tags" style="color:var(--primary);"></i> Daftar Kategori Pengeluaran' +
+    '<span class="badge" style="background:var(--surface-muted);color:var(--text-main);">' + (categories ? categories.length : 0) + ' Kategori</span>' +
+    '</h3>' +
+    '</div>' +
 
-        '<div class="table-container">' +
-          '<table class="table" style="width:100%;border-collapse:collapse;font-size:13px;">' +
-            '<thead>' +
-              '<tr style="background:var(--surface-muted);text-align:left;">' +
-                '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">No</th>' +
-                '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">Nama Kategori</th>' +
-                '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">Keterangan</th>' +
-                '<th style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;">Digunakan</th>' +
-                '<th style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;">Aksi</th>' +
-              '</tr>' +
-            '</thead>' +
-            '<tbody>' +
-              (categories.map(function (cat, i) {
-                const count = countMap[cat.name] || 0;
-                const safeName = escapeHtml(cat.name).replace(/'/g, "\\'");
-                return (
-                  '<tr style="border-bottom:1px solid var(--border);">' +
-                    '<td style="padding:10px 12px;color:var(--text-muted);">' + (i + 1) + '</td>' +
-                    '<td style="padding:10px 12px;font-weight:600;color:var(--text-main);">' + escapeHtml(cat.name) + '</td>' +
-                    '<td style="padding:10px 12px;color:var(--text-muted);font-size:12px;">' + escapeHtml(cat.description || '-') + '</td>' +
-                    '<td style="padding:10px 12px;text-align:center;"><span class="badge" style="background:#f1f5f9;color:#334155;">' + count + ' x</span></td>' +
-                    '<td style="padding:10px 12px;text-align:center;">' +
-                      '<button type="button" class="btn btn-danger btn-sm" onclick="deleteExpenseCategory(\'' + (cat.id || '') + '\', \'' + safeName + '\')" title="Hapus Kategori">' +
-                        '<i class="fas fa-trash-alt"></i>' +
-                      '</button>' +
-                    '</td>' +
-                  '</tr>'
-                );
-              }).join('')) +
-            '</tbody>' +
-          '</table>' +
-        '</div>' +
-      '</div>' +
+    '<div class="table-container">' +
+    '<table class="table" style="width:100%;border-collapse:collapse;font-size:13px;">' +
+    '<thead>' +
+    '<tr style="background:var(--surface-muted);text-align:left;">' +
+    '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">No</th>' +
+    '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">Nama Kategori</th>' +
+    '<th style="padding:10px 12px;border-bottom:1px solid var(--border);">Keterangan</th>' +
+    '<th style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;">Digunakan</th>' +
+    '<th style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;">Aksi</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' +
+    (categories.map(function (cat, i) {
+      const count = countMap[cat.name] || 0;
+      const safeName = escapeHtml(cat.name).replace(/'/g, "\\'");
+      return (
+        '<tr style="border-bottom:1px solid var(--border);">' +
+        '<td style="padding:10px 12px;color:var(--text-muted);">' + (i + 1) + '</td>' +
+        '<td style="padding:10px 12px;font-weight:600;color:var(--text-main);">' + escapeHtml(cat.name) + '</td>' +
+        '<td style="padding:10px 12px;color:var(--text-muted);font-size:12px;">' + escapeHtml(cat.description || '-') + '</td>' +
+        '<td style="padding:10px 12px;text-align:center;"><span class="badge" style="background:#f1f5f9;color:#334155;">' + count + ' x</span></td>' +
+        '<td style="padding:10px 12px;text-align:center;">' +
+        '<button type="button" class="btn btn-danger btn-sm" onclick="deleteExpenseCategory(\'' + (cat.id || '') + '\', \'' + safeName + '\')" title="Hapus Kategori">' +
+        '<i class="fas fa-trash-alt"></i>' +
+        '</button>' +
+        '</td>' +
+        '</tr>'
+      );
+    }).join('')) +
+    '</tbody>' +
+    '</table>' +
+    '</div>' +
+    '</div>' +
     '</div>'
   );
 }

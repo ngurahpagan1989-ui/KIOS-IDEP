@@ -5987,8 +5987,8 @@ function renderFormalInvoiceHTML(data, isActive) {
     '<div style="font-size:24px;line-height:1;">🏦</div>' +
     '<div style="line-height:1.4;">' +
     '<div style="font-weight:700;color:#7A5031;font-size:11.5px;">INFORMASI PEMBAYARAN TRANSFER BANK RESMI:</div>' +
-    '<div>Bank: <strong>BNI (Bank Negara Indonesia)</strong> &bull; No. Rekening: <strong style="font-family:monospace;font-size:12px;letter-spacing:0.5px;">0178 849 203</strong></div>' +
-    '<div>Atas Nama: <strong>Yayasan IDEP Selaras Alam</strong> &bull; <span style="font-size:10px;color:#6B5749;">Mohon cantumkan No. Faktur pada berita transfer</span></div>' +
+    '<div>Bank: <strong>' + escapeHtml(s.bank_name || 'BNI (Bank Negara Indonesia)') + '</strong> &bull; No. Rekening: <strong style="font-family:monospace;font-size:12px;letter-spacing:0.5px;">' + escapeHtml(s.bank_account || '0178 849 203') + '</strong></div>' +
+    '<div>Atas Nama: <strong>' + escapeHtml(s.bank_account_name || 'Yayasan IDEP Selaras Alam') + '</strong> &bull; <span style="font-size:10px;color:#6B5749;">Mohon cantumkan No. Faktur pada berita transfer</span></div>' +
     '</div>' +
     '</div>' +
     '<div style="display:flex;justify-content:space-between;gap:30px;margin-top:24px;padding-top:10px;font-size:11.5px;text-align:center;">' +
@@ -11266,10 +11266,10 @@ function drawStockValuationUI(data) {
 
   // Format Bulk Grams / Kg
   let bulkStr = '0 gr';
-  if (summary.totalBulkGrams >= 1000) {
-    bulkStr = (summary.totalBulkGrams / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' kg';
-  } else if (summary.totalBulkGrams > 0) {
-    bulkStr = summary.totalBulkGrams.toLocaleString('id-ID') + ' gr';
+  if (Number(summary.totalBulkGrams) >= 1000) {
+    bulkStr = ((Number(summary.totalBulkGrams) || 0) / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' kg';
+  } else if (Number(summary.totalBulkGrams) > 0) {
+    bulkStr = (Number(summary.totalBulkGrams) || 0).toLocaleString('id-ID') + ' gr';
   }
 
   content.innerHTML =
@@ -11295,7 +11295,7 @@ function drawStockValuationUI(data) {
       '</div>' +
       '<div class="stat-card">' +
         '<div class="stat-header"><span class="stat-label">Total Sachet Siap Jual</span><span class="stat-icon">📦</span></div>' +
-        '<div class="stat-value" style="font-size:24px;color:var(--primary);font-family:\'JetBrains Mono\',monospace;">' + summary.totalPackedPcs.toLocaleString('id-ID') + ' pcs</div>' +
+        '<div class="stat-value" style="font-size:24px;color:var(--primary);font-family:\'JetBrains Mono\',monospace;">' + (Number(summary.totalPackedPcs) || 0).toLocaleString('id-ID') + ' pcs</div>' +
         '<div class="stat-meta">Kemasan Retail Eceran Toko</div>' +
       '</div>' +
       '<div class="stat-card">' +
@@ -11433,7 +11433,7 @@ function renderStockValuationRows(items) {
         '<div style="font-size:10.5px;color:var(--text-muted);">Exp: ' + escapeHtml(item.expiry_date || '-') + '</div>' +
       '</td>' +
       '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--text-main);font-size:13px;">' +
-        item.current_stock.toLocaleString('id-ID') + ' <span style="font-size:11px;font-weight:normal;color:var(--text-secondary);">' + escapeHtml(item.unit) + '</span>' +
+        (Number(item.current_stock) || 0).toLocaleString('id-ID') + ' <span style="font-size:11px;font-weight:normal;color:var(--text-secondary);">' + escapeHtml(item.unit) + '</span>' +
       '</td>' +
       '<td style="text-align:right;font-family:\'JetBrains Mono\',monospace;color:var(--text-secondary);font-size:12.5px;">' +
         formatRupiah(item.hpp_unit) +
@@ -11488,10 +11488,10 @@ function printStockValuationA4() {
   const items = STOCK_VALUATION_DATA.items || [];
 
   let bulkStr = '0 gr';
-  if (summary.totalBulkGrams >= 1000) {
-    bulkStr = (summary.totalBulkGrams / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' kg';
-  } else if (summary.totalBulkGrams > 0) {
-    bulkStr = (summary.totalBulkGrams || 0).toLocaleString('id-ID') + ' gr';
+  if (Number(summary.totalBulkGrams) >= 1000) {
+    bulkStr = ((Number(summary.totalBulkGrams) || 0) / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' kg';
+  } else if (Number(summary.totalBulkGrams) > 0) {
+    bulkStr = (Number(summary.totalBulkGrams) || 0).toLocaleString('id-ID') + ' gr';
   }
 
   let existingPrintArea = document.getElementById('print-report-container');
@@ -11511,7 +11511,7 @@ function printStockValuationA4() {
       '<td style="border:1px solid #ddd;padding:4px;"><strong>' + escapeHtml(it.product_name) + '</strong></td>' +
       '<td style="border:1px solid #ddd;padding:4px;text-align:center;">' + (it.type === 'bulk' ? 'Curah' : 'Sachet') + '</td>' +
       '<td style="border:1px solid #ddd;padding:4px;font-family:monospace;font-size:10px;">' + escapeHtml(it.batch_id) + '<br><span style="color:#666;">Exp: ' + escapeHtml(it.expiry_date || '-') + '</span></td>' +
-      '<td style="border:1px solid #ddd;padding:4px;text-align:right;font-family:monospace;font-weight:bold;">' + it.current_stock.toLocaleString('id-ID') + ' ' + escapeHtml(it.unit) + '</td>' +
+      '<td style="border:1px solid #ddd;padding:4px;text-align:right;font-family:monospace;font-weight:bold;">' + (Number(it.current_stock) || 0).toLocaleString('id-ID') + ' ' + escapeHtml(it.unit) + '</td>' +
       '<td style="border:1px solid #ddd;padding:4px;text-align:right;font-family:monospace;">' + formatRupiah(it.hpp_unit) + '</td>' +
       '<td style="border:1px solid #ddd;padding:4px;text-align:right;font-family:monospace;font-weight:bold;color:#1e7e34;">' + formatRupiah(it.total_value) + '</td>' +
       '<td style="border:1px solid #ddd;padding:4px;text-align:center;font-size:10px;">' + escapeHtml(it.status) + ' (' + it.age_days + ' hr)</td>' +
@@ -11638,7 +11638,7 @@ function printStockOpnameSheetA4() {
       '<td style="border:1px solid #333;padding:5px 6px;font-size:10.5px;"><strong>' + escapeHtml(it.product_name) + '</strong></td>' +
       '<td style="border:1px solid #333;padding:5px 4px;text-align:center;font-size:10px;">' + escapeHtml(it.unit) + '</td>' +
       '<td style="border:1px solid #333;padding:5px 6px;font-family:monospace;font-size:10px;">' + escapeHtml(it.batch_id) + '</td>' +
-      '<td style="border:1px solid #333;padding:5px 6px;text-align:right;font-family:monospace;font-size:11px;font-weight:bold;">' + it.current_stock.toLocaleString('id-ID') + '</td>' +
+      '<td style="border:1px solid #333;padding:5px 6px;text-align:right;font-family:monospace;font-size:11px;font-weight:bold;">' + (Number(it.current_stock) || 0).toLocaleString('id-ID') + '</td>' +
       '<td style="border:1px solid #333;padding:4px;width:75px;background:#fff;"><div style="height:22px;border:1px dashed #aaa;"></div></td>' +
       '<td style="border:1px solid #333;padding:4px;width:65px;background:#fff;"><div style="height:22px;border:1px dashed #aaa;"></div></td>' +
       '<td style="border:1px solid #333;padding:4px;width:120px;background:#fff;"><div style="height:22px;border:1px dashed #aaa;"></div></td>' +
@@ -11788,13 +11788,13 @@ function drawPengaturanUI(settings) {
     '</div>' +
 
     '<!-- SUB-NAVIGASI TAB PENGATURAN -->' +
-    '<div class="nav-tabs" style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap;">' +
-      '<button type="button" id="tab-set-btn-profile" class="role-tab-btn active" style="background:var(--primary);color:#fff;border-color:var(--primary);" onclick="switchSettingsSubtab(\'profile\')">🏪 Profil Toko &amp; Pajak</button>' +
-      '<button type="button" id="tab-set-btn-pricing" class="role-tab-btn" onclick="switchSettingsSubtab(\'pricing\')">🏷️ Format Batch &amp; Multi-Tier</button>' +
-      (isUserAdmin ? '<button type="button" id="tab-set-btn-users" class="role-tab-btn" onclick="switchSettingsSubtab(\'users\')">👥 Kelola Akun Pengguna</button>' : '') +
-      (isUserAdmin ? '<button type="button" id="tab-set-btn-roles" class="role-tab-btn" onclick="switchSettingsSubtab(\'roles\')">🛡️ Matriks Hak Akses</button>' : '') +
-      (isUserAdmin ? '<button type="button" id="tab-set-btn-telegram" class="role-tab-btn" onclick="switchSettingsSubtab(\'telegram\')">🤖 Bot Telegram</button>' : '') +
-      (isUserAdmin ? '<button type="button" id="tab-set-btn-danger" class="role-tab-btn" onclick="switchSettingsSubtab(\'danger\')">🚨 Zona Bahaya</button>' : '') +
+    '<div class="nav-tabs" style="display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding-bottom: 6px; margin-bottom:20px;border-bottom:1px solid var(--border);flex-wrap:nowrap;">' +
+      '<button type="button" id="tab-set-btn-profile" class="role-tab-btn active" style="background:var(--primary);color:#fff;border-color:var(--primary);flex-shrink:0;" onclick="switchSettingsSubtab(\'profile\')">🏪 Profil Toko &amp; Pajak</button>' +
+      '<button type="button" id="tab-set-btn-pricing" class="role-tab-btn" style="flex-shrink:0;" onclick="switchSettingsSubtab(\'pricing\')">🏷️ Format Batch &amp; Multi-Tier</button>' +
+      (isUserAdmin ? '<button type="button" id="tab-set-btn-users" class="role-tab-btn" style="flex-shrink:0;" onclick="switchSettingsSubtab(\'users\')">👥 Kelola Akun Pengguna</button>' : '') +
+      (isUserAdmin ? '<button type="button" id="tab-set-btn-roles" class="role-tab-btn" style="flex-shrink:0;" onclick="switchSettingsSubtab(\'roles\')">🛡️ Matriks Hak Akses</button>' : '') +
+      (isUserAdmin ? '<button type="button" id="tab-set-btn-telegram" class="role-tab-btn" style="flex-shrink:0;" onclick="switchSettingsSubtab(\'telegram\')">🤖 Bot Telegram</button>' : '') +
+      (isUserAdmin ? '<button type="button" id="tab-set-btn-danger" class="role-tab-btn" style="flex-shrink:0;" onclick="switchSettingsSubtab(\'danger\')">🚨 Zona Bahaya</button>' : '') +
     '</div>' +
 
     '<!-- PANEL 1: PROFIL TOKO & PAJAK -->' +
@@ -11872,6 +11872,24 @@ function drawPengaturanUI(settings) {
             '</div>' +
           '</div>' +
           '<div class="field-group">' +
+            '<label class="field-label">Nama Bank</label>' +
+            '<div class="input-wrapper">' +
+              '<input type="text" id="set-bank-name" value="' + escapeHtml(settings['bank_name'] || 'BNI') + '" style="padding-left:14px;">' +
+            '</div>' +
+          '</div>' +
+          '<div class="field-group">' +
+            '<label class="field-label">Nomor Rekening</label>' +
+            '<div class="input-wrapper">' +
+              '<input type="text" id="set-bank-account" value="' + escapeHtml(settings['bank_account'] || '0178 849 203') + '" style="padding-left:14px;">' +
+            '</div>' +
+          '</div>' +
+          '<div class="field-group">' +
+            '<label class="field-label">Atas Nama Rekening</label>' +
+            '<div class="input-wrapper">' +
+              '<input type="text" id="set-bank-account-name" value="' + escapeHtml(settings['bank_account_name'] || 'Yayasan IDEP Selaras Alam') + '" style="padding-left:14px;">' +
+            '</div>' +
+          '</div>' +
+          '<div class="field-group">' +
             '<label class="field-label">Tarif Pajak (PPN %)</label>' +
             '<div class="input-wrapper">' +
               '<input type="number" id="set-tax-rate" value="' + escapeHtml(settings['tax_rate'] !== undefined ? settings['tax_rate'] : '0') + '" min="0" max="100" step="0.1" style="padding-left:14px;">' +
@@ -11885,29 +11903,6 @@ function drawPengaturanUI(settings) {
             '</div>' +
           '</div>' +
           '<button type="button" class="btn btn-primary" onclick="saveStoreSettings()">Simpan Profil Toko &amp; Pajak</button>' +
-        '</div>' +
-
-        '<div class="card">' +
-          '<h3 style="margin-bottom:16px;">Ubah Password Akun</h3>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Password Saat Ini</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="password" id="set-old-pass" style="padding-left:14px;">' +
-            '</div>' +
-          '</div>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Password Baru</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="password" id="set-new-pass" style="padding-left:14px;">' +
-            '</div>' +
-          '</div>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Ulangi Password Baru</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="password" id="set-confirm-pass" style="padding-left:14px;">' +
-            '</div>' +
-          '</div>' +
-          '<button type="button" class="btn btn-primary" onclick="submitChangePassword()">Perbarui Password</button>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -12575,6 +12570,9 @@ function saveStoreSettings() {
     store_name: document.getElementById('set-store-name') ? document.getElementById('set-store-name').value.trim() : '',
     store_address: document.getElementById('set-store-address') ? document.getElementById('set-store-address').value.trim() : '',
     store_phone: document.getElementById('set-store-phone') ? document.getElementById('set-store-phone').value.trim() : '',
+    bank_name: (document.getElementById('set-bank-name') ? document.getElementById('set-bank-name').value.trim() : '') || 'BNI',
+    bank_account: (document.getElementById('set-bank-account') ? document.getElementById('set-bank-account').value.trim() : '') || '0178 849 203',
+    bank_account_name: (document.getElementById('set-bank-account-name') ? document.getElementById('set-bank-account-name').value.trim() : '') || 'Yayasan IDEP Selaras Alam',
     tax_rate: taxRate,
     invoice_footer: document.getElementById('set-invoice-footer') ? document.getElementById('set-invoice-footer').value.trim() : '',
     batch_format_template: batchFormat,

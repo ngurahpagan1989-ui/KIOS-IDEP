@@ -11729,9 +11729,8 @@ function renderPengaturan(forceRefresh) {
     return;
   }
 
-  if (!DATA_CACHE.settings || !DATA_CACHE.settings.data) {
-    content.innerHTML = '<div class="card"><div class="empty-state"><span class="spinner" style="display:inline-block;width:24px;height:24px;border:3px solid rgba(30,77,63,0.2);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:8px;"></span><br>Memuat pengaturan sistem...</div></div>';
-  }
+  const currentSettings = (DATA_CACHE.settings && DATA_CACHE.settings.data) || APP_SETTINGS || {};
+  drawPengaturanUI(currentSettings);
 
   api('getSettings', TOKEN).then(function (settings) {
     DATA_CACHE.settings = { data: settings || {}, timestamp: Date.now() };
@@ -11743,33 +11742,39 @@ function renderPengaturan(forceRefresh) {
 }
 
 function switchSettingTab(tabName) {
-  const normalizedTab = (tabName === 'pricing' ? 'batch' : tabName);
-
-  document.querySelectorAll('.settings-tab-btn').forEach(function (btn) {
-    btn.classList.remove('active');
-  });
-
-  const activeBtn = document.querySelector('.settings-tab-btn[data-tab="' + normalizedTab + '"]') || document.getElementById('tab-set-btn-' + normalizedTab);
-  if (activeBtn) {
-    activeBtn.classList.add('active');
+  if (tabName === 'pricing') {
+    tabName = 'batch';
   }
 
+  // Menyembunyikan semua div dengan class .setting-pane
   document.querySelectorAll('.setting-pane').forEach(function (pane) {
     pane.style.display = 'none';
   });
 
-  const targetPane = document.getElementById('pane-' + normalizedTab);
+  // Menghapus class active dari semua .settings-tab-btn
+  document.querySelectorAll('.settings-tab-btn').forEach(function (btn) {
+    btn.classList.remove('active');
+  });
+
+  // Menampilkan document.getElementById('pane-' + tabName)
+  const targetPane = document.getElementById('pane-' + tabName);
   if (targetPane) {
     targetPane.style.display = 'block';
   }
 
-  CURRENT_SETTINGS_SUBTAB = normalizedTab === 'batch' ? 'pricing' : normalizedTab;
-
-  if (normalizedTab === 'roles') {
-    loadRolePermissionsUI();
-  } else if (normalizedTab === 'users') {
-    loadUsersManagementUI();
+  // Menambahkan class active pada tombol yang diklik (menggunakan event.currentTarget atau querySelector)
+  let activeBtn = null;
+  if (typeof event !== 'undefined' && event && event.currentTarget && event.currentTarget.classList && event.currentTarget.classList.contains('settings-tab-btn')) {
+    activeBtn = event.currentTarget;
   }
+  if (!activeBtn) {
+    activeBtn = document.querySelector('.settings-tab-btn[data-tab="' + tabName + '"]') || document.getElementById('tab-set-btn-' + tabName);
+  }
+  if (activeBtn) {
+    activeBtn.classList.add('active');
+  }
+
+  CURRENT_SETTINGS_SUBTAB = tabName;
 }
 
 function switchSettingsSubtab(subtab) {
@@ -11875,11 +11880,40 @@ function drawPengaturanUI(settings) {
     '<div id="pane-roles" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'roles' ? 'block' : 'none') + ';">' +
       '<div class="card">' +
         '<h3>Konfigurasi Hak Akses</h3>' +
-        '<button type="button" onclick="openRoleModal()">+ Tambah Peran Baru</button>' +
-        '<div class="table-container" style="overflow-x:auto;margin-top:16px;">' +
+        '<div style="margin:12px 0 16px 0;">' +
+          '<button onclick="openRoleModal()">+ Tambah Peran Baru</button>' +
+        '</div>' +
+        '<div class="table-container" style="overflow-x:auto;">' +
           '<table style="width:100%;margin-bottom:0;">' +
-            '<thead><tr><th>Peran/Role</th><th>Akses Modul</th><th>Aksi</th></tr></thead>' +
-            '<tbody id="roles-matrix-body"></tbody>' +
+            '<thead>' +
+              '<tr>' +
+                '<th>Peran/Role</th>' +
+                '<th>Akses Modul</th>' +
+                '<th>Aksi</th>' +
+              '</tr>' +
+            '</thead>' +
+            '<tbody>' +
+              '<tr>' +
+                '<td><strong>Admin</strong></td>' +
+                '<td>Semua Modul (Akses Penuh)</td>' +
+                '<td><button onclick="openRoleModal()">Edit</button></td>' +
+              '</tr>' +
+              '<tr>' +
+                '<td><strong>Kasir</strong></td>' +
+                '<td>Kasir (POS), Riwayat Transaksi</td>' +
+                '<td><button onclick="openRoleModal()">Edit</button></td>' +
+              '</tr>' +
+              '<tr>' +
+                '<td><strong>Koordinator</strong></td>' +
+                '<td>Semua Modul (Lihat Saja / View-Only)</td>' +
+                '<td><button onclick="openRoleModal()">Edit</button></td>' +
+              '</tr>' +
+              '<tr>' +
+                '<td><strong>QC</strong></td>' +
+                '<td>Quality Control (QC), Stok &amp; Batch FIFO</td>' +
+                '<td><button onclick="openRoleModal()">Edit</button></td>' +
+              '</tr>' +
+            '</tbody>' +
           '</table>' +
         '</div>' +
       '</div>' +
@@ -11888,11 +11922,33 @@ function drawPengaturanUI(settings) {
     '<div id="pane-users" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'users' ? 'block' : 'none') + ';">' +
       '<div class="card">' +
         '<h3>Manajemen Akun Pengguna</h3>' +
-        '<button type="button" onclick="openUserModal()">+ Tambah Akun</button>' +
-        '<div class="table-container" style="overflow-x:auto;margin-top:16px;">' +
-          '<table style="width:100%;margin-bottom:0;">' +
-            '<thead><tr><th>Username</th><th>Nama</th><th>Peran</th><th>Aksi</th></tr></thead>' +
-            '<tbody id="users-table-body"></tbody>' +
+        '<div style="margin:12px 0 16px 0;">' +
+          '<button onclick="openUserModal()">+ Tambah Akun</button>' +
+        '</div>' +
+        '<div class="table-container" style="overflow-x:auto;">' +
+          '<table id="users-table-body" style="width:100%;margin-bottom:0;">' +
+            '<thead>' +
+              '<tr>' +
+                '<th>Username</th>' +
+                '<th>Nama</th>' +
+                '<th>Peran</th>' +
+                '<th>Aksi</th>' +
+              '</tr>' +
+            '</thead>' +
+            '<tbody>' +
+              '<tr>' +
+                '<td><strong>admin</strong></td>' +
+                '<td>Administrator Utama</td>' +
+                '<td>Admin</td>' +
+                '<td><button onclick="openUserModal(\'admin\')">Edit</button></td>' +
+              '</tr>' +
+              '<tr>' +
+                '<td><strong>kasir</strong></td>' +
+                '<td>Staf Kasir Toko</td>' +
+                '<td>Kasir</td>' +
+                '<td><button onclick="openUserModal(\'kasir\')">Edit</button></td>' +
+              '</tr>' +
+            '</tbody>' +
           '</table>' +
         '</div>' +
       '</div>' +
@@ -11901,10 +11957,10 @@ function drawPengaturanUI(settings) {
     '<div id="pane-telegram" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'telegram' ? 'block' : 'none') + ';">' +
       '<div class="card" style="max-width:700px;">' +
         '<h3>Pengaturan Bot Telegram</h3>' +
-        '<div class="field-group"><label class="field-label">Telegram Bot Token</label><div class="input-wrapper"><input type="text" id="set-tg-token" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Masukkan telegram bot token" style="padding-left:14px;"></div></div>' +
-        '<div class="field-group"><label class="field-label">Telegram Chat ID</label><div class="input-wrapper"><input type="text" id="set-tg-chat-id" value="' + escapeHtml(settings['telegram_chat_id'] || '') + '" placeholder="Masukkan chat id tujuan" style="padding-left:14px;"></div></div>' +
+        '<div class="field-group"><label class="field-label">Telegram Bot Token</label><div class="input-wrapper"><input type="text" id="set-tg-token" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Telegram Bot Token" style="padding-left:14px;"></div></div>' +
+        '<div class="field-group"><label class="field-label">Telegram Chat ID</label><div class="input-wrapper"><input type="text" id="set-tg-chat-id" value="' + escapeHtml(settings['telegram_chat_id'] || '') + '" placeholder="Telegram Chat ID" style="padding-left:14px;"></div></div>' +
         '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Cara mendapatkan token: buka Telegram, cari @BotFather, lalu ikuti langkah membuat bot baru dan salin token yang diberikan.</p>' +
-        '<button type="button" class="btn btn-primary" onclick="saveTelegramSettings()">Simpan Pengaturan Telegram</button>' +
+        '<button onclick="saveTelegramSettings()">Simpan Pengaturan Telegram</button>' +
       '</div>' +
     '</div>' +
 

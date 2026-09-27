@@ -11788,13 +11788,12 @@ function drawPengaturanUI(settings) {
     '</div>' +
 
     '<!-- SUB-NAVIGASI TAB PENGATURAN -->' +
-    '<div class="nav-tabs" style="display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; padding-bottom: 6px; margin-bottom:20px;border-bottom:1px solid var(--border);flex-wrap:nowrap;">' +
-      '<button type="button" id="tab-set-btn-profile" class="role-tab-btn active" style="background:var(--primary);color:#fff;border-color:var(--primary);flex-shrink:0;" onclick="switchSettingsSubtab(\'profile\')">🏪 Profil Toko &amp; Pajak</button>' +
-      '<button type="button" id="tab-set-btn-pricing" class="role-tab-btn" style="flex-shrink:0;" onclick="switchSettingsSubtab(\'pricing\')">🏷️ Format Batch &amp; Multi-Tier</button>' +
-      (isUserAdmin ? '<button type="button" id="tab-set-btn-users" class="role-tab-btn" style="flex-shrink:0;" onclick="switchSettingsSubtab(\'users\')">👥 Kelola Akun Pengguna</button>' : '') +
-      (isUserAdmin ? '<button type="button" id="tab-set-btn-roles" class="role-tab-btn" style="flex-shrink:0;" onclick="switchSettingsSubtab(\'roles\')">🛡️ Matriks Hak Akses</button>' : '') +
-      (isUserAdmin ? '<button type="button" id="tab-set-btn-telegram" class="role-tab-btn" style="flex-shrink:0;" onclick="switchSettingsSubtab(\'telegram\')">🤖 Bot Telegram</button>' : '') +
-      (isUserAdmin ? '<button type="button" id="tab-set-btn-danger" class="role-tab-btn" style="flex-shrink:0;" onclick="switchSettingsSubtab(\'danger\')">🚨 Zona Bahaya</button>' : '') +
+    '<div class="nav-tabs" style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap;">' +
+      '<button type="button" id="tab-set-btn-profile" class="role-tab-btn active" style="background:var(--primary);color:#fff;border-color:var(--primary);" onclick="switchSettingsSubtab(\'profile\')">🏪 Profil Toko &amp; Pajak</button>' +
+      '<button type="button" id="tab-set-btn-pricing" class="role-tab-btn" onclick="switchSettingsSubtab(\'pricing\')">🏷️ Format Batch &amp; Multi-Tier</button>' +
+      '<button type="button" id="tab-set-btn-roles" class="role-tab-btn" onclick="switchSettingsSubtab(\'roles\')">🔐 Hak Akses &amp; Peran</button>' +
+      '<button type="button" id="tab-set-btn-users" class="role-tab-btn" onclick="switchSettingsSubtab(\'users\')">👥 Akun Pengguna</button>' +
+      '<button type="button" id="tab-set-btn-telegram" class="role-tab-btn" onclick="switchSettingsSubtab(\'telegram\')">🤖 Bot Telegram</button>' +
     '</div>' +
 
     '<!-- PANEL 1: PROFIL TOKO & PAJAK -->' +
@@ -11871,22 +11870,28 @@ function drawPengaturanUI(settings) {
               '<input type="text" id="set-store-phone" value="' + escapeHtml(settings['store_phone'] || '') + '" style="padding-left:14px;">' +
             '</div>' +
           '</div>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Nama Bank</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="text" id="set-bank-name" value="' + escapeHtml(settings['bank_name'] || 'BNI') + '" style="padding-left:14px;">' +
+          '<div class="field-group" style="padding:12px 14px;background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-xs);margin-bottom:12px;">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">' +
+              '<label class="field-label" style="margin:0;">Rekening Bank Kios</label>' +
+              '<button type="button" id="btn-unlock-bank-settings" class="btn btn-secondary btn-sm" onclick="unlockBankSettings()" style="white-space:nowrap;">🔒 Buka Kunci Rekening</button>' +
             '</div>' +
-          '</div>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Nomor Rekening</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="text" id="set-bank-account" value="' + escapeHtml(settings['bank_account'] || '0178 849 203') + '" style="padding-left:14px;">' +
+            '<div class="field-group" style="margin-bottom:10px;">' +
+              '<label class="field-label">Nama Bank</label>' +
+              '<div class="input-wrapper">' +
+                '<input type="text" id="set-bank-name" value="' + escapeHtml(settings['bank_name'] || 'BNI') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;">' +
+              '</div>' +
             '</div>' +
-          '</div>' +
-          '<div class="field-group">' +
-            '<label class="field-label">Atas Nama Rekening</label>' +
-            '<div class="input-wrapper">' +
-              '<input type="text" id="set-bank-account-name" value="' + escapeHtml(settings['bank_account_name'] || 'Yayasan IDEP Selaras Alam') + '" style="padding-left:14px;">' +
+            '<div class="field-group" style="margin-bottom:10px;">' +
+              '<label class="field-label">Nomor Rekening</label>' +
+              '<div class="input-wrapper">' +
+                '<input type="text" id="set-bank-account" value="' + escapeHtml(settings['bank_account'] || '0178 849 203') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;">' +
+              '</div>' +
+            '</div>' +
+            '<div class="field-group" style="margin-bottom:0;">' +
+              '<label class="field-label">Atas Nama</label>' +
+              '<div class="input-wrapper">' +
+                '<input type="text" id="set-bank-account-name" value="' + escapeHtml(settings['bank_account_name'] || 'Yayasan IDEP Selaras Alam') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;">' +
+              '</div>' +
             '</div>' +
           '</div>' +
           '<div class="field-group">' +
@@ -12534,6 +12539,112 @@ function deleteUserUI(userId, username) {
 }
 
 
+function unlockBankSettings() {
+  const currentUserName = (CURRENT_USER && CURRENT_USER.username) || USER_NAME || '';
+  if (!currentUserName) {
+    showToast('Sesi pengguna tidak valid untuk membuka kunci rekening.', true);
+    return;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.zIndex = '2100';
+  overlay.innerHTML =
+    '<div class="modal-backdrop"></div>' +
+    '<div class="modal-dialog modal-dialog-sm" style="max-width:420px;">' +
+      '<div class="modal-header">' +
+        '<h3 class="modal-title">Verifikasi Password</h3>' +
+        '<button type="button" class="modal-close-btn" id="bank-lock-close">&times;</button>' +
+      '</div>' +
+      '<div class="modal-body">' +
+        '<p style="margin:0 0 12px;color:var(--text-secondary);font-size:13px;">Masukkan password akun Anda saat ini untuk membuka kunci data rekening bank.</p>' +
+        '<div class="input-wrapper">' +
+          '<input type="password" id="bank-lock-password" placeholder="Password saat ini" style="padding-left:14px;">' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-footer">' +
+        '<button type="button" class="btn btn-secondary" id="bank-lock-cancel">Batal</button>' +
+        '<button type="button" class="btn btn-primary" id="bank-lock-confirm">Verifikasi</button>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  document.body.classList.add('modal-open');
+
+  const close = function () {
+    overlay.remove();
+    document.body.classList.remove('modal-open');
+  };
+
+  const input = overlay.querySelector('#bank-lock-password');
+  overlay.querySelector('#bank-lock-close').onclick = close;
+  overlay.querySelector('#bank-lock-cancel').onclick = close;
+  overlay.querySelector('#bank-lock-confirm').onclick = function () {
+    const inputPassword = (input ? input.value : '').trim();
+    if (!inputPassword) {
+      showToast('Password wajib diisi.', true);
+      return;
+    }
+
+    api('loginUser', currentUserName, inputPassword).then(function (res) {
+      const isValid = res && res.success;
+      if (isValid) {
+        const bankInputs = ['set-bank-name', 'set-bank-account', 'set-bank-account-name'];
+        bankInputs.forEach(function (fieldId) {
+          const field = document.getElementById(fieldId);
+          if (field) {
+            field.disabled = false;
+            field.style.opacity = '1';
+            field.style.cursor = 'text';
+          }
+        });
+
+        const btn = document.getElementById('btn-unlock-bank-settings');
+        if (btn) {
+          btn.textContent = '🔓 Rekening Terbuka';
+          btn.disabled = true;
+        }
+
+        close();
+        showToast('Kunci terbuka, silakan ubah data rekening.');
+      } else {
+        close();
+        showToast('Password salah, akses ditolak!', true);
+      }
+    }).catch(function () {
+      close();
+      showToast('Password salah, akses ditolak!', true);
+    });
+  };
+
+  if (input) {
+    input.focus();
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        overlay.querySelector('#bank-lock-confirm').click();
+      }
+    });
+  }
+}
+
+function sendTelegramSecurityAlert(message) {
+  if (!APP_SETTINGS) return;
+
+  const token = APP_SETTINGS['telegram_bot_token'];
+  const chatId = APP_SETTINGS['telegram_chat_id'];
+  if (!token || !chatId) return;
+
+  const url = 'https://api.telegram.org/bot' + token + '/sendMessage';
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message
+    })
+  }).catch(function () {});
+}
+
 function saveStoreSettingsUI() {
   saveStoreSettings();
 }
@@ -12544,6 +12655,20 @@ function saveStoreSettings() {
   const batchFormat = (document.getElementById('set-batch-format') ? document.getElementById('set-batch-format').value.trim() : '') || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}';
   const taxRateInput = document.getElementById('set-tax-rate');
   const taxRate = taxRateInput ? taxRateInput.value.trim() : (APP_SETTINGS.tax_rate || '0');
+
+  const newBankName = (document.getElementById('set-bank-name') ? document.getElementById('set-bank-name').value.trim() : '') || 'BNI';
+  const newBankAccount = (document.getElementById('set-bank-account') ? document.getElementById('set-bank-account').value.trim() : '') || '0178 849 203';
+  const newBankAccountName = (document.getElementById('set-bank-account-name') ? document.getElementById('set-bank-account-name').value.trim() : '') || 'Yayasan IDEP Selaras Alam';
+
+  const previousBankSettings = APP_SETTINGS || {};
+  const previousBankName = String(previousBankSettings.bank_name || 'BNI');
+  const previousBankAccount = String(previousBankSettings.bank_account || '0178 849 203');
+  const previousBankAccountName = String(previousBankSettings.bank_account_name || 'Yayasan IDEP Selaras Alam');
+  const hasBankChanged = (
+    previousBankName !== newBankName ||
+    previousBankAccount !== newBankAccount ||
+    previousBankAccountName !== newBankAccountName
+  );
 
   // Kumpulkan preset tier harga
   const presetRows = document.querySelectorAll('#price-tier-presets-body .preset-tier-row');
@@ -12570,15 +12695,27 @@ function saveStoreSettings() {
     store_name: document.getElementById('set-store-name') ? document.getElementById('set-store-name').value.trim() : '',
     store_address: document.getElementById('set-store-address') ? document.getElementById('set-store-address').value.trim() : '',
     store_phone: document.getElementById('set-store-phone') ? document.getElementById('set-store-phone').value.trim() : '',
-    bank_name: (document.getElementById('set-bank-name') ? document.getElementById('set-bank-name').value.trim() : '') || 'BNI',
-    bank_account: (document.getElementById('set-bank-account') ? document.getElementById('set-bank-account').value.trim() : '') || '0178 849 203',
-    bank_account_name: (document.getElementById('set-bank-account-name') ? document.getElementById('set-bank-account-name').value.trim() : '') || 'Yayasan IDEP Selaras Alam',
+    bank_name: newBankName,
+    bank_account: newBankAccount,
+    bank_account_name: newBankAccountName,
     tax_rate: taxRate,
     invoice_footer: document.getElementById('set-invoice-footer') ? document.getElementById('set-invoice-footer').value.trim() : '',
     batch_format_template: batchFormat,
     batch_format: batchFormat,
     price_tiers_preset: presetJson
   };
+
+  if (hasBankChanged) {
+    const userName = (CURRENT_USER && CURRENT_USER.name) || (CURRENT_USER && CURRENT_USER.username) || USER_NAME || 'Pemilik Toko';
+    sendTelegramSecurityAlert(
+      '🚨 *PERINGATAN KEAMANAN:*\n' +
+      'Data Rekening Bank Kios IDEP baru saja diubah oleh *' + userName + '*.\n\n' +
+      '*Data Rekening Baru:*\n' +
+      'Bank: ' + newBankName + '\n' +
+      'No. Rek: ' + newBankAccount + '\n' +
+      'a.n: ' + newBankAccountName
+    );
+  }
 
   api('saveSettings', TOKEN, payload).then(function () {
     invalidateCache('settings');

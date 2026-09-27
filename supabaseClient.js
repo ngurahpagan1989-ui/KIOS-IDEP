@@ -222,6 +222,16 @@ async function dispatchApiCall(fnName, args) {
       return data || [];
     }
 
+    case 'getBatchRecallContacts': {
+      const [, batchId] = args;
+      const { data, error } = await supabase
+        .from('transaction_items')
+        .select('*, transactions(invoice_no, customer_name, customer_phone, created_at)')
+        .eq('batch_id', batchId);
+      if (error) throw error;
+      return data || [];
+    }
+
     case 'saveUser': {
       const [, payload] = args;
       const { data, error } = await supabase

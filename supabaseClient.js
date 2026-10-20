@@ -143,8 +143,17 @@ async function loginSupabaseUser(identifier, password) {
   window.CURRENT_SESSION = data.session;
   window.CURRENT_USER_PROFILE = userProfile;
 
-  localStorage.setItem('idep_pos_user', JSON.stringify(userProfile));
-  localStorage.setItem('idep_pos_token', data.session.access_token);
+  const userDisplayName = userProfile.name || userProfile.username;
+  try {
+    localStorage.setItem('ekasir_token', data.session.access_token);
+    localStorage.setItem('ekasir_user', userDisplayName);
+    sessionStorage.setItem('ekasir_token', data.session.access_token);
+    sessionStorage.setItem('ekasir_user', userDisplayName);
+    localStorage.setItem('idep_pos_user', JSON.stringify(userProfile));
+    localStorage.setItem('idep_pos_token', data.session.access_token);
+  } catch (e) {
+    console.warn('[Session] Gagal menyimpan sesi:', e);
+  }
 
   return {
     success: true,
@@ -161,8 +170,14 @@ async function logoutSupabaseUser() {
   }
   window.CURRENT_SESSION = null;
   window.CURRENT_USER_PROFILE = null;
-  localStorage.removeItem('idep_pos_user');
-  localStorage.removeItem('idep_pos_token');
+  try {
+    localStorage.removeItem('ekasir_token');
+    localStorage.removeItem('ekasir_user');
+    sessionStorage.removeItem('ekasir_token');
+    sessionStorage.removeItem('ekasir_user');
+    localStorage.removeItem('idep_pos_user');
+    localStorage.removeItem('idep_pos_token');
+  } catch (e) {}
 }
 
 async function checkSupabaseSession() {
@@ -186,6 +201,13 @@ async function checkSupabaseSession() {
 
     window.CURRENT_SESSION = session;
     window.CURRENT_USER_PROFILE = userProfile;
+    try {
+      const userDisplayName = userProfile.name || userProfile.username;
+      localStorage.setItem('ekasir_token', session.access_token);
+      localStorage.setItem('ekasir_user', userDisplayName);
+      sessionStorage.setItem('ekasir_token', session.access_token);
+      sessionStorage.setItem('ekasir_user', userDisplayName);
+    } catch (e) {}
     return userProfile;
   }
   return null;
@@ -1932,11 +1954,16 @@ async function dispatchApiCall(fnName, args) {
       return {
         transfer: transfer,
         outlet: transfer.outlets || {},
-        items: (items || []).map(it => ({
-          ...it,
-          name: it.products ? it.products.name : 'Produk',
-          unit: it.products ? it.products.unit : 'pcs'
-        }))
+        items: (items || []).map(it => {
+          const prodName = it.products ? it.products.name : (it.name || it.product_name || 'Produk');
+          const prodUnit = it.products ? it.products.unit : (it.unit || 'pcs');
+          return {
+            ...it,
+            name: prodName,
+            product_name: prodName,
+            unit: prodUnit
+          };
+        })
       };
     }
 

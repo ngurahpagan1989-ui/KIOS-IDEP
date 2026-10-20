@@ -6798,7 +6798,7 @@ function printConsignmentSuratJalan(transferId) {
     const transfer = res.transfer;
     const outlet = res.outlet || {};
     const items = res.items || [];
-    const settings = STORE_SETTINGS || {};
+    const settings = APP_SETTINGS || window.APP_SETTINGS || {};
     const storeTitle = settings.store_name || 'KIOS IDEP';
     const storeLogo = settings.store_logo || settings.store_logo_light || '';
     const storeAddress = settings.store_address || 'Br. Batulumbung, Desa Tegal Cangkring, Mendoyo, Jembrana - Bali';

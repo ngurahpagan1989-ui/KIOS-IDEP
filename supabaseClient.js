@@ -246,12 +246,79 @@ async function dispatchApiCall(fnName, args) {
 
     case 'getBatchRecallContacts': {
       const [, batchId] = args;
-      const { data, error } = await supabase
-        .from('transaction_items')
-        .select('*, transactions(invoice_no, customer_name, customer_phone, created_at)')
-        .eq('batch_id', batchId);
-      if (error) throw error;
-      return data || [];
+      const [batchRes, claimsCountRes, txItemsRes, consignRes] = await Promise.all([
+        supabase.from('stock_batches').select('*, products(name, category)').or(`id.eq.${batchId},batch_no.eq.${batchId}`).maybeSingle(),
+        supabase.from('after_sales_claims').select('id', { count: 'exact', head: true }).eq('batch_id', batchId),
+        supabase.from('transaction_items').select('*, transactions(invoice_no, customer_name, customer_phone, created_at)').eq('batch_id', batchId),
+        supabase.from('consignment_transfer_items').select('*, consignment_transfers(invoice_no, transfer_date, outlets(name, phone))').eq('batch_id', batchId)
+      ]);
+
+      const bData = batchRes.data || {};
+      const prodName = bData.products?.name || bData.product_name || 'Benih';
+      const batchInfo = {
+        id: batchId,
+        product_name: prodName,
+        quality_status: bData.quality_status || 'NORMAL',
+        farmer_name: bData.farmer_name || '-',
+        production_date: bData.production_date ? formatDateIndo(bData.production_date) : '-',
+        expiry_date: bData.expiry_date ? formatDateIndo(bData.expiry_date) : '-',
+        qty_remaining: Number(bData.qty_remaining || 0),
+        complaint_count: claimsCountRes.count || 0
+      };
+
+      const contacts = [];
+      let totalDistributed = 0;
+
+      (txItemsRes.data || []).forEach(it => {
+        const tx = it.transactions || {};
+        const qty = Number(it.qty || 0);
+        totalDistributed += qty;
+        const phone = (tx.customer_phone || '').trim();
+        let waLink = '';
+        if (phone) {
+          const cleanPhone = phone.replace(/[^0-9]/g, '').replace(/^0/, '62');
+          const msg = encodeURIComponent(`Halo ${tx.customer_name || 'Bpk/Ibu'}, kami dari Kios IDEP ingin mengonfirmasi terkait benih ${prodName} (Batch: ${batchId}) yang Anda beli pada ${formatDateIndo(tx.created_at)}.`);
+          waLink = `https://wa.me/${cleanPhone}?text=${msg}`;
+        }
+        contacts.push({
+          category: 'Pelanggan POS',
+          ref_no: tx.invoice_no || it.transaction_id || '-',
+          date: formatDateIndo(tx.created_at),
+          name: tx.customer_name || 'Pelanggan POS',
+          phone: phone,
+          qty: qty,
+          wa_link: waLink
+        });
+      });
+
+      (consignRes.data || []).forEach(it => {
+        const tr = it.consignment_transfers || {};
+        const outlet = tr.outlets || {};
+        const qty = Number(it.qty || 0);
+        totalDistributed += qty;
+        const phone = (outlet.phone || '').trim();
+        let waLink = '';
+        if (phone) {
+          const cleanPhone = phone.replace(/[^0-9]/g, '').replace(/^0/, '62');
+          const msg = encodeURIComponent(`Halo ${outlet.name || 'Mitra Outlet'}, kami dari Kios IDEP ingin mengonfirmasi terkait stok benih ${prodName} (Batch: ${batchId}) pada Surat Jalan ${tr.invoice_no || '-'}.`);
+          waLink = `https://wa.me/${cleanPhone}?text=${msg}`;
+        }
+        contacts.push({
+          category: 'Outlet Konsinyasi',
+          ref_no: tr.invoice_no || '-',
+          date: formatDateIndo(tr.transfer_date),
+          name: outlet.name || 'Outlet Konsinyasi',
+          phone: phone,
+          qty: qty,
+          wa_link: waLink
+        });
+      });
+
+      return {
+        batch_info: batchInfo,
+        contacts: contacts,
+        total_qty_distributed: totalDistributed
+      };
     }
 
     case 'saveUser': {
@@ -2033,10 +2100,34 @@ async function dispatchApiCall(fnName, args) {
 
     case 'getRolePermissions': {
       const { data, error } = await supabase.from('settings').select('value').eq('key', 'role_permissions').maybeSingle();
+      let perms = null;
       if (data && data.value) {
-        try { return JSON.parse(data.value); } catch (e) { }
+        try {
+          const parsed = JSON.parse(data.value);
+          perms = parsed.permissions ? parsed.permissions : parsed;
+        } catch (e) { }
       }
-      return null;
+      if (!perms || typeof perms !== 'object') {
+        const defaultAll = { can_view: true, can_edit: true, can_delete: true };
+        const viewOnly = { can_view: true, can_edit: false, can_delete: false };
+        const modules = ['dashboard', 'pos', 'produk', 'stok', 'produksi', 'qc', 'pembelian', 'konsinyasi', 'piutang', 'expenses', 'crm', 'purnajual', 'faktur', 'laporan', 'pengaturan'];
+        perms = {
+          'Admin': {},
+          'Koordinator': {},
+          'QC': {},
+          'Kasir': {}
+        };
+        modules.forEach(m => {
+          perms['Admin'][m] = Object.assign({}, defaultAll);
+          perms['Koordinator'][m] = Object.assign({}, viewOnly);
+          perms['QC'][m] = (['dashboard', 'qc', 'stok', 'produksi'].includes(m)) ? Object.assign({}, defaultAll) : Object.assign({}, viewOnly);
+          perms['Kasir'][m] = (['dashboard', 'pos', 'produk', 'faktur', 'crm', 'purnajual'].includes(m)) ? Object.assign({}, defaultAll) : Object.assign({}, viewOnly);
+        });
+      }
+      return {
+        roles: Object.keys(perms),
+        permissions: perms
+      };
     }
 
     case 'saveRolePermissions': {
@@ -2118,6 +2209,409 @@ async function dispatchApiCall(fnName, args) {
         .eq('id', categoryId);
       if (error) throw error;
       return { success: true };
+    }
+
+    // --------------------------------------------------------------------------
+    // O. MODUL PURNA JUAL, KLAIM GARANSI & RECALL BATCH
+    // --------------------------------------------------------------------------
+    case 'getAllBatchesForRecall': {
+      const [batchesRes, claimsRes] = await Promise.all([
+        supabase
+          .from('stock_batches')
+          .select('*, products(name, category, variant, unit)')
+          .order('expiry_date', { ascending: true }),
+        supabase
+          .from('after_sales_claims')
+          .select('batch_id')
+      ]);
+
+      const claimCounts = {};
+      (claimsRes.data || []).forEach(c => {
+        if (c.batch_id) {
+          claimCounts[c.batch_id] = (claimCounts[c.batch_id] || 0) + 1;
+        }
+      });
+
+      const list = (batchesRes.data || []).map(b => {
+        const cCount = claimCounts[b.batch_no] || claimCounts[b.id] || 0;
+        const qualityStatus = (cCount >= 3 || b.quality_status === 'QUARANTINE') ? 'QUARANTINE' : (b.quality_status || 'NORMAL');
+        return {
+          id: b.batch_no || b.id,
+          batch_id: b.batch_no || b.id,
+          product_id: b.product_id,
+          product_name: b.products?.name || b.product_name || 'Benih',
+          quality_status: qualityStatus,
+          complaint_count: cCount,
+          qty_remaining: Number(b.qty_remaining || 0),
+          farmer_name: b.farmer_name || '-',
+          production_date: b.production_date ? formatDateIndo(b.production_date) : '-',
+          expiry_date: b.expiry_date ? formatDateIndo(b.expiry_date) : '-'
+        };
+      });
+
+      return list;
+    }
+
+    case 'getAfterSalesClaims': {
+      const { data, error } = await supabase
+        .from('after_sales_claims')
+        .select('*, products(name, variant)')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.warn('[Claims] Gagal query after_sales_claims:', error);
+        return [];
+      }
+      return (data || []).map(c => ({
+        id: c.id,
+        claim_date: c.created_at ? formatDateIndo(c.created_at) : (c.claim_date || '-'),
+        created_at: c.created_at,
+        customer_name: c.customer_name || 'Pelanggan',
+        customer_phone: c.customer_phone || '-',
+        product_id: c.product_id,
+        product_name: c.products?.name || c.product_name || 'Produk Benih',
+        batch_id: c.batch_id || '-',
+        claim_reason: c.claim_reason || c.reason || '-',
+        sowing_date: c.sowing_date || '',
+        media_type: c.media_type || '',
+        resolution_type: c.resolution_type || 'Ganti Benih Baru',
+        replacement_qty: c.replacement_qty || 1,
+        photo_url: c.photo_url || '',
+        resolution_notes: c.resolution_notes || c.notes || '',
+        status: c.status || 'PENDING'
+      }));
+    }
+
+    case 'submitAfterSalesClaim': {
+      const [, payload] = args;
+      const claimRow = {
+        transaction_id: payload.transaction_id || null,
+        customer_name: payload.customer_name || 'Pelanggan',
+        customer_phone: payload.customer_phone || '',
+        product_id: payload.product_id || null,
+        batch_id: payload.batch_id || '',
+        claim_reason: payload.claim_reason || '',
+        sowing_date: payload.sowing_date || null,
+        media_type: payload.media_type || '',
+        resolution_type: payload.resolution_type || 'Ganti Benih Baru',
+        photo_url: payload.photo_url || '',
+        resolution_notes: payload.resolution_notes || '',
+        replacement_qty: payload.replacement_qty || 1,
+        status: 'PENDING',
+        created_at: new Date().toISOString()
+      };
+
+      const { data: inserted, error } = await supabase
+        .from('after_sales_claims')
+        .insert([claimRow])
+        .select()
+        .single();
+      if (error) throw error;
+
+      let isQuarantined = false;
+      if (payload.batch_id) {
+        const { count } = await supabase
+          .from('after_sales_claims')
+          .select('id', { count: 'exact', head: true })
+          .eq('batch_id', payload.batch_id);
+
+        if ((count || 0) >= 3) {
+          isQuarantined = true;
+          await supabase
+            .from('stock_batches')
+            .update({ quality_status: 'QUARANTINE', updated_at: new Date().toISOString() })
+            .or(`batch_no.eq.${payload.batch_id},id.eq.${payload.batch_id}`);
+        }
+      }
+
+      return {
+        success: true,
+        id: inserted ? inserted.id : '',
+        is_quarantined: isQuarantined,
+        message: 'Klaim garansi purna jual berhasil disimpan.'
+      };
+    }
+
+    case 'updateAfterSalesClaimStatus': {
+      const [, claimId, newStatus] = args;
+      const { error } = await supabase
+        .from('after_sales_claims')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', claimId);
+      if (error) throw error;
+      return { success: true };
+    }
+
+    case 'getConsultationLogs': {
+      const { data, error } = await supabase
+        .from('consultation_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.warn('[Consultation] Gagal query consultation_logs:', error);
+        return [];
+      }
+      return (data || []).map(l => ({
+        id: l.id,
+        consultation_date: l.created_at ? formatDateIndo(l.created_at) : (l.consultation_date || '-'),
+        created_at: l.created_at,
+        customer_name: l.customer_name || 'Pelanggan',
+        customer_phone: l.customer_phone || '-',
+        topic: l.topic || 'Umum',
+        problem_details: l.problem_details || '',
+        solution_given: l.solution_given || '',
+        handled_by: l.handled_by || 'Staf IDEP'
+      }));
+    }
+
+    case 'saveConsultationLog': {
+      const [, payload] = args;
+      const { data, error } = await supabase
+        .from('consultation_logs')
+        .insert([{
+          customer_name: payload.customer_name || 'Pelanggan',
+          customer_phone: payload.customer_phone || '',
+          topic: payload.topic || 'Umum',
+          problem_details: payload.problem_details || '',
+          solution_given: payload.solution_given || '',
+          handled_by: payload.handled_by || 'Staf IDEP',
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, id: data ? data.id : '' };
+    }
+
+    case 'searchBatchTraceability': {
+      const [, prodId, expQuery] = args;
+      let q = supabase
+        .from('stock_batches')
+        .select('*, products(name, category, variant, unit)')
+        .order('expiry_date', { ascending: true });
+
+      if (prodId) {
+        q = q.eq('product_id', prodId);
+      }
+
+      const { data, error } = await q;
+      if (error) throw error;
+
+      let list = (data || []).map(b => {
+        const prod = b.products || {};
+        const isRaw = (prod.unit === 'gr' || prod.variant === 'Curah' || String(prod.name).toLowerCase().includes('curah'));
+        return {
+          id: b.id,
+          batch_id: b.batch_no || b.id,
+          product_id: b.product_id,
+          product_name: prod.name || b.product_name || 'Produk',
+          farmer_name: b.farmer_name || '-',
+          expiry_date: b.expiry_date || '',
+          received_at: b.received_at || b.created_at || '',
+          production_date: b.production_date || '',
+          qty_remaining: Number(b.qty_remaining || 0),
+          qty_in: Number(b.initial_qty || b.qty_remaining || 0),
+          unit: prod.unit || (isRaw ? 'gr' : 'pcs'),
+          is_raw: isRaw,
+          quality_status: b.quality_status || 'NORMAL'
+        };
+      });
+
+      if (expQuery && expQuery.trim()) {
+        const cleanExp = expQuery.trim().toLowerCase();
+        list = list.filter(b => String(b.expiry_date || '').toLowerCase().includes(cleanExp));
+      }
+
+      return list;
+    }
+
+    case 'searchTransactionsForClaim': {
+      const [, query] = args;
+      const cleanQ = (query || '').trim().toLowerCase();
+      if (!cleanQ) return [];
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*, transaction_items(*, products(name, is_seed))')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      const filtered = (data || []).filter(t => {
+        const inv = String(t.invoice_no || t.id || '').toLowerCase();
+        const cName = String(t.customer_name || '').toLowerCase();
+        const cPhone = String(t.customer_phone || '').toLowerCase();
+        const hasBatch = (t.transaction_items || []).some(ti => String(ti.batch_id || '').toLowerCase().includes(cleanQ));
+        return inv.includes(cleanQ) || cName.includes(cleanQ) || cPhone.includes(cleanQ) || hasBatch;
+      });
+
+      return filtered.map(t => ({
+        id: t.invoice_no || t.id,
+        created_at: t.created_at,
+        customer_name: t.customer_name || 'Pelanggan Umum',
+        customer_phone: t.customer_phone || '',
+        items: (t.transaction_items || []).map(ti => ({
+          product_id: ti.product_id,
+          product_name: ti.products?.name || ti.product_name || 'Benih',
+          batch_id: ti.batch_id || '',
+          is_seed: ti.products?.is_seed !== false,
+          qty: ti.qty
+        }))
+      }));
+    }
+
+    case 'getFollowUpList': {
+      const [txRes, savedFollowUpsRes] = await Promise.all([
+        supabase
+          .from('transactions')
+          .select('*, transaction_items(*, products(name, harvest_days, is_seed))')
+          .order('created_at', { ascending: false })
+          .limit(100),
+        supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'follow_up_statuses')
+          .maybeSingle()
+      ]);
+
+      let savedStatuses = {};
+      if (savedFollowUpsRes.data && savedFollowUpsRes.data.value) {
+        try { savedStatuses = JSON.parse(savedFollowUpsRes.data.value); } catch (e) { }
+      }
+
+      const now = new Date();
+      const h7List = [];
+      const harvestList = [];
+      const historyList = [];
+
+      (txRes.data || []).forEach(tx => {
+        if (!tx.created_at) return;
+        const seedItems = (tx.transaction_items || []).filter(it => it.products?.is_seed !== false);
+        if (seedItems.length === 0) return;
+
+        const txDate = new Date(tx.created_at);
+        const diffDays = Math.floor((now - txDate) / (1000 * 60 * 60 * 24));
+        const summary = seedItems.map(it => `${it.products?.name || 'Benih'} (${it.qty} pcs)`).join(', ');
+        const custName = tx.customer_name || 'Pelanggan';
+        const custPhone = tx.customer_phone || '';
+
+        // H+7 Cek Semai (Antrean untuk transaksi 5 - 14 hari yang lalu)
+        const h7Id = `h7_${tx.id}`;
+        const h7Saved = savedStatuses[h7Id];
+        const h7Status = h7Saved ? h7Saved.status : (diffDays >= 5 && diffDays <= 14 ? 'PENDING' : null);
+
+        if (h7Status) {
+          const item = {
+            id: h7Id,
+            touchpoint_type: 'H7_GERMINATION',
+            status: h7Status,
+            customer_name: custName,
+            customer_phone: custPhone,
+            transaction_id: tx.invoice_no || tx.id,
+            products_summary: summary,
+            greeted_at: h7Saved?.greeted_at || null,
+            greeted_by: h7Saved?.greeted_by || null,
+            notes: h7Saved?.notes || null
+          };
+          if (h7Status === 'PENDING') h7List.push(item);
+          else historyList.push(item);
+        }
+
+        // Siap Panen (Berdasarkan estimasi harvest_days)
+        const maxHarvestDays = Math.max(...seedItems.map(it => Number(it.products?.harvest_days || 30)));
+        const harvestId = `hrv_${tx.id}`;
+        const hrvSaved = savedStatuses[harvestId];
+        const hrvStatus = hrvSaved ? hrvSaved.status : (diffDays >= (maxHarvestDays - 5) && diffDays <= (maxHarvestDays + 7) ? 'PENDING' : null);
+
+        if (hrvStatus) {
+          const item = {
+            id: harvestId,
+            touchpoint_type: 'HARVEST_ROTATION',
+            status: hrvStatus,
+            customer_name: custName,
+            customer_phone: custPhone,
+            transaction_id: tx.invoice_no || tx.id,
+            products_summary: summary,
+            greeted_at: hrvSaved?.greeted_at || null,
+            greeted_by: hrvSaved?.greeted_by || null,
+            notes: hrvSaved?.notes || null
+          };
+          if (hrvStatus === 'PENDING') harvestList.push(item);
+          else historyList.push(item);
+        }
+      });
+
+      return {
+        h7List: h7List,
+        harvestList: harvestList,
+        historyList: historyList,
+        counts: {
+          h7Count: h7List.length,
+          harvestCount: harvestList.length,
+          historyCount: historyList.length,
+          totalActive: h7List.length + harvestList.length
+        }
+      };
+    }
+
+    case 'markFollowUpStatus': {
+      const [, followUpId, status, notes] = args;
+      const { data } = await supabase.from('settings').select('value').eq('key', 'follow_up_statuses').maybeSingle();
+      let statuses = {};
+      if (data && data.value) {
+        try { statuses = JSON.parse(data.value); } catch (e) { }
+      }
+      statuses[followUpId] = {
+        status: status,
+        notes: notes || '',
+        greeted_at: formatDateIndo(new Date().toISOString()),
+        greeted_by: (window.CURRENT_USER_PROFILE && window.CURRENT_USER_PROFILE.name) || 'Kasir'
+      };
+      await supabase.from('settings').upsert({
+        key: 'follow_up_statuses',
+        value: JSON.stringify(statuses),
+        updated_at: new Date().toISOString()
+      });
+      return { success: true };
+    }
+
+    case 'testTelegramConnection': {
+      const { data } = await supabase.from('settings').select('key, value');
+      const settingsMap = {};
+      (data || []).forEach(s => { settingsMap[s.key] = s.value; });
+      const token = (settingsMap['telegram_bot_token'] || '').trim();
+      const chatId = (settingsMap['telegram_chat_id'] || '').trim();
+
+      if (!token || !chatId) {
+        throw new Error('Token bot atau Chat ID Telegram belum dikonfigurasi pada menu Pengaturan.');
+      }
+
+      const text = encodeURIComponent('🔔 *KIOS IDEP POS - Tes Notifikasi*\nKoneksi bot Telegram Kios IDEP berhasil terhubung dan siap mengirimkan notifikasi operasional!');
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${text}&parse_mode=Markdown`);
+      const json = await res.json();
+      if (!json.ok) {
+        throw new Error(`Telegram API Error: ${json.description || 'Gagal mengirim pesan'}`);
+      }
+      return { success: true, message: 'Pesan tes berhasil dikirim ke Telegram!' };
+    }
+
+    case 'setupTelegramWebhook': {
+      const [, webAppUrl] = args;
+      const { data } = await supabase.from('settings').select('key, value');
+      const settingsMap = {};
+      (data || []).forEach(s => { settingsMap[s.key] = s.value; });
+      const token = (settingsMap['telegram_bot_token'] || '').trim();
+
+      if (!token) {
+        throw new Error('Token bot Telegram belum dikonfigurasi.');
+      }
+
+      const res = await fetch(`https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(webAppUrl)}`);
+      const json = await res.json();
+      if (!json.ok) {
+        throw new Error(`Telegram Webhook Error: ${json.description || 'Gagal registrasi webhook'}`);
+      }
+      return { success: true, message: json.description || 'Webhook Telegram berhasil didaftarkan!' };
     }
 
     // --------------------------------------------------------------------------

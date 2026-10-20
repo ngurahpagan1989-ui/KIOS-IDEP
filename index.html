@@ -15,6 +15,19 @@
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css?v=4.1">
+  <!-- Session Restore Anti-Flash Script & Style -->
+  <script>
+    (function() {
+      try {
+        var tok = sessionStorage.getItem('ekasir_token') || localStorage.getItem('ekasir_token');
+        if (tok) document.documentElement.classList.add('has-session');
+      } catch(e) {}
+    })();
+  </script>
+  <style>
+    html.has-session #login-screen { display: none !important; }
+    html.has-session #app-shell { display: flex !important; }
+  </style>
 </head>
 <body>
 

@@ -498,11 +498,16 @@ function handleLogout() {
   removeSafeSession('ekasir_role');
   removeSafeSession('ekasir_permissions');
   removeSafeSession('ekasir_available_roles');
+  if (document.documentElement) document.documentElement.classList.remove('has-session');
   invalidateCache();
+  if (typeof logoutSupabaseUser === 'function') {
+    logoutSupabaseUser().catch(function () { });
+  }
   showLoginScreen();
 }
 
 function showLoginScreen() {
+  if (document.documentElement) document.documentElement.classList.remove('has-session');
   const loginScreen = document.getElementById('login-screen');
   const appShell = document.getElementById('app-shell');
   if (loginScreen) loginScreen.style.display = 'flex';
@@ -510,6 +515,7 @@ function showLoginScreen() {
 }
 
 function enterApp() {
+  if (document.documentElement) document.documentElement.classList.add('has-session');
   const loginScreen = document.getElementById('login-screen');
   const appShell = document.getElementById('app-shell');
   const userLabel = document.getElementById('user-name-label');
@@ -693,6 +699,14 @@ function clearLogoSetting(targetInputId, targetFileId, previewBoxId) {
 }
 
 // ========================= CLIENT ROUTER =========================
+function closeSidebarMobile() {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (sidebar) sidebar.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('active');
+}
+window.closeSidebarMobile = closeSidebarMobile;
+
 window.addEventListener('hashchange', function () { router(false); });
 
 function navigateToRoute(route) {
@@ -4002,13 +4016,11 @@ function resetTraceabilitySearch(prefix) {
 }
 
 function createComplaintWithBatch(batchId, prodId, prodName) {
-  openAfterSalesModal();
-  setTimeout(function () {
-    const desc = document.getElementById('as-desc');
-    if (desc) desc.value = 'Komplain terkait batch lot: ' + batchId + ' (Toples asal teridentifikasi)';
-    const prodSelect = document.getElementById('as-prod');
-    if (prodSelect && prodId) prodSelect.value = prodId;
-  }, 150);
+  openClaimModal({
+    batch_id: batchId,
+    product_id: prodId,
+    notes: 'Komplain terkait batch lot: ' + batchId + (prodName ? ' (' + prodName + ')' : '')
+  });
 }
 
 function filterPurchaseProductOptions(category) {
@@ -9271,6 +9283,11 @@ function applyClaimPrefill(data) {
     }
     onClaimProductChange(data.product_id, data.batch_id);
   }
+
+  if (data.notes) {
+    const notesInput = document.getElementById('clm-notes');
+    if (notesInput) notesInput.value = data.notes;
+  }
 }
 
 let _claimSearchTimeout = null;
@@ -12135,6 +12152,11 @@ function loadRolePermissionsUI() {
       CURRENT_ROLES_PERMISSIONS = res.permissions;
       if (res.roles) AVAILABLE_ROLES = res.roles;
       renderRoleMatrixUI();
+    } else if (res && typeof res === 'object') {
+      CURRENT_ROLES_PERMISSIONS = res;
+      renderRoleMatrixUI();
+    } else {
+      renderRoleMatrixUI();
     }
   }).catch(function (err) {
     container.innerHTML = '<div class="alert-banner alert-danger">Gagal memuat hak akses: ' + escapeHtml(err.message || err) + '</div>';
@@ -14340,27 +14362,34 @@ window.getQrisConfig = getQrisConfig;
 
 // ========================= INITIALIZATION & GLOBAL LISTENERS =========================
 document.addEventListener('DOMContentLoaded', function () {
+  // 1. Form login (#login-form) ter-bind ke handleLogin(event)
   const loginForm = document.getElementById('login-form');
-  if (loginForm) loginForm.onsubmit = handleLogin;
+  if (loginForm) {
+    loginForm.onsubmit = handleLogin;
+  }
 
-  const logoutBtn = document.getElementById('logout-btn');
-  if (logoutBtn) logoutBtn.onclick = handleLogout;
-
+  // 2. Tombol intip password (#toggle-password-visibility)
   const togglePassBtn = document.getElementById('toggle-password-visibility');
   const passInput = document.getElementById('login-password');
   if (togglePassBtn && passInput) {
-    togglePassBtn.onclick = function () {
-      passInput.type = passInput.type === 'password' ? 'text' : 'password';
+    togglePassBtn.onclick = function (e) {
+      if (e) e.preventDefault();
+      const isPass = passInput.type === 'password';
+      passInput.type = isPass ? 'text' : 'password';
+      togglePassBtn.innerHTML = isPass ? '&#128064;' : '&#128065;';
+      togglePassBtn.setAttribute('title', isPass ? 'Sembunyikan password' : 'Lihat password');
     };
   }
 
+  // 3. Tombol buka sidebar (#sidebar-toggle-btn) dan tutup sidebar (#sidebar-close-btn / #sidebar-backdrop)
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
   const sidebar = document.getElementById('sidebar');
   const backdrop = document.getElementById('sidebar-backdrop');
   const closeBtn = document.getElementById('sidebar-close-btn');
 
   if (toggleBtn && sidebar && backdrop) {
-    toggleBtn.onclick = function () {
+    toggleBtn.onclick = function (e) {
+      if (e) e.stopPropagation();
       sidebar.classList.add('open');
       backdrop.classList.add('active');
     };
@@ -14374,6 +14403,12 @@ document.addEventListener('DOMContentLoaded', function () {
   if (closeBtn) closeBtn.onclick = closeSidebarMobile;
   if (backdrop) backdrop.onclick = closeSidebarMobile;
 
+  // 4. Tombol logout (#logout-btn) memanggil handleLogout()
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.onclick = handleLogout;
+  }
+
   const refreshBtn = document.getElementById('topbar-refresh-btn');
   if (refreshBtn) {
     refreshBtn.onclick = function () {
@@ -14383,7 +14418,14 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
-  if (TOKEN) {
+  // 5. Mekanisme auto-login / session restore tanpa flash
+  const restoredToken = TOKEN || getSafeSession('ekasir_token');
+  if (restoredToken) {
+    TOKEN = restoredToken;
+    USER_NAME = USER_NAME || getSafeSession('ekasir_user') || 'Admin';
+    USER_ROLE = USER_ROLE || getSafeSession('ekasir_role') || (String(USER_NAME).toLowerCase() === 'admin' ? 'Admin' : 'Kasir');
+    CURRENT_USER = { name: USER_NAME, username: USER_NAME, role: USER_ROLE };
+    window._currentUser = CURRENT_USER;
     enterApp();
   } else {
     showLoginScreen();

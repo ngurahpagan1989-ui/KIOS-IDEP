@@ -1961,6 +1961,99 @@ async function dispatchApiCall(fnName, args) {
       }
     }
 
+    case 'adjustStockBatch': {
+      const [, payload] = args;
+      const batchId = payload && payload.batch_id;
+      const productId = payload && payload.product_id;
+      const adjType = (payload && payload.adjustment_type === 'PLUS') ? 'PLUS' : 'MINUS';
+      const qtyNum = Math.abs(Number((payload && payload.qty) || 0));
+      if (!batchId || !productId || qtyNum <= 0) {
+        throw new Error('Data batch, produk, dan kuantitas koreksi tidak valid.');
+      }
+
+      // 1. Ambil data batch terkini
+      let currentBatch = null;
+      try {
+        const { data: bData, error: bErr } = await supabase.from('stock_batches').select('*').eq('id', batchId).single();
+        if (bErr) throw bErr;
+        currentBatch = bData;
+      } catch (errB) {
+        console.warn('[adjustStockBatch] Gagal fetch stock_batches:', errB);
+      }
+
+      const prevQty = currentBatch ? Number(currentBatch.qty_remaining || 0) : 0;
+      const newBatchQty = adjType === 'MINUS' ? Math.max(0, prevQty - qtyNum) : (prevQty + qtyNum);
+      const diffQty = adjType === 'MINUS' ? -qtyNum : qtyNum;
+      const mutationType = adjType === 'MINUS' ? 'ADJUSTMENT_OUT' : 'ADJUSTMENT_IN';
+      const refNo = 'ADJ-' + Date.now().toString().slice(-6);
+      const reasonLabel = (payload && payload.reason) || 'KOREKSI_STOK';
+      const notesFull = `[${reasonLabel}] ${(payload && payload.notes) || '-'} (Petugas: ${(payload && payload.user_name) || 'Admin'})`;
+
+      // 2. Update stock_batches
+      try {
+        await supabase.from('stock_batches').update({
+          qty_remaining: newBatchQty,
+          updated_at: new Date().toISOString()
+        }).eq('id', batchId);
+      } catch (updBatErr) {
+        console.warn('[adjustStockBatch] Update batch remote warn:', updBatErr);
+      }
+
+      // 3. Update total stok di tabel products
+      try {
+        const { data: allB } = await supabase.from('stock_batches').select('qty_remaining').eq('product_id', productId);
+        if (allB && Array.isArray(allB)) {
+          const totalRemaining = allB.reduce((sum, item) => sum + Number(item.qty_remaining || 0), 0);
+          await supabase.from('products').update({
+            stock: totalRemaining,
+            updated_at: new Date().toISOString()
+          }).eq('id', productId);
+        }
+      } catch (updProdErr) {
+        console.warn('[adjustStockBatch] Update product stock warn:', updProdErr);
+      }
+
+      // 4. Catat mutasi stok ke stock_mutations
+      const mutItem = {
+        id: crypto.randomUUID(),
+        product_id: productId,
+        batch_id: batchId,
+        reference_no: refNo,
+        mutation_type: mutationType,
+        qty: diffQty,
+        unit: (payload && payload.unit) || 'pcs',
+        notes: notesFull,
+        created_at: new Date().toISOString()
+      };
+      saveMutationToLocalBackup(mutItem);
+      try {
+        await supabase.from('stock_mutations').insert(mutItem);
+      } catch (mutErr) {
+        console.warn('[adjustStockBatch] Insert mutation warn:', mutErr);
+      }
+
+      // 5. Catat ke stock_movements jika tabel tersedia
+      try {
+        await supabase.from('stock_movements').insert({
+          product_id: productId,
+          batch_id: batchId,
+          type: adjType === 'MINUS' ? 'adjustment_out' : 'adjustment_in',
+          qty: diffQty,
+          notes: notesFull
+        });
+      } catch (movErr) {}
+
+      return {
+        success: true,
+        batch_id: batchId,
+        product_id: productId,
+        old_qty: prevQty,
+        new_qty: newBatchQty,
+        diff: diffQty,
+        reference_no: refNo
+      };
+    }
+
     case 'saveOutlet': {
       const [, payload] = args;
       const outletObj = {

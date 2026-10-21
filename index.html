@@ -2,10 +2,15 @@
 <html lang="id">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <base target="_self">
   <meta name="theme-color" content="#7A5031">
   <title>Kios IDEP POS &amp; Manajemen Stok</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kios IDEP">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Tipografi Brand Guidelines IDEP: General Sans untuk Header -->
@@ -107,6 +112,13 @@
       <div class="sidebar-role-badge">
         <span class="status-dot"></span>
         <span id="sidebar-role-text">Kasir &amp; Gudang Terhubung</span>
+      </div>
+
+      <!-- Container PWA Install Banner -->
+      <div id="pwa-install-banner" class="pwa-install-banner" style="display:none;">
+        <button type="button" id="pwa-install-btn" class="pwa-install-btn">
+          📲 Install Aplikasi di HP
+        </button>
       </div>
 
       <nav class="sidebar-nav" id="sidebar-nav">

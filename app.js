@@ -14430,4 +14430,79 @@ document.addEventListener('DOMContentLoaded', function () {
   } else {
     showLoginScreen();
   }
+
+  // 6. Inisialisasi PWA Install Button & Banner
+  initPwaInstall();
 });
+
+// ========================= PROGRESSIVE WEB APP (PWA) =========================
+let deferredInstallPrompt = null;
+
+// 1. Registrasi Service Worker saat window load
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js')
+      .then(function (reg) {
+        console.log('[PWA] Service Worker Kios IDEP berhasil terdaftar:', reg.scope);
+      })
+      .catch(function (err) {
+        console.warn('[PWA] Registrasi Service Worker gagal:', err);
+      });
+  });
+}
+
+// 2. Tangkap event beforeinstallprompt untuk Chrome / Edge / Android
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) {
+    banner.style.display = 'block';
+  }
+});
+
+// 3. Sembunyikan banner saat aplikasi berhasil diinstal
+window.addEventListener('appinstalled', function () {
+  console.log('[PWA] Kios IDEP berhasil diinstal.');
+  deferredInstallPrompt = null;
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) {
+    banner.style.display = 'none';
+  }
+  showToast('Aplikasi Kios IDEP berhasil ditambahkan ke Layar Utama!');
+});
+
+// 4. Inisialisasi tombol instalasi dan dukungan iOS Safari
+function initPwaInstall() {
+  const banner = document.getElementById('pwa-install-banner');
+  const btn = document.getElementById('pwa-install-btn');
+  if (!btn) return;
+
+  const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+  const isStandalone = ('standalone' in window.navigator && window.navigator.standalone) ||
+                       window.matchMedia('(display-mode: standalone)').matches;
+
+  // Jika dibuka di Safari iOS dan belum dalam mode standalone, tampilkan banner
+  if (isIos && !isStandalone && banner) {
+    banner.style.display = 'block';
+  }
+
+  btn.addEventListener('click', function () {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.then(function (choice) {
+        if (choice && choice.outcome === 'accepted') {
+          console.log('[PWA] Pengguna menerima prompt instalasi');
+          if (banner) banner.style.display = 'none';
+        }
+        deferredInstallPrompt = null;
+      });
+    } else if (isIos) {
+      // Panduan iOS Safari: Add to Home Screen
+      showToast('Panduan iOS: Ketuk tombol Bagikan (Share ⎋) di Safari lalu pilih "Tambah ke Layar Utama" (Add to Home Screen ➕)');
+    } else {
+      showToast('Untuk menginstal: Buka menu browser Anda lalu pilih "Instal Aplikasi" atau "Tambah ke Layar Utama".');
+    }
+  });
+}
+

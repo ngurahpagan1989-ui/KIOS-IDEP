@@ -529,6 +529,40 @@ button, input, select, textarea {
   box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.25);
 }
 
+.pwa-install-banner {
+  margin: 0 16px 14px;
+}
+
+.pwa-install-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #C46D29, #AA571A);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(196, 109, 41, 0.35);
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.pwa-install-btn:hover {
+  background: linear-gradient(135deg, #D47933, #B86020);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(196, 109, 41, 0.45);
+}
+
+.pwa-install-btn:active {
+  transform: translateY(0);
+}
+
 .sidebar-nav {
   flex: 1;
   padding: 0 10px 20px;

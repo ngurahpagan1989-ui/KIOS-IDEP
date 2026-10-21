@@ -1868,6 +1868,11 @@ tbody tr:hover {
   to { opacity: 1; transform: translateX(0); }
 }
 
+@keyframes slideUpBottom {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
 @media (max-width: 1024px) {
   .pos-layout {
     grid-template-columns: 1fr;
@@ -1880,6 +1885,11 @@ tbody tr:hover {
 }
 
 @media (max-width: 768px) {
+  /* Cegah auto-zoom browser HP saat mengetik di form input */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
   .sidebar-toggle {
     display: flex;
   }
@@ -1907,6 +1917,7 @@ tbody tr:hover {
     z-index: 999;
     box-shadow: none;
     -webkit-overflow-scrolling: touch;
+    padding-top: env(safe-area-inset-top, 0px);
   }
 
   .sidebar.open {
@@ -1920,7 +1931,7 @@ tbody tr:hover {
     justify-content: center;
     width: 38px;
     height: 38px;
-    top: 18px;
+    top: calc(18px + env(safe-area-inset-top, 0px));
     right: 14px;
     font-size: 26px;
     line-height: 1;
@@ -1933,7 +1944,11 @@ tbody tr:hover {
   }
 
   .topbar {
-    padding: 0 12px;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-bottom: 0;
+    height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
     gap: 8px;
   }
 
@@ -1975,6 +1990,87 @@ tbody tr:hover {
 
   .user-pill {
     padding: 4px;
+  }
+
+  /* Header Halaman Responsif */
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  /* Optimalisasi Tata Letak Kasir POS di HP */
+  .pos-layout {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    gap: 14px;
+  }
+
+  .pos-catalog-panel {
+    max-height: 52vh;
+    height: 52vh;
+    flex: none;
+  }
+
+  .pos-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .pos-cart-panel {
+    height: auto;
+    min-height: 400px;
+  }
+
+  /* Tampilan Modal Mobile Bergaya Bottom-Sheet */
+  .modal-overlay,
+  .modal-overlay-danger,
+  .modal-overlay-pod {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-dialog,
+  .modal-dialog-sm,
+  .modal-dialog-lg,
+  .modal-content,
+  .danger-dialog,
+  .pod-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92dvh;
+    border-radius: 20px 20px 0 0 !important;
+    margin-bottom: 0;
+    animation: slideUpBottom 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .modal-body {
+    padding: 18px 16px;
+    max-height: calc(92dvh - 120px);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Paksa form grid multi-kolom inline di dalam modal menjadi 1 kolom penuh */
+  .modal-body [style*="grid-template-columns"],
+  .modal-body .sig-grid,
+  .modal-body .form-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Posisi Toast Stack di atas Mobile Bottom Navigation */
+  .toast-stack {
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+    right: 14px;
+    left: 14px;
+    align-items: center;
+  }
+
+  .toast {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .mobile-bottom-nav {
@@ -2179,14 +2275,18 @@ tbody tr:hover {
 
 @media (max-width: 640px) {
   .modal-overlay {
-    padding: 10px;
+    align-items: flex-end;
+    padding: 0;
   }
   .modal-dialog {
-    max-height: 94vh;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92dvh;
+    border-radius: 20px 20px 0 0 !important;
   }
   .modal-body {
-    padding: 14px;
-    max-height: 72vh;
+    padding: 16px;
+    max-height: calc(92dvh - 120px);
   }
   .audit-table-wrap {
     max-height: 52vh;

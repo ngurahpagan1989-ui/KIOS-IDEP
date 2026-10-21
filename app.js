@@ -698,14 +698,41 @@ function clearLogoSetting(targetInputId, targetFileId, previewBoxId) {
   updateLogoPreview('', previewBoxId);
 }
 
-// ========================= CLIENT ROUTER =========================
+// ========================= CLIENT ROUTER & MOBILE NAVIGATION =========================
+function openSidebarMobile() {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (sidebar) sidebar.classList.add('open');
+  if (backdrop) backdrop.classList.add('active');
+  document.body.classList.add('modal-open');
+}
+
 function closeSidebarMobile() {
   const sidebar = document.getElementById('sidebar');
   const backdrop = document.getElementById('sidebar-backdrop');
   if (sidebar) sidebar.classList.remove('open');
   if (backdrop) backdrop.classList.remove('active');
+  if (typeof syncModalOpenState === 'function') {
+    syncModalOpenState();
+  } else {
+    document.body.classList.remove('modal-open');
+  }
 }
+
+function toggleSidebarMobile(e) {
+  if (e && e.stopPropagation) e.stopPropagation();
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar && sidebar.classList.contains('open')) {
+    closeSidebarMobile();
+  } else {
+    openSidebarMobile();
+  }
+}
+
+window.openSidebarMobile = openSidebarMobile;
 window.closeSidebarMobile = closeSidebarMobile;
+window.toggleSidebarMobile = toggleSidebarMobile;
+
 
 window.addEventListener('hashchange', function () { router(false); });
 
@@ -14381,27 +14408,51 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
-  // 3. Tombol buka sidebar (#sidebar-toggle-btn) dan tutup sidebar (#sidebar-close-btn / #sidebar-backdrop)
+  // 3. Navigasi Sidebar Mobile & Bottom Bar (#sidebar-toggle-btn, #mobile-menu-more-btn, #sidebar-close-btn, #sidebar-backdrop)
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
-  const sidebar = document.getElementById('sidebar');
-  const backdrop = document.getElementById('sidebar-backdrop');
+  const mobileMenuMoreBtn = document.getElementById('mobile-menu-more-btn');
   const closeBtn = document.getElementById('sidebar-close-btn');
+  const backdrop = document.getElementById('sidebar-backdrop');
 
-  if (toggleBtn && sidebar && backdrop) {
+  if (toggleBtn) {
     toggleBtn.onclick = function (e) {
-      if (e) e.stopPropagation();
-      sidebar.classList.add('open');
-      backdrop.classList.add('active');
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      toggleSidebarMobile(e);
     };
   }
 
-  window.closeSidebarMobile = function () {
-    if (sidebar) sidebar.classList.remove('open');
-    if (backdrop) backdrop.classList.remove('active');
-  };
+  if (mobileMenuMoreBtn) {
+    mobileMenuMoreBtn.onclick = function (e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      openSidebarMobile();
+    };
+  }
 
-  if (closeBtn) closeBtn.onclick = closeSidebarMobile;
-  if (backdrop) backdrop.onclick = closeSidebarMobile;
+  if (closeBtn) {
+    closeBtn.onclick = function (e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      closeSidebarMobile();
+    };
+  }
+
+  if (backdrop) {
+    backdrop.onclick = function (e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      closeSidebarMobile();
+    };
+  }
 
   // 4. Tombol logout (#logout-btn) memanggil handleLogout()
   const logoutBtn = document.getElementById('logout-btn');

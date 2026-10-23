@@ -363,8 +363,6 @@ async function dispatchApiCall(fnName, args) {
           .from('stock_batches')
           .select('*')
           .gt('qty_remaining', 0)
-          .eq('quality_status', 'NORMAL')
-          .eq('qc_status', 'APPROVED')
       ]);
 
       if (prodsRes.error) throw prodsRes.error;
@@ -373,9 +371,13 @@ async function dispatchApiCall(fnName, args) {
       const batchMap = {};
       const stockMap = {};
       (batchesRes.data || []).forEach(b => {
-        if (!batchMap[b.product_id]) batchMap[b.product_id] = [];
-        batchMap[b.product_id].push(b);
-        stockMap[b.product_id] = (stockMap[b.product_id] || 0) + Number(b.qty_remaining || 0);
+        const qStatus = String(b.quality_status || 'NORMAL').toUpperCase();
+        const qcStatus = String(b.qc_status || 'APPROVED').toUpperCase();
+        if (qStatus !== 'QUARANTINE' && qcStatus !== 'REJECTED') {
+          if (!batchMap[b.product_id]) batchMap[b.product_id] = [];
+          batchMap[b.product_id].push(b);
+          stockMap[b.product_id] = (stockMap[b.product_id] || 0) + Number(b.qty_remaining || 0);
+        }
       });
 
       return (prodsRes.data || []).map(p => ({
@@ -456,9 +458,7 @@ async function dispatchApiCall(fnName, args) {
         supabase.from('products').select(`*, packaging_types(*)`).eq('is_active', true),
         supabase.from('stock_batches')
           .select('*')
-          .gt('qty_remaining', 0)
-          .eq('quality_status', 'NORMAL')
-          .eq('qc_status', 'APPROVED'),
+          .gt('qty_remaining', 0),
         supabase.from('price_tiers').select('*'),
         supabase.from('customers').select('*').order('name', { ascending: true })
       ]);
@@ -466,9 +466,13 @@ async function dispatchApiCall(fnName, args) {
       const batchMap = {};
       const stockMap = {};
       (batchesRes.data || []).forEach(b => {
-        if (!batchMap[b.product_id]) batchMap[b.product_id] = [];
-        batchMap[b.product_id].push(b);
-        stockMap[b.product_id] = (stockMap[b.product_id] || 0) + Number(b.qty_remaining || 0);
+        const qStatus = String(b.quality_status || 'NORMAL').toUpperCase();
+        const qcStatus = String(b.qc_status || 'APPROVED').toUpperCase();
+        if (qStatus !== 'QUARANTINE' && qcStatus !== 'REJECTED') {
+          if (!batchMap[b.product_id]) batchMap[b.product_id] = [];
+          batchMap[b.product_id].push(b);
+          stockMap[b.product_id] = (stockMap[b.product_id] || 0) + Number(b.qty_remaining || 0);
+        }
       });
 
       const products = (productsRes.data || []).map(p => {
@@ -1651,7 +1655,9 @@ async function dispatchApiCall(fnName, args) {
       // Hitung stok per produk untuk daftar stok menipis (<= 5)
       const stockPerProd = {};
       allBatches.forEach(b => {
-        if (b.quality_status === 'NORMAL') {
+        const qStatus = String(b.quality_status || 'NORMAL').toUpperCase();
+        const qcStatus = String(b.qc_status || 'APPROVED').toUpperCase();
+        if (qStatus !== 'QUARANTINE' && qcStatus !== 'REJECTED') {
           stockPerProd[b.product_id] = (stockPerProd[b.product_id] || 0) + Number(b.qty_remaining || 0);
         }
       });

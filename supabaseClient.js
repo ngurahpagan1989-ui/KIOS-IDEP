@@ -644,15 +644,28 @@ async function dispatchApiCall(fnName, args) {
 
     case 'getTransactionDetail': {
       const [, transactionId] = args;
-      const [txRes, itemsRes] = await Promise.all([
-        supabase.from('transactions').select('*').eq('id', transactionId).single(),
-        supabase.from('transaction_items').select('*, products(name, unit)').eq('transaction_id', transactionId)
-      ]);
 
+      let txQuery = supabase.from('transactions').select('*');
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(transactionId)) {
+        txQuery = txQuery.or(`id.eq.${transactionId},invoice_no.eq.${transactionId}`);
+      } else {
+        txQuery = txQuery.eq('invoice_no', transactionId);
+      }
+
+      const txRes = await txQuery.maybeSingle();
       if (txRes.error) throw txRes.error;
+      if (!txRes.data) throw new Error(`Data transaksi #${transactionId} tidak ditemukan.`);
+      const tx = txRes.data;
+
+      const itemsRes = await supabase
+        .from('transaction_items')
+        .select('*, products(name, unit)')
+        .eq('transaction_id', tx.id);
+
+      if (itemsRes.error) throw itemsRes.error;
 
       return {
-        transaction: txRes.data,
+        transaction: tx,
         items: (itemsRes.data || []).map(i => ({
           ...i,
           name: i.products ? i.products.name : 'Produk',
@@ -1613,33 +1626,49 @@ async function dispatchApiCall(fnName, args) {
     // --------------------------------------------------------------------------
     case 'getInvoiceData': {
       const [, transactionId] = args;
-      const [txRes, itemsRes, settingsRes] = await Promise.all([
-        supabase.from('transactions').select('*, customers(*)').eq('id', transactionId).single(),
-        supabase.from('transaction_items').select('*, products(name, unit)').eq('transaction_id', transactionId),
+
+      let txQuery = supabase.from('transactions').select('*');
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(transactionId)) {
+        txQuery = txQuery.or(`id.eq.${transactionId},invoice_no.eq.${transactionId}`);
+      } else {
+        txQuery = txQuery.eq('invoice_no', transactionId);
+      }
+
+      const [txRes, settingsRes] = await Promise.all([
+        txQuery.maybeSingle(),
         supabase.from('settings').select('*')
       ]);
 
       if (txRes.error) throw txRes.error;
+      if (!txRes.data) throw new Error(`Data transaksi #${transactionId} tidak ditemukan.`);
+      const tx = txRes.data;
+
+      const [itemsRes, custRes, recRes] = await Promise.all([
+        supabase.from('transaction_items').select('*, products(name, unit)').eq('transaction_id', tx.id),
+        tx.customer_id
+          ? supabase.from('customers').select('*').eq('id', tx.customer_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        tx.payment_type === 'installment'
+          ? supabase.from('receivables').select('*').eq('transaction_id', tx.id).maybeSingle()
+          : Promise.resolve({ data: null })
+      ]);
 
       const settingsObj = {};
       (settingsRes.data || []).forEach(s => { settingsObj[s.key] = s.value; });
 
-      // Ambil piutang jika pembayaran cicilan / tempo
-      let recData = null;
-      if (txRes.data.payment_type === 'installment') {
-        const { data: rData } = await supabase.from('receivables').select('*').eq('transaction_id', transactionId).maybeSingle();
-        recData = rData;
-      }
+      const custData = (custRes && custRes.data)
+        ? custRes.data
+        : { name: tx.customer_name || 'Pelanggan Umum', phone: '' };
 
       return {
-        transaction: txRes.data,
+        transaction: tx,
         items: (itemsRes.data || []).map(i => ({
           ...i,
           name: i.products ? i.products.name : 'Produk',
           unit: i.products ? i.products.unit : 'pcs'
         })),
-        customer: txRes.data.customers || { name: txRes.data.customer_name, phone: '' },
-        receivable: recData,
+        customer: custData,
+        receivable: recRes ? recRes.data : null,
         settings: settingsObj
       };
     }

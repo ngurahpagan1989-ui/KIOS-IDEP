@@ -15143,6 +15143,7 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
       .then(function (reg) {
         console.log('[PWA] Service Worker Kios IDEP berhasil terdaftar:', reg.scope);
+        try { if (reg.update) reg.update(); } catch (e) {}
       })
       .catch(function (err) {
         console.warn('[PWA] Registrasi Service Worker gagal:', err);

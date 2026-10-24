@@ -5608,10 +5608,17 @@ function submitCheckout() {
     }
   }
 
+  const subtotalCart = CART.reduce(function (sum, item) {
+    return sum + (Number(item.qty || 0) * Number(item.price || 0));
+  }, 0);
+  const taxCart = Math.round(subtotalCart * taxRate);
+  const totalCart = subtotalCart + taxCart;
+
   const payload = {
     items: CART.map(function (c) {
       return {
         product_id: c.product_id,
+        name: c.name || '',
         qty: c.qty,
         price: c.price,
         batch_id: c.selected_batch_id || ''
@@ -5625,11 +5632,15 @@ function submitCheckout() {
     transaction_date: txDate,
     payment_method: method,
     payment_type: type,
-    taxRate: taxRate
+    taxRate: taxRate,
+    subtotal: subtotalCart,
+    tax: taxCart,
+    total: totalCart
   };
 
   if (type === 'installment') {
     payload.downPayment = Number(document.getElementById('chk-dp').value || 0);
+    payload.paid_amount = payload.downPayment;
     payload.due_date = document.getElementById('chk-due').value;
   }
 

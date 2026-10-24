@@ -512,22 +512,53 @@ async function dispatchApiCall(fnName, args) {
       const txId = crypto.randomUUID();
       const invoiceNo = payload.invoice_no || `INV-${Date.now().toString().slice(-6)}`;
 
-      for (const item of payload.items) {
+      // Hitung subtotal, tax, dan total
+      let calcSubtotal = 0;
+      for (const item of (payload.items || [])) {
+        calcSubtotal += Number(item.qty || 0) * Number(item.price || 0);
+      }
+      const subtotal = payload.subtotal !== undefined ? Number(payload.subtotal) : calcSubtotal;
+      const taxRate = Number(payload.taxRate || 0);
+      const tax = payload.tax !== undefined ? Number(payload.tax) : Math.round(subtotal * taxRate);
+      const total = payload.total !== undefined ? Number(payload.total) : (subtotal + tax);
+
+      // Pendaftaran pelanggan otomatis jika opsi save_as_member aktif
+      let customerId = (payload.customer_id && String(payload.customer_id).trim() !== '') ? payload.customer_id : null;
+      if (!customerId && payload.save_as_member && payload.customer_name) {
+        try {
+          const newCustId = crypto.randomUUID();
+          const { data: newCust, error: custErr } = await supabase.from('customers').insert({
+            id: newCustId,
+            name: String(payload.customer_name).trim(),
+            phone: payload.customer_phone ? String(payload.customer_phone).trim() : ''
+          }).select().single();
+          if (!custErr && newCust) {
+            customerId = newCust.id;
+          }
+        } catch (e) {
+          console.warn('[POS] Gagal mendaftarkan pelanggan otomatis:', e);
+        }
+      }
+
+      for (const item of (payload.items || [])) {
         const { data: fifoResult, error: fifoErr } = await supabase.rpc('consume_stock_fifo', {
           p_product_id: item.product_id,
-          p_qty: Number(item.qty),
+          p_qty_needed: Number(item.qty),
           p_ref_id: txId,
-          p_ref_type: 'sale',
-          p_user_id: user ? user.id : null
+          p_ref_type: 'sale'
         });
 
         if (fifoErr) {
           throw new Error(`Gagal memotong stok barang (${item.name || item.product_id}): ${fifoErr.message}`);
         }
 
-        const primaryBatchId = fifoResult.consumed_batches && fifoResult.consumed_batches[0]
-          ? fifoResult.consumed_batches[0].batch_id
-          : null;
+        const primaryBatchId = (Array.isArray(fifoResult) && fifoResult[0] && fifoResult[0].batch_id)
+          ? fifoResult[0].batch_id
+          : (item.batch_id || null);
+
+        const totalCost = Array.isArray(fifoResult)
+          ? fifoResult.reduce((sum, b) => sum + Number(b.total_cost || 0), 0)
+          : Number(fifoResult?.total_cost || 0);
 
         consumedItems.push({
           transaction_id: txId,
@@ -535,26 +566,35 @@ async function dispatchApiCall(fnName, args) {
           batch_id: primaryBatchId,
           qty: Number(item.qty),
           price: Number(item.price),
-          cost: Number(fifoResult.total_cost || 0),
-          subtotal: Number(item.subtotal || (item.qty * item.price))
+          cost: totalCost,
+          subtotal: Number(item.subtotal || (Number(item.qty) * Number(item.price)))
         });
       }
 
-      const { data: txRecord, error: txErr } = await supabase.from('transactions').insert({
+      const txInsertData = {
         id: txId,
         invoice_no: invoiceNo,
-        customer_id: payload.customer_id || null,
+        customer_id: customerId,
         customer_name: payload.customer_name || 'Pelanggan Umum',
         source: payload.source || 'POS',
-        subtotal: Number(payload.subtotal || 0),
-        tax: Number(payload.tax || 0),
-        discount: Number(payload.discount || 0),
-        total: Number(payload.total || 0),
+        subtotal: subtotal,
+        tax: tax,
+        total: total,
         payment_method: payload.payment_method || 'CASH',
         payment_type: payload.payment_type || 'cash',
-        status: 'COMPLETED',
-        cashier_id: user ? user.id : null
-      }).select().single();
+        status: 'COMPLETED'
+      };
+
+      if (payload.transaction_date) {
+        try {
+          const parsedD = new Date(payload.transaction_date);
+          if (!isNaN(parsedD.getTime())) {
+            txInsertData.created_at = parsedD.toISOString();
+          }
+        } catch (e) {}
+      }
+
+      const { data: txRecord, error: txErr } = await supabase.from('transactions').insert(txInsertData).select().single();
 
       if (txErr) throw txErr;
 
@@ -562,14 +602,14 @@ async function dispatchApiCall(fnName, args) {
       if (itemsErr) throw itemsErr;
 
       if (payload.payment_type === 'installment') {
-        const paidAmount = Number(payload.paid_amount || 0);
-        const totalAmount = Number(payload.total || 0);
+        const paidAmount = Number(payload.downPayment !== undefined ? payload.downPayment : (payload.paid_amount || 0));
+        const totalAmount = total;
         await supabase.from('receivables').insert({
           transaction_id: txId,
-          customer_id: payload.customer_id || null,
+          customer_id: customerId,
           total: totalAmount,
           paid: paidAmount,
-          remaining: totalAmount - paidAmount,
+          remaining: Math.max(0, totalAmount - paidAmount),
           due_date: payload.due_date || null,
           status: paidAmount >= totalAmount ? 'PAID' : (paidAmount > 0 ? 'PARTIAL' : 'UNPAID')
         });
@@ -577,8 +617,13 @@ async function dispatchApiCall(fnName, args) {
 
       return {
         success: true,
+        id: invoiceNo,
         transaction_id: txId,
         invoice_no: invoiceNo,
+        subtotal: subtotal,
+        tax: tax,
+        total: total,
+        date: txRecord?.created_at || new Date().toISOString(),
         message: 'Transaksi berhasil disimpan!'
       };
     }
@@ -1379,7 +1424,7 @@ async function dispatchApiCall(fnName, args) {
       for (const it of items) {
         await supabase.rpc('consume_stock_fifo', {
           p_product_id: it.product_id,
-          p_qty: Number(it.qty),
+          p_qty_needed: Number(it.qty),
           p_ref_id: transferId,
           p_ref_type: 'consignment_out'
         });

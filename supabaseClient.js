@@ -854,18 +854,41 @@ async function dispatchApiCall(fnName, args) {
     // E. PRODUKSI & PENGEMASAN MANDIRI (PRODUCTIONS)
     // --------------------------------------------------------------------------
     case 'getProductions': {
-      const { data, error } = await supabase
-        .from('productions')
-        .select(`
-          *,
-          source_product:products!productions_source_product_id_fkey (name),
-          target_product:products!productions_target_product_id_fkey (name)
-        `)
-        .order('created_at', { ascending: false });
+      let prods = [];
+      try {
+        const { data, error } = await supabase
+          .from('productions')
+          .select(`
+            *,
+            source_product:products!productions_source_product_id_fkey (name),
+            target_product:products!productions_target_product_id_fkey (name)
+          `)
+          .order('created_at', { ascending: false });
 
-      if (error) throw error;
+        if (error) throw error;
+        prods = data || [];
+      } catch (relErr) {
+        console.warn('[Supabase] Warning getProductions join fkey gagal, fallback ke select *:', relErr);
+        // Fallback: select tanpa explicit foreign key alias
+        const { data: rawProds, error: rawErr } = await supabase
+          .from('productions')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (rawErr) throw rawErr;
 
-      return (data || []).map(p => {
+        // Ambil mapping nama produk
+        const { data: prodsList } = await supabase.from('products').select('id, name');
+        const pMap = {};
+        (prodsList || []).forEach(p => { pMap[p.id] = p.name; });
+
+        prods = (rawProds || []).map(p => ({
+          ...p,
+          source_product: { name: pMap[p.source_product_id] || '(dihapus)' },
+          target_product: { name: pMap[p.target_product_id] || '(dihapus)' }
+        }));
+      }
+
+      return (prods || []).map(p => {
         const costPerUnit = Number(p.cost_per_unit !== undefined && p.cost_per_unit !== null ? p.cost_per_unit : (p.hpp_per_piece || 0));
         return {
           ...p,
@@ -930,13 +953,14 @@ async function dispatchApiCall(fnName, args) {
         type: 'production_out',
         qty: -grams,
         ref_id: prodId,
-        notes: `Pengemasan benih menjadi ${pcs} kemasan`,
+        notes: `Pengemasan benih menjadi ${pcs} kemasan (Batch: ${payload.lot_no || srcBatch.batch_code})`,
         created_by: user ? user.id : null
       });
 
       // 2. Buat batch baru untuk produk kemasan jadi (stock_batches)
+      // Hormati prinsip lot traceability 1:1 mengikuti nomor batch bahan mentah
       const targetBatchId = crypto.randomUUID();
-      const targetBatchCode = `PK-${Date.now().toString().slice(-6)}`;
+      const targetBatchCode = payload.lot_no || payload.source_batch_code || srcBatch.batch_code || `PK-${Date.now().toString().slice(-6)}`;
 
       await supabase.from('stock_batches').insert({
         id: targetBatchId,
@@ -946,10 +970,11 @@ async function dispatchApiCall(fnName, args) {
         qty_remaining: pcs,
         buy_price: modalBenihRounded,
         cost_per_unit: hppFinalSachet,
-        production_date: srcBatch.production_date || new Date().toISOString().split('T')[0],
-        expiry_date: srcBatch.expiry_date || null,
+        production_date: payload.production_date || srcBatch.production_date || new Date().toISOString().split('T')[0],
+        expiry_date: payload.expiry_date || srcBatch.expiry_date || null,
         quality_status: 'NORMAL',
-        qc_status: 'APPROVED'
+        qc_status: 'APPROVED',
+        farmer_name: srcBatch.farmer_name || null
       });
 
       await supabase.from('stock_movements').insert({
@@ -958,7 +983,7 @@ async function dispatchApiCall(fnName, args) {
         type: 'production_in',
         qty: pcs,
         ref_id: prodId,
-        notes: `Hasil pengemasan dari batch ${srcBatch.batch_code}`,
+        notes: `Hasil pengemasan dari batch ${srcBatch.batch_code || payload.source_batch_id}`,
         created_by: user ? user.id : null
       });
 
@@ -1107,6 +1132,80 @@ async function dispatchApiCall(fnName, args) {
 
     case 'deleteProduction': {
       const [, productionId] = args;
+      // Ambil data produksi terlebih dahulu untuk rollback saldo
+      const { data: prod, error: getErr } = await supabase
+        .from('productions')
+        .select('*')
+        .eq('id', productionId)
+        .maybeSingle();
+
+      if (getErr) throw getErr;
+
+      if (prod) {
+        // 1. Kembalikan gram benih curah ke batch asal
+        if (prod.source_batch_id && Number(prod.gram_used) > 0) {
+          const { data: sBatch } = await supabase
+            .from('stock_batches')
+            .select('qty_remaining')
+            .eq('id', prod.source_batch_id)
+            .maybeSingle();
+          if (sBatch) {
+            await supabase.from('stock_batches').update({
+              qty_remaining: Number(sBatch.qty_remaining || 0) + Number(prod.gram_used || 0),
+              updated_at: new Date().toISOString()
+            }).eq('id', prod.source_batch_id);
+          }
+        }
+
+        // 2. Cari movement target kemasan jadi dan kurangi/hapus batch kemasan yang tercipta
+        const { data: movs } = await supabase
+          .from('stock_movements')
+          .select('id, batch_id, qty, type')
+          .eq('ref_id', productionId);
+
+        if (movs && movs.length > 0) {
+          for (const m of movs) {
+            if (m.type === 'production_in' && m.batch_id) {
+              const { data: tBatch } = await supabase
+                .from('stock_batches')
+                .select('qty_remaining, qty_in')
+                .eq('id', m.batch_id)
+                .maybeSingle();
+              if (tBatch) {
+                const newRem = Math.max(0, Number(tBatch.qty_remaining || 0) - Number(prod.pcs_produced || m.qty || 0));
+                if (newRem <= 0 && Number(tBatch.qty_remaining || 0) === Number(tBatch.qty_in || 0)) {
+                  await supabase.from('stock_batches').delete().eq('id', m.batch_id);
+                } else {
+                  await supabase.from('stock_batches').update({
+                    qty_remaining: newRem,
+                    updated_at: new Date().toISOString()
+                  }).eq('id', m.batch_id);
+                }
+              }
+            }
+          }
+          await supabase.from('stock_movements').delete().eq('ref_id', productionId);
+        }
+
+        // 3. Sinkronisasi saldo tabel products untuk kedua produk terkait
+        if (prod.source_product_id) {
+          const { data: curSBatches } = await supabase.from('stock_batches').select('qty_remaining').eq('product_id', prod.source_product_id);
+          const totalSrc = (curSBatches || []).reduce((sum, b) => sum + Number(b.qty_remaining || 0), 0);
+          await supabase.from('products').update({ stock: totalSrc, updated_at: new Date().toISOString() }).eq('id', prod.source_product_id);
+        }
+        if (prod.target_product_id) {
+          const { data: curTBatches } = await supabase.from('stock_batches').select('qty_remaining').eq('product_id', prod.target_product_id);
+          const totalTgt = (curTBatches || []).reduce((sum, b) => sum + Number(b.qty_remaining || 0), 0);
+          await supabase.from('products').update({ stock: totalTgt, updated_at: new Date().toISOString() }).eq('id', prod.target_product_id);
+        }
+
+        // 4. Hapus log packaging jika ada
+        try {
+          await supabase.from('packaging_logs').delete().eq('production_id', productionId);
+        } catch (_) {}
+      }
+
+      // 5. Hapus record riwayat productions
       const { error } = await supabase.from('productions').delete().eq('id', productionId);
       if (error) throw error;
       return { success: true };

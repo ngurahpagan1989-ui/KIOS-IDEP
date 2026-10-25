@@ -1435,12 +1435,16 @@ async function dispatchApiCall(fnName, args) {
 
       // 2. Potong stok pusat via RPC FIFO dan catat item transfer
       for (const it of items) {
-        await supabase.rpc('consume_stock_fifo', {
+        const { error: fifoErr } = await supabase.rpc('consume_stock_fifo', {
           p_product_id: it.product_id,
           p_qty_needed: Number(it.qty),
           p_ref_id: transferId,
           p_ref_type: 'consignment_out'
         });
+
+        if (fifoErr) {
+          throw new Error(`Gagal memotong stok barang pusat: ${fifoErr.message}`);
+        }
 
         await supabase.from('consignment_transfer_items').insert({
           transfer_id: transferId,

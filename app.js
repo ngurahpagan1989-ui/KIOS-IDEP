@@ -2689,6 +2689,14 @@ function submitStockAdjustment() {
   const pOpt = pSelect ? pSelect.options[pSelect.selectedIndex] : null;
   const unit = pOpt ? pOpt.getAttribute('data-unit') : 'pcs';
 
+  // Validasi jika pengurangan (MINUS) melebihi sisa fisik batch
+  const bOpt = bSelect ? bSelect.options[bSelect.selectedIndex] : null;
+  const curBatchStock = bOpt ? Number(bOpt.getAttribute('data-qty') || 0) : 0;
+  if (adjType === 'MINUS' && qty > curBatchStock) {
+    showToast('Kuantitas pengurangan (' + qty + ' ' + unit + ') melebihi sisa fisik batch (' + curBatchStock + ' ' + unit + ' tersedia)!', true);
+    return;
+  }
+
   if (submitBtn) submitBtn.disabled = true;
   if (spinner) spinner.style.display = 'inline-block';
 
@@ -4417,7 +4425,8 @@ function buildProductOptionsHTML(category, selectedId) {
     let tag = isCurahInventoryProduct(p) ? '🌾 [Curah] ' : '📦 [Kemasan] ';
     const varTag = p.variant ? ' [' + escapeHtml(p.variant) + ']' : '';
     const isSel = (p.id === selectedId) ? ' selected' : '';
-    return '<option value="' + p.id + '"' + isSel + '>' + tag + escapeHtml(p.name) + varTag + ' (' + escapeHtml(p.unit || '') + ')</option>';
+    const stockTxt = p.stock !== undefined ? (' — Sisa: ' + p.stock + ' ' + escapeHtml(p.unit || '')) : (' (' + escapeHtml(p.unit || '') + ')');
+    return '<option value="' + p.id + '"' + isSel + ' data-stock="' + (p.stock || 0) + '">' + tag + escapeHtml(p.name) + varTag + stockTxt + '</option>';
   }).join('');
 }
 
@@ -5528,8 +5537,15 @@ function changeCartItemBatch(cartKey, newBatchId) {
   const selectedBatch = p.batches.filter(function (b) { return b.id === newBatchId; })[0];
   if (!selectedBatch) return;
 
-  if (Number(selectedBatch.qty_remaining || 0) < item.qty) {
-    showToast('Perhatian: Stok sisa pada batch ' + selectedBatch.id + ' hanya ' + selectedBatch.qty_remaining + ' ' + (p.unit || 'pcs') + '!', true);
+  const bRemaining = Number(selectedBatch.qty_remaining || 0);
+  if (bRemaining <= 0) {
+    showToast('Batch ' + selectedBatch.id + ' tidak memiliki sisa stok (0 ' + (p.unit || 'pcs') + ').', true);
+    return;
+  }
+
+  if (bRemaining < item.qty) {
+    item.qty = bRemaining;
+    showToast('Kuantitas keranjang disesuaikan ke ' + bRemaining + ' ' + (p.unit || 'pcs') + ' (sesuai sisa fisik batch ' + selectedBatch.id + ').');
   }
 
   item.selected_batch_id = selectedBatch.id;
@@ -5546,8 +5562,15 @@ function updateCartQty(cartKey, delta) {
     const p = PRODUCTS_CACHE.filter(function (x) { return x.id === item.product_id; })[0];
     const totalInCart = CART.filter(function (c) { return c.product_id === item.product_id; }).reduce(function (sum, c) { return sum + c.qty; }, 0);
     if (p && totalInCart + 1 > Number(p.stock || 0)) {
-      showToast('Stok tidak mencukupi.', true);
+      showToast('Stok tidak mencukupi (Sisa total: ' + (p.stock || 0) + ' ' + (p.unit || 'pcs') + ').', true);
       return;
+    }
+    if (item.selected_batch_id && p && p.batches) {
+      const selB = p.batches.find(function (b) { return b.id === item.selected_batch_id; });
+      if (selB && item.qty + 1 > Number(selB.qty_remaining || 0)) {
+        showToast('Stok batch ' + selB.id + ' hanya tersisa ' + selB.qty_remaining + ' ' + (p.unit || 'pcs') + '. Ubah ke Otomatis FEFO untuk mengambil dari batch lain.', true);
+        return;
+      }
     }
   }
 
@@ -5768,6 +5791,10 @@ function submitCheckout() {
           const qcUpper = String(targetB.qc_status || '').toUpperCase();
           if (qcUpper !== 'APPROVED' && qcUpper !== 'PASSED') {
             showToast('Gagal: Batch "' + targetB.id + '" pada produk benih "' + prod.name + '" belum lolos Quality Control (Status: ' + targetB.qc_status + ').', true);
+            return;
+          }
+          if (Number(targetB.qty_remaining || 0) < item.qty) {
+            showToast('Gagal: Stok batch "' + targetB.id + '" tidak mencukupi (' + targetB.qty_remaining + ' tersedia, butuh ' + item.qty + '). Silakan pilih Otomatis FEFO atau sesuaikan kuantitas.', true);
             return;
           }
         }
@@ -7599,6 +7626,17 @@ function submitTransferStock(outletId) {
   if (items.length === 0) {
     showToast('Minimal masukkan 1 item benih yang dikirim.', true);
     return;
+  }
+
+  // Validasi ketersediaan stok gudang pusat
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const prod = (PRODUCTS_CACHE || []).find(function (p) { return p.id === it.product_id; });
+    const availStock = prod ? Number(prod.stock || 0) : 0;
+    if (it.qty > availStock) {
+      showToast('Stok gudang pusat untuk "' + (prod ? prod.name : 'Produk') + '" tidak mencukupi (' + availStock + ' ' + (prod ? prod.unit : 'pcs') + ' tersedia, butuh ' + it.qty + ').', true);
+      return;
+    }
   }
 
   const btn = document.getElementById('btn-submit-transfer');

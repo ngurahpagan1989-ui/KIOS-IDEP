@@ -1804,20 +1804,30 @@ async function dispatchApiCall(fnName, args) {
       const isoStart = startDate.toISOString();
       const isoEnd = endDate.toISOString();
 
-      const [txRes, itemsRes] = await Promise.all([
-        supabase.from('transactions')
-          .select('*')
-          .neq('status', 'VOID')
-          .gte('created_at', isoStart)
-          .lte('created_at', isoEnd)
-          .order('created_at', { ascending: false }),
-        supabase.from('transaction_items')
-          .select('*, products(name, category)')
-      ]);
+      const txRes = await supabase.from('transactions')
+        .select('*')
+        .neq('status', 'VOID')
+        .gte('created_at', isoStart)
+        .lte('created_at', isoEnd)
+        .order('created_at', { ascending: false });
 
       const transactions = txRes.data || [];
-      const txIds = new Set(transactions.map(t => t.id));
-      const relevantItems = (itemsRes.data || []).filter(i => txIds.has(i.transaction_id));
+      const txIds = transactions.map(t => t.id).filter(Boolean);
+      let relevantItems = [];
+
+      if (txIds.length > 0) {
+        // Ambil items per batch (maks 100 ID) agar terhindar dari URL length limit
+        const chunkSize = 100;
+        for (let i = 0; i < txIds.length; i += chunkSize) {
+          const chunk = txIds.slice(i, i + chunkSize);
+          const { data: itemBatch, error: itemErr } = await supabase.from('transaction_items')
+            .select('*, products(name, category)')
+            .in('transaction_id', chunk);
+          if (!itemErr && Array.isArray(itemBatch)) {
+            relevantItems.push(...itemBatch);
+          }
+        }
+      }
 
       let totalSubtotal = 0;
       let totalCost = 0;

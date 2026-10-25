@@ -109,19 +109,63 @@ const DATA_CACHE = {
   qc_records: { data: null, timestamp: 0 },
   settings: { data: null, timestamp: 0 },
   recentInvoices: { data: null, timestamp: 0 },
-  batches: { data: null, timestamp: 0 }
+  batches: { data: null, timestamp: 0 },
+  mutations: { data: null, timestamp: 0 }
 };
 
+function getCachedData(key) {
+  if (DATA_CACHE[key] && DATA_CACHE[key].data !== null) {
+    return DATA_CACHE[key].data;
+  }
+  try {
+    const raw = sessionStorage.getItem('idep_cache_' + key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.data !== undefined) {
+        if (!DATA_CACHE[key]) DATA_CACHE[key] = { data: null, timestamp: 0 };
+        DATA_CACHE[key].data = parsed.data;
+        DATA_CACHE[key].timestamp = parsed.timestamp || 0;
+        return parsed.data;
+      }
+    }
+  } catch (e) { }
+  return null;
+}
+
+function setCachedData(key, data) {
+  if (!DATA_CACHE[key]) DATA_CACHE[key] = { data: null, timestamp: 0 };
+  const now = Date.now();
+  DATA_CACHE[key].data = data;
+  DATA_CACHE[key].timestamp = now;
+  try {
+    sessionStorage.setItem('idep_cache_' + key, JSON.stringify({ data: data, timestamp: now }));
+  } catch (e) { }
+}
+
 function isCacheValid(key) {
+  if (!DATA_CACHE[key] || DATA_CACHE[key].data === null) {
+    getCachedData(key);
+  }
   const item = DATA_CACHE[key];
-  return item && item.data !== null && (Date.now() - item.timestamp < CACHE_TTL_MS);
+  return !!(item && item.data !== null && (Date.now() - item.timestamp < CACHE_TTL_MS));
+}
+
+function hasCacheData(key) {
+  const data = getCachedData(key);
+  if (data === null || data === undefined) return false;
+  if (Array.isArray(data)) return data.length > 0;
+  return true;
 }
 
 function invalidateCache(key) {
   if (key) {
     if (DATA_CACHE[key]) DATA_CACHE[key].timestamp = 0;
+    try { sessionStorage.removeItem('idep_cache_' + key); } catch (e) { }
   } else {
-    Object.keys(DATA_CACHE).forEach(function (k) { DATA_CACHE[k].timestamp = 0; });
+    Object.keys(DATA_CACHE).forEach(function (k) {
+      if (DATA_CACHE[k]) DATA_CACHE[k].timestamp = 0;
+      try { sessionStorage.removeItem('idep_cache_' + k); } catch (e) { }
+    });
   }
 }
 
@@ -590,9 +634,12 @@ function prefetchCoreDataInBackground() {
   setTimeout(function () {
     if (!isCacheValid('products')) {
       api('getPosInitData', TOKEN).then(function (res) {
-        DATA_CACHE.products = { data: res.products || [], timestamp: Date.now() };
-        DATA_CACHE.customers = { data: res.customers || [], timestamp: Date.now() };
-        DATA_CACHE.settings = { data: res.settings || {}, timestamp: Date.now() };
+        setCachedData('products', res.products || []);
+        setCachedData('customers', res.customers || []);
+        setCachedData('settings', res.settings || {});
+        if (res.batches && res.batches.length > 0) {
+          setCachedData('batches', res.batches);
+        }
         CUSTOMERS_CACHE = res.customers || [];
         APP_SETTINGS = res.settings || {};
         PRICE_TIERS_LIST = res.priceTiers || ['Eceran'];
@@ -602,6 +649,27 @@ function prefetchCoreDataInBackground() {
         applyBrandLogo();
       }).catch(function () { });
     }
+
+    // Prefetch santai di latar belakang untuk master data yang sering dibuka
+    setTimeout(function () {
+      if (!isCacheValid('outlets')) {
+        api('getOutlets', TOKEN).then(function (list) {
+          setCachedData('outlets', Array.isArray(list) ? list : []);
+        }).catch(function () { });
+      }
+      if (!isCacheValid('suppliers')) {
+        api('getSuppliers', TOKEN).then(function (list) {
+          setCachedData('suppliers', Array.isArray(list) ? list : []);
+          SUPPLIERS_CACHE = Array.isArray(list) ? list : [];
+        }).catch(function () { });
+      }
+      if (!isCacheValid('farmers')) {
+        api('getFarmers', TOKEN).then(function (list) {
+          setCachedData('farmers', Array.isArray(list) ? list : []);
+          FARMERS_CACHE = Array.isArray(list) ? list : [];
+        }).catch(function () { });
+      }
+    }, 1200);
   }, 100);
 }
 
@@ -742,6 +810,8 @@ function navigateToRoute(route) {
   if (location.hash !== '#' + route) {
     try {
       location.hash = '#' + route;
+      closeSidebarMobile();
+      return;
     } catch (e) {
       console.warn('Hash navigation bypass:', e);
     }
@@ -939,25 +1009,28 @@ function renderDashboard(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('dashboard')) {
-    drawDashboardUI(DATA_CACHE.dashboard.data);
-    return;
+  const cached = getCachedData('dashboard');
+  if (!forceRefresh && cached) {
+    drawDashboardUI(cached);
+    if (isCacheValid('dashboard')) return;
+  } else {
+    content.innerHTML =
+      '<div class="content-skeleton-loader">' +
+      '<div class="skeleton-header"></div>' +
+      '<div class="skeleton-grid">' +
+      '<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>' +
+      '</div>' +
+      '</div>';
   }
-
-  content.innerHTML =
-    '<div class="content-skeleton-loader">' +
-    '<div class="skeleton-header"></div>' +
-    '<div class="skeleton-grid">' +
-    '<div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>' +
-    '</div>' +
-    '</div>';
 
   api('getDashboardSummary', TOKEN).then(function (data) {
     data = data || {};
-    DATA_CACHE.dashboard = { data: data, timestamp: Date.now() };
+    setCachedData('dashboard', data);
     drawDashboardUI(data);
   }).catch(function (err) {
-    showToast('Gagal memuat dashboard: ' + (err.message || err), true);
+    if (!cached) {
+      showToast('Gagal memuat dashboard: ' + (err.message || err), true);
+    }
   });
 }
 
@@ -1025,19 +1098,22 @@ function renderProduk(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('products')) {
-    drawProdukUI(DATA_CACHE.products.data);
-    return;
+  const cached = getCachedData('products');
+  if (!forceRefresh && cached && Array.isArray(cached) && cached.length > 0) {
+    drawProdukUI(cached);
+    if (isCacheValid('products')) return;
+  } else {
+    content.innerHTML = '<div class="card"><div class="empty-state"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Memuat katalog produk...</div></div>';
   }
-
-  content.innerHTML = '<div class="card"><div class="empty-state">Memuat katalog produk...</div></div>';
 
   api('getProducts', TOKEN).then(function (products) {
     const list = Array.isArray(products) ? products : [];
-    DATA_CACHE.products = { data: list, timestamp: Date.now() };
+    setCachedData('products', list);
     drawProdukUI(list);
   }).catch(function (err) {
-    showToast('Gagal memuat produk: ' + (err.message || err), true);
+    if (!cached) {
+      showToast('Gagal memuat produk: ' + (err.message || err), true);
+    }
   });
 }
 
@@ -1746,15 +1822,25 @@ function renderStok(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('products') && DATA_CACHE.batches && DATA_CACHE.batches.data && DATA_CACHE.mutations && DATA_CACHE.mutations.data) {
-    drawStokUI(DATA_CACHE.products.data, DATA_CACHE.batches.data, DATA_CACHE.mutations.data);
-    return;
+  const cachedProds = getCachedData('products');
+  const cachedBatches = getCachedData('batches');
+  const cachedMutations = getCachedData('mutations') || [];
+
+  if (!forceRefresh && cachedProds && cachedBatches) {
+    drawStokUI(cachedProds, cachedBatches, cachedMutations);
+    if (isCacheValid('products') && isCacheValid('batches') && isCacheValid('mutations')) {
+      return;
+    }
+  } else if (!cachedProds || !cachedBatches) {
+    content.innerHTML = '<div class="card"><div class="empty-state"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Memuat antrean stok, batch &amp; riwayat mutasi...</div></div>';
   }
 
-  content.innerHTML = '<div class="card"><div class="empty-state"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Memuat antrean stok, batch &amp; riwayat mutasi...</div></div>';
+  const fetchProds = (isCacheValid('products') && cachedProds)
+    ? Promise.resolve(cachedProds)
+    : api('getProducts', TOKEN);
 
   Promise.all([
-    api('getProducts', TOKEN),
+    fetchProds,
     api('getStockBatches', TOKEN),
     api('getStockMutations', TOKEN).catch(function (e) {
       console.warn('Fallback ambil getStockMovements:', e);
@@ -1765,21 +1851,15 @@ function renderStok(forceRefresh) {
     const batches = Array.isArray(results[1]) ? results[1] : [];
     const mutations = Array.isArray(results[2]) ? results[2] : [];
 
-    DATA_CACHE.products = { data: products, timestamp: Date.now() };
-    if (!DATA_CACHE.batches) DATA_CACHE.batches = {};
-    DATA_CACHE.batches = { data: batches, timestamp: Date.now() };
-    if (!DATA_CACHE.mutations) DATA_CACHE.mutations = {};
-    DATA_CACHE.mutations = { data: mutations, timestamp: Date.now() };
+    setCachedData('products', products);
+    setCachedData('batches', batches);
+    setCachedData('mutations', mutations);
 
     drawStokUI(products, batches, mutations);
   }).catch(function (err) {
-    api('getProducts', TOKEN).then(function (products) {
-      const list = Array.isArray(products) ? products : [];
-      DATA_CACHE.products = { data: list, timestamp: Date.now() };
-      drawStokUI(list, [], []);
-    }).catch(function (e2) {
-      showToast('Gagal memuat data stok: ' + (e2.message || e2), true);
-    });
+    if (!cachedProds) {
+      showToast('Gagal memuat data stok: ' + (err.message || err), true);
+    }
   });
 }
 
@@ -2631,8 +2711,8 @@ function submitStockAdjustment() {
     closeModal();
     // Invalidate local cache and reload view
     invalidateCache('products');
-    if (DATA_CACHE.batches) delete DATA_CACHE.batches;
-    if (DATA_CACHE.mutations) delete DATA_CACHE.mutations;
+    invalidateCache('batches');
+    invalidateCache('mutations');
     renderStok(true);
   }).catch(function (err) {
     if (submitBtn) submitBtn.disabled = false;
@@ -2652,23 +2732,26 @@ function renderProduksi(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('productions') && isCacheValid('products') && isCacheValid('batches') && DATA_CACHE.batches && DATA_CACHE.batches.data) {
-    drawProduksiUI(DATA_CACHE.products.data, DATA_CACHE.productions.data, DATA_CACHE.batches.data);
-    return;
+  const cachedProds = getCachedData('products');
+  const cachedHistory = getCachedData('productions');
+  const cachedBatches = getCachedData('batches');
+
+  if (!forceRefresh && cachedProds && cachedHistory && cachedBatches) {
+    drawProduksiUI(cachedProds, cachedHistory, cachedBatches);
+    if (isCacheValid('productions') && isCacheValid('products') && isCacheValid('batches')) {
+      return;
+    }
+  } else if (!cachedHistory) {
+    content.innerHTML = '<div class="card"><div class="empty-state"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Memuat formulir kemas mandiri...</div></div>';
   }
 
-  if (!DATA_CACHE.productions.data) {
-    content.innerHTML = '<div class="card"><div class="empty-state">Memuat formulir kemas mandiri...</div></div>';
-  }
-
-  const fetchProducts = (!forceRefresh && isCacheValid('products')) ? Promise.resolve(DATA_CACHE.products.data) : api('getProducts', TOKEN);
+  const fetchProducts = (!forceRefresh && isCacheValid('products') && cachedProds)
+    ? Promise.resolve(cachedProds)
+    : api('getProducts', TOKEN);
   const fetchProductions = api('getProductions', TOKEN);
-  const fetchBatches = (!forceRefresh && isCacheValid('batches') && DATA_CACHE.batches && DATA_CACHE.batches.data)
-    ? Promise.resolve(DATA_CACHE.batches.data)
-    : api('getStockBatches', TOKEN).catch(function (e) {
-      console.warn('Gagal memuat batch stok di renderProduksi:', e);
-      return [];
-    });
+  const fetchBatches = (!forceRefresh && isCacheValid('batches') && cachedBatches)
+    ? Promise.resolve(cachedBatches)
+    : api('getStockBatches', TOKEN).catch(function () { return []; });
 
   Promise.all([
     fetchProducts,
@@ -2679,14 +2762,15 @@ function renderProduksi(forceRefresh) {
     const history = Array.isArray(results[1]) ? results[1] : [];
     const batches = Array.isArray(results[2]) ? results[2] : [];
 
-    DATA_CACHE.products = { data: allProducts, timestamp: Date.now() };
-    DATA_CACHE.productions = { data: history, timestamp: Date.now() };
-    if (!DATA_CACHE.batches) DATA_CACHE.batches = {};
-    DATA_CACHE.batches = { data: batches, timestamp: Date.now() };
+    setCachedData('products', allProducts);
+    setCachedData('productions', history);
+    setCachedData('batches', batches);
 
     drawProduksiUI(allProducts, history, batches);
   }).catch(function (err) {
-    showToast('Gagal memuat data: ' + (err.message || err), true);
+    if (!cachedHistory) {
+      showToast('Gagal memuat data: ' + (err.message || err), true);
+    }
   });
 }
 
@@ -3146,28 +3230,35 @@ function renderQC(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('qc_records') && isCacheValid('products')) {
-    CURRENT_QC_RECORDS = DATA_CACHE.qc_records.data || [];
-    drawQCUI(CURRENT_QC_RECORDS, DATA_CACHE.products.data || []);
-    return;
+  const cachedQC = getCachedData('qc_records');
+  const cachedProds = getCachedData('products');
+
+  if (!forceRefresh && cachedQC && cachedProds) {
+    CURRENT_QC_RECORDS = cachedQC;
+    drawQCUI(cachedQC, cachedProds);
+    if (isCacheValid('qc_records') && isCacheValid('products')) return;
+  } else if (!cachedQC) {
+    content.innerHTML = '<div class="card"><div class="empty-state"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>🔬 Mengambil rekam uji Quality Control benih...</div></div>';
   }
 
-  if (!DATA_CACHE.qc_records || !DATA_CACHE.qc_records.data) {
-    content.innerHTML = '<div class="card"><div class="empty-state">🔬 Mengambil rekam uji Quality Control benih...</div></div>';
-  }
+  const fetchProds = (isCacheValid('products') && cachedProds)
+    ? Promise.resolve(cachedProds)
+    : api('getProducts', TOKEN);
 
   Promise.all([
     api('getQCRecords', TOKEN),
-    isCacheValid('products') ? Promise.resolve(DATA_CACHE.products.data) : api('getProducts', TOKEN)
+    fetchProds
   ]).then(function (results) {
     const qcRecords = Array.isArray(results[0]) ? results[0] : [];
     const products = Array.isArray(results[1]) ? results[1] : [];
-    DATA_CACHE.qc_records = { data: qcRecords, timestamp: Date.now() };
-    DATA_CACHE.products = { data: products, timestamp: Date.now() };
+    setCachedData('qc_records', qcRecords);
+    setCachedData('products', products);
     CURRENT_QC_RECORDS = qcRecords;
     drawQCUI(qcRecords, products);
   }).catch(function (err) {
-    showToast('Gagal memuat data QC: ' + (err.message || err), true);
+    if (!cachedQC) {
+      showToast('Gagal memuat data QC: ' + (err.message || err), true);
+    }
   });
 }
 
@@ -4048,20 +4139,28 @@ function renderPembelian(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('purchases') && isCacheValid('suppliers') && isCacheValid('farmers')) {
-    drawPembelianUI(DATA_CACHE.purchases.data);
-    return;
+  const cachedPurchases = getCachedData('purchases');
+  const cachedSuppliers = getCachedData('suppliers');
+  const cachedFarmers = getCachedData('farmers');
+
+  if (!forceRefresh && cachedPurchases) {
+    if (cachedSuppliers) SUPPLIERS_CACHE = cachedSuppliers;
+    if (cachedFarmers) FARMERS_CACHE = cachedFarmers;
+    drawPembelianUI(cachedPurchases);
+    if (isCacheValid('purchases') && isCacheValid('suppliers') && isCacheValid('farmers')) {
+      return;
+    }
+  } else if (!cachedPurchases) {
+    content.innerHTML = '<div class="card"><div class="empty-state"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Memuat riwayat pengadaan...</div></div>';
   }
 
-  if (!DATA_CACHE.purchases.data) {
-    content.innerHTML = '<div class="card"><div class="empty-state">Memuat riwayat pengadaan...</div></div>';
-  }
+  const cachedProds = getCachedData('products');
 
   Promise.all([
     api('getPurchases', TOKEN),
-    isCacheValid('suppliers') ? Promise.resolve(DATA_CACHE.suppliers.data) : api('getSuppliers', TOKEN),
-    isCacheValid('products') ? Promise.resolve(DATA_CACHE.products.data) : api('getProducts', TOKEN),
-    isCacheValid('farmers') ? Promise.resolve(DATA_CACHE.farmers.data) : api('getFarmers', TOKEN)
+    (isCacheValid('suppliers') && cachedSuppliers) ? Promise.resolve(cachedSuppliers) : api('getSuppliers', TOKEN),
+    (isCacheValid('products') && cachedProds) ? Promise.resolve(cachedProds) : api('getProducts', TOKEN),
+    (isCacheValid('farmers') && cachedFarmers) ? Promise.resolve(cachedFarmers) : api('getFarmers', TOKEN)
   ]).then(function (results) {
     const purchases = Array.isArray(results[0]) ? results[0] : [];
     SUPPLIERS_CACHE = Array.isArray(results[1]) ? results[1] : [];
@@ -4069,14 +4168,16 @@ function renderPembelian(forceRefresh) {
     PRODUCTS_CACHE = rawProducts.filter(function (p) { return p && p.active; });
     FARMERS_CACHE = Array.isArray(results[3]) ? results[3] : [];
 
-    DATA_CACHE.purchases = { data: purchases, timestamp: Date.now() };
-    DATA_CACHE.suppliers = { data: SUPPLIERS_CACHE, timestamp: Date.now() };
-    DATA_CACHE.products = { data: rawProducts, timestamp: Date.now() };
-    DATA_CACHE.farmers = { data: FARMERS_CACHE, timestamp: Date.now() };
+    setCachedData('purchases', purchases);
+    setCachedData('suppliers', SUPPLIERS_CACHE);
+    setCachedData('products', rawProducts);
+    setCachedData('farmers', FARMERS_CACHE);
 
     drawPembelianUI(purchases);
   }).catch(function (err) {
-    showToast('Gagal memuat pembelian: ' + (err.message || err), true);
+    if (!cachedPurchases) {
+      showToast('Gagal memuat pembelian: ' + (err.message || err), true);
+    }
   });
 }
 
@@ -5003,33 +5104,46 @@ function renderPOS(forceRefresh) {
     }
   }
 
-  if (!forceRefresh && isCacheValid('products') && DATA_CACHE.products.data && DATA_CACHE.products.data.length > 0) {
-    setupPOSData(DATA_CACHE.products.data);
+  const cachedProds = getCachedData('products');
+  const cachedCusts = getCachedData('customers');
+  if (cachedCusts) {
+    CUSTOMERS_CACHE = cachedCusts;
+    populateCustomerDatalist();
+  }
+
+  if (!forceRefresh && cachedProds && cachedProds.length > 0) {
+    setupPOSData(cachedProds);
+    if (isCacheValid('products')) return;
   } else {
     const grid = document.getElementById('pos-product-grid');
     if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-secondary);"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Memuat katalog produk kasir...</div>';
+  }
 
-    api('getPosInitData', TOKEN).then(function (res) {
-      DATA_CACHE.products = { data: res.products || [], timestamp: Date.now() };
-      DATA_CACHE.customers = { data: res.customers || [], timestamp: Date.now() };
-      DATA_CACHE.settings = { data: res.settings || {}, timestamp: Date.now() };
-      CUSTOMERS_CACHE = res.customers || [];
-      APP_SETTINGS = res.settings || {};
-      if (res.price_tiers_preset) {
-        APP_SETTINGS['price_tiers_preset'] = res.price_tiers_preset;
-      }
-      PRICE_TIERS_LIST = (res.priceTiers && res.priceTiers.length > 0)
-        ? res.priceTiers
-        : getDefaultPriceTierPresets().map(function (t) { return t.name; });
+  api('getPosInitData', TOKEN).then(function (res) {
+    setCachedData('products', res.products || []);
+    setCachedData('customers', res.customers || []);
+    setCachedData('settings', res.settings || {});
+    if (res.batches && res.batches.length > 0) {
+      setCachedData('batches', res.batches);
+    }
+    CUSTOMERS_CACHE = res.customers || [];
+    APP_SETTINGS = res.settings || {};
+    if (res.price_tiers_preset) {
+      APP_SETTINGS['price_tiers_preset'] = res.price_tiers_preset;
+    }
+    PRICE_TIERS_LIST = (res.priceTiers && res.priceTiers.length > 0)
+      ? res.priceTiers
+      : getDefaultPriceTierPresets().map(function (t) { return t.name; });
 
-      populateCustomerDatalist();
-      setupPOSData(res.products || []);
-    }).catch(function (err) {
+    populateCustomerDatalist();
+    setupPOSData(res.products || []);
+  }).catch(function (err) {
+    if (!cachedProds || cachedProds.length === 0) {
       showToast('Gagal memuat produk kasir: ' + (err.message || err), true);
       const grid = document.getElementById('pos-product-grid');
       if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--danger);">Gagal memuat produk.<br><button type="button" class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="renderPOS(true)">Coba Lagi</button></div>';
-    });
-  }
+    }
+  });
 }
 
 function setupPOSData(allProducts) {
@@ -6865,22 +6979,22 @@ function renderKonsinyasi(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('outlets')) {
-    drawKonsinyasiUI(DATA_CACHE.outlets.data);
-    return;
-  }
-
-  if (!DATA_CACHE.outlets || !DATA_CACHE.outlets.data) {
-    content.innerHTML = '<div class="card"><div class="empty-state">Memuat data Toko Cabang & Outlet Mitra...</div></div>';
+  const cached = getCachedData('outlets');
+  if (!forceRefresh && cached) {
+    drawKonsinyasiUI(cached);
+    if (isCacheValid('outlets')) return;
+  } else if (!cached) {
+    content.innerHTML = '<div class="card"><div class="empty-state"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Memuat data Toko Cabang & Outlet Mitra...</div></div>';
   }
 
   api('getOutlets', TOKEN).then(function (outlets) {
     const list = Array.isArray(outlets) ? outlets : [];
-    if (!DATA_CACHE.outlets) DATA_CACHE.outlets = { data: null, timestamp: 0 };
-    DATA_CACHE.outlets = { data: list, timestamp: Date.now() };
+    setCachedData('outlets', list);
     drawKonsinyasiUI(list);
   }).catch(function (err) {
-    showToast('Gagal memuat outlet mitra: ' + (err.message || err), true);
+    if (!cached) {
+      showToast('Gagal memuat outlet mitra: ' + (err.message || err), true);
+    }
   });
 }
 
@@ -9115,20 +9229,23 @@ function renderPiutang(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('receivables')) {
-    drawPiutangUI(DATA_CACHE.receivables.data);
-    return;
-  }
-
-  if (!DATA_CACHE.receivables.data) {
-    content.innerHTML = '<div class="card"><div class="empty-state">Memuat data piutang...</div></div>';
+  const cached = getCachedData('receivables');
+  if (!forceRefresh && cached) {
+    drawPiutangUI(cached);
+    if (isCacheValid('receivables')) return;
+  } else if (!cached) {
+    content.innerHTML = '<div class="card"><div class="empty-state"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Memuat data piutang...</div></div>';
   }
 
   api('getReceivables', TOKEN).then(function (receivables) {
     const list = Array.isArray(receivables) ? receivables : [];
-    DATA_CACHE.receivables = { data: list, timestamp: Date.now() };
+    setCachedData('receivables', list);
     drawPiutangUI(list);
-  }).catch(function (err) { showToast('Gagal memuat piutang: ' + (err.message || err), true); });
+  }).catch(function (err) {
+    if (!cached) {
+      showToast('Gagal memuat piutang: ' + (err.message || err), true);
+    }
+  });
 }
 
 function drawPiutangUI(list) {
@@ -9312,20 +9429,24 @@ function renderCRM(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('customers')) {
-    drawCRMUI(DATA_CACHE.customers.data);
-    return;
-  }
-
-  if (!DATA_CACHE.customers.data) {
-    content.innerHTML = '<div class="card"><div class="empty-state">Memuat data pelanggan...</div></div>';
+  const cached = getCachedData('customers');
+  if (!forceRefresh && cached) {
+    CUSTOMERS_CACHE = cached;
+    drawCRMUI(cached);
+    if (isCacheValid('customers')) return;
+  } else if (!cached) {
+    content.innerHTML = '<div class="card"><div class="empty-state"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Memuat data pelanggan...</div></div>';
   }
 
   api('getCustomers', TOKEN).then(function (customers) {
     CUSTOMERS_CACHE = Array.isArray(customers) ? customers : [];
-    DATA_CACHE.customers = { data: CUSTOMERS_CACHE, timestamp: Date.now() };
+    setCachedData('customers', CUSTOMERS_CACHE);
     drawCRMUI(CUSTOMERS_CACHE);
-  }).catch(function (err) { showToast('Gagal: ' + (err.message || err), true); });
+  }).catch(function (err) {
+    if (!cached) {
+      showToast('Gagal memuat pelanggan: ' + (err.message || err), true);
+    }
+  });
 }
 
 function drawCRMUI(customers) {
@@ -9525,12 +9646,15 @@ function renderPurnaJual(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && window._pjState && window._pjState.claims && window._pjState.claims.length > 0) {
+  const hasData = window._pjState && window._pjState.loaded;
+  if (!forceRefresh && hasData) {
     drawPurnaJualIntegratedUI();
     return;
   }
 
-  content.innerHTML = '<div class="card"><div class="empty-state">Memuat modul Purna Jual & Kepuasan Pelanggan...</div></div>';
+  if (!hasData) {
+    content.innerHTML = '<div class="card"><div class="empty-state"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Memuat modul Purna Jual &amp; Kepuasan Pelanggan...</div></div>';
+  }
 
   Promise.all([
     api('getAfterSalesClaims', TOKEN),
@@ -9545,6 +9669,7 @@ function renderPurnaJual(forceRefresh) {
     window._pjState.followUpCounts = fuData.counts || { h7Count: (fuData.h7List || []).length, harvestCount: (fuData.harvestList || []).length, historyCount: (fuData.historyList || []).length, totalActive: ((fuData.h7List || []).length + (fuData.harvestList || []).length) };
     window._pjState.harvestReminders = fuData.harvestList || [];
     window._pjState.consultations = Array.isArray(results[3]) ? results[3] : [];
+    window._pjState.loaded = true;
 
     updatePurnaJualNavBadge();
 
@@ -9555,8 +9680,10 @@ function renderPurnaJual(forceRefresh) {
 
     drawPurnaJualIntegratedUI();
   }).catch(function (err) {
-    showToast('Gagal memuat data purna jual: ' + (err.message || err), true);
-    content.innerHTML = '<div class="card"><div class="empty-state">Terjadi kendala saat memuat data. Silakan coba kembali.</div></div>';
+    if (!hasData) {
+      showToast('Gagal memuat data purna jual: ' + (err.message || err), true);
+      content.innerHTML = '<div class="card"><div class="empty-state">Terjadi kendala saat memuat data. Silakan coba kembali.</div></div>';
+    }
   });
 }
 
@@ -11067,6 +11194,11 @@ function renderLaporan(forceRefresh) {
     CURRENT_REPORT_FILTER.endDate = y + '-' + m + '-' + d;
   }
 
+  if (!forceRefresh && CURRENT_REPORT_DATA) {
+    drawLaporanUI(CURRENT_REPORT_DATA, CURRENT_REPORT_FILTER);
+    return;
+  }
+
   content.innerHTML =
     '<div class="card">' +
     '<div class="empty-state">' +
@@ -12416,20 +12548,23 @@ function renderPengaturan(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  if (!forceRefresh && isCacheValid('settings')) {
-    drawPengaturanUI(DATA_CACHE.settings.data);
+  const cached = getCachedData('settings');
+  if (!forceRefresh && isCacheValid('settings') && cached) {
+    drawPengaturanUI(cached);
     return;
   }
 
-  const currentSettings = (DATA_CACHE.settings && DATA_CACHE.settings.data) || APP_SETTINGS || {};
+  const currentSettings = cached || APP_SETTINGS || {};
   drawPengaturanUI(currentSettings);
 
   api('getSettings', TOKEN).then(function (settings) {
-    DATA_CACHE.settings = { data: settings || {}, timestamp: Date.now() };
+    setCachedData('settings', settings || {});
     APP_SETTINGS = settings || {};
     drawPengaturanUI(settings || {});
   }).catch(function (err) {
-    showToast('Gagal memuat pengaturan: ' + (err.message || err), true);
+    if (!cached) {
+      showToast('Gagal memuat pengaturan: ' + (err.message || err), true);
+    }
   });
 }
 
@@ -13717,21 +13852,24 @@ function renderFaktur(forceRefresh, startDate, endDate) {
   window._fakturEndDate = actualEnd;
 
   const cacheKey = 'recentInvoices_' + actualStart + '_' + actualEnd;
+  const cached = getCachedData(cacheKey);
 
-  if (!forceRefresh && DATA_CACHE[cacheKey] && (Date.now() - DATA_CACHE[cacheKey].timestamp < 60000)) {
-    drawFakturUI(DATA_CACHE[cacheKey].data);
-    return;
+  if (!forceRefresh && cached) {
+    drawFakturUI(cached);
+    if (isCacheValid(cacheKey)) return;
+  } else if (!cached) {
+    content.innerHTML = '<div class="card"><div class="empty-state"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Memuat riwayat faktur transaksi periode ' + formatDate(actualStart) + ' s.d. ' + formatDate(actualEnd) + '...</div></div>';
   }
-
-  content.innerHTML = '<div class="card"><div class="empty-state"><span class="spinner" style="display:inline-block;width:24px;height:24px;border:3px solid rgba(30,77,63,0.2);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:8px;"></span><br>Memuat riwayat faktur transaksi periode ' + formatDate(actualStart) + ' s.d. ' + formatDate(actualEnd) + '...</div></div>';
 
   api('getRecentTransactionsForInvoice', TOKEN, actualStart, actualEnd).then(function (list) {
     list = Array.isArray(list) ? list : [];
-    DATA_CACHE[cacheKey] = { data: list, timestamp: Date.now() };
+    setCachedData(cacheKey, list);
     DATA_CACHE.recentInvoices = { data: list, timestamp: Date.now() }; // fallback compat
     drawFakturUI(list);
   }).catch(function (err) {
-    showToast('Gagal memuat faktur: ' + (err.message || err), true);
+    if (!cached) {
+      showToast('Gagal memuat faktur: ' + (err.message || err), true);
+    }
   });
 }
 
@@ -14252,11 +14390,16 @@ async function renderExpenses(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
-  content.innerHTML =
-    '<div class="card" style="padding:40px;text-align:center;">' +
-    '<div class="spinner" style="margin:0 auto 16px;width:32px;height:32px;"></div>' +
-    '<div style="color:var(--text-muted);font-weight:600;">Memuat modul Pengeluaran & Biaya Operasional...</div>' +
-    '</div>';
+  const hasCache = EXPENSES_CACHE_DATA && EXPENSE_CATEGORIES_CACHE_DATA;
+  if (!forceRefresh && hasCache) {
+    drawExpensesUI(EXPENSES_CACHE_DATA, EXPENSE_CATEGORIES_CACHE_DATA);
+  } else if (!hasCache) {
+    content.innerHTML =
+      '<div class="card" style="padding:40px;text-align:center;">' +
+      '<div class="sync-spinner" style="display:inline-block;width:28px;height:28px;margin-bottom:12px;"></div>' +
+      '<div style="color:var(--text-muted);font-weight:600;">Memuat modul Pengeluaran &amp; Biaya Operasional...</div>' +
+      '</div>';
+  }
 
   try {
     const [expenses, categories] = await Promise.all([
@@ -14266,12 +14409,14 @@ async function renderExpenses(forceRefresh) {
     drawExpensesUI(expenses, categories);
   } catch (err) {
     console.error('Gagal renderExpenses:', err);
-    content.innerHTML =
-      '<div class="card" style="padding:24px;text-align:center;border-left:4px solid #ef4444;">' +
-      '<h3 style="color:#ef4444;margin-bottom:8px;">Gagal Memuat Modul Biaya</h3>' +
-      '<p style="color:var(--text-muted);">' + escapeHtml(err.message || String(err)) + '</p>' +
-      '<button type="button" class="btn btn-primary" style="margin-top:14px;" onclick="renderExpenses(true)">Coba Lagi</button>' +
-      '</div>';
+    if (!hasCache) {
+      content.innerHTML =
+        '<div class="card" style="padding:24px;text-align:center;border-left:4px solid #ef4444;">' +
+        '<h3 style="color:#ef4444;margin-bottom:8px;">Gagal Memuat Modul Biaya</h3>' +
+        '<p style="color:var(--text-muted);">' + escapeHtml(err.message || String(err)) + '</p>' +
+        '<button type="button" class="btn btn-primary" style="margin-top:14px;" onclick="renderExpenses(true)">Coba Lagi</button>' +
+        '</div>';
+    }
   }
 }
 

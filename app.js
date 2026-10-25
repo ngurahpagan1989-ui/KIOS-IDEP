@@ -2326,7 +2326,10 @@ function openBatchDetailModal(productId, productName) {
 
   Promise.all([
     api('getStockBatches', TOKEN, productId),
-    api('getStockMutations', TOKEN, productId).catch(function () {
+    api('getStockMutations', TOKEN, productId).then(function (muts) {
+      if (Array.isArray(muts) && muts.length > 0) return muts;
+      return api('getStockMovements', TOKEN, productId).catch(function () { return []; });
+    }).catch(function () {
       return api('getStockMovements', TOKEN, productId).catch(function () { return []; });
     })
   ]).then(function (results) {
@@ -2478,7 +2481,7 @@ function openBatchDetailModal(productId, productName) {
       '</tr>' +
       '</thead>' +
       '<tbody>' +
-      (mutRows || '<tr><td colspan="5"><div style="text-align:center;padding:16px;color:var(--text-secondary);">Belum ada riwayat mutasi untuk varietas ini.</div></td></tr>') +
+      (mutRows || '<tr><td colspan="5"><div style="text-align:center;padding:24px 16px;color:var(--text-secondary);"><i class="fas fa-boxes-stacked" style="font-size:24px;color:var(--text-muted);margin-bottom:8px;display:block;"></i><strong style="color:var(--text-primary);display:block;margin-bottom:4px;font-size:13px;">Belum Ada Transaksi Mutasi untuk Varietas Ini</strong><p style="font-size:12px;margin:0 0 12px;color:var(--text-secondary);max-width:440px;margin-left:auto;margin-right:auto;">Stok batch di atas saat ini adalah saldo awal master. Riwayat akan otomatis tercatat di sini saat terjadi <strong>Penjualan Kasir</strong>, <strong>Kemas Mandiri</strong>, <strong>Transfer Outlet</strong>, atau <strong>Koreksi Stok</strong>.</p><button type="button" class="btn btn-secondary btn-sm" onclick="openStockAdjustmentModal(\'' + productId + '\', \'\')" style="font-size:11px;"><i class="fas fa-scale-balanced" style="margin-right:4px;"></i> Coba Koreksi Stok Sekarang</button></div></td></tr>') +
       '</tbody>' +
       '</table>' +
       '</div>' +

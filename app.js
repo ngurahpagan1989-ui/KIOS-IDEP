@@ -2879,10 +2879,14 @@ function drawProduksiUI(allProducts, history, allBatches) {
     '<small id="prod-batch-sync-label" style="font-size:11px;color:var(--primary);margin-top:4px;display:block;">ℹ️ Nomor batch kemasan sachet otomatis mengikuti kode batch bahan mentah terpilih.</small>' +
     '</div>' +
     '<div>' +
-    '<label class="field-label">Gram Diambil (Total)</label>' +
-    '<div class="input-wrapper">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+    '<label class="field-label" style="margin-bottom:0;">Gram Diambil (Total)</label>' +
+    '<span id="prod-gram-max-btn" style="font-size:11px;display:none;"></span>' +
+    '</div>' +
+    '<div class="input-wrapper" style="margin-top:4px;">' +
     '<input type="number" id="prod-gram-used" placeholder="500" oninput="calculateTheoreticalPcs()" style="padding-left:14px;">' +
     '</div>' +
+    '<div id="prod-gram-hint" style="font-size:11px;margin-top:4px;display:none;"></div>' +
     '</div>' +
     '<div>' +
     '<label class="field-label">Gram Per Kemasan</label>' +
@@ -2964,17 +2968,67 @@ function drawProduksiUI(allProducts, history, allBatches) {
 }
 
 function calculateTheoreticalPcs() {
-  const gramUsed = Number(document.getElementById('prod-gram-used').value || 0);
-  const gramPack = Number(document.getElementById('prod-gram-pack').value || 0);
+  const gramInput = document.getElementById('prod-gram-used');
+  const gramUsed = Number(gramInput ? gramInput.value : 0);
+  const gramPack = Number(document.getElementById('prod-gram-pack') ? document.getElementById('prod-gram-pack').value : 0);
   const resultEl = document.getElementById('prod-theoretical');
   const actualEl = document.getElementById('prod-pcs-actual');
+  const batchSelect = document.getElementById('prod-source-batch');
+  const hintEl = document.getElementById('prod-gram-hint');
+  const maxBtnEl = document.getElementById('prod-gram-max-btn');
+
+  let remain = null;
+  if (batchSelect && batchSelect.selectedIndex > 0) {
+    const opt = batchSelect.options[batchSelect.selectedIndex];
+    if (opt && opt.dataset.remaining !== undefined) {
+      remain = Number(opt.dataset.remaining || 0);
+    }
+  }
+
+  if (remain !== null && maxBtnEl) {
+    maxBtnEl.style.display = 'inline-block';
+    maxBtnEl.innerHTML = '<a href="javascript:void(0)" onclick="setGramToBatchMax(' + remain + ')" style="color:var(--primary);text-decoration:underline;font-weight:600;cursor:pointer;">Pakai Maks (' + remain + ' gr)</a>';
+  } else if (maxBtnEl) {
+    maxBtnEl.style.display = 'none';
+  }
+
+  if (remain !== null && gramUsed > remain) {
+    if (gramInput) gramInput.style.borderColor = '#ef4444';
+    if (hintEl) {
+      hintEl.style.display = 'block';
+      hintEl.style.color = '#ef4444';
+      hintEl.innerHTML = '⚠️ Melebihi sisa fisik batch! Tersedia hanya <strong>' + remain + ' gr</strong> (kurang ' + (gramUsed - remain) + ' gr). <a href="javascript:void(0)" onclick="setGramToBatchMax(' + remain + ')" style="color:#ef4444;text-decoration:underline;font-weight:600;">Pakai ' + remain + ' gr</a>';
+    }
+  } else {
+    if (gramInput) gramInput.style.borderColor = '';
+    if (hintEl) {
+      if (remain !== null && gramUsed > 0) {
+        hintEl.style.display = 'block';
+        hintEl.style.color = 'var(--text-secondary)';
+        hintEl.innerHTML = '✓ Sisa batch setelah dikemas: <strong>' + (remain - gramUsed) + ' gr</strong>';
+      } else {
+        hintEl.style.display = 'none';
+      }
+    }
+  }
 
   if (gramUsed > 0 && gramPack > 0) {
     const theo = Math.floor(gramUsed / gramPack);
     if (resultEl) resultEl.value = theo + ' pcs';
-    if (actualEl && !actualEl.value) actualEl.value = theo;
+    if (actualEl && (!actualEl.value || actualEl.dataset.autoFilled === 'true')) {
+      actualEl.value = theo;
+      actualEl.dataset.autoFilled = 'true';
+    }
   } else {
     if (resultEl) resultEl.value = '0 pcs';
+  }
+}
+
+function setGramToBatchMax(maxVal) {
+  const gramInput = document.getElementById('prod-gram-used');
+  if (gramInput) {
+    gramInput.value = maxVal;
+    calculateTheoreticalPcs();
   }
 }
 
@@ -2985,6 +3039,10 @@ function updateProductionSourceInfo() {
   const batchInfo = document.getElementById('prod-batch-info');
   const lotNoInput = document.getElementById('prod-lot-no');
   const syncLabel = document.getElementById('prod-batch-sync-label');
+  const hintEl = document.getElementById('prod-gram-hint');
+  const maxBtnEl = document.getElementById('prod-gram-max-btn');
+  if (hintEl) hintEl.style.display = 'none';
+  if (maxBtnEl) maxBtnEl.style.display = 'none';
   if (!batchSelect) return;
 
   if (lotNoInput) lotNoInput.value = '';
@@ -3047,6 +3105,7 @@ function onProductionBatchChange() {
     if (batchInfo) batchInfo.style.display = 'none';
     if (lotNoInput) lotNoInput.value = '';
     if (syncLabel) syncLabel.innerHTML = 'ℹ️ Nomor batch kemasan sachet otomatis mengikuti kode batch bahan mentah terpilih.';
+    calculateTheoreticalPcs();
     return;
   }
 
@@ -3075,6 +3134,9 @@ function onProductionBatchChange() {
   if (expiry && expiryInput) {
     expiryInput.value = expiry.split(' ')[0];
   }
+
+  // Evaluasi ulang input gram terhadap sisa stok batch yang baru dipilih
+  calculateTheoreticalPcs();
 }
 
 function submitProduction() {

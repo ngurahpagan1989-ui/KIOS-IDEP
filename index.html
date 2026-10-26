@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=4.1">
+  <link rel="stylesheet" href="style.css?v=4.8">
   <!-- Session Restore Anti-Flash Script & Style -->
   <script>
     (function() {
@@ -324,6 +324,25 @@
       <div class="modal-footer confirm-footer">
         <button type="button" class="btn btn-secondary" id="confirm-cancel-btn">Batal</button>
         <button type="button" class="btn btn-primary" id="confirm-ok-btn">Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CENTER ALERT & STATUS DIALOG MODAL ===================== -->
+  <div id="alert-modal" class="modal-overlay modal-overlay-alert" style="display:none; z-index: 2200;" role="alertdialog" aria-modal="true" aria-labelledby="alert-modal-title">
+    <div class="modal-backdrop" onclick="closeAlertDialog()"></div>
+    <div class="modal-dialog modal-dialog-sm alert-modal-dialog">
+      <div class="alert-modal-content">
+        <div class="alert-modal-icon-badge" id="alert-modal-icon-badge">
+          <i class="fas fa-circle-exclamation" id="alert-modal-icon"></i>
+        </div>
+        <h3 class="alert-modal-title" id="alert-modal-title">Pemberitahuan</h3>
+        <div class="alert-modal-message" id="alert-modal-message">Pesan status sistem.</div>
+      </div>
+      <div class="modal-footer alert-modal-footer">
+        <button type="button" class="btn btn-primary alert-modal-btn" id="alert-modal-ok-btn" onclick="closeAlertDialog()">
+          <span>Mengerti</span>
+        </button>
       </div>
     </div>
   </div>
@@ -734,6 +753,6 @@
   <!-- Supabase Client Adapter & API Bridge -->
   <script src="supabaseClient.js?v=4.7"></script>
   <!-- Core Application Logic -->
-  <script src="app.js?v=4.7"></script>
+  <script src="app.js?v=4.8"></script>
 </body>
 </html>

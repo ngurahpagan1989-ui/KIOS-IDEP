@@ -267,21 +267,46 @@ function formatDate(d) {
   return formatDateIndo(d);
 }
 
-function showToast(message, isError) {
+let _toastTimer = null;
+window.CONFIG_ALERT_DIALOG_ERRORS = true; // Error otomatis tampil sebagai kotak dialog di tengah layar
+
+function showToast(message, isError, forceToast) {
+  // Jika parameter isError bernilai true dan tidak dipaksa toast, tampilkan kotak dialog error di tengah layar
+  if (isError && !forceToast && window.CONFIG_ALERT_DIALOG_ERRORS) {
+    showAlertDialog({
+      title: 'Terjadi Kesalahan',
+      message: message,
+      type: 'error'
+    });
+    return;
+  }
+
   const toast = document.getElementById('toast');
   const toastMsg = document.getElementById('toast-msg');
   const toastIcon = document.getElementById('toast-icon');
   if (!toast) return;
 
+  if (_toastTimer) {
+    clearTimeout(_toastTimer);
+    _toastTimer = null;
+  }
+
   if (toastMsg) toastMsg.textContent = message;
-  if (toastIcon) toastIcon.innerHTML = isError ? '&#9888;' : '&#10003;';
+  if (toastIcon) {
+    if (isError) {
+      toastIcon.innerHTML = '<i class="fas fa-triangle-exclamation"></i>';
+    } else {
+      toastIcon.innerHTML = '<i class="fas fa-circle-check"></i>';
+    }
+  }
 
   toast.className = 'toast show' + (isError ? ' toast-error' : '');
   toast.style.display = 'flex';
 
-  setTimeout(function () {
+  _toastTimer = setTimeout(function () {
     toast.style.display = 'none';
     toast.className = 'toast';
+    _toastTimer = null;
   }, 3500);
 }
 
@@ -311,7 +336,7 @@ function closeModal() {
     dialog.style.overflowY = '';
     dialog.style.padding = '';
   }
-  document.querySelectorAll('.modal-overlay:not(#confirm-modal):not(#modal-container):not(#delivery-signature-modal):not(#delivery-receipt-modal):not(#pod-view-modal):not(#modal-reset-data):not(#modal-qc-entry):not(#modal-qc-photo-viewer)').forEach(function (m) {
+  document.querySelectorAll('.modal-overlay:not(#confirm-modal):not(#alert-modal):not(#modal-container):not(#delivery-signature-modal):not(#delivery-receipt-modal):not(#pod-view-modal):not(#modal-reset-data):not(#modal-qc-entry):not(#modal-qc-photo-viewer)').forEach(function (m) {
     m.remove();
   });
   syncModalOpenState();
@@ -398,6 +423,179 @@ function showConfirmDialog(title, message, onConfirm, isDanger) {
   modal.style.display = 'flex';
   document.body.classList.add('modal-open');
 }
+
+// ========================= KOTAK DIALOG STATUS & ALERT TENGAH LAYAR =========================
+let _alertModalCallback = null;
+let _alertModalTimer = null;
+
+function showAlertDialog(titleOrOpts, message, type, onClose) {
+  let opts = {};
+  if (typeof titleOrOpts === 'object' && titleOrOpts !== null) {
+    opts = Object.assign({}, titleOrOpts);
+  } else {
+    opts = {
+      title: titleOrOpts,
+      message: message,
+      type: type || 'info',
+      onClose: onClose
+    };
+  }
+
+  const modal = document.getElementById('alert-modal');
+  if (!modal) {
+    alert((opts.title ? opts.title + ':\n' : '') + (opts.message || ''));
+    if (typeof opts.onClose === 'function') opts.onClose();
+    return;
+  }
+
+  const titleEl = document.getElementById('alert-modal-title');
+  const msgEl = document.getElementById('alert-modal-message');
+  const iconEl = document.getElementById('alert-modal-icon');
+  const okBtn = document.getElementById('alert-modal-ok-btn');
+  const dialogCard = modal.querySelector('.alert-modal-dialog');
+
+  const alertType = (opts.type || 'info').toLowerCase();
+
+  if (_alertModalTimer) {
+    clearTimeout(_alertModalTimer);
+    _alertModalTimer = null;
+  }
+
+  // Teks Judul Default berdasarkan Tipe
+  let defaultTitle = 'Pemberitahuan';
+  if (alertType === 'error') defaultTitle = 'Terjadi Kesalahan';
+  else if (alertType === 'warning') defaultTitle = 'Perhatian';
+  else if (alertType === 'success') defaultTitle = 'Berhasil';
+
+  if (titleEl) {
+    titleEl.textContent = opts.title || defaultTitle;
+  }
+
+  if (msgEl) {
+    if (opts.html) {
+      msgEl.innerHTML = opts.message || '';
+    } else {
+      msgEl.textContent = opts.message || '';
+    }
+  }
+
+  // Set tipe styling pada dialog card
+  if (dialogCard) {
+    dialogCard.className = 'modal-dialog modal-dialog-sm alert-modal-dialog alert-type-' + alertType;
+  }
+
+  // Ganti icon sesuai tipe alert
+  if (iconEl) {
+    if (alertType === 'error') {
+      iconEl.className = 'fas fa-circle-xmark';
+    } else if (alertType === 'warning') {
+      iconEl.className = 'fas fa-triangle-exclamation';
+    } else if (alertType === 'success') {
+      iconEl.className = 'fas fa-circle-check';
+    } else {
+      iconEl.className = 'fas fa-circle-info';
+    }
+  }
+
+  // Tombol aksi
+  if (okBtn) {
+    const btnSpan = okBtn.querySelector('span');
+    const defaultBtnText = alertType === 'error' ? 'Tutup' : 'Mengerti';
+    if (btnSpan) {
+      btnSpan.textContent = opts.buttonText || opts.okText || defaultBtnText;
+    } else {
+      okBtn.textContent = opts.buttonText || opts.okText || defaultBtnText;
+    }
+
+    if (alertType === 'error') {
+      okBtn.className = 'btn btn-danger alert-modal-btn';
+    } else if (alertType === 'warning') {
+      okBtn.className = 'btn btn-warning alert-modal-btn';
+    } else {
+      okBtn.className = 'btn btn-primary alert-modal-btn';
+    }
+  }
+
+  _alertModalCallback = typeof opts.onClose === 'function' ? opts.onClose : null;
+
+  // Auto-close opsional (misal: autoCloseMs = 3000)
+  if (opts.autoCloseMs && typeof opts.autoCloseMs === 'number') {
+    _alertModalTimer = setTimeout(function () {
+      closeAlertDialog();
+    }, opts.autoCloseMs);
+  }
+
+  modal.style.display = 'flex';
+  document.body.classList.add('modal-open');
+
+  // Auto-focus tombol agar kasir bisa langsung tekan Enter / Spasi
+  setTimeout(function () {
+    if (okBtn) okBtn.focus();
+  }, 60);
+}
+
+function closeAlertDialog() {
+  const modal = document.getElementById('alert-modal');
+  if (_alertModalTimer) {
+    clearTimeout(_alertModalTimer);
+    _alertModalTimer = null;
+  }
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  syncModalOpenState();
+
+  const cb = _alertModalCallback;
+  _alertModalCallback = null;
+  if (typeof cb === 'function') {
+    try { cb(); } catch (e) { console.error('Error in alert callback:', e); }
+  }
+}
+
+// Keyboard listener global untuk menutup dialog modal tengah dengan Enter / Escape
+document.addEventListener('keydown', function (e) {
+  const alertModal = document.getElementById('alert-modal');
+  if (alertModal && alertModal.style.display === 'flex') {
+    if (e.key === 'Escape' || e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      closeAlertDialog();
+    }
+  }
+});
+
+// Shortcut fungsi pembantu (helper functions)
+window.showAlertDialog = showAlertDialog;
+window.showAlert = showAlertDialog;
+window.closeAlertDialog = closeAlertDialog;
+
+window.showErrorDialog = function (message, title, onClose) {
+  return showAlertDialog({ title: title || 'Terjadi Kesalahan', message: message, type: 'error', onClose: onClose });
+};
+
+window.showSuccessDialog = function (message, title, onClose) {
+  return showAlertDialog({ title: title || 'Berhasil', message: message, type: 'success', onClose: onClose });
+};
+
+window.showWarningDialog = function (message, title, onClose) {
+  return showAlertDialog({ title: title || 'Perhatian', message: message, type: 'warning', onClose: onClose });
+};
+
+window.showInfoDialog = function (message, title, onClose) {
+  return showAlertDialog({ title: title || 'Informasi', message: message, type: 'info', onClose: onClose });
+};
+
+// Dialog status tengah dengan durasi otomatis hilang (misal status transaksi atau sinkronisasi)
+window.showCenterStatus = function (message, type, autoCloseMs, onClose) {
+  return showAlertDialog({
+    title: type === 'error' ? 'Gagal' : type === 'warning' ? 'Perhatian' : 'Status Sistem',
+    message: message,
+    type: type || 'success',
+    autoCloseMs: autoCloseMs || 2600,
+    buttonText: 'Tutup',
+    onClose: onClose
+  });
+};
 
 function showPromptDialog(title, message, defaultValue, onConfirm) {
   const overlay = document.createElement('div');

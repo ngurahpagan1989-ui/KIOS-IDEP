@@ -246,14 +246,17 @@ function formatRupiah(num) {
 function formatDateIndo(dateStr) {
   if (!dateStr || dateStr === '-' || dateStr === 'null' || dateStr === 'undefined') return '-';
   try {
+    const isEn = window.i18n && window.i18n.getLanguage() === 'en';
     const d = new Date(dateStr);
     if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+      return d.toLocaleDateString(isEn ? 'en-GB' : 'id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
     }
     if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateStr.trim())) {
       const clean = dateStr.trim().split(/[T\s]/)[0];
       const parts = clean.split('-');
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const months = isEn
+        ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        : ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
       if (parts.length >= 3) {
         return parts[2] + ' ' + (months[parseInt(parts[1], 10) - 1] || parts[1]) + ' ' + parts[0];
       }
@@ -1087,7 +1090,8 @@ function router(forceRefresh) {
     'pengaturan': 'Pengaturan Sistem',
     'faktur': 'Riwayat Transaksi & Faktur'
   };
-  if (titleEl) titleEl.textContent = routeTitles[route] || 'E-Kasir';
+  const rawTitle = routeTitles[route] || 'E-Kasir';
+  if (titleEl) titleEl.textContent = (window.t ? window.t(rawTitle) : rawTitle);
 
   closeSidebarMobile();
 
@@ -6791,6 +6795,9 @@ function openTransactionDetailModal(transactionId) {
 let CURRENT_INVOICE_VIEW_MODE = 'formal'; // 'thermal' | 'minimalist' | 'formal'
 
 function angkaTerbilang(angka) {
+  if (window.i18n && window.i18n.getLanguage() === 'en') {
+    return window.i18n.numberToWords(angka) + ' Rupiah';
+  }
   const n = Math.round(Number(angka) || 0);
   if (n < 0) return 'Minus ' + angkaTerbilang(Math.abs(n));
   if (n === 0) return 'Nol Rupiah';
@@ -13044,6 +13051,14 @@ function drawPengaturanUI(settings) {
     '<div class="field-group"><label class="field-label">Tarif Pajak (PPN %)</label><div class="input-wrapper"><input type="number" id="set-tax-rate" value="' + escapeHtml(settings['tax_rate'] !== undefined ? settings['tax_rate'] : '0') + '" min="0" max="100" step="0.1" style="padding-left:14px;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Persentase pajak yang dikenakan pada transaksi (misal: 0 untuk bebas pajak atau 11 untuk PPN 11%).</small></div>' +
     '<div class="field-group"><label class="field-label">Catatan Kaki Faktur</label><div class="input-wrapper"><input type="text" id="set-invoice-footer" value="' + escapeHtml(settings['invoice_footer'] || 'Terima kasih atas kunjungan Anda!') + '" style="padding-left:14px;"></div></div>' +
     '<button type="button" class="btn btn-primary" onclick="saveStoreSettings()">Simpan Profil Toko &amp; Pajak</button>' +
+    '</div>' +
+    '<div class="card" style="margin-top:16px;">' +
+    '<h3 style="margin-bottom:6px;">🌐 Bahasa Antarmuka (Language Settings)</h3>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Pilih bahasa tampilan untuk menu, kasir, formulir, struk belanja, dan laporan:</p>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+    '<button type="button" class="btn ' + (window.i18n && window.i18n.getLanguage() === 'id' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="window.i18n && window.i18n.setLanguage(\'id\')">🇮🇩 Bahasa Indonesia (Standar)</button>' +
+    '<button type="button" class="btn ' + (window.i18n && window.i18n.getLanguage() === 'en' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="window.i18n && window.i18n.setLanguage(\'en\')">🇬🇧 English (International)</button>' +
+    '</div>' +
     '</div>' +
     '</div>' +
     '</div>' +

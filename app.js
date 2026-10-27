@@ -274,6 +274,9 @@ let _toastTimer = null;
 window.CONFIG_ALERT_DIALOG_ERRORS = true; // Error otomatis tampil sebagai kotak dialog di tengah layar
 
 function showToast(message, isError, forceToast) {
+  if (typeof message === 'string' && window.t) {
+    message = window.t(message);
+  }
   // Jika parameter isError bernilai true dan tidak dipaksa toast, tampilkan kotak dialog error di tengah layar
   if (isError && !forceToast && window.CONFIG_ALERT_DIALOG_ERRORS) {
     showAlertDialog({
@@ -400,8 +403,8 @@ function showConfirmDialog(title, message, onConfirm, isDanger) {
   const okBtn = document.getElementById('confirm-ok-btn');
   const cancelBtn = document.getElementById('confirm-cancel-btn');
 
-  if (titleEl) titleEl.textContent = title;
-  if (msgEl) msgEl.textContent = message;
+  if (titleEl) titleEl.textContent = (window.t && typeof title === 'string') ? window.t(title) : title;
+  if (msgEl) msgEl.textContent = (window.t && typeof message === 'string') ? window.t(message) : message;
 
   const cleanupConfirm = function () {
     modal.style.display = 'none';
@@ -470,15 +473,19 @@ function showAlertDialog(titleOrOpts, message, type, onClose) {
   else if (alertType === 'warning') defaultTitle = 'Perhatian';
   else if (alertType === 'success') defaultTitle = 'Berhasil';
 
+  const finalTitle = opts.title || defaultTitle;
+  const finalMsg = opts.message || '';
+
   if (titleEl) {
-    titleEl.textContent = opts.title || defaultTitle;
+    titleEl.textContent = (window.t && typeof finalTitle === 'string') ? window.t(finalTitle) : finalTitle;
   }
 
   if (msgEl) {
     if (opts.html) {
-      msgEl.innerHTML = opts.message || '';
+      msgEl.innerHTML = finalMsg;
+      if (window.i18n && window.i18n.translateDOM) window.i18n.translateDOM(msgEl);
     } else {
-      msgEl.textContent = opts.message || '';
+      msgEl.textContent = (window.t && typeof finalMsg === 'string') ? window.t(finalMsg) : finalMsg;
     }
   }
 

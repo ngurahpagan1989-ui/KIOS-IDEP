@@ -5900,7 +5900,8 @@ function renderCart() {
         productBatches.map(function (b) {
           const expTxt = b.expiry_date ? formatDate(b.expiry_date) : 'Tanpa Exp';
           const isSel = (item.selected_batch_id === b.id) ? ' selected' : '';
-          return '<option value="' + escapeHtml(b.id) + '"' + isSel + '>' + escapeHtml(b.id) + ' — Exp: ' + expTxt + ' (Sisa ' + b.qty_remaining + ')</option>';
+          const displayBatchCode = b.batch_code || b.batch_no || b.id;
+          return '<option value="' + escapeHtml(b.id) + '"' + isSel + '>' + escapeHtml(displayBatchCode) + ' — Exp: ' + expTxt + ' (Sisa ' + b.qty_remaining + ')</option>';
         }).join('') +
         '</select>' +
         '</div>';
@@ -9374,6 +9375,23 @@ function clearSignaturePad(type) {
   }
 }
 
+function initAuditSignaturePads() {
+  initSignaturePad('idep');
+  initSignaturePad('outlet');
+}
+window.initAuditSignaturePads = initAuditSignaturePads;
+window.openConsignmentAuditModal = openConsignmentAuditModal;
+window.recalcAuditRow = recalcAuditRow;
+window.updateAuditItemNotes = updateAuditItemNotes;
+window.handleAuditPhotoUpload = handleAuditPhotoUpload;
+window.initSignaturePad = initSignaturePad;
+window.clearSignaturePad = clearSignaturePad;
+window.submitConsignmentAuditUI = submitConsignmentAuditUI;
+window.openAuditSuccessModal = openAuditSuccessModal;
+window.openConsignmentAuditWAModal = openConsignmentAuditWAModal;
+window.openConsignmentInvoiceModal = openConsignmentInvoiceModal;
+window.submitConsignmentInvoice = submitConsignmentInvoice;
+
 function submitConsignmentAuditUI(outletId) {
   if (!window._currentAuditData) return;
 
@@ -10256,6 +10274,11 @@ function ensurePjBatchesLoaded() {
     return [];
   });
 }
+
+function openAfterSalesModal(prefillData) {
+  openClaimModal(prefillData);
+}
+window.openAfterSalesModal = openAfterSalesModal;
 
 function openClaimModal(prefillData) {
   ensurePjBatchesLoaded();
@@ -14215,6 +14238,18 @@ function executeResetTestingData() {
   });
 }
 
+// Window bindings untuk modal pengaturan & testing data
+window.openResetDataModal = openResetDataModal;
+window.closeResetDataModal = closeResetDataModal;
+window.validateResetConfirmInput = validateResetConfirmInput;
+window.executeResetTestingData = executeResetTestingData;
+window.openUserModal = openUserModal;
+window.closeUserModal = closeUserModal;
+window.submitUserForm = submitUserForm;
+window.openRoleModal = openRoleModal;
+window.closeRoleModal = closeRoleModal;
+window.submitRoleForm = submitRoleForm;
+
 // ========================= RIWAYAT TRANSAKSI & FAKTUR =========================
 function renderFaktur(forceRefresh, startDate, endDate) {
   const content = document.getElementById('content');
@@ -15657,7 +15692,108 @@ document.addEventListener('DOMContentLoaded', function () {
     showLoginScreen();
   }
 
-  // 6. Inisialisasi PWA Install Button & Banner
+  // 6. Pencarian Global Topbar (#topbar-global-search & #search-clear-btn)
+  const globalSearchInput = document.getElementById('topbar-global-search');
+  const searchClearBtn = document.getElementById('search-clear-btn');
+
+  function handleGlobalSearch(query) {
+    const q = (query || '').trim().toLowerCase();
+    if (searchClearBtn) {
+      searchClearBtn.style.display = q ? 'block' : 'none';
+    }
+
+    const currentRoute = (location.hash || '#dashboard').replace('#', '').trim() || 'dashboard';
+
+    // 1. Jika di POS Kasir
+    if (currentRoute === 'pos') {
+      const posSearch = document.getElementById('pos-search');
+      if (posSearch) {
+        posSearch.value = query;
+      }
+      if (typeof PRODUCTS_CACHE !== 'undefined' && Array.isArray(PRODUCTS_CACHE)) {
+        const filtered = PRODUCTS_CACHE.filter(function (p) {
+          return !q ||
+            (p.name || '').toLowerCase().includes(q) ||
+            (p.category || '').toLowerCase().includes(q) ||
+            (p.variant || '').toLowerCase().includes(q);
+        });
+        if (typeof renderPOSProductGrid === 'function') {
+          renderPOSProductGrid(filtered);
+        }
+      }
+    }
+    // 2. Jika di Katalog Produk
+    else if (currentRoute === 'produk') {
+      PRODUCT_SEARCH_QUERY = q;
+      if (typeof renderFilteredProducts === 'function') {
+        renderFilteredProducts();
+      }
+    }
+    // 3. Jika di Riwayat Faktur
+    else if (currentRoute === 'faktur') {
+      const fakturSearch = document.getElementById('faktur-search-input');
+      if (fakturSearch) {
+        fakturSearch.value = query;
+      }
+      if (typeof filterFakturList === 'function') {
+        filterFakturList();
+      }
+    }
+    // 4. Jika di CRM / Pelanggan
+    else if (currentRoute === 'crm') {
+      const crmSearch = document.getElementById('crm-search');
+      if (crmSearch) {
+        crmSearch.value = query;
+        if (typeof renderFilteredCustomers === 'function') {
+          renderFilteredCustomers();
+        }
+      }
+    }
+    // 5. Jika di Pengeluaran / Expenses
+    else if (currentRoute === 'expenses') {
+      const expSearch = document.getElementById('expense-search-input');
+      if (expSearch) {
+        expSearch.value = query;
+      }
+      if (typeof onExpenseSearch === 'function') {
+        onExpenseSearch(query);
+      }
+    }
+    // 6. Jika di Konsinyasi
+    else if (currentRoute === 'konsinyasi') {
+      const cards = document.querySelectorAll('.outlet-card');
+      cards.forEach(function (card) {
+        const cardText = card.textContent.toLowerCase();
+        card.style.display = (!q || cardText.includes(q)) ? '' : 'none';
+      });
+    }
+    // 7. Jika di Piutang
+    else if (currentRoute === 'piutang') {
+      const piutangRows = document.querySelectorAll('#content table tbody tr');
+      piutangRows.forEach(function (tr) {
+        const rowText = tr.textContent.toLowerCase();
+        tr.style.display = (!q || rowText.includes(q)) ? '' : 'none';
+      });
+    }
+  }
+
+  if (globalSearchInput) {
+    globalSearchInput.addEventListener('input', function (e) {
+      handleGlobalSearch(e.target.value);
+    });
+  }
+
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener('click', function () {
+      if (globalSearchInput) {
+        globalSearchInput.value = '';
+        globalSearchInput.focus();
+      }
+      handleGlobalSearch('');
+    });
+  }
+
+  // 7. Inisialisasi PWA Install Button & Banner
   initPwaInstall();
 });
 

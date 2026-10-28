@@ -144,11 +144,14 @@ async function loginSupabaseUser(identifier, password) {
   window.CURRENT_USER_PROFILE = userProfile;
 
   const userDisplayName = userProfile.name || userProfile.username;
+  const userRole = userProfile.role || 'Kasir';
   try {
     localStorage.setItem('ekasir_token', data.session.access_token);
     localStorage.setItem('ekasir_user', userDisplayName);
+    localStorage.setItem('ekasir_role', userRole);
     sessionStorage.setItem('ekasir_token', data.session.access_token);
     sessionStorage.setItem('ekasir_user', userDisplayName);
+    sessionStorage.setItem('ekasir_role', userRole);
     localStorage.setItem('idep_pos_user', JSON.stringify(userProfile));
     localStorage.setItem('idep_pos_token', data.session.access_token);
   } catch (e) {
@@ -173,8 +176,10 @@ async function logoutSupabaseUser() {
   try {
     localStorage.removeItem('ekasir_token');
     localStorage.removeItem('ekasir_user');
+    localStorage.removeItem('ekasir_role');
     sessionStorage.removeItem('ekasir_token');
     sessionStorage.removeItem('ekasir_user');
+    sessionStorage.removeItem('ekasir_role');
     localStorage.removeItem('idep_pos_user');
     localStorage.removeItem('idep_pos_token');
   } catch (e) {}
@@ -203,15 +208,142 @@ async function checkSupabaseSession() {
     window.CURRENT_USER_PROFILE = userProfile;
     try {
       const userDisplayName = userProfile.name || userProfile.username;
+      const userRole = userProfile.role || 'Kasir';
       localStorage.setItem('ekasir_token', session.access_token);
       localStorage.setItem('ekasir_user', userDisplayName);
+      localStorage.setItem('ekasir_role', userRole);
       sessionStorage.setItem('ekasir_token', session.access_token);
       sessionStorage.setItem('ekasir_user', userDisplayName);
+      sessionStorage.setItem('ekasir_role', userRole);
     } catch (e) {}
     return userProfile;
   }
   return null;
 }
+
+/**
+ * Helper Pemotongan Stok FIFO Multi-Batch Tanpa Ketergantungan RPC Database
+ */
+async function consumeStockFIFOClient(productId, qtyNeeded, refId, refNo, mutationType = 'KELUAR_PENJUALAN', preferredBatchId = null) {
+  if (!supabase) throw new Error('Supabase client belum siap.');
+  qtyNeeded = Number(qtyNeeded || 0);
+  if (qtyNeeded <= 0) {
+    return { total_cost: 0, batch_codes: [], primary_batch_id: null, primary_expiry: null };
+  }
+
+  // 1. Ambil daftar stock_batches untuk productId yang qty_remaining > 0
+  const { data: batches, error } = await supabase
+    .from('stock_batches')
+    .select('*')
+    .eq('product_id', productId)
+    .gt('qty_remaining', 0)
+    .order('expiry_date', { ascending: true, nullsFirst: false })
+    .order('production_date', { ascending: true });
+
+  if (error) throw error;
+  let batchList = batches ? [...batches] : [];
+
+  // Jika preferredBatchId diisi, dahulukan batch tersebut
+  if (preferredBatchId) {
+    const prefIdx = batchList.findIndex(b => b.id === preferredBatchId || b.batch_code === preferredBatchId || b.batch_no === preferredBatchId);
+    if (prefIdx > 0) {
+      const pref = batchList.splice(prefIdx, 1)[0];
+      batchList.unshift(pref);
+    }
+  }
+
+  let remainingToDeduct = qtyNeeded;
+  let totalCost = 0;
+  const batchCodes = [];
+  let primaryBatchId = null;
+  let primaryExpiry = null;
+
+  for (const batch of batchList) {
+    if (remainingToDeduct <= 0) break;
+    const currentQty = Number(batch.qty_remaining || 0);
+    if (currentQty <= 0) continue;
+
+    const deduct = Math.min(remainingToDeduct, currentQty);
+    const newQty = currentQty - deduct;
+    const unitCost = Number(batch.cost_per_unit !== undefined && batch.cost_per_unit !== null ? batch.cost_per_unit : (batch.buy_price || 0));
+    totalCost += deduct * unitCost;
+
+    const bCode = batch.batch_code || batch.batch_no || batch.id;
+    if (!batchCodes.includes(bCode)) batchCodes.push(bCode);
+    if (!primaryBatchId) {
+      primaryBatchId = batch.id;
+      primaryExpiry = batch.expiry_date || null;
+    }
+
+    // Update qty_remaining di stock_batches
+    await supabase
+      .from('stock_batches')
+      .update({ qty_remaining: newQty, updated_at: new Date().toISOString() })
+      .eq('id', batch.id);
+
+    // Catat ke stock_movements
+    try {
+      await supabase.from('stock_movements').insert({
+        id: crypto.randomUUID(),
+        product_id: productId,
+        batch_id: batch.id,
+        movement_type: 'OUT',
+        qty: deduct,
+        reference_type: mutationType === 'KELUAR_KONSINYASI' ? 'consignment_out' : 'sale',
+        reference_id: refId || '',
+        notes: `Pengeluaran ${deduct} unit (${refNo || refId || 'FIFO'})`
+      });
+    } catch (e) {
+      console.warn('[FIFO] Gagal catat stock_movements:', e);
+    }
+
+    // Catat ke stock_mutations
+    try {
+      const mutRecord = {
+        id: crypto.randomUUID(),
+        product_id: productId,
+        batch_id: batch.id,
+        mutation_type: mutationType || 'KELUAR_PENJUALAN',
+        qty_change: -deduct,
+        qty_after: newQty,
+        reference_no: refNo || refId || '',
+        notes: `FIFO Out: ${refNo || refId}`
+      };
+      await supabase.from('stock_mutations').insert(mutRecord);
+      if (typeof saveMutationToLocalBackup === 'function') {
+        saveMutationToLocalBackup(mutRecord);
+      }
+    } catch (e) {
+      console.warn('[FIFO] Gagal catat stock_mutations:', e);
+    }
+
+    remainingToDeduct -= deduct;
+  }
+
+  // Sinkronkan kolom stock di tabel products dari total qty_remaining stock_batches
+  try {
+    const { data: allB } = await supabase
+      .from('stock_batches')
+      .select('qty_remaining')
+      .eq('product_id', productId);
+    const totalRemaining = (allB || []).reduce((sum, b) => sum + Number(b.qty_remaining || 0), 0);
+    await supabase
+      .from('products')
+      .update({ stock: totalRemaining })
+      .eq('id', productId);
+  } catch (e) {
+    console.warn('[FIFO] Gagal sinkronkan total stok produk:', e);
+  }
+
+  return {
+    total_cost: totalCost,
+    batch_codes: batchCodes,
+    primary_batch_id: primaryBatchId,
+    primary_expiry: primaryExpiry
+  };
+}
+window.consumeStockFIFOClient = consumeStockFIFOClient;
+
 
 // ==============================================================================
 // 4. API BRIDGE: IMPLEMENTASI LENGKAP PENGGANTI `api(fnName, ...args)`
@@ -363,6 +495,8 @@ async function dispatchApiCall(fnName, args) {
           .from('stock_batches')
           .select('*')
           .gt('qty_remaining', 0)
+          .order('expiry_date', { ascending: true, nullsFirst: false })
+          .order('production_date', { ascending: true })
       ]);
 
       if (prodsRes.error) throw prodsRes.error;
@@ -401,6 +535,7 @@ async function dispatchApiCall(fnName, args) {
 
     case 'saveProduct': {
       const [, payload] = args;
+      const isSeed = String(payload.product_type || payload.category || '').toLowerCase().includes('benih');
       const productObj = {
         name: payload.name,
         category: payload.category || 'Benih',
@@ -410,7 +545,9 @@ async function dispatchApiCall(fnName, args) {
         photo_url: payload.photo_url || '',
         packaging_type_id: payload.packaging_type_id || null,
         harvest_days: Number(payload.harvest_days) || 0,
-        is_active: payload.active !== false
+        is_active: payload.active !== false,
+        active: payload.active !== false,
+        is_seed: isSeed
       };
 
       let productId = payload.id;
@@ -418,9 +555,14 @@ async function dispatchApiCall(fnName, args) {
         const { error } = await supabase.from('products').update(productObj).eq('id', productId);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase.from('products').insert(productObj).select('id').single();
+        const newId = crypto.randomUUID();
+        const insertObj = {
+          id: newId,
+          ...productObj
+        };
+        const { data, error } = await supabase.from('products').insert(insertObj).select('id').single();
         if (error) throw error;
-        productId = data.id;
+        productId = data ? data.id : newId;
       }
 
       if (Array.isArray(payload.priceTiers)) {
@@ -428,6 +570,7 @@ async function dispatchApiCall(fnName, args) {
         const tiersToInsert = payload.priceTiers
           .filter(t => t.tier_name && Number(t.price) >= 0)
           .map(t => ({
+            id: 'PT-' + crypto.randomUUID().slice(0, 12).toUpperCase(),
             product_id: productId,
             tier_name: t.tier_name,
             price: Number(t.price)
@@ -454,13 +597,16 @@ async function dispatchApiCall(fnName, args) {
     // C. POS INITIAL DATA & TRANSAKSI
     // --------------------------------------------------------------------------
     case 'getPosInitData': {
-      const [productsRes, batchesRes, tiersRes, customersRes] = await Promise.all([
+      const [productsRes, batchesRes, tiersRes, customersRes, settingsRes] = await Promise.all([
         supabase.from('products').select(`*, packaging_types(*)`).eq('is_active', true),
         supabase.from('stock_batches')
           .select('*')
-          .gt('qty_remaining', 0),
+          .gt('qty_remaining', 0)
+          .order('expiry_date', { ascending: true, nullsFirst: false })
+          .order('production_date', { ascending: true }),
         supabase.from('price_tiers').select('*'),
-        supabase.from('customers').select('*').order('name', { ascending: true })
+        supabase.from('customers').select('*').order('name', { ascending: true }),
+        supabase.from('settings').select('*')
       ]);
 
       const batchMap = {};
@@ -500,7 +646,9 @@ async function dispatchApiCall(fnName, args) {
         products: products,
         batches: batchesRes.data || [],
         price_tiers: tiersRes.data || [],
-        customers: customersRes.data || []
+        priceTiers: ['Reguler', 'Outlet', 'Bali Buda'],
+        customers: customersRes.data || [],
+        settings: settingsRes?.data || []
       };
     }
 
@@ -530,7 +678,8 @@ async function dispatchApiCall(fnName, args) {
           const { data: newCust, error: custErr } = await supabase.from('customers').insert({
             id: newCustId,
             name: String(payload.customer_name).trim(),
-            phone: payload.customer_phone ? String(payload.customer_phone).trim() : ''
+            phone: payload.customer_phone ? String(payload.customer_phone).trim() : '',
+            category: 'Reguler'
           }).select().single();
           if (!custErr && newCust) {
             customerId = newCust.id;
@@ -540,37 +689,30 @@ async function dispatchApiCall(fnName, args) {
         }
       }
 
+      // Pemotongan stok multi-batch FIFO client
       for (const item of (payload.items || [])) {
-        const { data: fifoResult, error: fifoErr } = await supabase.rpc('consume_stock_fifo', {
-          p_product_id: item.product_id,
-          p_qty_needed: Number(item.qty),
-          p_ref_id: txId,
-          p_ref_type: 'sale'
-        });
-
-        if (fifoErr) {
-          throw new Error(`Gagal memotong stok barang (${item.name || item.product_id}): ${fifoErr.message}`);
-        }
-
-        const primaryBatchId = (Array.isArray(fifoResult) && fifoResult[0] && fifoResult[0].batch_id)
-          ? fifoResult[0].batch_id
-          : (item.batch_id || null);
-
-        const totalCost = Array.isArray(fifoResult)
-          ? fifoResult.reduce((sum, b) => sum + Number(b.total_cost || 0), 0)
-          : Number(fifoResult?.total_cost || 0);
+        const prefBatch = item.batch_id || item.selected_batch_id || null;
+        const fifoResult = await consumeStockFIFOClient(
+          item.product_id,
+          Number(item.qty),
+          txId,
+          invoiceNo,
+          'KELUAR_PENJUALAN',
+          prefBatch
+        );
 
         consumedItems.push({
           transaction_id: txId,
           product_id: item.product_id,
-          batch_id: primaryBatchId,
+          batch_id: fifoResult.primary_batch_id || prefBatch,
           qty: Number(item.qty),
           price: Number(item.price),
-          cost: totalCost,
+          cost: Number(fifoResult.total_cost || 0),
           subtotal: Number(item.subtotal || (Number(item.qty) * Number(item.price)))
         });
       }
 
+      const txStatus = payload.payment_type === 'installment' ? 'tempo' : 'paid';
       const txInsertData = {
         id: txId,
         invoice_no: invoiceNo,
@@ -582,7 +724,7 @@ async function dispatchApiCall(fnName, args) {
         total: total,
         payment_method: payload.payment_method || 'CASH',
         payment_type: payload.payment_type || 'cash',
-        status: 'COMPLETED'
+        status: txStatus
       };
 
       if (payload.transaction_date) {
@@ -595,7 +737,6 @@ async function dispatchApiCall(fnName, args) {
       }
 
       const { data: txRecord, error: txErr } = await supabase.from('transactions').insert(txInsertData).select().single();
-
       if (txErr) throw txErr;
 
       const { error: itemsErr } = await supabase.from('transaction_items').insert(consumedItems);
@@ -604,20 +745,22 @@ async function dispatchApiCall(fnName, args) {
       if (payload.payment_type === 'installment') {
         const paidAmount = Number(payload.downPayment !== undefined ? payload.downPayment : (payload.paid_amount || 0));
         const totalAmount = total;
+        const remainingAmount = Math.max(0, totalAmount - paidAmount);
         await supabase.from('receivables').insert({
+          id: crypto.randomUUID(),
           transaction_id: txId,
           customer_id: customerId,
           total: totalAmount,
           paid: paidAmount,
-          remaining: Math.max(0, totalAmount - paidAmount),
+          remaining: remainingAmount,
           due_date: payload.due_date || null,
-          status: paidAmount >= totalAmount ? 'PAID' : (paidAmount > 0 ? 'PARTIAL' : 'UNPAID')
+          status: 'active'
         });
       }
 
       return {
         success: true,
-        id: invoiceNo,
+        id: txId,
         transaction_id: txId,
         invoice_no: invoiceNo,
         subtotal: subtotal,
@@ -656,6 +799,9 @@ async function dispatchApiCall(fnName, args) {
       if (txRes.error) throw txRes.error;
       if (!txRes.data) throw new Error(`Data transaksi #${transactionId} tidak ditemukan.`);
       const tx = txRes.data;
+      let normStatus = String(tx.status || '').toLowerCase();
+      if (normStatus === 'completed') normStatus = 'paid';
+      const normTx = { ...tx, status: normStatus };
 
       const itemsRes = await supabase
         .from('transaction_items')
@@ -665,12 +811,17 @@ async function dispatchApiCall(fnName, args) {
       if (itemsRes.error) throw itemsRes.error;
 
       return {
-        transaction: tx,
-        items: (itemsRes.data || []).map(i => ({
-          ...i,
-          name: i.products ? i.products.name : 'Produk',
-          unit: i.products ? i.products.unit : 'pcs'
-        }))
+        transaction: normTx,
+        items: (itemsRes.data || []).map(i => {
+          const pName = i.products ? i.products.name : (i.product_name || i.name || 'Produk');
+          const pUnit = i.products ? i.products.unit : (i.unit || 'pcs');
+          return {
+            ...i,
+            name: pName,
+            product_name: pName,
+            unit: pUnit
+          };
+        })
       };
     }
 
@@ -1215,39 +1366,74 @@ async function dispatchApiCall(fnName, args) {
       const [, payload] = args;
       // Buat produk curah + varian kemasan sekaligus
       const raw = payload.rawProduct || {};
+      const rawId = raw.id || crypto.randomUUID();
       const { data: rawProd, error: rawErr } = await supabase.from('products').insert({
+        id: rawId,
         name: raw.name,
         category: raw.category || 'Benih',
         product_type: 'raw_seed',
-        unit: 'gram',
-        is_active: true
+        unit: raw.unit || 'gr',
+        is_active: true,
+        active: true,
+        is_seed: true
       }).select('id').single();
 
       if (rawErr) throw rawErr;
+      const actualRawId = rawProd ? rawProd.id : rawId;
+
+      if (Array.isArray(raw.priceTiers) && raw.priceTiers.length > 0) {
+        const rawTiers = raw.priceTiers
+          .filter(t => t.tier_name && Number(t.price) >= 0)
+          .map(t => ({
+            id: 'PT-' + crypto.randomUUID().slice(0, 12).toUpperCase(),
+            product_id: actualRawId,
+            tier_name: t.tier_name,
+            price: Number(t.price || 0)
+          }));
+        if (rawTiers.length > 0) {
+          await supabase.from('price_tiers').insert(rawTiers);
+        }
+      }
 
       const packList = payload.packProducts || payload.packagedProducts || [];
       for (const pack of packList) {
+        const packId = pack.id || crypto.randomUUID();
         const { data: pProd } = await supabase.from('products').insert({
+          id: packId,
           name: pack.name,
           category: raw.category || 'Benih',
           product_type: 'packaged_seed',
           variant: pack.variant || '',
-          unit: 'pcs',
+          unit: pack.unit || 'pcs',
           packaging_type_id: pack.packaging_type_id || null,
-          is_active: true
+          is_active: true,
+          active: true,
+          is_seed: true
         }).select('id').single();
 
-        if (pProd && Array.isArray(pack.priceTiers)) {
-          const tiers = pack.priceTiers.map(t => ({
-            product_id: pProd.id,
-            tier_name: t.tier_name,
-            price: Number(t.price || 0)
-          }));
-          await supabase.from('price_tiers').insert(tiers);
+        const actualPackId = pProd ? pProd.id : packId;
+
+        if (Array.isArray(pack.priceTiers) && pack.priceTiers.length > 0) {
+          const tiers = pack.priceTiers
+            .filter(t => t.tier_name && Number(t.price) >= 0)
+            .map(t => ({
+              id: 'PT-' + crypto.randomUUID().slice(0, 12).toUpperCase(),
+              product_id: actualPackId,
+              tier_name: t.tier_name,
+              price: Number(t.price || 0)
+            }));
+          if (tiers.length > 0) {
+            await supabase.from('price_tiers').insert(tiers);
+          }
         }
       }
 
-      return { success: true, raw_id: rawProd.id };
+      return {
+        success: true,
+        raw_id: actualRawId,
+        raw_name: raw.name,
+        count: 1 + packList.length
+      };
     }
 
     // --------------------------------------------------------------------------
@@ -1377,7 +1563,10 @@ async function dispatchApiCall(fnName, args) {
           last_tested_by: lastLog ? lastLog.tested_by : '',
           last_status: lastLog ? lastLog.status : 'PENDING',
           notes: lastLog ? (lastLog.notes || '') : '',
-          history: bLogs
+          history: bLogs.map(l => ({
+            ...l,
+            photo_drive_url: l.photo_url || ''
+          }))
         };
       });
 
@@ -1390,13 +1579,18 @@ async function dispatchApiCall(fnName, args) {
 
       let photoUrl = payload.photo_url || '';
       if (payload.imageBase64 && payload.imageBase64.startsWith('data:image')) {
-        const fileName = `qc_${payload.batch_id}_${payload.stage || 'STAGE'}.jpg`;
-        photoUrl = await uploadToSupabaseStorage('qc-photos', fileName, payload.imageBase64, payload.imageMimeType || 'image/jpeg');
+        try {
+          const fileName = `qc_${payload.batch_id}_${payload.stage || 'STAGE'}.jpg`;
+          photoUrl = await uploadToSupabaseStorage('qc-photos', fileName, payload.imageBase64, payload.imageMimeType || 'image/jpeg');
+        } catch (uploadErr) {
+          console.warn('[QC Upload Storage Fallback] Menggunakan base64 sebagai fallback photo_url:', uploadErr);
+          photoUrl = payload.imageBase64;
+        }
       }
 
       let germRate = null;
       if (payload.tray_a !== undefined && payload.tray_b !== undefined) {
-        germRate = (Number(payload.tray_a) + Number(payload.tray_b)) / 2;
+        germRate = Number(payload.tray_a || 0) + Number(payload.tray_b || 0);
       }
 
       let qcStatus = 'IN_PROGRESS';
@@ -1532,18 +1726,17 @@ async function dispatchApiCall(fnName, args) {
         delivery_status: 'PENDING'
       });
 
-      // 2. Potong stok pusat via RPC FIFO dan catat item transfer
+      // 2. Potong stok pusat via FIFO client dan catat item transfer
       for (const it of items) {
-        const { error: fifoErr } = await supabase.rpc('consume_stock_fifo', {
-          p_product_id: it.product_id,
-          p_qty_needed: Number(it.qty),
-          p_ref_id: transferId,
-          p_ref_type: 'consignment_out'
-        });
-
-        if (fifoErr) {
-          throw new Error(`Gagal memotong stok barang pusat: ${fifoErr.message}`);
-        }
+        const prefBatch = it.batch_id || it.selected_batch_id || null;
+        await consumeStockFIFOClient(
+          it.product_id,
+          Number(it.qty),
+          transferId,
+          invoiceNo,
+          'KELUAR_KONSINYASI',
+          prefBatch
+        );
 
         await supabase.from('consignment_transfer_items').insert({
           transfer_id: transferId,
@@ -1689,7 +1882,19 @@ async function dispatchApiCall(fnName, args) {
         .select('*, customers(name, phone), transactions(invoice_no, created_at)')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []).map(r => {
+        const remaining = Number(r.remaining !== undefined ? r.remaining : (Number(r.total || 0) - Number(r.paid || 0)));
+        const rawStatus = String(r.status || '').toUpperCase();
+        const isActive = remaining > 0 || ['UNPAID', 'PARTIAL', 'ACTIVE'].includes(rawStatus);
+        return {
+          ...r,
+          remaining: remaining,
+          customer_name: r.customers?.name || r.customer_name || 'Pelanggan Umum',
+          customer_phone: r.customers?.phone || r.customer_phone || '-',
+          invoice_no: r.transactions?.invoice_no || r.invoice_no || ('INV-' + String(r.id || '').slice(0, 8)),
+          status: isActive ? 'active' : 'lunas'
+        };
+      });
     }
 
     case 'recordReceivablePayment': {
@@ -1763,13 +1968,42 @@ async function dispatchApiCall(fnName, args) {
         ? custRes.data
         : { name: tx.customer_name || 'Pelanggan Umum', phone: '' };
 
-      return {
-        transaction: tx,
-        items: (itemsRes.data || []).map(i => ({
+      let totalCost = 0;
+      let totalGrossProfit = 0;
+      const mappedItems = (itemsRes.data || []).map(i => {
+        const prodName = i.products ? i.products.name : (i.product_name || i.name || 'Produk');
+        const prodUnit = i.products ? i.products.unit : (i.unit || 'pcs');
+        const sub = Number(i.subtotal !== undefined ? i.subtotal : (Number(i.qty || 0) * Number(i.price || 0)));
+        const cost = Number(i.cost || 0);
+        const profit = sub - cost;
+        const marginPct = sub > 0 ? Math.round((profit / sub) * 100) : 0;
+        totalCost += cost;
+        totalGrossProfit += profit;
+        return {
           ...i,
-          name: i.products ? i.products.name : 'Produk',
-          unit: i.products ? i.products.unit : 'pcs'
-        })),
+          name: prodName,
+          product_name: prodName,
+          unit: prodUnit,
+          subtotal: sub,
+          cost: cost,
+          gross_profit: profit,
+          margin_percent: marginPct
+        };
+      });
+
+      let normStatus = String(tx.status || '').toLowerCase();
+      if (normStatus === 'completed') normStatus = 'paid';
+
+      const enrichedTx = {
+        ...tx,
+        status: normStatus,
+        total_cost: totalCost,
+        gross_profit: totalGrossProfit
+      };
+
+      return {
+        transaction: enrichedTx,
+        items: mappedItems,
         customer: custData,
         receivable: recRes ? recRes.data : null,
         settings: settingsObj
@@ -1789,14 +2023,24 @@ async function dispatchApiCall(fnName, args) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []).map(t => ({
-        ...t,
-        items: (t.transaction_items || []).map(i => ({
-          ...i,
-          name: i.products ? i.products.name : 'Produk',
-          unit: i.products ? i.products.unit : 'pcs'
-        }))
-      }));
+      return (data || []).map(t => {
+        let normStatus = String(t.status || '').toLowerCase();
+        if (normStatus === 'completed') normStatus = 'paid';
+        return {
+          ...t,
+          status: normStatus,
+          items: (t.transaction_items || []).map(i => {
+            const prodName = i.products ? i.products.name : (i.product_name || i.name || 'Produk');
+            const prodUnit = i.products ? i.products.unit : (i.unit || 'pcs');
+            return {
+              ...i,
+              name: prodName,
+              product_name: prodName,
+              unit: prodUnit
+            };
+          })
+        };
+      });
     }
 
     // --------------------------------------------------------------------------
@@ -2066,7 +2310,11 @@ async function dispatchApiCall(fnName, args) {
     // --------------------------------------------------------------------------
     case 'getStockBatches': {
       const [, productId] = args;
-      let q = supabase.from('stock_batches').select('*').order('expiry_date', { ascending: true });
+      let q = supabase
+        .from('stock_batches')
+        .select('*')
+        .order('expiry_date', { ascending: true, nullsFirst: false })
+        .order('production_date', { ascending: true });
       if (productId) q = q.eq('product_id', productId);
       const { data, error } = await q;
       if (error) throw error;
@@ -2334,10 +2582,151 @@ async function dispatchApiCall(fnName, args) {
     }
 
     case 'updateTransaction': {
-      const [, transactionId, updates] = args;
-      const { error } = await supabase.from('transactions').update(updates).eq('id', transactionId);
-      if (error) throw error;
-      return { success: true };
+      const [, transactionId, payload] = args;
+      if (!transactionId) throw new Error('Transaction ID wajib diisi untuk pembaruan nota.');
+
+      // 1. Ambil transaction_items lama untuk di-rollback stoknya ke stock_batches
+      const { data: oldItems } = await supabase
+        .from('transaction_items')
+        .select('*')
+        .eq('transaction_id', transactionId);
+
+      if (Array.isArray(oldItems)) {
+        for (const item of oldItems) {
+          const qtyToReturn = Number(item.qty || 0);
+          if (qtyToReturn > 0) {
+            // Jika ada batch_id, kembalikan ke batch tersebut
+            if (item.batch_id) {
+              const { data: batch } = await supabase
+                .from('stock_batches')
+                .select('qty_remaining')
+                .eq('id', item.batch_id)
+                .maybeSingle();
+              if (batch) {
+                const newQty = Number(batch.qty_remaining || 0) + qtyToReturn;
+                await supabase
+                  .from('stock_batches')
+                  .update({ qty_remaining: newQty, updated_at: new Date().toISOString() })
+                  .eq('id', item.batch_id);
+              }
+            }
+            // Catat rollback ke mutasi
+            try {
+              await supabase.from('stock_mutations').insert({
+                id: crypto.randomUUID(),
+                product_id: item.product_id,
+                batch_id: item.batch_id || null,
+                mutation_type: 'MASUK_KOREKSI_NOTA',
+                qty_change: qtyToReturn,
+                qty_after: 0,
+                reference_no: payload?.invoice_no || transactionId,
+                notes: `Rollback Koreksi Nota #${transactionId}`
+              });
+            } catch (e) {}
+
+            // Sinkronkan total stock pada products
+            try {
+              const { data: allB } = await supabase
+                .from('stock_batches')
+                .select('qty_remaining')
+                .eq('product_id', item.product_id);
+              const totalRemaining = (allB || []).reduce((sum, b) => sum + Number(b.qty_remaining || 0), 0);
+              await supabase
+                .from('products')
+                .update({ stock: totalRemaining })
+                .eq('id', item.product_id);
+            } catch (e) {}
+          }
+        }
+      }
+
+      // 2. Hapus transaction_items dan receivables lama
+      await supabase.from('transaction_items').delete().eq('transaction_id', transactionId);
+      await supabase.from('receivables').delete().eq('transaction_id', transactionId);
+
+      // 3. Hitung subtotal, tax, dan total baru
+      let calcSubtotal = 0;
+      for (const it of (payload?.items || [])) {
+        calcSubtotal += Number(it.qty || 0) * Number(it.price || 0);
+      }
+      const subtotal = payload?.subtotal !== undefined ? Number(payload.subtotal) : calcSubtotal;
+      const taxRate = Number(payload?.taxRate || 0);
+      const tax = payload?.tax !== undefined ? Number(payload.tax) : Math.round(subtotal * taxRate);
+      const total = payload?.total !== undefined ? Number(payload.total) : (subtotal + tax);
+
+      // 4. Potong ulang stok menggunakan consumeStockFIFOClient
+      const invoiceNo = payload?.invoice_no || `INV-${Date.now().toString().slice(-6)}`;
+      const consumedItems = [];
+      for (const item of (payload?.items || [])) {
+        const prefBatch = item.batch_id || item.selected_batch_id || null;
+        const fifoResult = await consumeStockFIFOClient(
+          item.product_id,
+          Number(item.qty),
+          transactionId,
+          invoiceNo,
+          'KELUAR_PENJUALAN',
+          prefBatch
+        );
+
+        consumedItems.push({
+          transaction_id: transactionId,
+          product_id: item.product_id,
+          batch_id: fifoResult.primary_batch_id || prefBatch,
+          qty: Number(item.qty),
+          price: Number(item.price),
+          cost: Number(fifoResult.total_cost || 0),
+          subtotal: Number(item.subtotal || (Number(item.qty) * Number(item.price)))
+        });
+      }
+
+      // Insert transaction_items baru
+      if (consumedItems.length > 0) {
+        const { error: insErr } = await supabase.from('transaction_items').insert(consumedItems);
+        if (insErr) throw insErr;
+      }
+
+      // Update tabel transactions
+      const txStatus = payload?.payment_type === 'installment' ? 'tempo' : 'paid';
+      const txUpdateData = {
+        subtotal: subtotal,
+        tax: tax,
+        total: total,
+        payment_method: payload?.payment_method || 'CASH',
+        payment_type: payload?.payment_type || 'cash',
+        status: txStatus
+      };
+      if (payload?.customer_id) txUpdateData.customer_id = payload.customer_id;
+      if (payload?.customer_name) txUpdateData.customer_name = payload.customer_name;
+
+      const { error: txErr } = await supabase.from('transactions').update(txUpdateData).eq('id', transactionId);
+      if (txErr) throw txErr;
+
+      // Jika installment, buat receivables baru
+      if (payload?.payment_type === 'installment') {
+        const paidAmount = Number(payload.downPayment !== undefined ? payload.downPayment : (payload.paid_amount || 0));
+        const totalAmount = total;
+        const remainingAmount = Math.max(0, totalAmount - paidAmount);
+        await supabase.from('receivables').insert({
+          id: crypto.randomUUID(),
+          transaction_id: transactionId,
+          customer_id: payload.customer_id || null,
+          total: totalAmount,
+          paid: paidAmount,
+          remaining: remainingAmount,
+          due_date: payload.due_date || null,
+          status: 'active'
+        });
+      }
+
+      return {
+        success: true,
+        id: transactionId,
+        invoice_no: invoiceNo,
+        total: total,
+        subtotal: subtotal,
+        tax: tax,
+        date: new Date().toISOString()
+      };
     }
 
     case 'deleteCustomer': {
@@ -2672,7 +3061,7 @@ async function dispatchApiCall(fnName, args) {
       const [, prodId, expQuery] = args;
       let q = supabase
         .from('stock_batches')
-        .select('*, products(name, category, variant, unit)')
+        .select('*, products(name, category, variant, unit), purchases(farmer_name)')
         .order('expiry_date', { ascending: true });
 
       if (prodId) {
@@ -2684,27 +3073,45 @@ async function dispatchApiCall(fnName, args) {
 
       let list = (data || []).map(b => {
         const prod = b.products || {};
-        const isRaw = (prod.unit === 'gr' || prod.variant === 'Curah' || String(prod.name).toLowerCase().includes('curah'));
+        const isRaw = (prod.unit === 'gr' || prod.unit === 'gram' || prod.variant === 'Curah' || String(prod.name || '').toLowerCase().includes('curah'));
+        const farmerName = b.purchases?.farmer_name || b.farmer_name || '-';
+        const batchCode = b.batch_code || b.batch_no || b.id;
         return {
           id: b.id,
-          batch_id: b.batch_no || b.id,
+          batch_id: batchCode,
           product_id: b.product_id,
           product_name: prod.name || b.product_name || 'Produk',
-          farmer_name: b.farmer_name || '-',
+          farmer_name: farmerName,
           expiry_date: b.expiry_date || '',
           received_at: b.received_at || b.created_at || '',
           production_date: b.production_date || '',
           qty_remaining: Number(b.qty_remaining || 0),
-          qty_in: Number(b.initial_qty || b.qty_remaining || 0),
+          qty_in: Number(b.initial_qty !== undefined ? b.initial_qty : (b.qty_in !== undefined ? b.qty_in : b.qty_remaining)),
           unit: prod.unit || (isRaw ? 'gr' : 'pcs'),
           is_raw: isRaw,
           quality_status: b.quality_status || 'NORMAL'
         };
       });
 
-      if (expQuery && expQuery.trim()) {
-        const cleanExp = expQuery.trim().toLowerCase();
-        list = list.filter(b => String(b.expiry_date || '').toLowerCase().includes(cleanExp));
+      if (expQuery && String(expQuery).trim()) {
+        const rawQ = String(expQuery).trim().toLowerCase();
+        const cleanExp = rawQ.replace(/[^a-z0-9]/g, '');
+        list = list.filter(b => {
+          const rawExp = String(b.expiry_date || '').toLowerCase();
+          const cleanRawExp = rawExp.replace(/[^a-z0-9]/g, '');
+          const batchCodeClean = String(b.batch_id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+          if (rawExp.includes(rawQ)) return true;
+          if (batchCodeClean.includes(cleanExp)) return true;
+          if (cleanRawExp.includes(cleanExp)) return true;
+
+          if (cleanExp.length === 4) {
+            const p1 = cleanExp.slice(0, 2);
+            const p2 = cleanExp.slice(2, 4);
+            if (rawExp.includes(p1) && rawExp.includes(p2)) return true;
+          }
+          return false;
+        });
       }
 
       return list;

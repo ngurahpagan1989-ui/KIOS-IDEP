@@ -231,15 +231,15 @@ async function checkSupabaseSession() {
       .from('profiles')
       .select('*')
       .eq('id', session.user.id)
-      .single();
+      .maybeSingle();
 
     const userProfile = {
       id: session.user.id,
       email: session.user.email,
       username: profile ? profile.username : session.user.email.split('@')[0],
-      name: profile ? profile.full_name : 'Staf Kios',
-      role: profile ? profile.role : 'Kasir',
-      phone: profile ? profile.phone : ''
+      name: profile ? (profile.full_name || profile.name || profile.username) : 'Staf Kios',
+      role: profile ? (profile.role || 'Kasir') : 'Kasir',
+      phone: profile ? (profile.phone || '') : ''
     };
 
     window.CURRENT_SESSION = session;
@@ -253,9 +253,48 @@ async function checkSupabaseSession() {
       sessionStorage.setItem('ekasir_token', session.access_token);
       sessionStorage.setItem('ekasir_user', userDisplayName);
       sessionStorage.setItem('ekasir_role', userRole);
+      localStorage.setItem('idep_pos_user', JSON.stringify(userProfile));
     } catch (e) {}
     return userProfile;
   }
+
+  // Fallback untuk akun pengguna yang login melalui tabel profiles (local token)
+  try {
+    const savedUserRaw = localStorage.getItem('idep_pos_user');
+    const savedToken = localStorage.getItem('idep_pos_token') || localStorage.getItem('ekasir_token') || '';
+    if (savedUserRaw && savedToken) {
+      const parsedUser = JSON.parse(savedUserRaw);
+      if (parsedUser && (parsedUser.id || parsedUser.username)) {
+        let q = supabase.from('profiles').select('*');
+        if (parsedUser.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(parsedUser.id))) {
+          q = q.eq('id', parsedUser.id);
+        } else {
+          q = q.ilike('username', String(parsedUser.username || parsedUser.id));
+        }
+        const { data: freshProfile } = await q.maybeSingle();
+        const userProfile = freshProfile ? {
+          id: freshProfile.id,
+          email: parsedUser.email || (freshProfile.username + '@idep.local'),
+          username: freshProfile.username,
+          name: freshProfile.full_name || freshProfile.name || freshProfile.username,
+          role: freshProfile.role || 'Kasir',
+          phone: freshProfile.phone || ''
+        } : parsedUser;
+
+        window.CURRENT_SESSION = { access_token: savedToken, user: userProfile };
+        window.CURRENT_USER_PROFILE = userProfile;
+        const userDisplayName = userProfile.name || userProfile.username;
+        const userRole = userProfile.role || 'Kasir';
+        localStorage.setItem('ekasir_user', userDisplayName);
+        localStorage.setItem('ekasir_role', userRole);
+        sessionStorage.setItem('ekasir_user', userDisplayName);
+        sessionStorage.setItem('ekasir_role', userRole);
+        localStorage.setItem('idep_pos_user', JSON.stringify(userProfile));
+        return userProfile;
+      }
+    }
+  } catch (e) {}
+
   return null;
 }
 
@@ -411,7 +450,13 @@ async function dispatchApiCall(fnName, args) {
         .select('*')
         .order('created_at', { ascending: true });
       if (error) throw error;
-      return data || [];
+      return (data || []).map(u => ({
+        ...u,
+        username: u.username || '',
+        full_name: u.full_name || u.name || u.username || '',
+        name: u.name || u.full_name || u.username || '',
+        role: u.role || 'Kasir'
+      }));
     }
 
     case 'getBatchRecallContacts': {
@@ -493,31 +538,58 @@ async function dispatchApiCall(fnName, args) {
 
     case 'saveUser': {
       const [, payload] = args;
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(payload.id || ''));
-      let targetId = isUuid ? payload.id : null;
-      if (!targetId && payload.username) {
-        const { data: existing } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('username', payload.username)
-          .maybeSingle();
-        if (existing && existing.id) targetId = existing.id;
+      if (!payload || !String(payload.username || '').trim()) {
+        throw new Error('Username wajib diisi.');
+      }
+      const cleanUsername = String(payload.username).trim();
+      const rawId = String(payload.id || '').trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId);
+      let targetId = isUuid ? rawId : null;
+      let isExistingUser = Boolean(rawId);
+
+      // Cek apakah username sudah ada di database
+      const { data: existingByUsername } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .ilike('username', cleanUsername)
+        .maybeSingle();
+
+      if (!isExistingUser && existingByUsername && existingByUsername.id) {
+        throw new Error('Username "' + cleanUsername + '" sudah digunakan oleh akun lain. Silakan pilih username lain.');
+      }
+
+      if (!targetId && existingByUsername && existingByUsername.id) {
+        targetId = existingByUsername.id;
       }
       if (!targetId) {
-        targetId = crypto.randomUUID();
+        targetId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+              const r = Math.random() * 16 | 0;
+              const v = c === 'x' ? r : (r & 0x3 | 0x8);
+              return v.toString(16);
+            });
       }
-      const displayName = payload.name || payload.full_name || payload.username;
+
+      const displayName = String(payload.name || payload.full_name || cleanUsername).trim();
+      const targetRole = String(cleanUsername).toLowerCase() === 'admin' ? 'Admin' : (payload.role || 'Kasir');
+      const nowIso = new Date().toISOString();
+
       const upsertData = {
         id: targetId,
-        username: payload.username,
+        username: cleanUsername,
         full_name: displayName,
         name: displayName,
-        role: payload.role || 'Kasir',
-        updated_at: new Date().toISOString()
+        role: targetRole,
+        updated_at: nowIso
       };
-      if (payload.password) {
-        upsertData.password = payload.password;
+      if (!isExistingUser) {
+        upsertData.created_at = nowIso;
       }
+      if (payload.password && String(payload.password).trim() !== '') {
+        upsertData.password = String(payload.password);
+      }
+
       const { data, error } = await supabase
         .from('profiles')
         .upsert(upsertData)
@@ -529,13 +601,19 @@ async function dispatchApiCall(fnName, args) {
 
     case 'deleteUser': {
       const [, userId, username] = args;
+      const checkName = String(username || userId || '').trim().toLowerCase();
+      if (checkName === 'admin') {
+        throw new Error('Akun administrator utama tidak dapat dihapus.');
+      }
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(userId || ''));
       if (isUuid) {
         const { error } = await supabase.from('profiles').delete().eq('id', userId);
         if (error) throw error;
-      } else {
-        const targetUsername = username || userId;
-        const { error } = await supabase.from('profiles').delete().ilike('username', String(targetUsername));
+      }
+      if (username && String(username).trim()) {
+        await supabase.from('profiles').delete().ilike('username', String(username).trim());
+      } else if (!isUuid && userId) {
+        const { error } = await supabase.from('profiles').delete().ilike('username', String(userId).trim());
         if (error) throw error;
       }
       return { success: true };
@@ -2882,8 +2960,35 @@ async function dispatchApiCall(fnName, args) {
 
     case 'changePassword': {
       const [, newPassword] = args;
-      const { data, error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
+      if (!newPassword || String(newPassword).length < 6) {
+        throw new Error('Password baru minimal 6 karakter.');
+      }
+      let updatedInProfile = false;
+      const currentProf = window.CURRENT_USER_PROFILE;
+      if (currentProf && (currentProf.id || currentProf.username)) {
+        let q = supabase.from('profiles').update({
+          password: String(newPassword),
+          updated_at: new Date().toISOString()
+        });
+        if (currentProf.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(currentProf.id))) {
+          q = q.eq('id', currentProf.id);
+        } else {
+          q = q.ilike('username', String(currentProf.username));
+        }
+        const { error: profErr } = await q;
+        if (!profErr) updatedInProfile = true;
+      }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { error: authErr } = await supabase.auth.updateUser({ password: newPassword });
+          if (authErr && !updatedInProfile) throw authErr;
+        } else if (!updatedInProfile) {
+          throw new Error('Sesi pengguna tidak ditemukan.');
+        }
+      } catch (err) {
+        if (!updatedInProfile) throw err;
+      }
       return { success: true, message: 'Password berhasil diperbarui.' };
     }
 

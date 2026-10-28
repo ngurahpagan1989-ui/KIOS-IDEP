@@ -1,26 +1,33 @@
-const CACHE_NAME = 'kios-idep-v5.4';
+const CACHE_NAME = 'kios-idep-v5.5';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './style.css',
-  './i18n.js',
-  './app.js',
-  './supabaseClient.js',
+  './i18n.js?v=2.5',
+  './app.js?v=5.2',
+  './supabaseClient.js?v=5.0',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
 ];
 
-// Event Install: Cache semua aset statis utama
+// Event Install: Cache semua aset statis utama dengan bypass HTTP cache browser
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    }).then(() => self.skipWaiting())
+      return Promise.all(
+        STATIC_ASSETS.map((url) =>
+          fetch(new Request(url, { cache: 'reload' }))
+            .then((res) => (res && res.ok ? cache.put(url, res) : null))
+            .catch(() => null)
+        )
+      );
+    })
   );
 });
 
-// Event Activate: Bersihkan cache versi lama dan claim client
+// Event Activate: Bersihkan cache versi lama dan claim semua tab client
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -35,30 +42,17 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Event Fetch: Strategi Network-First untuk aset statis, bypass mutlak untuk Supabase
+// Event Fetch: Strategi Network-First (tanpa terjebak HTTP cache basi) & bypass penuh untuk Supabase
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
-  // Hanya proses request GET
-  if (req.method !== 'GET') {
-    return;
-  }
+  if (req.method !== 'GET') return;
+  if (req.url.includes('supabase.co') || req.url.includes('telegram.org')) return;
+  if (!req.url.startsWith('http')) return;
 
-  // Bypass (jangan pernah cache) request yang menuju Supabase agar data stok & kasir real-time
-  if (req.url.includes('supabase.co')) {
-    return;
-  }
-
-  // Bypass skema non-http/https (seperti ekstensi browser)
-  if (!req.url.startsWith('http')) {
-    return;
-  }
-
-  // Strategi Network-First
   event.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' })
       .then((networkResponse) => {
-        // Jika request sukses, perbarui cache secara dinamis
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -68,12 +62,8 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        // Jika offline atau jaringan gagal, gunakan cache lokal
-        return caches.match(req).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // Fallback navigasi jika halaman offline dibuka
+        return caches.match(req, { ignoreSearch: true }).then((cachedResponse) => {
+          if (cachedResponse) return cachedResponse;
           if (req.mode === 'navigate') {
             return caches.match('./index.html') || caches.match('./');
           }

@@ -1595,7 +1595,26 @@
     'Tambah Peran Hak Akses Baru': 'Add New Role Permission',
     'Tambahkan Peran': 'Add Role',
     'Zona Bahaya / Pembersihan Data Uji Coba': 'Danger Zone / Test Data Cleanup',
-    'Zona Bahaya: Reset Data': 'Danger Zone: Reset Data'
+    'Zona Bahaya: Reset Data': 'Danger Zone: Reset Data',
+    'Biarkan kosong jika tidak ingin mengubah password saat mengedit pengguna.': 'Leave blank if you do not want to change the password when editing user.',
+    'Minimal 6 karakter': 'Minimum 6 characters',
+    'Contoh: koordinator_bali, kasir1': 'e.g. coordinator_bali, cashier1',
+    'Contoh: Budi Santoso': 'e.g. Budi Santoso',
+    'Password wajib diisi untuk pengguna baru.': 'Password is required for new users.',
+    'Password minimal 6 karakter.': 'Password must be at least 6 characters.',
+    'Password baru minimal 6 karakter.': 'New password must be at least 6 characters.',
+    'Username wajib diisi.': 'Username is required.',
+    'Username minimal 3 karakter.': 'Username must be at least 3 characters.',
+    'Nama lengkap wajib diisi.': 'Full name is required.',
+    'Username sudah digunakan oleh pengguna lain.': 'Username is already taken by another user.',
+    'Akun administrator utama tidak dapat dihapus.': 'Main administrator account cannot be deleted.',
+    'Belum ada akun pengguna.': 'No user accounts found.',
+    'Peran baru berhasil ditambahkan.': 'New role added successfully.',
+    'Peran berhasil dihapus.': 'Role deleted successfully.',
+    'Hapus Peran': 'Delete Role',
+    '🗑️ Hapus Peran': '🗑️ Delete Role',
+    'Memuat daftar pengguna...': 'Loading user list...',
+    'Memuat matriks hak akses...': 'Loading permission matrix...'
   };
 
   // Pre-compiled regex patterns for dynamic phrases and mixed content
@@ -1679,6 +1698,15 @@
     { regex: /^Gagal memuat\s+(.*?)\s*:\s*(.*)$/i, replace: 'Failed to load $1: $2' },
     { regex: /^Gagal memuat\s+(.*?)\s*:/i, replace: 'Failed to load $1:' },
     { regex: /^Gagal memuat\s+(.*?)\.?$/i, replace: 'Failed to load $1.' },
+    { regex: /^Gagal menyimpan pengguna\s*:\s*(.*)$/i, replace: 'Failed to save user: $1' },
+    { regex: /^Gagal menghapus pengguna\s*:\s*(.*)$/i, replace: 'Failed to delete user: $1' },
+    { regex: /^Gagal memuat daftar pengguna\s*:\s*(.*)$/i, replace: 'Failed to load user list: $1' },
+    { regex: /^Gagal menyimpan hak akses\s*:\s*(.*)$/i, replace: 'Failed to save permissions: $1' },
+    { regex: /^Gagal menghapus peran\s*:\s*(.*)$/i, replace: 'Failed to delete role: $1' },
+    { regex: /^Apakah Anda yakin ingin menghapus akun pengguna "(.*?)"\?$/i, replace: 'Are you sure you want to delete user account "$1"?' },
+    { regex: /^Hapus peran "(.*?)"\?\s*Pengguna dengan peran ini perlu diatur ulang perannya\.$/i, replace: 'Delete role "$1"? Users with this role will need their role reassigned.' },
+    { regex: /^Peran "(.*?)" sudah ada\.$/i, replace: 'Role "$1" already exists.' },
+    { regex: /^Username "(.*?)" sudah digunakan oleh akun lain\. Silakan pilih username lain\.$/i, replace: 'Username "$1" is already used by another account. Please choose a different username.' },
     { regex: /^Gagal menyimpan\s+(.*?)\s*:\s*(.*)$/i, replace: 'Failed to save $1: $2' },
     { regex: /^Gagal menyimpan\s*:\s*(.*)$/i, replace: 'Failed to save: $1' },
     { regex: /^Gagal menghapus\s+(.*?)\s*:\s*(.*)$/i, replace: 'Failed to delete $1: $2' },
@@ -1908,6 +1936,7 @@
     var node = rootNode;
     var tag = node.tagName ? node.tagName.toLowerCase() : '';
     if (tag === 'script' || tag === 'style') return;
+    if (node.nodeType === 1 && (node.hasAttribute('data-no-i18n') || node.getAttribute('translate') === 'no')) return;
 
     if (node.nodeType === 3) {
       translateTextNode(node);

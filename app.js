@@ -13443,8 +13443,12 @@ function renderRoleMatrixUI() {
     '</table>' +
     '</div>';
 
+  const isBuiltInRole = ['Admin', 'Koordinator', 'QC', 'Kasir'].indexOf(roleName) !== -1;
   const actionButtons =
-    '<div style="margin-top:18px;display:flex;justify-content:flex-end;gap:10px;">' +
+    '<div style="margin-top:18px;display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">' +
+    (!isBuiltInRole
+      ? '<button type="button" class="btn btn-danger" onclick="deleteCustomRole(\'' + escapeHtml(roleName) + '\')" style="background:#FEE2E2;color:#DC2626;border:1px solid #FCA5A5;">🗑️ Hapus Peran</button>'
+      : '') +
     '<button type="button" class="btn btn-primary" onclick="saveRoleMatrixSettings()">💾 Simpan Matriks Hak Akses</button>' +
     '</div>';
 
@@ -13481,7 +13485,7 @@ function saveRoleMatrixSettings() {
   const btn = typeof event !== 'undefined' && event && event.target;
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
 
-  api('saveRolePermissions', TOKEN, CURRENT_ROLES_PERMISSIONS).then(function (res) {
+  api('saveRolePermissions', TOKEN, CURRENT_ROLES_PERMISSIONS).then(function () {
     showToast('Matriks hak akses berhasil disimpan!');
     if (btn) { btn.disabled = false; btn.textContent = '💾 Simpan Matriks Hak Akses'; }
   }).catch(function (err) {
@@ -13491,11 +13495,44 @@ function saveRoleMatrixSettings() {
 }
 window.saveRoleMatrixSettings = saveRoleMatrixSettings;
 
+function deleteCustomRole(roleName) {
+  if (!roleName || ['Admin', 'Koordinator', 'QC', 'Kasir'].indexOf(roleName) !== -1) return;
+  const doDelete = function () {
+    if (CURRENT_ROLES_PERMISSIONS && CURRENT_ROLES_PERMISSIONS[roleName]) {
+      delete CURRENT_ROLES_PERMISSIONS[roleName];
+    }
+    AVAILABLE_ROLES = (AVAILABLE_ROLES || []).filter(function (r) { return r !== roleName; });
+    CURRENT_SELECTED_ROLE_TAB = 'Admin';
+    renderRoleMatrixUI();
+    api('saveRolePermissions', TOKEN, CURRENT_ROLES_PERMISSIONS).then(function () {
+      showToast('Peran berhasil dihapus.');
+    }).catch(function (err) {
+      showToast('Gagal menghapus peran: ' + (err.message || err), true);
+    });
+  };
+  if (typeof showConfirmDialog === 'function') {
+    showConfirmDialog(
+      'Hapus Peran',
+      'Hapus peran "' + roleName + '"? Pengguna dengan peran ini perlu diatur ulang perannya.',
+      doDelete,
+      true
+    );
+    return;
+  }
+  if (confirm('Hapus peran "' + roleName + '"?')) doDelete();
+}
+window.deleteCustomRole = deleteCustomRole;
+
 function openRoleModal() {
   const modal = document.getElementById('modal-role-entry');
   const input = document.getElementById('new-role-name');
   if (input) input.value = '';
-  if (modal) modal.style.display = 'flex';
+  if (modal) {
+    modal.style.display = 'flex';
+    if (window.i18n && typeof window.i18n.translateDOM === 'function') {
+      window.i18n.translateDOM(modal);
+    }
+  }
   document.body.classList.add('modal-open');
 }
 
@@ -13532,7 +13569,8 @@ function submitRoleForm(e) {
 
   closeRoleModal();
   selectRoleTab(newRole);
-  showToast('Peran baru "' + newRole + '" berhasil ditambahkan. Silakan sesuaikan centang modul.');
+  api('saveRolePermissions', TOKEN, CURRENT_ROLES_PERMISSIONS).catch(function () {});
+  showToast('Peran baru berhasil ditambahkan.');
   return false;
 }
 
@@ -13592,13 +13630,13 @@ function renderUsersListUI() {
     '<th style="text-align:left;padding:12px 14px;">NAMA LENGKAP</th>' +
     '<th style="text-align:left;padding:12px 14px;">PERAN / HAK AKSES</th>' +
     '<th style="text-align:left;padding:12px 14px;">DIBUAT PADA</th>' +
-    '<th style="width:120px;text-align:center;padding:12px 14px;">AKSI</th>' +
+    '<th style="width:130px;text-align:center;padding:12px 14px;">AKSI</th>' +
     '</tr>' +
     '</thead>' +
     '<tbody id="users-table-body">';
 
   CURRENT_USERS_LIST.forEach(function (u, idx) {
-    const isMainAdmin = String(u.username).toLowerCase() === 'admin';
+    const isMainAdmin = String(u.username || '').trim().toLowerCase() === 'admin';
     let roleBadge = '<span class="badge badge-info" style="background:#0288D1;color:#fff;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">' + escapeHtml(u.role || 'Kasir') + '</span>';
     if (u.role === 'Admin') roleBadge = '<span class="badge badge-success" style="background:#2E7D32;color:#fff;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">Admin</span>';
     else if (u.role === 'Koordinator') roleBadge = '<span class="badge" style="background:#E0E7FF;color:#3730A3;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">Koordinator (View)</span>';
@@ -13610,13 +13648,13 @@ function renderUsersListUI() {
     tableHtml +=
       '<tr style="border-bottom:1px solid #f0f0f0;">' +
       '<td style="text-align:center;color:#888;font-size:13px;padding:12px 14px;">' + (idx + 1) + '</td>' +
-      '<td style="padding:12px 14px;"><strong style="font-family:\'JetBrains Mono\',monospace;color:#2C1810;">' + escapeHtml(u.username) + '</strong></td>' +
-      '<td style="padding:12px 14px;font-weight:500;">' + escapeHtml(fullName) + '</td>' +
+      '<td style="padding:12px 14px;"><strong data-no-i18n="true" translate="no" style="font-family:\'JetBrains Mono\',monospace;color:#2C1810;">' + escapeHtml(u.username) + '</strong></td>' +
+      '<td data-no-i18n="true" translate="no" style="padding:12px 14px;font-weight:500;">' + escapeHtml(fullName) + '</td>' +
       '<td style="padding:12px 14px;">' + roleBadge + '</td>' +
       '<td style="padding:12px 14px;font-size:12px;color:#6B7280;">' + (u.created_at ? formatDate(u.created_at) : '-') + '</td>' +
       '<td style="text-align:center;padding:12px 14px;">' +
-      '<div style="display:flex;gap:4px;justify-content:center;">' +
-      '<button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'' + escapeHtml(userIdOrName) + '\')" style="padding:4px 8px;font-size:12px;">✏️ Edit</button>' +
+      '<div style="display:flex;gap:6px;justify-content:center;align-items:center;">' +
+      '<button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'' + escapeHtml(userIdOrName) + '\')" style="padding:4px 10px;font-size:12px;">✏️ Edit</button>' +
       (!isMainAdmin
         ? '<button type="button" class="btn btn-xs btn-danger" onclick="deleteUserAccount(\'' + escapeHtml(userIdOrName) + '\', \'' + escapeHtml(u.username) + '\')" style="padding:4px 8px;font-size:12px;color:#d32f2f;">🗑️</button>'
         : '') +
@@ -13645,34 +13683,72 @@ function openUserModal(userId) {
   const passHint = document.getElementById('user-pass-hint');
   if (!modal) return;
 
-  // Isi dropdown role dinamis
+  // Gabungkan semua role yang tersedia (bawaan + kustom dari Matriks Hak Akses)
+  const roleSet = [];
+  const baseRoles = (AVAILABLE_ROLES && AVAILABLE_ROLES.length > 0) ? AVAILABLE_ROLES : ['Admin', 'Koordinator', 'QC', 'Kasir'];
+  baseRoles.forEach(function (r) { if (r && roleSet.indexOf(r) === -1) roleSet.push(r); });
+  if (CURRENT_ROLES_PERMISSIONS && typeof CURRENT_ROLES_PERMISSIONS === 'object') {
+    Object.keys(CURRENT_ROLES_PERMISSIONS).forEach(function (r) {
+      if (r && roleSet.indexOf(r) === -1) roleSet.push(r);
+    });
+  }
+
+  let editingUser = null;
+  if (userId) {
+    editingUser = (CURRENT_USERS_LIST || []).filter(function (u) {
+      return String(u.id) === String(userId) || String(u.username || '').toLowerCase() === String(userId).toLowerCase();
+    })[0] || null;
+    if (editingUser && editingUser.role && roleSet.indexOf(editingUser.role) === -1) {
+      roleSet.push(editingUser.role);
+    }
+  }
+
   if (roleSelect) {
     let rolesOptions = '';
-    const roles = AVAILABLE_ROLES && AVAILABLE_ROLES.length > 0 ? AVAILABLE_ROLES : ['Admin', 'Koordinator', 'QC', 'Kasir'];
-    roles.forEach(function (r) {
+    roleSet.forEach(function (r) {
       rolesOptions += '<option value="' + escapeHtml(r) + '">' + escapeHtml(r) + (r === 'Koordinator' ? ' (View-Only)' : '') + '</option>';
     });
     roleSelect.innerHTML = rolesOptions;
   }
 
-  if (userId) {
-    const user = CURRENT_USERS_LIST.filter(function (u) { return String(u.id) === String(userId) || String(u.username) === String(userId); })[0];
-    if (user) {
-      if (titleEl) titleEl.textContent = 'Edit Akun Pengguna';
-      if (idEl) idEl.value = user.id;
-      if (userEl) { userEl.value = user.username; userEl.readOnly = true; }
-      if (nameEl) nameEl.value = user.full_name || user.name || '';
-      if (roleSelect) roleSelect.value = user.role || 'Kasir';
-      if (passEl) { passEl.value = ''; passEl.required = false; }
-      if (passStar) passStar.style.display = 'none';
-      if (passHint) passHint.style.display = 'block';
+  if (editingUser) {
+    const isMainAdmin = String(editingUser.username || '').trim().toLowerCase() === 'admin';
+    if (titleEl) {
+      titleEl.textContent = 'Edit Akun Pengguna';
+      delete titleEl._origText;
+      if (titleEl.firstChild) delete titleEl.firstChild._origText;
     }
+    if (idEl) idEl.value = editingUser.id || editingUser.username || '';
+    if (userEl) {
+      userEl.value = editingUser.username || '';
+      userEl.readOnly = true;
+      userEl.style.backgroundColor = '#F3F4F6';
+    }
+    if (nameEl) nameEl.value = editingUser.full_name || editingUser.name || '';
+    if (roleSelect) {
+      roleSelect.value = isMainAdmin ? 'Admin' : (editingUser.role || 'Kasir');
+      roleSelect.disabled = isMainAdmin;
+    }
+    if (passEl) { passEl.value = ''; passEl.required = false; }
+    if (passStar) passStar.style.display = 'none';
+    if (passHint) passHint.style.display = 'block';
   } else {
-    if (titleEl) titleEl.textContent = 'Tambah Akun Pengguna';
+    if (titleEl) {
+      titleEl.textContent = 'Tambah Akun Pengguna';
+      delete titleEl._origText;
+      if (titleEl.firstChild) delete titleEl.firstChild._origText;
+    }
     if (idEl) idEl.value = '';
-    if (userEl) { userEl.value = ''; userEl.readOnly = false; }
+    if (userEl) {
+      userEl.value = '';
+      userEl.readOnly = false;
+      userEl.style.backgroundColor = '';
+    }
     if (nameEl) nameEl.value = '';
-    if (roleSelect) roleSelect.value = 'Kasir';
+    if (roleSelect) {
+      roleSelect.value = roleSet.indexOf('Kasir') !== -1 ? 'Kasir' : (roleSet[0] || 'Kasir');
+      roleSelect.disabled = false;
+    }
     if (passEl) { passEl.value = ''; passEl.required = true; }
     if (passStar) passStar.style.display = 'inline';
     if (passHint) passHint.style.display = 'none';
@@ -13680,6 +13756,10 @@ function openUserModal(userId) {
 
   modal.style.display = 'flex';
   document.body.classList.add('modal-open');
+
+  if (window.i18n && typeof window.i18n.translateDOM === 'function') {
+    window.i18n.translateDOM(modal);
+  }
 }
 
 function closeUserModal() {
@@ -13690,19 +13770,42 @@ function closeUserModal() {
 
 function submitUserForm(e) {
   if (e && e.preventDefault) e.preventDefault();
-  const id = (document.getElementById('user-id') || {}).value || '';
-  const username = (document.getElementById('user-username') || {}).value || '';
-  const name = (document.getElementById('user-fullname') || {}).value || '';
-  const role = (document.getElementById('user-role-select') || {}).value || 'Kasir';
+  const id = ((document.getElementById('user-id') || {}).value || '').trim();
+  const username = ((document.getElementById('user-username') || {}).value || '').trim();
+  const name = ((document.getElementById('user-fullname') || {}).value || '').trim();
+  const roleSelectEl = document.getElementById('user-role-select');
+  const role = (String(username).toLowerCase() === 'admin') ? 'Admin' : ((roleSelectEl && roleSelectEl.value) || 'Kasir');
   const password = (document.getElementById('user-password') || {}).value || '';
 
-  if (!username.trim()) {
+  if (!username) {
     showToast('Username wajib diisi.', true);
+    return false;
+  }
+  if (username.length < 3 && String(username).toLowerCase() !== 'qc') {
+    showToast('Username minimal 3 karakter.', true);
+    return false;
+  }
+  if (!name) {
+    showToast('Nama lengkap wajib diisi.', true);
     return false;
   }
   if (!id && !password) {
     showToast('Password wajib diisi untuk pengguna baru.', true);
     return false;
+  }
+  if (password && password.length < 6) {
+    showToast('Password minimal 6 karakter.', true);
+    return false;
+  }
+
+  if (!id && Array.isArray(CURRENT_USERS_LIST)) {
+    const duplicate = CURRENT_USERS_LIST.some(function (u) {
+      return String(u.username || '').trim().toLowerCase() === username.toLowerCase();
+    });
+    if (duplicate) {
+      showToast('Username sudah digunakan oleh pengguna lain.', true);
+      return false;
+    }
   }
 
   const btn = document.getElementById('btn-save-user');
@@ -13710,26 +13813,51 @@ function submitUserForm(e) {
 
   const payload = {
     id: id,
-    username: username.trim(),
-    name: name.trim(),
+    username: username,
+    name: name,
+    full_name: name,
     role: role,
     password: password
   };
 
-  api('saveUser', TOKEN, payload).then(function () {
+  api('saveUser', TOKEN, payload).then(function (res) {
     showToast('Pengguna berhasil disimpan!');
     closeUserModal();
-    if (btn) { btn.disabled = false; btn.textContent = 'Simpan Pengguna'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Simpan Pengguna';
+      if (window.i18n && typeof window.i18n.translateDOM === 'function') window.i18n.translateDOM(btn);
+    }
+    if (res && res.user && Array.isArray(CURRENT_USERS_LIST)) {
+      const savedUser = res.user;
+      const idx = CURRENT_USERS_LIST.findIndex(function (u) {
+        return String(u.id) === String(savedUser.id) || String(u.username || '').toLowerCase() === String(savedUser.username || '').toLowerCase();
+      });
+      if (idx !== -1) {
+        CURRENT_USERS_LIST[idx] = savedUser;
+      } else {
+        CURRENT_USERS_LIST.push(savedUser);
+      }
+      renderUsersListUI();
+    }
     loadUsersManagementUI();
   }).catch(function (err) {
     showToast('Gagal menyimpan pengguna: ' + (err.message || err), true);
-    if (btn) { btn.disabled = false; btn.textContent = 'Simpan Pengguna'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Simpan Pengguna';
+      if (window.i18n && typeof window.i18n.translateDOM === 'function') window.i18n.translateDOM(btn);
+    }
   });
 
   return false;
 }
 
 function executeDeleteUserAccount(userId, username) {
+  if (String(username || userId || '').trim().toLowerCase() === 'admin') {
+    showToast('Akun administrator utama tidak dapat dihapus.', true);
+    return;
+  }
   api('deleteUser', TOKEN, userId, username).then(function () {
     CURRENT_USERS_LIST = (CURRENT_USERS_LIST || []).filter(function (u) {
       return String(u.id) !== String(userId) &&
@@ -13746,6 +13874,10 @@ function executeDeleteUserAccount(userId, username) {
 
 function deleteUserAccount(userId, username) {
   const displayUser = username || userId || '';
+  if (String(displayUser).trim().toLowerCase() === 'admin') {
+    showToast('Akun administrator utama tidak dapat dihapus.', true);
+    return;
+  }
   if (typeof showConfirmDialog === 'function') {
     showConfirmDialog(
       'Hapus Akun Pengguna',
@@ -15803,8 +15935,14 @@ let deferredInstallPrompt = null;
 
 // 1. Registrasi Service Worker saat window load
 if ('serviceWorker' in navigator) {
+  let refreshingSw = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (refreshingSw) return;
+    refreshingSw = true;
+    window.location.reload();
+  });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js')
+    navigator.serviceWorker.register('./sw.js?v=5.5', { updateViaCache: 'none' })
       .then(function (reg) {
         console.log('[PWA] Service Worker Kios IDEP berhasil terdaftar:', reg.scope);
         try { if (reg.update) reg.update(); } catch (e) {}

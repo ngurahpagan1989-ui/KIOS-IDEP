@@ -12999,10 +12999,50 @@ function switchSettingTab(tabName) {
   }
 
   CURRENT_SETTINGS_SUBTAB = tabName;
+
+  if (tabName === 'roles') {
+    loadRolePermissionsUI();
+  } else if (tabName === 'users') {
+    loadUsersManagementUI();
+  }
+
+  if (targetPane && window.i18n && typeof window.i18n.translateDOM === 'function') {
+    window.i18n.translateDOM(targetPane);
+  }
 }
 
 function switchSettingsSubtab(subtab) {
   switchSettingTab(subtab);
+}
+window.switchSettingTab = switchSettingTab;
+window.switchSettingsSubtab = switchSettingsSubtab;
+
+function getDefaultRolesPermissions() {
+  const defaultAll = { can_view: true, can_edit: true, can_delete: true };
+  const viewOnly = { can_view: true, can_edit: false, can_delete: false };
+  const modules = ['dashboard', 'pos', 'produk', 'stok', 'produksi', 'qc', 'pembelian', 'konsinyasi', 'piutang', 'expenses', 'crm', 'purnajual', 'faktur', 'laporan', 'pengaturan'];
+  const perms = {
+    'Admin': {},
+    'Kasir': {},
+    'QC': {},
+    'Koordinator': {}
+  };
+  modules.forEach(function (m) {
+    perms['Admin'][m] = Object.assign({}, defaultAll);
+    perms['Koordinator'][m] = Object.assign({}, viewOnly);
+    perms['QC'][m] = (['dashboard', 'qc', 'stok', 'produksi'].indexOf(m) !== -1) ? Object.assign({}, defaultAll) : Object.assign({}, viewOnly);
+    perms['Kasir'][m] = (['dashboard', 'pos', 'produk', 'faktur', 'crm', 'purnajual'].indexOf(m) !== -1) ? Object.assign({}, defaultAll) : Object.assign({}, viewOnly);
+  });
+  return perms;
+}
+
+function getDefaultUsersFallback() {
+  return [
+    { id: 'admin', username: 'admin', name: 'Administrator Utama', full_name: 'Administrator Utama', role: 'Admin', created_at: '2024-01-01 08:00' },
+    { id: 'kasir', username: 'kasir', name: 'Staf Kasir Toko', full_name: 'Staf Kasir Toko', role: 'Kasir', created_at: '2024-01-15 09:30' },
+    { id: 'qc_staff', username: 'qc_staff', name: 'Operator Quality Control', full_name: 'Operator Quality Control', role: 'QC', created_at: '2024-02-10 11:15' },
+    { id: 'koordinator', username: 'koordinator', name: 'Koordinator Lapangan & Evaluasi', full_name: 'Koordinator Lapangan & Evaluasi', role: 'Koordinator', created_at: '2024-03-01 14:00' }
+  ];
 }
 
 function drawPengaturanUI(settings) {
@@ -13012,6 +13052,7 @@ function drawPengaturanUI(settings) {
   const currentLogo = settings['store_logo'] || '';
   const currentLogoLight = settings['store_logo_light'] || '';
   const isUserAdmin = isAdmin();
+  const activeTab = (CURRENT_SETTINGS_SUBTAB === 'pricing') ? 'batch' : (CURRENT_SETTINGS_SUBTAB || 'profile');
 
   content.innerHTML =
     '<div class="page-header">' +
@@ -13023,14 +13064,14 @@ function drawPengaturanUI(settings) {
 
     '<!-- SUB-NAVIGASI TAB PENGATURAN -->' +
     '<div class="settings-tabs-wrapper nav-tabs" style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap;">' +
-    '<button type="button" id="tab-set-btn-profile" class="settings-tab-btn active" data-tab="profile" onclick="switchSettingTab(\'profile\')">🏪 Profil Toko &amp; Pajak</button>' +
-    '<button type="button" id="tab-set-btn-batch" class="settings-tab-btn" data-tab="batch" onclick="switchSettingTab(\'batch\')">🏷️ Format Batch &amp; Multi-Tier</button>' +
-    '<button type="button" id="tab-set-btn-roles" class="settings-tab-btn" data-tab="roles" onclick="switchSettingTab(\'roles\')">🔐 Hak Akses &amp; Peran</button>' +
-    '<button type="button" id="tab-set-btn-users" class="settings-tab-btn" data-tab="users" onclick="switchSettingTab(\'users\')">👥 Akun Pengguna</button>' +
-    '<button type="button" id="tab-set-btn-telegram" class="settings-tab-btn" data-tab="telegram" onclick="switchSettingTab(\'telegram\')">🤖 Bot Telegram</button>' +
+    '<button type="button" id="tab-set-btn-profile" class="settings-tab-btn' + (activeTab === 'profile' ? ' active' : '') + '" data-tab="profile" onclick="switchSettingTab(\'profile\')">🏪 Profil Toko &amp; Pajak</button>' +
+    '<button type="button" id="tab-set-btn-batch" class="settings-tab-btn' + (activeTab === 'batch' ? ' active' : '') + '" data-tab="batch" onclick="switchSettingTab(\'batch\')">🏷️ Format Batch &amp; Multi-Tier</button>' +
+    '<button type="button" id="tab-set-btn-roles" class="settings-tab-btn' + (activeTab === 'roles' ? ' active' : '') + '" data-tab="roles" onclick="switchSettingTab(\'roles\')">🔐 Hak Akses &amp; Peran</button>' +
+    '<button type="button" id="tab-set-btn-users" class="settings-tab-btn' + (activeTab === 'users' ? ' active' : '') + '" data-tab="users" onclick="switchSettingTab(\'users\')">👥 Akun Pengguna</button>' +
+    '<button type="button" id="tab-set-btn-telegram" class="settings-tab-btn' + (activeTab === 'telegram' ? ' active' : '') + '" data-tab="telegram" onclick="switchSettingTab(\'telegram\')">🤖 Bot Telegram</button>' +
     '</div>' +
 
-    '<div id="pane-profile" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'profile' ? 'block' : 'none') + ';">' +
+    '<div id="pane-profile" class="setting-pane" style="display:' + (activeTab === 'profile' ? 'block' : 'none') + ';">' +
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">' +
     '<div class="card">' +
     '<h3 style="margin-bottom:16px;">Profil Toko &amp; Pajak</h3>' +
@@ -13093,7 +13134,7 @@ function drawPengaturanUI(settings) {
     '</div>' +
     '</div>' +
 
-    '<div id="pane-batch" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'batch' || CURRENT_SETTINGS_SUBTAB === 'pricing' ? 'block' : 'none') + ';">' +
+    '<div id="pane-batch" class="setting-pane" style="display:' + (activeTab === 'batch' ? 'block' : 'none') + ';">' +
     '<div class="card" style="margin-bottom:16px;">' +
     '<h3 style="margin-bottom:6px;">Format Kode Batch FIFO</h3>' +
     '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Template otomatis untuk menghasilkan kode lot/batch benih saat pembelian atau produksi.</p>' +
@@ -13109,131 +13150,15 @@ function drawPengaturanUI(settings) {
     '</div>' +
     '</div>' +
 
-    '<div id="pane-roles" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'roles' ? 'block' : 'none') + ';">' +
-    '<div class="card" style="background: white; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">' +
-    '<div>' +
-    '<h3 style="margin:0 0 4px 0;color:#2C1810;font-size:18px;font-weight:700;">Konfigurasi Hak Akses &amp; Peran</h3>' +
-    '<p class="text-muted" style="margin:0;font-size:13px;color:#6B7280;">Kelola hak otorisasi matriks modul per jabatan pengguna sistem.</p>' +
-    '</div>' +
-    '</div>' +
-    '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">' +
-    '<button type="button" class="btn" style="background:#5C3A21;color:#ffffff;border:1px solid #5C3A21;border-radius:6px;padding:8px 16px;font-weight:600;font-size:13px;cursor:pointer;">Admin</button>' +
-    '<button type="button" class="btn" style="background:#ffffff;color:#5C3A21;border:1px solid #D1C7BD;border-radius:6px;padding:8px 16px;font-weight:500;font-size:13px;cursor:pointer;">Kasir</button>' +
-    '<button type="button" class="btn" style="background:#ffffff;color:#5C3A21;border:1px solid #D1C7BD;border-radius:6px;padding:8px 16px;font-weight:500;font-size:13px;cursor:pointer;">QC</button>' +
-    '<button type="button" class="btn" style="background:#ffffff;color:#5C3A21;border:1px solid #D1C7BD;border-radius:6px;padding:8px 16px;font-weight:500;font-size:13px;cursor:pointer;">Koordinator (View-Only)</button>' +
-    '<button type="button" class="btn" onclick="openRoleModal()" style="background:transparent;color:#5C3A21;border:1px dashed #5C3A21;border-radius:6px;padding:8px 16px;font-weight:600;font-size:13px;cursor:pointer;">+ Tambah Peran Baru</button>' +
-    '</div>' +
-    '<div style="color:#1E40AF;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">' +
-    '💡 <strong>Administrator:</strong> Memiliki akses penuh (Lihat, Input/Ubah, Hapus) pada seluruh modul sistem demi integritas dan kelancaran operasional.' +
-    '</div>' +
-    '<div class="table-responsive" style="overflow-x:auto;">' +
-    '<table class="data-table" style="width:100%;border-collapse:collapse;margin-bottom:0;">' +
-    '<thead style="background-color:#F5F0E6;color:#5C3A21;text-transform:uppercase;font-size:12px;">' +
-    '<tr>' +
-    '<th style="width:50px;text-align:center;padding:12px 14px;">NO</th>' +
-    '<th style="text-align:left;padding:12px 14px;">MODUL SISTEM</th>' +
-    '<th style="width:130px;text-align:center;padding:12px 14px;">[LIHAT]</th>' +
-    '<th style="width:140px;text-align:center;padding:12px 14px;">[INPUT/UBAH]</th>' +
-    '<th style="width:140px;text-align:center;padding:12px 14px;">[HAPUS/BATAL]</th>' +
-    '</tr>' +
-    '</thead>' +
-    '<tbody>' +
-    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">1</td><td style="padding:10px 14px;"><strong>Dashboard Ringkasan</strong> <code style="font-size:11px;color:#888;">(dashboard)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
-    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">2</td><td style="padding:10px 14px;"><strong>Kasir (POS)</strong> <code style="font-size:11px;color:#888;">(pos)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
-    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">3</td><td style="padding:10px 14px;"><strong>Katalog Produk</strong> <code style="font-size:11px;color:#888;">(produk)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
-    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">4</td><td style="padding:10px 14px;"><strong>Stok &amp; Batch FIFO</strong> <code style="font-size:11px;color:#888;">(stok)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
-    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">5</td><td style="padding:10px 14px;"><strong>Kemas Mandiri (Produksi)</strong> <code style="font-size:11px;color:#888;">(produksi)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
-    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">6</td><td style="padding:10px 14px;"><strong>Quality Control (QC)</strong> <code style="font-size:11px;color:#888;">(qc)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
-    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">7</td><td style="padding:10px 14px;"><strong>Pembelian Stok</strong> <code style="font-size:11px;color:#888;">(pembelian)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
-    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">8</td><td style="padding:10px 14px;"><strong>Riwayat Transaksi &amp; Faktur</strong> <code style="font-size:11px;color:#888;">(faktur)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
-    '<tr style="border-bottom:1px solid #f0f0f0;"><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">9</td><td style="padding:10px 14px;"><strong>Laporan &amp; Valuasi Stok</strong> <code style="font-size:11px;color:#888;">(laporan)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
-    '<tr><td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">10</td><td style="padding:10px 14px;"><strong>Pengaturan Sistem</strong> <code style="font-size:11px;color:#888;">(pengaturan)</code></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td><td style="text-align:center;padding:10px 14px;"><input type="checkbox" checked style="width:16px;height:16px;accent-color:#5C3A21;cursor:pointer;"></td></tr>' +
-    '</tbody>' +
-    '</table>' +
-    '</div>' +
-    '<div style="margin-top:18px;display:flex;justify-content:flex-end;">' +
-    '<button type="button" class="btn btn-primary" onclick="saveRoleMatrixSettings()">💾 Simpan Matriks Hak Akses</button>' +
-    '</div>' +
-    '</div>' +
+    '<div id="pane-roles" class="setting-pane" style="display:' + (activeTab === 'roles' ? 'block' : 'none') + ';">' +
+    '<div class="card" id="role-matrix-container" style="background: white; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);"></div>' +
     '</div>' +
 
-    '<div id="pane-users" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'users' ? 'block' : 'none') + ';">' +
-    '<div class="card" style="background: white; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">' +
-    '<div>' +
-    '<h3 style="margin:0 0 4px 0;color:#2C1810;font-size:18px;font-weight:700;">Daftar Akun Pengguna</h3>' +
-    '<p class="text-muted" style="margin:0;font-size:13px;color:#6B7280;">Kelola akun staf kasir, operator QC, koordinator, dan administrator.</p>' +
-    '</div>' +
-    '<button type="button" class="btn btn-primary" onclick="openUserModal()">+ Tambah Pengguna Baru</button>' +
-    '</div>' +
-    '<div class="table-responsive" style="overflow-x:auto;">' +
-    '<table class="data-table" style="width:100%;border-collapse:collapse;margin-bottom:0;">' +
-    '<thead style="background-color:#F5F0E6;color:#5C3A21;text-transform:uppercase;font-size:12px;">' +
-    '<tr>' +
-    '<th style="width:50px;text-align:center;padding:12px 14px;">NO</th>' +
-    '<th style="text-align:left;padding:12px 14px;">USERNAME</th>' +
-    '<th style="text-align:left;padding:12px 14px;">NAMA LENGKAP</th>' +
-    '<th style="text-align:left;padding:12px 14px;">PERAN / HAK AKSES</th>' +
-    '<th style="text-align:left;padding:12px 14px;">DIBUAT PADA</th>' +
-    '<th style="width:120px;text-align:center;padding:12px 14px;">AKSI</th>' +
-    '</tr>' +
-    '</thead>' +
-    '<tbody id="users-table-body">' +
-    '<tr style="border-bottom:1px solid #f0f0f0;">' +
-    '<td style="text-align:center;color:#888;font-size:13px;padding:12px 14px;">1</td>' +
-    '<td style="padding:12px 14px;"><strong style="font-family:\'JetBrains Mono\',monospace;color:#2C1810;">admin</strong></td>' +
-    '<td style="padding:12px 14px;font-weight:500;">Administrator Utama</td>' +
-    '<td style="padding:12px 14px;"><span class="badge badge-success" style="background:#2E7D32;color:#fff;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">Admin</span></td>' +
-    '<td style="padding:12px 14px;font-size:12px;color:#6B7280;">2024-01-01 08:00</td>' +
-    '<td style="text-align:center;padding:12px 14px;"><button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'admin\')" style="padding:4px 10px;font-size:12px;">✏️ Edit</button></td>' +
-    '</tr>' +
-    '<tr style="border-bottom:1px solid #f0f0f0;">' +
-    '<td style="text-align:center;color:#888;font-size:13px;padding:12px 14px;">2</td>' +
-    '<td style="padding:12px 14px;"><strong style="font-family:\'JetBrains Mono\',monospace;color:#2C1810;">kasir</strong></td>' +
-    '<td style="padding:12px 14px;font-weight:500;">Staf Kasir Toko</td>' +
-    '<td style="padding:12px 14px;"><span class="badge badge-info" style="background:#0288D1;color:#fff;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">Kasir</span></td>' +
-    '<td style="padding:12px 14px;font-size:12px;color:#6B7280;">2024-01-15 09:30</td>' +
-    '<td style="text-align:center;padding:12px 14px;">' +
-    '<div style="display:flex;gap:4px;justify-content:center;">' +
-    '<button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'kasir\')" style="padding:4px 8px;font-size:12px;">✏️ Edit</button>' +
-    '<button type="button" class="btn btn-xs btn-danger" onclick="deleteUserAccount(\'kasir\', \'kasir\')" style="padding:4px 8px;font-size:12px;color:#d32f2f;">🗑️</button>' +
-    '</div>' +
-    '</td>' +
-    '</tr>' +
-    '<tr style="border-bottom:1px solid #f0f0f0;">' +
-    '<td style="text-align:center;color:#888;font-size:13px;padding:12px 14px;">3</td>' +
-    '<td style="padding:12px 14px;"><strong style="font-family:\'JetBrains Mono\',monospace;color:#2C1810;">qc_staff</strong></td>' +
-    '<td style="padding:12px 14px;font-weight:500;">Operator Quality Control</td>' +
-    '<td style="padding:12px 14px;"><span class="badge" style="background:#FEF3C7;color:#92400E;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">QC</span></td>' +
-    '<td style="padding:12px 14px;font-size:12px;color:#6B7280;">2024-02-10 11:15</td>' +
-    '<td style="text-align:center;padding:12px 14px;">' +
-    '<div style="display:flex;gap:4px;justify-content:center;">' +
-    '<button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'qc_staff\')" style="padding:4px 8px;font-size:12px;">✏️ Edit</button>' +
-    '<button type="button" class="btn btn-xs btn-danger" onclick="deleteUserAccount(\'qc_staff\', \'qc_staff\')" style="padding:4px 8px;font-size:12px;color:#d32f2f;">🗑️</button>' +
-    '</div>' +
-    '</td>' +
-    '</tr>' +
-    '<tr>' +
-    '<td style="text-align:center;color:#888;font-size:13px;padding:12px 14px;">4</td>' +
-    '<td style="padding:12px 14px;"><strong style="font-family:\'JetBrains Mono\',monospace;color:#2C1810;">koordinator</strong></td>' +
-    '<td style="padding:12px 14px;font-weight:500;">Koordinator Lapangan &amp; Evaluasi</td>' +
-    '<td style="padding:12px 14px;"><span class="badge" style="background:#E0E7FF;color:#3730A3;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">Koordinator (View)</span></td>' +
-    '<td style="padding:12px 14px;font-size:12px;color:#6B7280;">2024-03-01 14:00</td>' +
-    '<td style="text-align:center;padding:12px 14px;">' +
-    '<div style="display:flex;gap:4px;justify-content:center;">' +
-    '<button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'koordinator\')" style="padding:4px 8px;font-size:12px;">✏️ Edit</button>' +
-    '<button type="button" class="btn btn-xs btn-danger" onclick="deleteUserAccount(\'koordinator\', \'koordinator\')" style="padding:4px 8px;font-size:12px;color:#d32f2f;">🗑️</button>' +
-    '</div>' +
-    '</td>' +
-    '</tr>' +
-    '</tbody>' +
-    '</table>' +
-    '</div>' +
-    '</div>' +
+    '<div id="pane-users" class="setting-pane" style="display:' + (activeTab === 'users' ? 'block' : 'none') + ';">' +
+    '<div class="card" id="users-management-container" style="background: white; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);"></div>' +
     '</div>' +
 
-    '<div id="pane-telegram" class="setting-pane" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'telegram' ? 'block' : 'none') + ';">' +
+    '<div id="pane-telegram" class="setting-pane" style="display:' + (activeTab === 'telegram' ? 'block' : 'none') + ';">' +
     '<div class="card" style="background: white; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">' +
     '<div>' +
@@ -13279,7 +13204,7 @@ function drawPengaturanUI(settings) {
     '</div>' +
 
     (isUserAdmin
-      ? '<div id="panel-set-danger" style="display:' + (CURRENT_SETTINGS_SUBTAB === 'danger' ? 'block' : 'none') + ';">' +
+      ? '<div id="panel-set-danger" style="display:' + (activeTab === 'danger' ? 'block' : 'none') + ';">' +
       '<div class="card card-danger-zone">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">' +
       '<div>' +
@@ -13318,10 +13243,15 @@ function drawPengaturanUI(settings) {
     });
   }
 
-  if (CURRENT_SETTINGS_SUBTAB === 'roles' && isUserAdmin) {
-    loadRolePermissionsUI();
-  } else if (CURRENT_SETTINGS_SUBTAB === 'users' && isUserAdmin) {
-    loadUsersManagementUI();
+  if (!CURRENT_ROLES_PERMISSIONS) {
+    CURRENT_ROLES_PERMISSIONS = getDefaultRolesPermissions();
+  }
+  renderRoleMatrixUI();
+  loadRolePermissionsUI();
+  loadUsersManagementUI();
+
+  if (window.i18n && typeof window.i18n.translateDOM === 'function') {
+    window.i18n.translateDOM(content);
   }
 }
 
@@ -13356,33 +13286,44 @@ function addPriceTierPresetRow(name, price, isDefault) {
 function loadRolePermissionsUI() {
   const container = document.getElementById('role-matrix-container');
   if (!container) return;
-  if (!isAdmin()) {
-    container.innerHTML = '<div class="alert-banner alert-warning">Hanya Admin yang dapat mengelola hak akses peran.</div>';
-    return;
+  if (!CURRENT_ROLES_PERMISSIONS) {
+    CURRENT_ROLES_PERMISSIONS = getDefaultRolesPermissions();
   }
+  renderRoleMatrixUI();
 
-  container.innerHTML = '<div class="empty-state">⏳ Memuat matriks hak akses...</div>';
+  if (!isAdmin()) return;
+
   api('getRolePermissions', TOKEN).then(function (res) {
-    if (res && res.permissions) {
+    if (res && res.permissions && typeof res.permissions === 'object') {
       CURRENT_ROLES_PERMISSIONS = res.permissions;
       if (res.roles) AVAILABLE_ROLES = res.roles;
       renderRoleMatrixUI();
-    } else if (res && typeof res === 'object') {
+    } else if (res && typeof res === 'object' && !res.error) {
       CURRENT_ROLES_PERMISSIONS = res;
-      renderRoleMatrixUI();
-    } else {
       renderRoleMatrixUI();
     }
   }).catch(function (err) {
-    container.innerHTML = '<div class="alert-banner alert-danger">Gagal memuat hak akses: ' + escapeHtml(err.message || err) + '</div>';
+    console.warn('Gagal memuat hak akses dari server, menggunakan matriks lokal:', err);
   });
 }
 
 function renderRoleMatrixUI() {
   const container = document.getElementById('role-matrix-container');
-  if (!container || !CURRENT_ROLES_PERMISSIONS) return;
+  if (!container) return;
+  if (!CURRENT_ROLES_PERMISSIONS) {
+    CURRENT_ROLES_PERMISSIONS = getDefaultRolesPermissions();
+  }
 
-  const roles = Object.keys(CURRENT_ROLES_PERMISSIONS);
+  const preferredOrder = ['Admin', 'Kasir', 'QC', 'Koordinator'];
+  const existingKeys = Object.keys(CURRENT_ROLES_PERMISSIONS);
+  const roles = [];
+  preferredOrder.forEach(function (k) {
+    if (existingKeys.indexOf(k) !== -1) roles.push(k);
+  });
+  existingKeys.forEach(function (k) {
+    if (roles.indexOf(k) === -1) roles.push(k);
+  });
+
   if (!CURRENT_ROLES_PERMISSIONS[CURRENT_SELECTED_ROLE_TAB]) {
     CURRENT_SELECTED_ROLE_TAB = roles[0] || 'Admin';
   }
@@ -13400,6 +13341,7 @@ function renderRoleMatrixUI() {
     'pembelian': 'Pembelian Stok',
     'konsinyasi': 'Konsinyasi Mitra',
     'piutang': 'Piutang & Tempo',
+    'expenses': 'Biaya & Pengeluaran',
     'crm': 'Pelanggan (CRM)',
     'purnajual': 'Purna Jual & Kepuasan',
     'faktur': 'Riwayat Transaksi & Faktur',
@@ -13407,35 +13349,51 @@ function renderRoleMatrixUI() {
     'pengaturan': 'Pengaturan Sistem'
   };
 
-  let roleTabsHtml = '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">';
+  const headerHtml =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">' +
+    '<div>' +
+    '<h3 style="margin:0 0 4px 0;color:#2C1810;font-size:18px;font-weight:700;">Konfigurasi Hak Akses &amp; Peran</h3>' +
+    '<p class="text-muted" style="margin:0;font-size:13px;color:#6B7280;">Kelola hak otorisasi matriks modul per jabatan pengguna sistem.</p>' +
+    '</div>' +
+    '</div>';
+
+  let roleTabsHtml = '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">';
   roles.forEach(function (r) {
     const isActive = r === roleName;
-    roleTabsHtml += '<button type="button" class="role-tab-btn' + (isActive ? ' active' : '') + '" onclick="selectRoleTab(\'' + escapeHtml(r) + '\')">' +
-      escapeHtml(r) + (r === 'Koordinator' ? ' (View-Only)' : '') +
+    const btnStyle = isActive
+      ? 'background:#5C3A21;color:#ffffff;border:1px solid #5C3A21;border-radius:6px;padding:8px 16px;font-weight:600;font-size:13px;cursor:pointer;'
+      : 'background:#ffffff;color:#5C3A21;border:1px solid #D1C7BD;border-radius:6px;padding:8px 16px;font-weight:500;font-size:13px;cursor:pointer;';
+    const labelText = (r === 'Koordinator') ? 'Koordinator (View-Only)' : r;
+    roleTabsHtml += '<button type="button" class="btn" style="' + btnStyle + '" onclick="selectRoleTab(\'' + escapeHtml(r) + '\')">' +
+      escapeHtml(labelText) +
       '</button>';
   });
-  roleTabsHtml += '<button type="button" class="btn btn-secondary btn-sm" onclick="openRoleModal()" style="display:inline-flex;align-items:center;gap:4px;">+ Tambah Peran Baru</button>';
+  roleTabsHtml += '<button type="button" class="btn" onclick="openRoleModal()" style="background:transparent;color:#5C3A21;border:1px dashed #5C3A21;border-radius:6px;padding:8px 16px;font-weight:600;font-size:13px;cursor:pointer;">+ Tambah Peran Baru</button>';
   roleTabsHtml += '</div>';
 
   let roleDesc = '';
   if (roleName === 'Admin') {
-    roleDesc = '<div class="alert-banner alert-success" style="margin-bottom:14px;"><strong>🛡️ Administrator:</strong> Memiliki akses penuh (Lihat, Input/Ubah, Hapus) pada seluruh modul. Matriks terkunci demi integritas sistem.</div>';
+    roleDesc = '<div style="color:#1E40AF;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">💡 <strong>Administrator:</strong> <span>Memiliki akses penuh (Lihat, Input/Ubah, Hapus) pada seluruh modul sistem demi integritas dan kelancaran operasional.</span></div>';
   } else if (roleName === 'Koordinator') {
-    roleDesc = '<div class="alert-banner alert-info" style="margin-bottom:14px;"><strong>👁️ Koordinator Program:</strong> Memiliki hak akses baca/pantau (View-Only) ke seluruh modul, tanpa izin memodifikasi atau menghapus data.</div>';
+    roleDesc = '<div style="color:#1E40AF;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">👁️ <strong>Koordinator Program:</strong> <span>Memiliki hak akses baca/pantau (View-Only) ke seluruh modul, tanpa izin memodifikasi atau menghapus data.</span></div>';
+  } else if (roleName === 'Kasir') {
+    roleDesc = '<div style="color:#1E40AF;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">🛒 <strong>Staf Kasir:</strong> <span>Atur centang izin akses operasional kasir, katalog produk, pelanggan, dan faktur transaksi.</span></div>';
+  } else if (roleName === 'QC') {
+    roleDesc = '<div style="color:#1E40AF;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">🔬 <strong>Quality Control (QC):</strong> <span>Atur centang izin akses pengujian mutu benih, stok batch FIFO, dan kemas mandiri.</span></div>';
   } else {
-    roleDesc = '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Atur centang izin akses per modul untuk peran <strong>' + escapeHtml(roleName) + '</strong>.</p>';
+    roleDesc = '<div style="color:#1E40AF;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">🔐 <span>Atur centang izin akses per modul untuk peran</span> <strong>' + escapeHtml(roleName) + '</strong>.</div>';
   }
 
   let tableHtml =
-    '<div class="table-container" style="overflow-x:auto;">' +
-    '<table class="role-matrix-table" style="width:100%;margin-bottom:0;">' +
-    '<thead>' +
+    '<div class="table-responsive" style="overflow-x:auto;">' +
+    '<table class="data-table" style="width:100%;border-collapse:collapse;margin-bottom:0;">' +
+    '<thead style="background-color:#F5F0E6;color:#5C3A21;text-transform:uppercase;font-size:12px;">' +
     '<tr>' +
-    '<th style="width:40px;text-align:center;">No</th>' +
-    '<th>Modul Sistem</th>' +
-    '<th style="width:140px;text-align:center;">👁️ [Lihat]</th>' +
-    '<th style="width:140px;text-align:center;">✏️ [Input/Ubah]</th>' +
-    '<th style="width:140px;text-align:center;">🗑️ [Hapus/Batal]</th>' +
+    '<th style="width:50px;text-align:center;padding:12px 14px;">NO</th>' +
+    '<th style="text-align:left;padding:12px 14px;">MODUL SISTEM</th>' +
+    '<th style="width:130px;text-align:center;padding:12px 14px;">[LIHAT]</th>' +
+    '<th style="width:140px;text-align:center;padding:12px 14px;">[INPUT/UBAH]</th>' +
+    '<th style="width:140px;text-align:center;padding:12px 14px;">[HAPUS/BATAL]</th>' +
     '</tr>' +
     '</thead>' +
     '<tbody id="roles-matrix-body">';
@@ -13453,28 +13411,26 @@ function renderRoleMatrixUI() {
     const viewDisabled = isAdminRole || isKoordinator;
     const editDisabled = isAdminRole || isKoordinator;
     const delDisabled = isAdminRole || isKoordinator;
+    const chkStyle = 'width:16px;height:16px;accent-color:#5C3A21;' + (viewDisabled ? 'cursor:not-allowed;opacity:0.85;' : 'cursor:pointer;');
 
     tableHtml +=
-      '<tr>' +
-      '<td style="text-align:center;color:var(--text-muted);font-size:12px;">' + (idx + 1) + '</td>' +
-      '<td>' +
-      '<div style="font-weight:600;color:var(--text-main);">' + escapeHtml(moduleNames[mKey]) + '</div>' +
-      '<code style="font-size:10.5px;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;">' + escapeHtml(mKey) + '</code>' +
-      '</td>' +
-      '<td style="text-align:center;">' +
-      '<input type="checkbox" class="role-checkbox-custom ' + (isAdminRole ? 'role-checkbox-admin' : '') + '" ' +
+      '<tr style="border-bottom:1px solid #f0f0f0;">' +
+      '<td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">' + (idx + 1) + '</td>' +
+      '<td style="padding:10px 14px;"><strong>' + escapeHtml(moduleNames[mKey]) + '</strong> <code style="font-size:11px;color:#888;">(' + escapeHtml(mKey) + ')</code></td>' +
+      '<td style="text-align:center;padding:10px 14px;">' +
+      '<input type="checkbox" style="' + chkStyle + '" ' +
       (viewChecked ? 'checked ' : '') +
       (viewDisabled ? 'disabled ' : '') +
       'onchange="updateRoleMatrixPerm(\'' + escapeHtml(roleName) + '\', \'' + escapeHtml(mKey) + '\', \'can_view\', this.checked)">' +
       '</td>' +
-      '<td style="text-align:center;">' +
-      '<input type="checkbox" class="role-checkbox-custom ' + (isAdminRole ? 'role-checkbox-admin' : '') + '" ' +
+      '<td style="text-align:center;padding:10px 14px;">' +
+      '<input type="checkbox" style="' + chkStyle + '" ' +
       (editChecked ? 'checked ' : '') +
       (editDisabled ? 'disabled ' : '') +
       'onchange="updateRoleMatrixPerm(\'' + escapeHtml(roleName) + '\', \'' + escapeHtml(mKey) + '\', \'can_edit\', this.checked)">' +
       '</td>' +
-      '<td style="text-align:center;">' +
-      '<input type="checkbox" class="role-checkbox-custom ' + (isAdminRole ? 'role-checkbox-admin' : '') + '" ' +
+      '<td style="text-align:center;padding:10px 14px;">' +
+      '<input type="checkbox" style="' + chkStyle + '" ' +
       (delChecked ? 'checked ' : '') +
       (delDisabled ? 'disabled ' : '') +
       'onchange="updateRoleMatrixPerm(\'' + escapeHtml(roleName) + '\', \'' + escapeHtml(mKey) + '\', \'can_delete\', this.checked)">' +
@@ -13488,19 +13444,22 @@ function renderRoleMatrixUI() {
     '</div>';
 
   const actionButtons =
-    '<div style="margin-top:16px;display:flex;justify-content:flex-end;gap:10px;">' +
-    '<button type="button" class="btn btn-primary" onclick="saveRoleMatrixSettings()" ' + (roleName === 'Admin' ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '') + '>' +
-    '💾 Simpan Matriks Hak Akses' +
-    '</button>' +
+    '<div style="margin-top:18px;display:flex;justify-content:flex-end;gap:10px;">' +
+    '<button type="button" class="btn btn-primary" onclick="saveRoleMatrixSettings()">💾 Simpan Matriks Hak Akses</button>' +
     '</div>';
 
-  container.innerHTML = roleTabsHtml + roleDesc + tableHtml + actionButtons;
+  container.innerHTML = headerHtml + roleTabsHtml + roleDesc + tableHtml + actionButtons;
+
+  if (window.i18n && typeof window.i18n.translateDOM === 'function') {
+    window.i18n.translateDOM(container);
+  }
 }
 
 function selectRoleTab(roleName) {
   CURRENT_SELECTED_ROLE_TAB = roleName;
   renderRoleMatrixUI();
 }
+window.selectRoleTab = selectRoleTab;
 
 function updateRoleMatrixPerm(roleName, moduleKey, action, checked) {
   if (!CURRENT_ROLES_PERMISSIONS || !CURRENT_ROLES_PERMISSIONS[roleName]) return;
@@ -13515,10 +13474,11 @@ function updateRoleMatrixPerm(roleName, moduleKey, action, checked) {
     renderRoleMatrixUI();
   }
 }
+window.updateRoleMatrixPerm = updateRoleMatrixPerm;
 
 function saveRoleMatrixSettings() {
   if (!CURRENT_ROLES_PERMISSIONS) return;
-  const btn = event && event.target;
+  const btn = typeof event !== 'undefined' && event && event.target;
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
 
   api('saveRolePermissions', TOKEN, CURRENT_ROLES_PERMISSIONS).then(function (res) {
@@ -13529,6 +13489,7 @@ function saveRoleMatrixSettings() {
     if (btn) { btn.disabled = false; btn.textContent = '💾 Simpan Matriks Hak Akses'; }
   });
 }
+window.saveRoleMatrixSettings = saveRoleMatrixSettings;
 
 function openRoleModal() {
   const modal = document.getElementById('modal-role-entry');
@@ -13559,9 +13520,9 @@ function submitRoleForm(e) {
     return false;
   }
 
-  if (!CURRENT_ROLES_PERMISSIONS) CURRENT_ROLES_PERMISSIONS = {};
+  if (!CURRENT_ROLES_PERMISSIONS) CURRENT_ROLES_PERMISSIONS = getDefaultRolesPermissions();
   const defaultPerms = {};
-  const allRoutes = ['dashboard', 'pos', 'produk', 'stok', 'produksi', 'qc', 'pembelian', 'konsinyasi', 'piutang', 'crm', 'purnajual', 'faktur', 'laporan', 'pengaturan'];
+  const allRoutes = ['dashboard', 'pos', 'produk', 'stok', 'produksi', 'qc', 'pembelian', 'konsinyasi', 'piutang', 'expenses', 'crm', 'purnajual', 'faktur', 'laporan', 'pengaturan'];
   allRoutes.forEach(function (m) {
     defaultPerms[m] = { can_view: true, can_edit: false, can_delete: false };
   });
@@ -13579,17 +13540,24 @@ function submitRoleForm(e) {
 function loadUsersManagementUI() {
   const container = document.getElementById('users-management-container');
   if (!container) return;
-  if (!isAdmin()) {
-    container.innerHTML = '<div class="alert-banner alert-warning">Hanya Admin yang dapat mengelola pengguna.</div>';
-    return;
+  if (CURRENT_USERS_LIST && CURRENT_USERS_LIST.length > 0) {
+    renderUsersListUI();
+  } else {
+    container.innerHTML = '<div class="empty-state">⏳ Memuat daftar pengguna...</div>';
+    if (window.i18n && typeof window.i18n.translateDOM === 'function') {
+      window.i18n.translateDOM(container);
+    }
   }
 
-  container.innerHTML = '<div class="empty-state">⏳ Memuat daftar pengguna...</div>';
   api('getUsers', TOKEN).then(function (users) {
     CURRENT_USERS_LIST = Array.isArray(users) ? users : [];
     renderUsersListUI();
   }).catch(function (err) {
-    container.innerHTML = '<div class="alert-banner alert-danger">Gagal memuat pengguna: ' + escapeHtml(err.message || err) + '</div>';
+    console.warn('Gagal memuat daftar pengguna dari server:', err);
+    if (!CURRENT_USERS_LIST || CURRENT_USERS_LIST.length === 0) {
+      CURRENT_USERS_LIST = getDefaultUsersFallback();
+    }
+    renderUsersListUI();
   });
 }
 
@@ -13598,53 +13566,59 @@ function renderUsersListUI() {
   if (!container) return;
 
   const headerHtml =
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">' +
     '<div>' +
-    '<h3 style="margin-bottom:4px;">Daftar Akun Pengguna</h3>' +
-    '<p style="font-size:12px;color:var(--text-secondary);margin:0;">Kelola akun staf kasir, operator QC, koordinator, dan administrator.</p>' +
+    '<h3 style="margin:0 0 4px 0;color:#2C1810;font-size:18px;font-weight:700;">Daftar Akun Pengguna</h3>' +
+    '<p class="text-muted" style="margin:0;font-size:13px;color:#6B7280;">Kelola akun staf kasir, operator QC, koordinator, dan administrator.</p>' +
     '</div>' +
-    '<button type="button" class="btn btn-primary btn-sm" onclick="openUserModal()">+ Tambah Pengguna Baru</button>' +
+    '<button type="button" class="btn btn-primary" onclick="openUserModal()">+ Tambah Pengguna Baru</button>' +
     '</div>';
 
   if (!CURRENT_USERS_LIST || CURRENT_USERS_LIST.length === 0) {
     container.innerHTML = headerHtml + '<div class="empty-state">Belum ada akun pengguna.</div>';
+    if (window.i18n && typeof window.i18n.translateDOM === 'function') {
+      window.i18n.translateDOM(container);
+    }
     return;
   }
 
   let tableHtml =
-    '<div class="table-container" style="overflow-x:auto;">' +
-    '<table style="width:100%;margin-bottom:0;">' +
-    '<thead>' +
+    '<div class="table-responsive" style="overflow-x:auto;">' +
+    '<table class="data-table" style="width:100%;border-collapse:collapse;margin-bottom:0;">' +
+    '<thead style="background-color:#F5F0E6;color:#5C3A21;text-transform:uppercase;font-size:12px;">' +
     '<tr>' +
-    '<th style="width:40px;text-align:center;">No</th>' +
-    '<th>Username</th>' +
-    '<th>Nama Lengkap</th>' +
-    '<th>Peran / Hak Akses</th>' +
-    '<th>Dibuat Pada</th>' +
-    '<th style="width:120px;text-align:center;">Aksi</th>' +
+    '<th style="width:50px;text-align:center;padding:12px 14px;">NO</th>' +
+    '<th style="text-align:left;padding:12px 14px;">USERNAME</th>' +
+    '<th style="text-align:left;padding:12px 14px;">NAMA LENGKAP</th>' +
+    '<th style="text-align:left;padding:12px 14px;">PERAN / HAK AKSES</th>' +
+    '<th style="text-align:left;padding:12px 14px;">DIBUAT PADA</th>' +
+    '<th style="width:120px;text-align:center;padding:12px 14px;">AKSI</th>' +
     '</tr>' +
     '</thead>' +
     '<tbody id="users-table-body">';
 
   CURRENT_USERS_LIST.forEach(function (u, idx) {
     const isMainAdmin = String(u.username).toLowerCase() === 'admin';
-    let roleBadge = '<span class="badge badge-info">' + escapeHtml(u.role || 'Kasir') + '</span>';
-    if (u.role === 'Admin') roleBadge = '<span class="badge badge-success">Admin</span>';
-    else if (u.role === 'Koordinator') roleBadge = '<span class="badge" style="background:#E0E7FF;color:#3730A3;">Koordinator (View)</span>';
-    else if (u.role === 'QC') roleBadge = '<span class="badge" style="background:#FEF3C7;color:#92400E;">QC</span>';
+    let roleBadge = '<span class="badge badge-info" style="background:#0288D1;color:#fff;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">' + escapeHtml(u.role || 'Kasir') + '</span>';
+    if (u.role === 'Admin') roleBadge = '<span class="badge badge-success" style="background:#2E7D32;color:#fff;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">Admin</span>';
+    else if (u.role === 'Koordinator') roleBadge = '<span class="badge" style="background:#E0E7FF;color:#3730A3;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">Koordinator (View)</span>';
+    else if (u.role === 'QC') roleBadge = '<span class="badge" style="background:#FEF3C7;color:#92400E;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">QC</span>';
+
+    const fullName = u.full_name || u.name || '-';
+    const userIdOrName = u.id || u.username;
 
     tableHtml +=
-      '<tr>' +
-      '<td style="text-align:center;color:var(--text-muted);font-size:12px;">' + (idx + 1) + '</td>' +
-      '<td><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--text-main);">' + escapeHtml(u.username) + '</strong></td>' +
-      '<td>' + escapeHtml(u.name || '-') + '</td>' +
-      '<td>' + roleBadge + '</td>' +
-      '<td style="font-size:12px;color:var(--text-secondary);">' + (u.created_at ? formatDate(u.created_at) : '-') + '</td>' +
-      '<td style="text-align:center;">' +
-      '<div style="display:flex;gap:6px;justify-content:center;">' +
-      '<button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'' + escapeHtml(u.id) + '\')">✏️ Edit</button>' +
+      '<tr style="border-bottom:1px solid #f0f0f0;">' +
+      '<td style="text-align:center;color:#888;font-size:13px;padding:12px 14px;">' + (idx + 1) + '</td>' +
+      '<td style="padding:12px 14px;"><strong style="font-family:\'JetBrains Mono\',monospace;color:#2C1810;">' + escapeHtml(u.username) + '</strong></td>' +
+      '<td style="padding:12px 14px;font-weight:500;">' + escapeHtml(fullName) + '</td>' +
+      '<td style="padding:12px 14px;">' + roleBadge + '</td>' +
+      '<td style="padding:12px 14px;font-size:12px;color:#6B7280;">' + (u.created_at ? formatDate(u.created_at) : '-') + '</td>' +
+      '<td style="text-align:center;padding:12px 14px;">' +
+      '<div style="display:flex;gap:4px;justify-content:center;">' +
+      '<button type="button" class="btn btn-xs btn-secondary" onclick="openUserModal(\'' + escapeHtml(userIdOrName) + '\')" style="padding:4px 8px;font-size:12px;">✏️ Edit</button>' +
       (!isMainAdmin
-        ? '<button type="button" class="btn btn-xs btn-danger" onclick="deleteUserAccount(\'' + escapeHtml(u.id) + '\', \'' + escapeHtml(u.username) + '\')">🗑️</button>'
+        ? '<button type="button" class="btn btn-xs btn-danger" onclick="deleteUserAccount(\'' + escapeHtml(userIdOrName) + '\', \'' + escapeHtml(u.username) + '\')" style="padding:4px 8px;font-size:12px;color:#d32f2f;">🗑️</button>'
         : '') +
       '</div>' +
       '</td>' +
@@ -13653,6 +13627,10 @@ function renderUsersListUI() {
 
   tableHtml += '</tbody></table></div>';
   container.innerHTML = headerHtml + tableHtml;
+
+  if (window.i18n && typeof window.i18n.translateDOM === 'function') {
+    window.i18n.translateDOM(container);
+  }
 }
 
 function openUserModal(userId) {
@@ -13678,12 +13656,12 @@ function openUserModal(userId) {
   }
 
   if (userId) {
-    const user = CURRENT_USERS_LIST.filter(function (u) { return String(u.id) === String(userId); })[0];
+    const user = CURRENT_USERS_LIST.filter(function (u) { return String(u.id) === String(userId) || String(u.username) === String(userId); })[0];
     if (user) {
       if (titleEl) titleEl.textContent = 'Edit Akun Pengguna';
       if (idEl) idEl.value = user.id;
       if (userEl) { userEl.value = user.username; userEl.readOnly = true; }
-      if (nameEl) nameEl.value = user.name || '';
+      if (nameEl) nameEl.value = user.full_name || user.name || '';
       if (roleSelect) roleSelect.value = user.role || 'Kasir';
       if (passEl) { passEl.value = ''; passEl.required = false; }
       if (passStar) passStar.style.display = 'none';
@@ -13751,10 +13729,14 @@ function submitUserForm(e) {
   return false;
 }
 
-function deleteUserAccount(userId, username) {
-  if (!confirm('Apakah Anda yakin ingin menghapus akun pengguna "' + username + '"?')) return;
-
-  api('deleteUser', TOKEN, userId).then(function () {
+function executeDeleteUserAccount(userId, username) {
+  api('deleteUser', TOKEN, userId, username).then(function () {
+    CURRENT_USERS_LIST = (CURRENT_USERS_LIST || []).filter(function (u) {
+      return String(u.id) !== String(userId) &&
+             String(u.username) !== String(userId) &&
+             String(u.username) !== String(username);
+    });
+    renderUsersListUI();
     showToast('Akun pengguna berhasil dihapus.');
     loadUsersManagementUI();
   }).catch(function (err) {
@@ -13762,13 +13744,32 @@ function deleteUserAccount(userId, username) {
   });
 }
 
+function deleteUserAccount(userId, username) {
+  const displayUser = username || userId || '';
+  if (typeof showConfirmDialog === 'function') {
+    showConfirmDialog(
+      'Hapus Akun Pengguna',
+      'Apakah Anda yakin ingin menghapus akun pengguna "' + displayUser + '"?',
+      function () {
+        executeDeleteUserAccount(userId, displayUser);
+      },
+      true
+    );
+    return;
+  }
+  if (!confirm('Apakah Anda yakin ingin menghapus akun pengguna "' + displayUser + '"?')) return;
+  executeDeleteUserAccount(userId, displayUser);
+}
+
 function deleteUserUI(userId, username) {
   if (!username && CURRENT_USERS_LIST) {
-    const u = CURRENT_USERS_LIST.find(function (x) { return String(x.id) === String(userId); });
+    const u = CURRENT_USERS_LIST.find(function (x) { return String(x.id) === String(userId) || String(x.username) === String(userId); });
     if (u) username = u.username;
   }
   deleteUserAccount(userId, username || 'ini');
 }
+window.deleteUserAccount = deleteUserAccount;
+window.deleteUserUI = deleteUserUI;
 
 
 function unlockBankSettings() {

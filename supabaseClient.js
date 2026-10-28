@@ -122,6 +122,44 @@ async function loginSupabaseUser(identifier, password) {
   });
 
   if (error) {
+    // Fallback: cek langsung ke tabel profiles jika akun dibuat dari menu Akun Pengguna
+    const cleanUser = identifier.trim();
+    const { data: profMatch } = await supabase
+      .from('profiles')
+      .select('*')
+      .ilike('username', cleanUser)
+      .maybeSingle();
+
+    if (profMatch && profMatch.password && String(profMatch.password) === String(password)) {
+      const userProfile = {
+        id: profMatch.id,
+        email: email,
+        username: profMatch.username,
+        name: profMatch.full_name || profMatch.name || profMatch.username,
+        role: profMatch.role || 'Kasir',
+        phone: profMatch.phone || ''
+      };
+      const fakeToken = 'local_' + profMatch.id + '_' + Date.now();
+      window.CURRENT_SESSION = { access_token: fakeToken, user: userProfile };
+      window.CURRENT_USER_PROFILE = userProfile;
+      try {
+        localStorage.setItem('ekasir_token', fakeToken);
+        localStorage.setItem('ekasir_user', userProfile.name);
+        localStorage.setItem('ekasir_role', userProfile.role);
+        sessionStorage.setItem('ekasir_token', fakeToken);
+        sessionStorage.setItem('ekasir_user', userProfile.name);
+        sessionStorage.setItem('ekasir_role', userProfile.role);
+        localStorage.setItem('idep_pos_user', JSON.stringify(userProfile));
+        localStorage.setItem('idep_pos_token', fakeToken);
+      } catch (e) { }
+      return {
+        success: true,
+        token: fakeToken,
+        user: userProfile,
+        role: userProfile.role,
+        name: userProfile.name
+      };
+    }
     throw new Error('Username atau kata sandi tidak valid. (' + error.message + ')');
   }
 
@@ -455,15 +493,34 @@ async function dispatchApiCall(fnName, args) {
 
     case 'saveUser': {
       const [, payload] = args;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(payload.id || ''));
+      let targetId = isUuid ? payload.id : null;
+      if (!targetId && payload.username) {
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', payload.username)
+          .maybeSingle();
+        if (existing && existing.id) targetId = existing.id;
+      }
+      if (!targetId) {
+        targetId = crypto.randomUUID();
+      }
+      const displayName = payload.name || payload.full_name || payload.username;
+      const upsertData = {
+        id: targetId,
+        username: payload.username,
+        full_name: displayName,
+        name: displayName,
+        role: payload.role || 'Kasir',
+        updated_at: new Date().toISOString()
+      };
+      if (payload.password) {
+        upsertData.password = payload.password;
+      }
       const { data, error } = await supabase
         .from('profiles')
-        .upsert({
-          id: payload.id,
-          username: payload.username,
-          full_name: payload.name || payload.full_name,
-          role: payload.role,
-          phone: payload.phone
-        })
+        .upsert(upsertData)
         .select()
         .single();
       if (error) throw error;
@@ -471,9 +528,16 @@ async function dispatchApiCall(fnName, args) {
     }
 
     case 'deleteUser': {
-      const [, userId] = args;
-      const { error } = await supabase.from('profiles').delete().eq('id', userId);
-      if (error) throw error;
+      const [, userId, username] = args;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(userId || ''));
+      if (isUuid) {
+        const { error } = await supabase.from('profiles').delete().eq('id', userId);
+        if (error) throw error;
+      } else {
+        const targetUsername = username || userId;
+        const { error } = await supabase.from('profiles').delete().ilike('username', String(targetUsername));
+        if (error) throw error;
+      }
       return { success: true };
     }
 

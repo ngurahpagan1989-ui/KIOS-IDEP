@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kios-idep-v5.2';
+const CACHE_NAME = 'kios-idep-v5.4';
 const STATIC_ASSETS = [
   './',
   './index.html',

@@ -151,6 +151,9 @@ async function loginSupabaseUser(identifier, password) {
         sessionStorage.setItem('ekasir_role', userProfile.role);
         localStorage.setItem('idep_pos_user', JSON.stringify(userProfile));
         localStorage.setItem('idep_pos_token', fakeToken);
+        localStorage.setItem('ekasir_last_activity', String(Date.now()));
+        localStorage.removeItem('ekasir_idle_logout_notice');
+        window.__IDLE_EXPIRED_ON_LOAD = false;
       } catch (e) { }
       return {
         success: true,
@@ -192,6 +195,9 @@ async function loginSupabaseUser(identifier, password) {
     sessionStorage.setItem('ekasir_role', userRole);
     localStorage.setItem('idep_pos_user', JSON.stringify(userProfile));
     localStorage.setItem('idep_pos_token', data.session.access_token);
+    localStorage.setItem('ekasir_last_activity', String(Date.now()));
+    localStorage.removeItem('ekasir_idle_logout_notice');
+    window.__IDLE_EXPIRED_ON_LOAD = false;
   } catch (e) {
     console.warn('[Session] Gagal menyimpan sesi:', e);
   }
@@ -203,6 +209,20 @@ async function loginSupabaseUser(identifier, password) {
     role: userProfile.role,
     name: userProfile.name
   };
+}
+
+function isSupabaseSessionIdleExpired() {
+  try {
+    if (window.__IDLE_EXPIRED_ON_LOAD) return true;
+    const lastAct = Number(localStorage.getItem('ekasir_last_activity') || 0);
+    const rawMin = localStorage.getItem('ekasir_timeout_minutes');
+    let timeoutMin = (rawMin !== null && rawMin !== '') ? Number(rawMin) : 30;
+    if (isNaN(timeoutMin)) timeoutMin = 30;
+    if (lastAct > 0 && timeoutMin > 0 && (Date.now() - lastAct >= timeoutMin * 60000)) {
+      return true;
+    }
+  } catch (e) {}
+  return false;
 }
 
 async function logoutSupabaseUser() {
@@ -220,11 +240,16 @@ async function logoutSupabaseUser() {
     sessionStorage.removeItem('ekasir_role');
     localStorage.removeItem('idep_pos_user');
     localStorage.removeItem('idep_pos_token');
+    localStorage.removeItem('ekasir_last_activity');
   } catch (e) {}
 }
 
 async function checkSupabaseSession() {
   if (!supabase) return null;
+  if (isSupabaseSessionIdleExpired()) {
+    await logoutSupabaseUser();
+    return null;
+  }
   const { data: { session } } = await supabase.auth.getSession();
   if (session && session.user) {
     const { data: profile } = await supabase
@@ -2445,7 +2470,7 @@ async function dispatchApiCall(fnName, args) {
         value: String(payload[k]),
         updated_at: new Date().toISOString()
       }));
-      const { error } = await supabase.from('settings').upsert(entries);
+      const { error } = await supabase.from('settings').upsert(entries, { onConflict: 'key' });
       if (error) throw error;
       return { success: true };
     }

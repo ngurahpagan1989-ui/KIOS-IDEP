@@ -5463,6 +5463,7 @@ body.perm-no-edit #content button[onclick*="openConsultationModal"],
 body.perm-no-edit #content button[onclick*="markFollowUpDirect"],
 body.perm-no-edit #content button[onclick*="startEditTransaction"],
 body.perm-no-edit #content button[onclick*="saveStoreSettings"],
+body.perm-no-edit #content button[onclick*="saveSessionTimeoutSettings"],
 body.perm-no-edit #content button[onclick*="addPriceTierPresetRow"],
 body.perm-no-edit #content button[onclick*="clearLogoSetting"],
 body.perm-no-edit #content button[onclick*="unlockBankSettings"],
@@ -5498,4 +5499,122 @@ body.perm-no-delete #modal-container button[onclick*="promptVoidTransaction"],
 body.perm-no-delete #modal-container button[onclick*="executeVoidTransaction"],
 body.perm-no-delete #modal-container .btn-void {
   display: none !important;
+}
+
+/* === IDLE SESSION AUTO-LOGOUT & WARNING MODAL === */
+.alert-idle-warning {
+  background: #FFFBEB;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  color: #92400E;
+  align-items: flex-start;
+  line-height: 1.45;
+}
+
+.idle-timeout-overlay {
+  z-index: 3200 !important;
+}
+
+.idle-timeout-dialog {
+  max-width: 400px !important;
+  width: calc(100% - 32px) !important;
+  padding: 28px 24px 24px !important;
+  text-align: center;
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 22px 48px rgba(15, 23, 42, 0.28);
+}
+
+.idle-timeout-icon-wrap {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #FEF3C7;
+  border: 2px solid #FDE68A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: idlePulse 1.6s ease-in-out infinite;
+}
+
+.idle-timeout-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+@keyframes idlePulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.22); }
+  50% { transform: scale(1.06); box-shadow: 0 0 0 10px rgba(217, 119, 6, 0); }
+}
+
+.idle-timeout-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.idle-timeout-desc {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.idle-countdown-box {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: var(--radius-sm, 10px);
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  margin-bottom: 12px;
+}
+
+.idle-countdown-number {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 34px;
+  font-weight: 700;
+  color: #B45309;
+  line-height: 1.1;
+}
+
+.idle-countdown-unit {
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400E;
+}
+
+.idle-progress-track {
+  width: 100%;
+  height: 6px;
+  background: var(--surface-muted, #F1F5F9);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.idle-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #D97706, #F59E0B);
+  border-radius: 999px;
+  transition: width 0.95s linear;
+}
+
+.idle-timeout-hint {
+  margin: 0 0 18px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.idle-timeout-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.idle-timeout-actions .btn {
+  flex: 1;
 }

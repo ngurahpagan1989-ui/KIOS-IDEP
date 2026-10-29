@@ -415,7 +415,7 @@ function closeModal() {
     dialog.style.overflowY = '';
     dialog.style.padding = '';
   }
-  document.querySelectorAll('.modal-overlay:not(#confirm-modal):not(#alert-modal):not(#modal-container):not(#delivery-signature-modal):not(#delivery-receipt-modal):not(#pod-view-modal):not(#modal-reset-data):not(#modal-qc-entry):not(#modal-qc-photo-viewer)').forEach(function (m) {
+  document.querySelectorAll('.modal-overlay:not(#confirm-modal):not(#alert-modal):not(#modal-container):not(#delivery-signature-modal):not(#delivery-receipt-modal):not(#pod-view-modal):not(#modal-reset-data):not(#modal-qc-entry):not(#modal-qc-photo-viewer):not(#modal-user-entry):not(#modal-role-entry):not(#idle-timeout-modal)').forEach(function (m) {
     m.remove();
   });
   syncModalOpenState();
@@ -759,6 +759,274 @@ function openModal(title, bodyHtml, footerHtml, isLarge) {
   document.body.classList.add('modal-open');
 }
 
+// ========================= IDLE SESSION AUTO-LOGOUT MANAGER =========================
+const DEFAULT_SESSION_TIMEOUT_MINUTES = 30;
+const IDLE_WARNING_THRESHOLD_SECONDS = 60;
+const ACTIVITY_WRITE_THROTTLE_MS = 10000;
+
+let _idleMonitorInterval = null;
+let _idleListenersBound = false;
+let _idleWarningVisible = false;
+let _lastActivityWriteTime = 0;
+let _isAutoLoggingOut = false;
+
+function getSessionTimeoutMinutes() {
+  try {
+    if (APP_SETTINGS && APP_SETTINGS['session_timeout_minutes'] !== undefined && APP_SETTINGS['session_timeout_minutes'] !== '') {
+      const fromApp = parseInt(APP_SETTINGS['session_timeout_minutes'], 10);
+      if (!isNaN(fromApp) && fromApp >= 0) return fromApp;
+    }
+    const raw = localStorage.getItem('ekasir_timeout_minutes');
+    if (raw !== null && raw !== '') {
+      const parsed = parseInt(raw, 10);
+      if (!isNaN(parsed) && parsed >= 0) return parsed;
+    }
+  } catch (e) { }
+  return DEFAULT_SESSION_TIMEOUT_MINUTES;
+}
+
+function syncSessionTimeoutFromSettings(settings) {
+  if (!settings || typeof settings !== 'object') return;
+  if (settings['session_timeout_minutes'] !== undefined && settings['session_timeout_minutes'] !== null && settings['session_timeout_minutes'] !== '') {
+    const mins = parseInt(settings['session_timeout_minutes'], 10);
+    if (!isNaN(mins) && mins >= 0) {
+      try {
+        localStorage.setItem('ekasir_timeout_minutes', String(mins));
+      } catch (e) { }
+    }
+  }
+}
+
+function recordUserActivity(force) {
+  if (!TOKEN) return;
+  if (_idleWarningVisible && !force) return;
+  const now = Date.now();
+  if (!force && (now - _lastActivityWriteTime < ACTIVITY_WRITE_THROTTLE_MS)) return;
+  _lastActivityWriteTime = now;
+  try {
+    localStorage.setItem('ekasir_last_activity', String(now));
+  } catch (e) { }
+}
+
+function getLastActivityTimestamp() {
+  try {
+    const val = Number(localStorage.getItem('ekasir_last_activity') || 0);
+    if (val > 0) return val;
+  } catch (e) { }
+  return _lastActivityWriteTime || 0;
+}
+
+function isSessionIdleExpiredNow() {
+  const timeoutMin = getSessionTimeoutMinutes();
+  if (timeoutMin <= 0) return false;
+  const lastAct = getLastActivityTimestamp();
+  if (!lastAct) return false;
+  return (Date.now() - lastAct) >= (timeoutMin * 60 * 1000);
+}
+
+function showIdleWarningModal(secondsLeft, totalWarningSeconds) {
+  const modal = document.getElementById('idle-timeout-modal');
+  const numEl = document.getElementById('idle-countdown-number');
+  const barEl = document.getElementById('idle-progress-bar');
+  if (!modal) return;
+
+  if (numEl) numEl.textContent = String(secondsLeft);
+  if (barEl && totalWarningSeconds > 0) {
+    const pct = Math.max(0, Math.min(100, (secondsLeft / totalWarningSeconds) * 100));
+    barEl.style.width = pct + '%';
+  }
+
+  if (!_idleWarningVisible) {
+    _idleWarningVisible = true;
+    modal.style.display = 'flex';
+    document.body.classList.add('modal-open');
+    if (window.i18n && typeof window.i18n.translateDOM === 'function') {
+      window.i18n.translateDOM(modal);
+    }
+    const stayBtn = document.getElementById('idle-stay-logged-in-btn');
+    if (stayBtn) {
+      try { stayBtn.focus(); } catch (e) { }
+    }
+  }
+}
+
+function closeIdleWarningModal() {
+  const modal = document.getElementById('idle-timeout-modal');
+  if (modal) modal.style.display = 'none';
+  if (_idleWarningVisible) {
+    _idleWarningVisible = false;
+    syncModalOpenState();
+  }
+}
+
+function extendActiveSession() {
+  recordUserActivity(true);
+  closeIdleWarningModal();
+  showToast('Sesi login berhasil dilanjutkan.');
+}
+window.extendActiveSession = extendActiveSession;
+
+function clearLoginBannerStyle() {
+  const errorEl = document.getElementById('login-error');
+  if (!errorEl) return;
+  errorEl.className = 'alert-banner alert-danger';
+  const iconEl = errorEl.querySelector('.alert-icon');
+  if (iconEl) iconEl.innerHTML = '&#9888;';
+}
+
+function showIdleLogoutBannerOnLogin(minutes) {
+  const errorEl = document.getElementById('login-error');
+  const errorText = document.getElementById('login-error-text');
+  if (!errorEl || !errorText) return;
+  const mins = Number(minutes) > 0 ? Number(minutes) : DEFAULT_SESSION_TIMEOUT_MINUTES;
+  errorEl.className = 'alert-banner alert-idle-warning';
+  const iconEl = errorEl.querySelector('.alert-icon');
+  if (iconEl) iconEl.innerHTML = '&#9203;';
+  errorText.textContent = 'Sesi Anda telah berakhir otomatis karena tidak ada aktivitas selama ' + mins + ' menit. Silakan masuk kembali.';
+  delete errorText._origText;
+  if (errorText.firstChild) delete errorText.firstChild._origText;
+  errorEl.style.display = 'flex';
+  if (window.i18n && typeof window.i18n.translateDOM === 'function') {
+    window.i18n.translateDOM(errorEl);
+  }
+}
+
+function consumePendingIdleLogoutNotice() {
+  try {
+    const raw = localStorage.getItem('ekasir_idle_logout_notice');
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.ts && (Date.now() - Number(parsed.ts) < 12 * 3600 * 1000)) {
+      showIdleLogoutBannerOnLogin(parsed.minutes || getSessionTimeoutMinutes());
+      return true;
+    }
+    localStorage.removeItem('ekasir_idle_logout_notice');
+  } catch (e) { }
+  return false;
+}
+
+function triggerIdleAutoLogout(timeoutMin) {
+  if (_isAutoLoggingOut) return;
+  _isAutoLoggingOut = true;
+  try {
+    const mins = Number(timeoutMin) > 0 ? Number(timeoutMin) : getSessionTimeoutMinutes();
+    closeIdleWarningModal();
+    try { closeModal(); } catch (e) { }
+    CART = [];
+    EDITING_TRANSACTION = null;
+    try {
+      localStorage.setItem('ekasir_idle_logout_notice', JSON.stringify({ minutes: mins, ts: Date.now() }));
+    } catch (e) { }
+    handleLogout({ reason: 'idle', minutes: mins });
+  } finally {
+    _isAutoLoggingOut = false;
+  }
+}
+
+function checkIdleSessionStatus() {
+  if (!TOKEN) {
+    closeIdleWarningModal();
+    return;
+  }
+  const timeoutMin = getSessionTimeoutMinutes();
+  if (timeoutMin <= 0) {
+    closeIdleWarningModal();
+    return;
+  }
+
+  const timeoutMs = timeoutMin * 60 * 1000;
+  const warningSec = Math.min(IDLE_WARNING_THRESHOLD_SECONDS, Math.max(10, Math.floor((timeoutMs / 1000) / 2)));
+  const warningMs = warningSec * 1000;
+  const lastAct = getLastActivityTimestamp();
+
+  if (!lastAct) {
+    recordUserActivity(true);
+    return;
+  }
+
+  const elapsed = Date.now() - lastAct;
+  const remainingMs = timeoutMs - elapsed;
+
+  if (remainingMs <= 0) {
+    triggerIdleAutoLogout(timeoutMin);
+  } else if (remainingMs <= warningMs) {
+    const secLeft = Math.max(1, Math.ceil(remainingMs / 1000));
+    showIdleWarningModal(secLeft, warningSec);
+  } else if (_idleWarningVisible) {
+    closeIdleWarningModal();
+  }
+}
+
+function initIdleSessionListeners() {
+  if (_idleListenersBound) return;
+  _idleListenersBound = true;
+
+  const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll', 'click', 'mousemove'];
+  const onActivity = function () {
+    recordUserActivity(false);
+  };
+  activityEvents.forEach(function (evt) {
+    window.addEventListener(evt, onActivity, { passive: true, capture: true });
+  });
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && TOKEN) {
+      checkIdleSessionStatus();
+    }
+  });
+
+  window.addEventListener('focus', function () {
+    if (TOKEN) {
+      checkIdleSessionStatus();
+    }
+  });
+
+  window.addEventListener('storage', function (e) {
+    if (!e) return;
+    if (e.key === 'ekasir_token' && !e.newValue && TOKEN) {
+      stopIdleSessionMonitor();
+      TOKEN = null;
+      USER_NAME = '';
+      USER_ROLE = '';
+      CURRENT_USER = null;
+      CURRENT_USER_PERMISSIONS = null;
+      CART = [];
+      EDITING_TRANSACTION = null;
+      if (document.body) {
+        document.body.classList.remove('perm-no-edit', 'perm-no-delete', 'role-koordinator-active');
+      }
+      showLoginScreen();
+      consumePendingIdleLogoutNotice();
+    } else if ((e.key === 'ekasir_last_activity' || e.key === 'ekasir_timeout_minutes') && TOKEN) {
+      checkIdleSessionStatus();
+    }
+  });
+}
+
+function startIdleSessionMonitor(isFreshLogin) {
+  initIdleSessionListeners();
+  const cachedSettings = getCachedData('settings');
+  if (cachedSettings) {
+    syncSessionTimeoutFromSettings(cachedSettings);
+  }
+  if (isFreshLogin || !getLastActivityTimestamp()) {
+    recordUserActivity(true);
+  }
+  if (_idleMonitorInterval) {
+    clearInterval(_idleMonitorInterval);
+  }
+  _idleMonitorInterval = setInterval(checkIdleSessionStatus, 1000);
+  checkIdleSessionStatus();
+}
+
+function stopIdleSessionMonitor() {
+  if (_idleMonitorInterval) {
+    clearInterval(_idleMonitorInterval);
+    _idleMonitorInterval = null;
+  }
+  closeIdleWarningModal();
+}
+
 // ========================= AUTENTIKASI & INITIALIZER =========================
 function handleLogin(e) {
   if (e && e.preventDefault) e.preventDefault();
@@ -773,6 +1041,7 @@ function handleLogin(e) {
   const username = userEl.value.trim();
   const password = passEl.value;
 
+  clearLoginBannerStyle();
   if (errorEl) errorEl.style.display = 'none';
   if (spinner) spinner.style.display = 'inline-block';
   if (submitBtn) submitBtn.disabled = true;
@@ -782,10 +1051,14 @@ function handleLogin(e) {
     if (submitBtn) submitBtn.disabled = false;
 
     if (!res.success) {
+      clearLoginBannerStyle();
       if (errorText) errorText.textContent = res.message;
       if (errorEl) errorEl.style.display = 'flex';
       return;
     }
+
+    window.__IDLE_EXPIRED_ON_LOAD = false;
+    try { localStorage.removeItem('ekasir_idle_logout_notice'); } catch (err) { }
 
     TOKEN = res.token;
     USER_NAME = res.name || username;
@@ -801,10 +1074,12 @@ function handleLogin(e) {
     setSafeSession('ekasir_role', USER_ROLE);
     if (CURRENT_USER_PERMISSIONS) setSafeSession('ekasir_permissions', JSON.stringify(CURRENT_USER_PERMISSIONS));
     if (AVAILABLE_ROLES) setSafeSession('ekasir_available_roles', JSON.stringify(AVAILABLE_ROLES));
+    recordUserActivity(true);
     enterApp();
   }).catch(function (err) {
     if (spinner) spinner.style.display = 'none';
     if (submitBtn) submitBtn.disabled = false;
+    clearLoginBannerStyle();
     if (errorText) errorText.textContent = 'Gagal terhubung: ' + (err.message || err);
     if (errorEl) errorEl.style.display = 'flex';
   });
@@ -812,7 +1087,9 @@ function handleLogin(e) {
   return false;
 }
 
-function handleLogout() {
+function handleLogout(opts) {
+  const isIdleLogout = !!(opts && opts.reason === 'idle');
+  stopIdleSessionMonitor();
   TOKEN = null;
   USER_NAME = '';
   USER_ROLE = '';
@@ -823,9 +1100,12 @@ function handleLogout() {
   removeSafeSession('ekasir_role');
   removeSafeSession('ekasir_permissions');
   removeSafeSession('ekasir_available_roles');
-  if (document.body) {
-    document.body.classList.remove('perm-no-edit', 'perm-no-delete', 'role-koordinator-active');
-  }
+  try {
+    localStorage.removeItem('ekasir_last_activity');
+    if (!isIdleLogout) {
+      localStorage.removeItem('ekasir_idle_logout_notice');
+    }
+  } catch (e) { }
   if (document.body) {
     document.body.classList.remove('perm-no-edit', 'perm-no-delete', 'role-koordinator-active');
   }
@@ -835,6 +1115,13 @@ function handleLogout() {
     logoutSupabaseUser().catch(function () { });
   }
   showLoginScreen();
+  if (isIdleLogout) {
+    showIdleLogoutBannerOnLogin(opts.minutes || getSessionTimeoutMinutes());
+  } else {
+    clearLoginBannerStyle();
+    const errorEl = document.getElementById('login-error');
+    if (errorEl) errorEl.style.display = 'none';
+  }
 }
 
 function showLoginScreen() {
@@ -874,6 +1161,7 @@ function enterApp() {
     console.warn('Hash bypass:', e);
   }
 
+  startIdleSessionMonitor(false);
   applyBrandLogo();
   updateSidebarVisibility();
   router();
@@ -963,10 +1251,18 @@ function prefetchCoreDataInBackground() {
         }
         CUSTOMERS_CACHE = res.customers || [];
         APP_SETTINGS = res.settings || {};
+        syncSessionTimeoutFromSettings(APP_SETTINGS);
         PRICE_TIERS_LIST = res.priceTiers || ['Eceran'];
         PRODUCTS_CACHE = (res.products || []).filter(function (p) {
           return p && p.active && Number(p.stock || 0) > 0 && !isRawProduct(p.unit);
         });
+        applyBrandLogo();
+      }).catch(function () { });
+    } else if (!isCacheValid('settings')) {
+      api('getSettings', TOKEN).then(function (settings) {
+        setCachedData('settings', settings || {});
+        APP_SETTINGS = settings || {};
+        syncSessionTimeoutFromSettings(APP_SETTINGS);
         applyBrandLogo();
       }).catch(function () { });
     }
@@ -1147,6 +1443,7 @@ function showSection(sectionId) {
 }
 
 function router(forceRefresh) {
+  if (!TOKEN) return;
   let route = 'dashboard';
   try {
     route = (location.hash || '#dashboard').replace('#', '') || 'dashboard';
@@ -1321,6 +1618,7 @@ const PERM_EDIT_SELECTORS = [
   'button[onclick*="submitConsultationForm"]',
   'button[onclick*="startEditTransaction"]',
   'button[onclick*="saveStoreSettings"]',
+  'button[onclick*="saveSessionTimeoutSettings"]',
   'button[onclick*="addPriceTierPresetRow"]',
   'button[onclick*="clearLogoSetting"]',
   'button[onclick*="unlockBankSettings"]',
@@ -1358,7 +1656,7 @@ const PERM_DELETE_SELECTORS = [
 
 function isSafeNonMutationButton(el) {
   if (!el) return true;
-  if (el.id === 'alert-modal-ok-btn' || el.id === 'confirm-modal-cancel-btn' || el.classList.contains('modal-close-btn') || el.classList.contains('lang-btn')) {
+  if (el.id === 'alert-modal-ok-btn' || el.id === 'confirm-modal-cancel-btn' || el.id === 'idle-stay-logged-in-btn' || el.id === 'idle-logout-now-btn' || el.classList.contains('modal-close-btn') || el.classList.contains('lang-btn')) {
     return true;
   }
   const onclickStr = String(el.getAttribute('onclick') || '').toLowerCase();
@@ -13343,6 +13641,7 @@ function renderPengaturan(forceRefresh) {
   api('getSettings', TOKEN).then(function (settings) {
     setCachedData('settings', settings || {});
     APP_SETTINGS = settings || {};
+    syncSessionTimeoutFromSettings(APP_SETTINGS);
     drawPengaturanUI(settings || {});
   }).catch(function (err) {
     if (!cached) {
@@ -13439,6 +13738,11 @@ function drawPengaturanUI(settings) {
   const currentLogoLight = settings['store_logo_light'] || '';
   const isUserAdmin = isAdmin();
   const activeTab = (CURRENT_SETTINGS_SUBTAB === 'pricing') ? 'batch' : (CURRENT_SETTINGS_SUBTAB || 'profile');
+  const currentTimeoutMin = String(
+    settings['session_timeout_minutes'] !== undefined && settings['session_timeout_minutes'] !== ''
+      ? settings['session_timeout_minutes']
+      : getSessionTimeoutMinutes()
+  );
 
   content.innerHTML =
     '<div class="page-header">' +
@@ -13516,6 +13820,26 @@ function drawPengaturanUI(settings) {
     '<button type="button" class="btn ' + (window.i18n && window.i18n.getLanguage() === 'id' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="window.i18n && window.i18n.setLanguage(\'id\')">🇮🇩 Bahasa Indonesia (Standar)</button>' +
     '<button type="button" class="btn ' + (window.i18n && window.i18n.getLanguage() === 'en' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" onclick="window.i18n && window.i18n.setLanguage(\'en\')">🇬🇧 English (International)</button>' +
     '</div>' +
+    '</div>' +
+    '<div class="card" style="margin-top:16px;">' +
+    '<h3 style="margin-bottom:6px;">⏱️ Keamanan Sesi &amp; Auto-Logout</h3>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Akhiri sesi login secara otomatis apabila tidak ada aktivitas di aplikasi untuk melindungi keamanan kasir dan data stok:</p>' +
+    '<div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">' +
+    '<div class="field-group" style="margin-bottom:0;flex:1;min-width:220px;">' +
+    '<label class="field-label" for="set-session-timeout">Batas Waktu Tanpa Aktivitas (Idle Timeout)</label>' +
+    '<div class="input-wrapper">' +
+    '<select id="set-session-timeout" style="padding-left:14px;width:100%;">' +
+    '<option value="15"' + (currentTimeoutMin === '15' ? ' selected' : '') + '>15 Menit (Keamanan Ketat)</option>' +
+    '<option value="30"' + (currentTimeoutMin === '30' ? ' selected' : '') + '>30 Menit (Standar Rekomendasi)</option>' +
+    '<option value="60"' + (currentTimeoutMin === '60' ? ' selected' : '') + '>60 Menit (1 Jam)</option>' +
+    '<option value="120"' + (currentTimeoutMin === '120' ? ' selected' : '') + '>120 Menit (2 Jam)</option>' +
+    '<option value="0"' + (currentTimeoutMin === '0' ? ' selected' : '') + '>Nonaktif (Tidak Auto-Logout)</option>' +
+    '</select>' +
+    '</div>' +
+    '</div>' +
+    '<button type="button" class="btn btn-primary btn-sm" onclick="saveSessionTimeoutSettings()" style="height:40px;padding:0 18px;">💾 Simpan Durasi Sesi</button>' +
+    '</div>' +
+    '<small style="color:var(--text-muted);font-size:11px;margin-top:8px;display:block;">Sistem akan menampilkan peringatan hitung mundur 60 detik sebelum mengeluarkan akun secara otomatis.</small>' +
     '</div>' +
     '</div>' +
     '</div>' +
@@ -14503,7 +14827,10 @@ function saveStoreSettings() {
     invoice_footer: document.getElementById('set-invoice-footer') ? document.getElementById('set-invoice-footer').value.trim() : '',
     batch_format_template: batchFormat,
     batch_format: batchFormat,
-    price_tiers_preset: presetJson
+    price_tiers_preset: presetJson,
+    session_timeout_minutes: document.getElementById('set-session-timeout')
+      ? String(document.getElementById('set-session-timeout').value)
+      : String(getSessionTimeoutMinutes())
   };
 
   if (hasBankChanged) {
@@ -14523,11 +14850,45 @@ function saveStoreSettings() {
     if (!APP_SETTINGS) APP_SETTINGS = {};
     Object.assign(APP_SETTINGS, payload);
     APP_SETTINGS['price_tiers_preset'] = presetJson;
+    syncSessionTimeoutFromSettings(APP_SETTINGS);
     PRICE_TIERS_LIST = presets.map(function (p) { return p.name; });
     applyBrandLogo();
+    checkIdleSessionStatus();
     showToast('Pengaturan profil toko & preset tingkat harga berhasil disimpan.');
   }).catch(function (err) { showToast('Gagal: ' + (err.message || err), true); });
 }
+
+function saveSessionTimeoutSettings() {
+  if (!userCanEdit('pengaturan')) {
+    showToast('Akses ditolak: Akun Anda berada dalam Mode Pantau (View-Only) dan tidak diizinkan mengubah data.', true);
+    return;
+  }
+  const selectEl = document.getElementById('set-session-timeout');
+  if (!selectEl) return;
+  const val = String(selectEl.value || '30');
+  api('saveSettings', TOKEN, { session_timeout_minutes: val }).then(function () {
+    if (!APP_SETTINGS) APP_SETTINGS = {};
+    APP_SETTINGS['session_timeout_minutes'] = val;
+    const cached = getCachedData('settings');
+    if (cached && typeof cached === 'object') {
+      cached['session_timeout_minutes'] = val;
+      setCachedData('settings', cached);
+    } else {
+      invalidateCache('settings');
+    }
+    syncSessionTimeoutFromSettings(APP_SETTINGS);
+    recordUserActivity(true);
+    checkIdleSessionStatus();
+    if (val === '0') {
+      showToast('Auto-logout sesi dinonaktifkan.');
+    } else {
+      showToast('Batas waktu sesi otomatis disimpan (' + val + ' menit).');
+    }
+  }).catch(function (err) {
+    showToast('Gagal menyimpan durasi sesi: ' + (err.message || err), true);
+  });
+}
+window.saveSessionTimeoutSettings = saveSessionTimeoutSettings;
 
 // Alias untuk kompatibilitas nama fungsi modul
 // filterFakturTable is defined as function in Faktur module below
@@ -16116,10 +16477,6 @@ function deleteExpenseCategory(catId, catName) {
     showToast('Akses ditolak: Peran Anda tidak memiliki izin menghapus / membatalkan data pada modul ini.', true);
     return;
   }
-  if (!userCanDelete('expenses')) {
-    showToast('Akses ditolak: Peran Anda tidak memiliki izin menghapus / membatalkan data pada modul ini.', true);
-    return;
-  }
   showConfirmDialog(
     'Hapus Kategori Biaya?',
     'Apakah Anda yakin ingin menghapus kategori "' + catName + '"?',
@@ -16154,10 +16511,6 @@ function deleteExpenseCategory(catId, catName) {
 }
 
 function resetDefaultExpenseCategories() {
-  if (!userCanEdit('expenses')) {
-    showToast('Akses ditolak: Akun Anda berada dalam Mode Pantau (View-Only) dan tidak diizinkan mengubah data.', true);
-    return;
-  }
   if (!userCanEdit('expenses')) {
     showToast('Akses ditolak: Akun Anda berada dalam Mode Pantau (View-Only) dan tidak diizinkan mengubah data.', true);
     return;
@@ -16272,7 +16625,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // 4. Tombol logout (#logout-btn) memanggil handleLogout()
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
-    logoutBtn.onclick = handleLogout;
+    logoutBtn.onclick = function () { handleLogout(); };
   }
 
   const refreshBtn = document.getElementById('topbar-refresh-btn');
@@ -16284,17 +16637,26 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
-  // 5. Mekanisme auto-login / session restore tanpa flash
-  const restoredToken = TOKEN || getSafeSession('ekasir_token');
-  if (restoredToken) {
-    TOKEN = restoredToken;
-    USER_NAME = USER_NAME || getSafeSession('ekasir_user') || 'Admin';
-    USER_ROLE = USER_ROLE || getSafeSession('ekasir_role') || (String(USER_NAME).toLowerCase() === 'admin' ? 'Admin' : 'Kasir');
-    CURRENT_USER = { name: USER_NAME, username: USER_NAME, role: USER_ROLE };
-    window._currentUser = CURRENT_USER;
-    enterApp();
+  // 5. Mekanisme auto-login / session restore tanpa flash + cek idle timeout
+  if (window.__IDLE_EXPIRED_ON_LOAD) {
+    const expiredMin = Number(window.__IDLE_EXPIRED_ON_LOAD) || getSessionTimeoutMinutes();
+    window.__IDLE_EXPIRED_ON_LOAD = false;
+    handleLogout({ reason: 'idle', minutes: expiredMin });
   } else {
-    showLoginScreen();
+    const restoredToken = TOKEN || getSafeSession('ekasir_token');
+    if (restoredToken && !isSessionIdleExpiredNow()) {
+      TOKEN = restoredToken;
+      USER_NAME = USER_NAME || getSafeSession('ekasir_user') || 'Admin';
+      USER_ROLE = USER_ROLE || getSafeSession('ekasir_role') || (String(USER_NAME).toLowerCase() === 'admin' ? 'Admin' : 'Kasir');
+      CURRENT_USER = { name: USER_NAME, username: USER_NAME, role: USER_ROLE };
+      window._currentUser = CURRENT_USER;
+      enterApp();
+    } else if (restoredToken && isSessionIdleExpiredNow()) {
+      triggerIdleAutoLogout(getSessionTimeoutMinutes());
+    } else {
+      showLoginScreen();
+      consumePendingIdleLogoutNotice();
+    }
   }
 
   // 6. Pencarian Global Topbar (#topbar-global-search & #search-clear-btn)
@@ -16414,7 +16776,7 @@ if ('serviceWorker' in navigator) {
     window.location.reload();
   });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js?v=5.7', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=5.8', { updateViaCache: 'none' })
       .then(function (reg) {
         console.log('[PWA] Service Worker Kios IDEP berhasil terdaftar:', reg.scope);
         try { if (reg.update) reg.update(); } catch (e) {}

@@ -1617,7 +1617,28 @@
     'Memuat matriks hak akses...': 'Loading permission matrix...',
     'Mode Pantau (View-Only): Transaksi kasir dinonaktifkan untuk peran ini.': 'View-Only Mode: Cashier transactions are disabled for this role.',
     'Akses ditolak: Akun Anda berada dalam Mode Pantau (View-Only) dan tidak diizinkan mengubah data.': 'Access denied: Your account is in View-Only Mode and is not permitted to modify data.',
-    'Akses ditolak: Peran Anda tidak memiliki izin menghapus / membatalkan data pada modul ini.': 'Access denied: Your role does not have permission to delete or void records in this module.'
+    'Akses ditolak: Peran Anda tidak memiliki izin menghapus / membatalkan data pada modul ini.': 'Access denied: Your role does not have permission to delete or void records in this module.',
+    'Keamanan Sesi & Auto-Logout': 'Session Security & Auto-Logout',
+    '⏱️ Keamanan Sesi & Auto-Logout': '⏱️ Session Security & Auto-Logout',
+    'Akhiri sesi login secara otomatis apabila tidak ada aktivitas di aplikasi untuk melindungi keamanan kasir dan data stok:': 'Automatically end the login session when there is no activity in the app to protect cashier and inventory security:',
+    'Batas Waktu Tanpa Aktivitas (Idle Timeout)': 'Inactivity Timeout Duration (Idle Timeout)',
+    '15 Menit (Keamanan Ketat)': '15 Minutes (Strict Security)',
+    '30 Menit (Standar Rekomendasi)': '30 Minutes (Recommended Standard)',
+    '60 Menit (1 Jam)': '60 Minutes (1 Hour)',
+    '120 Menit (2 Jam)': '120 Minutes (2 Hours)',
+    'Nonaktif (Tidak Auto-Logout)': 'Disabled (No Auto-Logout)',
+    'Simpan Durasi Sesi': 'Save Session Duration',
+    '💾 Simpan Durasi Sesi': '💾 Save Session Duration',
+    'Sistem akan menampilkan peringatan hitung mundur 60 detik sebelum mengeluarkan akun secara otomatis.': 'The system will display a 60-second countdown warning before logging out automatically.',
+    'Sesi Akan Berakhir Otomatis': 'Session Expiring Automatically',
+    'Tidak ada aktivitas terdeteksi. Demi keamanan data Kios IDEP, sesi Anda akan keluar otomatis dalam:': 'No activity detected. For Kios IDEP data security, your session will automatically sign out in:',
+    'detik': 'seconds',
+    'Klik': 'Click',
+    'Lanjutkan Sesi': 'Continue Session',
+    'agar pekerjaan atau keranjang kasir Anda tetap tersimpan.': 'to keep your current work or POS cart intact.',
+    'Keluar Sekarang': 'Sign Out Now',
+    'Sesi login berhasil dilanjutkan.': 'Login session continued.',
+    'Auto-logout sesi dinonaktifkan.': 'Session auto-logout disabled.'
   };
 
   // Pre-compiled regex patterns for dynamic phrases and mixed content
@@ -1738,7 +1759,10 @@
     { regex: /^Tidak ada batch benih yang sesuai dengan filter\s+"(.*?)"\.?/i, replace: 'No seed batches match filter "$1".' },
     { regex: /^Usia simpan:\s*(\d+)\s*hari$/i, replace: 'Shelf life: $1 days' },
     { regex: /^Semua persediaan stok dalam batas aman\.$/i, replace: 'All stock inventory levels are within safe limits.' },
-    { regex: /^Tidak ada stok mendekati kadaluarsa\.$/i, replace: 'No stock items near expiration.' }
+    { regex: /^Tidak ada stok mendekati kadaluarsa\.$/i, replace: 'No stock items near expiration.' },
+    { regex: /^Sesi Anda telah berakhir otomatis karena tidak ada aktivitas selama\s+(\d+)\s+menit\.\s*Silakan masuk kembali\.$/i, replace: 'Your session automatically expired due to $1 minutes of inactivity. Please sign in again.' },
+    { regex: /^Batas waktu sesi otomatis disimpan\s*\((\d+)\s*menit\)\.$/i, replace: 'Automatic session timeout saved ($1 minutes).' },
+    { regex: /^Gagal menyimpan durasi sesi\s*:\s*(.*)$/i, replace: 'Failed to save session duration: $1' }
   ];
 
   // Regex patterns for smart prefix & punctuation stripping

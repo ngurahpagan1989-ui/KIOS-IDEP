@@ -19,13 +19,28 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=5.4">
-  <!-- Session Restore Anti-Flash Script & Style -->
+  <link rel="stylesheet" href="style.css?v=5.5">
+  <!-- Session Restore Anti-Flash & Idle Timeout Pre-Check -->
   <script>
     (function() {
       try {
         var tok = sessionStorage.getItem('ekasir_token') || localStorage.getItem('ekasir_token');
-        if (tok) document.documentElement.classList.add('has-session');
+        if (tok) {
+          var lastAct = Number(localStorage.getItem('ekasir_last_activity') || 0);
+          var rawMin = localStorage.getItem('ekasir_timeout_minutes');
+          var timeoutMin = (rawMin !== null && rawMin !== '') ? Number(rawMin) : 30;
+          if (isNaN(timeoutMin)) timeoutMin = 30;
+          if (lastAct > 0 && timeoutMin > 0 && (Date.now() - lastAct >= timeoutMin * 60000)) {
+            window.__IDLE_EXPIRED_ON_LOAD = timeoutMin;
+            localStorage.setItem('ekasir_idle_logout_notice', JSON.stringify({ minutes: timeoutMin, ts: Date.now() }));
+            sessionStorage.removeItem('ekasir_token');
+            localStorage.removeItem('ekasir_token');
+            localStorage.removeItem('idep_pos_token');
+            localStorage.removeItem('ekasir_last_activity');
+          } else {
+            document.documentElement.classList.add('has-session');
+          }
+        }
       } catch(e) {}
     })();
   </script>
@@ -752,6 +767,30 @@
     </div>
   </div>
 
+  <!-- ===================== IDLE SESSION TIMEOUT WARNING MODAL ===================== -->
+  <div id="idle-timeout-modal" class="modal-overlay idle-timeout-overlay" style="display:none;" role="alertdialog" aria-modal="true" aria-labelledby="idle-modal-title">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog idle-timeout-dialog">
+      <div class="idle-timeout-icon-wrap" aria-hidden="true">
+        <span class="idle-timeout-icon">&#9203;</span>
+      </div>
+      <h3 id="idle-modal-title" class="idle-timeout-title">Sesi Akan Berakhir Otomatis</h3>
+      <p class="idle-timeout-desc">Tidak ada aktivitas terdeteksi. Demi keamanan data Kios IDEP, sesi Anda akan keluar otomatis dalam:</p>
+      <div class="idle-countdown-box">
+        <span id="idle-countdown-number" class="idle-countdown-number" data-no-i18n="true">60</span>
+        <span class="idle-countdown-unit">detik</span>
+      </div>
+      <div class="idle-progress-track" aria-hidden="true">
+        <div id="idle-progress-bar" class="idle-progress-bar" style="width:100%;"></div>
+      </div>
+      <p class="idle-timeout-hint">Klik <strong>Lanjutkan Sesi</strong> agar pekerjaan atau keranjang kasir Anda tetap tersimpan.</p>
+      <div class="idle-timeout-actions">
+        <button type="button" id="idle-logout-now-btn" class="btn btn-secondary" onclick="handleLogout()">Keluar Sekarang</button>
+        <button type="button" id="idle-stay-logged-in-btn" class="btn btn-primary" onclick="extendActiveSession()">Lanjutkan Sesi</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== GLOBAL TOAST NOTIFICATION STACK ===================== -->
   <div id="toast-stack" class="toast-stack" aria-live="assertive" aria-atomic="true">
     <div id="toast" class="toast" style="display:none;">
@@ -769,10 +808,10 @@
   <!-- Supabase CDN Client Library (v2) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Supabase Client Adapter & API Bridge -->
-  <script src="supabaseClient.js?v=5.1"></script>
+  <script src="supabaseClient.js?v=5.2"></script>
   <!-- Multi-Language i18n Engine -->
-  <script src="i18n.js?v=2.6"></script>
+  <script src="i18n.js?v=2.7"></script>
   <!-- Core Application Logic -->
-  <script src="app.js?v=5.4"></script>
+  <script src="app.js?v=5.5"></script>
 </body>
 </html>

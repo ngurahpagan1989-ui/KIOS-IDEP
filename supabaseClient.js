@@ -56,6 +56,106 @@ function saveMutationToLocalBackup(item) {
 window.saveMutationToLocalBackup = saveMutationToLocalBackup;
 
 // ==============================================================================
+// 1B. ENGINE NOTIFIKASI REALTIME & WEB PUSH (HANDPHONE / PWA)
+// ==============================================================================
+window.__LIVE_NOTIF_CHANNEL = window.__LIVE_NOTIF_CHANNEL || null;
+window.__CURRENT_PUSH_ENDPOINT = window.__CURRENT_PUSH_ENDPOINT || '';
+
+function ensureLiveNotifBroadcastChannel() {
+  if (!supabase) return null;
+  if (window.__LIVE_NOTIF_CHANNEL) return window.__LIVE_NOTIF_CHANNEL;
+  try {
+    const ch = supabase.channel('kios-idep-live-notifs', {
+      config: { broadcast: { self: false } }
+    });
+    ch.subscribe();
+    window.__LIVE_NOTIF_CHANNEL = ch;
+    return ch;
+  } catch (err) {
+    return null;
+  }
+}
+
+function emitOperationalNotification(notif) {
+  if (!notif || typeof notif !== 'object') return null;
+  try {
+    const user = window.CURRENT_USER_PROFILE || window.CURRENT_USER || {};
+    const actorName = notif.actor_name || user.full_name || user.name || user.username || window.USER_NAME || 'Sistem';
+    const rawRoute = String(notif.route || '#dashboard');
+    const detail = {
+      id: notif.id || ('notif-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)),
+      title: String(notif.title || '🔔 Kios IDEP'),
+      body: String(notif.body || ''),
+      category: String(notif.category || 'general'),
+      route: rawRoute.startsWith('#') ? rawRoute : ('#' + rawRoute),
+      urgent: Boolean(notif.urgent),
+      actor_name: String(actorName),
+      created_at: notif.created_at || new Date().toISOString()
+    };
+
+    // 1. Update pusat notifikasi di tab saat ini secara instan
+    try {
+      window.dispatchEvent(new CustomEvent('idep:local-notif-emitted', {
+        detail: Object.assign({}, detail, { isFromCurrentTab: true, forceBanner: Boolean(notif.forceBanner) })
+      }));
+    } catch (e) {}
+
+    // 2. Broadcast instan ke seluruh HP/tab lain yang sedang online via Supabase Realtime
+    if (!notif.localOnly && supabase) {
+      try {
+        const ch = ensureLiveNotifBroadcastChannel();
+        if (ch && typeof ch.send === 'function') {
+          ch.send({
+            type: 'broadcast',
+            event: 'new_notif',
+            payload: detail
+          }).catch(function () {});
+        }
+      } catch (e) {}
+
+      // 3. Simpan riwayat ke tabel app_notifications (aman jika tabel belum dibuat)
+      try {
+        supabase.from('app_notifications').insert({
+          id: detail.id,
+          title: detail.title,
+          body: detail.body,
+          category: detail.category,
+          route: detail.route,
+          urgent: detail.urgent,
+          actor_name: detail.actor_name,
+          created_at: detail.created_at
+        }).then(function () {}, function () {});
+      } catch (e) {}
+
+      // 4. Kirim Web Push W3C (VAPID) ke HP yang sedang terkunci / aplikasi tertutup
+      if (!notif.skipPush && supabase.functions && typeof supabase.functions.invoke === 'function') {
+        try {
+          supabase.functions.invoke('send-push', {
+            body: {
+              id: detail.id,
+              title: detail.title,
+              body: detail.body,
+              category: detail.category,
+              route: detail.route,
+              urgent: detail.urgent,
+              actor_name: detail.actor_name,
+              excludeEndpoint: window.__CURRENT_PUSH_ENDPOINT || ''
+            }
+          }).then(function () {}, function () {});
+        } catch (e) {}
+      }
+    }
+
+    return detail;
+  } catch (err) {
+    console.warn('[Notif] Gagal mengirim sinyal notifikasi:', err);
+    return null;
+  }
+}
+window.emitOperationalNotification = emitOperationalNotification;
+window.ensureLiveNotifBroadcastChannel = ensureLiveNotifBroadcastChannel;
+
+// ==============================================================================
 // 2. HELPER UTILS (STORAGE & CONVERSIONS)
 // ==============================================================================
 
@@ -423,12 +523,14 @@ async function consumeStockFIFOClient(productId, qtyNeeded, refId, refNo, mutati
   }
 
   // Sinkronkan kolom stock di tabel products dari total qty_remaining stock_batches
+  let syncedRemainingStock = null;
   try {
     const { data: allB } = await supabase
       .from('stock_batches')
       .select('qty_remaining')
       .eq('product_id', productId);
     const totalRemaining = (allB || []).reduce((sum, b) => sum + Number(b.qty_remaining || 0), 0);
+    syncedRemainingStock = totalRemaining;
     await supabase
       .from('products')
       .update({ stock: totalRemaining })
@@ -441,7 +543,8 @@ async function consumeStockFIFOClient(productId, qtyNeeded, refId, refNo, mutati
     total_cost: totalCost,
     batch_codes: batchCodes,
     primary_batch_id: primaryBatchId,
-    primary_expiry: primaryExpiry
+    primary_expiry: primaryExpiry,
+    remaining_stock: syncedRemainingStock
   };
 }
 window.consumeStockFIFOClient = consumeStockFIFOClient;
@@ -860,6 +963,7 @@ async function dispatchApiCall(fnName, args) {
       }
 
       // Pemotongan stok multi-batch FIFO client
+      const lowStockAfterSale = [];
       for (const item of (payload.items || [])) {
         const prefBatch = item.batch_id || item.selected_batch_id || null;
         const fifoResult = await consumeStockFIFOClient(
@@ -870,6 +974,14 @@ async function dispatchApiCall(fnName, args) {
           'KELUAR_PENJUALAN',
           prefBatch
         );
+
+        if (fifoResult.remaining_stock !== null && fifoResult.remaining_stock !== undefined && fifoResult.remaining_stock <= 5) {
+          lowStockAfterSale.push({
+            name: item.name || item.product_name || 'Produk',
+            remaining: fifoResult.remaining_stock,
+            unit: item.unit || 'pcs'
+          });
+        }
 
         consumedItems.push({
           transaction_id: txId,
@@ -928,6 +1040,26 @@ async function dispatchApiCall(fnName, args) {
         });
       }
 
+      emitOperationalNotification({
+        title: '💰 Transaksi Baru ' + invoiceNo,
+        body: (payload.customer_name || 'Pelanggan Umum') + ' • Rp ' + Number(total || 0).toLocaleString('id-ID') + ' (' + (payload.payment_type === 'installment' ? 'Tempo/Piutang' : (payload.payment_method || 'CASH')) + ')',
+        category: 'sales',
+        route: '#faktur',
+        urgent: false
+      });
+
+      if (lowStockAfterSale.length > 0) {
+        const hasZeroStock = lowStockAfterSale.some(s => Number(s.remaining) <= 0);
+        const lowSummary = lowStockAfterSale.slice(0, 3).map(s => s.name + ' (sisa ' + s.remaining + ' ' + s.unit + ')').join(', ');
+        emitOperationalNotification({
+          title: hasZeroStock ? '🔴 Stok Habis Pasca Transaksi!' : '⚠️ Stok Menipis Pasca Transaksi',
+          body: lowSummary + (lowStockAfterSale.length > 3 ? ' +' + (lowStockAfterSale.length - 3) + ' produk lainnya' : '') + ' setelah nota ' + invoiceNo + '.',
+          category: 'stock',
+          route: '#stok',
+          urgent: hasZeroStock
+        });
+      }
+
       return {
         success: true,
         id: txId,
@@ -952,6 +1084,13 @@ async function dispatchApiCall(fnName, args) {
       });
 
       if (error) throw error;
+      emitOperationalNotification({
+        title: '🚨 Nota Dibatalkan (VOID)',
+        body: 'Transaksi #' + transactionId + ' dibatalkan. Alasan: ' + (voidReason || 'Pembatalan nota kasir'),
+        category: 'security',
+        route: '#faktur',
+        urgent: true
+      });
       return data;
     }
 
@@ -1807,6 +1946,24 @@ async function dispatchApiCall(fnName, args) {
         }).eq('id', payload.batch_id);
       }
 
+      if (batchQuality === 'QUARANTINE' || qcStatus === 'FAILED') {
+        emitOperationalNotification({
+          title: '🚨 Karantina QC Lot Benih!',
+          body: 'Batch ' + (payload.batch_code || payload.batch_id) + ' gagal standar mutu' + (germRate !== null ? ' (Daya tumbuh ' + germRate + '%)' : '') + ' dan masuk status KARANTINA.',
+          category: 'qc',
+          route: '#qc',
+          urgent: true
+        });
+      } else if (qcStatus === 'PASSED') {
+        emitOperationalNotification({
+          title: '✅ Lot Benih Lolos Uji QC',
+          body: 'Batch ' + (payload.batch_code || payload.batch_id) + ' lolos uji mutu dengan daya tumbuh ' + germRate + '%.',
+          category: 'qc',
+          route: '#qc',
+          urgent: false
+        });
+      }
+
       return {
         success: true,
         message: 'Catatan pengujian mutu QC berhasil disimpan!',
@@ -1836,6 +1993,13 @@ async function dispatchApiCall(fnName, args) {
       }).select().single();
 
       if (error) throw error;
+      emitOperationalNotification({
+        title: '🔥 Oven DHT 24 Jam Dimulai',
+        body: 'Batch ' + (payload.batch_code || payload.batch_id) + ' masuk ' + (payload.oven_no || 'Oven 1') + ' (' + Number(payload.target_temp || 50) + '°C).',
+        category: 'qc',
+        route: '#qc',
+        urgent: false
+      });
       return { success: true, message: 'Sesi oven DHT 24 jam berhasil dimulai.', dht_record: data };
     }
 
@@ -1852,6 +2016,13 @@ async function dispatchApiCall(fnName, args) {
         .eq('status', 'IN_PROGRESS');
 
       if (error) throw error;
+      emitOperationalNotification({
+        title: '✅ Sesi Oven DHT Selesai',
+        body: 'Pengeringan DHT 24 jam untuk Batch ' + (payload.batch_code || payload.batch_id) + ' telah dituntaskan.',
+        category: 'qc',
+        route: '#qc',
+        urgent: false
+      });
       return { success: true, message: 'Sesi oven DHT berhasil dituntaskan.' };
     }
 
@@ -1989,6 +2160,15 @@ async function dispatchApiCall(fnName, args) {
         });
       }
 
+      const totalSoldAudit = (payload.items || []).reduce((sum, it) => sum + Number(it.qty_sold || 0), 0);
+      emitOperationalNotification({
+        title: '🏪 Opname Konsinyasi Selesai',
+        body: 'Audit rak mitra selesai dicatat (' + totalSoldAudit + ' pcs terjual' + (payload.outlet_pic ? ', PIC: ' + payload.outlet_pic : '') + ').',
+        category: 'finance',
+        route: '#konsinyasi',
+        urgent: false
+      });
+
       return { success: true, id: auditId, message: 'Berita acara opname konsinyasi berhasil disimpan.' };
     }
 
@@ -2095,6 +2275,14 @@ async function dispatchApiCall(fnName, args) {
         remaining: newRemaining,
         status: newStatus
       }).eq('id', payload.receivable_id);
+
+      emitOperationalNotification({
+        title: '💳 Pembayaran Piutang Diterima',
+        body: 'Cicilan Rp ' + Number(amount || 0).toLocaleString('id-ID') + ' dicatat (' + (newStatus === 'PAID' ? 'LUNAS' : 'Sisa Rp ' + Number(newRemaining || 0).toLocaleString('id-ID')) + ').',
+        category: 'finance',
+        route: '#piutang',
+        urgent: false
+      });
 
       return { success: true, message: 'Pembayaran piutang berhasil dicatat.' };
     }
@@ -2654,6 +2842,14 @@ async function dispatchApiCall(fnName, args) {
         });
       } catch (movErr) {}
 
+      emitOperationalNotification({
+        title: '⚖️ Koreksi Stok Manual (' + (adjType === 'MINUS' ? '-' : '+') + qtyNum + ')',
+        body: 'Batch ' + (currentBatch ? (currentBatch.batch_code || batchId) : batchId) + ': ' + prevQty + ' → ' + newBatchQty + ' (' + reasonLabel + ').',
+        category: 'security',
+        route: '#stok',
+        urgent: adjType === 'MINUS'
+      });
+
       return {
         success: true,
         batch_id: batchId,
@@ -2887,6 +3083,14 @@ async function dispatchApiCall(fnName, args) {
           status: 'active'
         });
       }
+
+      emitOperationalNotification({
+        title: '✏️ Koreksi Faktur ' + invoiceNo,
+        body: 'Nota ' + invoiceNo + ' diperbarui menjadi Rp ' + Number(total || 0).toLocaleString('id-ID') + '.',
+        category: 'security',
+        route: '#faktur',
+        urgent: false
+      });
 
       return {
         success: true,
@@ -3233,6 +3437,14 @@ async function dispatchApiCall(fnName, args) {
         }
       }
 
+      emitOperationalNotification({
+        title: isQuarantined ? '🚨 Klaim Garansi & Auto-Karantina Batch!' : '🌱 Klaim Purna Jual Baru',
+        body: (payload.customer_name || 'Pelanggan') + ' mengajukan klaim ' + (payload.product_name || 'benih') + (payload.batch_id ? ' (Batch ' + payload.batch_id + ')' : '') + '.' + (isQuarantined ? ' Batch otomatis dikarantina (≥3 klaim)!' : ''),
+        category: 'aftersales',
+        route: '#purnajual',
+        urgent: Boolean(isQuarantined)
+      });
+
       return {
         success: true,
         id: inserted ? inserted.id : '',
@@ -3540,6 +3752,113 @@ async function dispatchApiCall(fnName, args) {
         throw new Error(`Telegram Webhook Error: ${json.description || 'Gagal registrasi webhook'}`);
       }
       return { success: true, message: json.description || 'Webhook Telegram berhasil didaftarkan!' };
+    }
+
+    // --------------------------------------------------------------------------
+    // M. NOTIFIKASI LANGSUNG KE HANDPHONE (WEB PUSH & PUSAT NOTIFIKASI)
+    // --------------------------------------------------------------------------
+    case 'savePushSubscription': {
+      const [, payload] = args;
+      if (!payload || !payload.endpoint) {
+        return { success: false, error: 'Endpoint langganan push kosong.' };
+      }
+      window.__CURRENT_PUSH_ENDPOINT = String(payload.endpoint);
+      const user = window.CURRENT_USER_PROFILE || window.CURRENT_USER || {};
+      const cats = Array.isArray(payload.categories)
+        ? payload.categories
+        : ['security', 'sales', 'stock', 'qc', 'finance', 'aftersales'];
+      const prefsMap = {};
+      ['security', 'sales', 'stock', 'qc', 'finance', 'aftersales'].forEach(k => {
+        prefsMap[k] = cats.includes(k);
+      });
+      const row = {
+        user_id: String(payload.user_id || user.id || ''),
+        username: String(payload.username || user.username || window.USER_NAME || ''),
+        role: String(payload.role || user.role || window.USER_ROLE || ''),
+        device_label: String(payload.device_label || navigator.userAgent || '').slice(0, 180),
+        endpoint: String(payload.endpoint),
+        p256dh: String(payload.p256dh || ''),
+        auth: String(payload.auth || ''),
+        categories: cats,
+        preferences: prefsMap,
+        active: true,
+        updated_at: new Date().toISOString()
+      };
+      try {
+        const { error } = await supabase
+          .from('push_subscriptions')
+          .upsert(row, { onConflict: 'endpoint' });
+        if (error) {
+          return {
+            success: true,
+            mode: 'realtime_local',
+            warning: error.message || 'Tabel push_subscriptions belum diaktifkan di Supabase.'
+          };
+        }
+        return { success: true, mode: 'full_web_push' };
+      } catch (err) {
+        return {
+          success: true,
+          mode: 'realtime_local',
+          warning: (err && err.message) || 'Mode notifikasi lokal & realtime aktif.'
+        };
+      }
+    }
+
+    case 'removePushSubscription': {
+      const [, endpoint] = args;
+      if (endpoint && window.__CURRENT_PUSH_ENDPOINT === endpoint) {
+        window.__CURRENT_PUSH_ENDPOINT = '';
+      }
+      if (!endpoint) return { success: true };
+      try {
+        await supabase
+          .from('push_subscriptions')
+          .update({ active: false, updated_at: new Date().toISOString() })
+          .eq('endpoint', String(endpoint));
+      } catch (e) {}
+      return { success: true };
+    }
+
+    case 'getRecentAppNotifications': {
+      const [, limitCount] = args;
+      const maxRows = Number(limitCount || 40);
+      try {
+        const { data, error } = await supabase
+          .from('app_notifications')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(maxRows);
+        if (error) return [];
+        return Array.isArray(data) ? data : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    case 'sendTestWebPush': {
+      const [, payload] = args;
+      const bodyPayload = Object.assign({
+        title: '🔔 Tes Notifikasi Kios IDEP',
+        body: 'Selamat! Handphone Anda sudah terhubung dan siap menerima notifikasi operasional Kios IDEP secara langsung.',
+        category: 'general',
+        route: '#dashboard',
+        urgent: false
+      }, payload || {});
+      try {
+        if (!supabase.functions || typeof supabase.functions.invoke !== 'function') {
+          return { success: false, fallback: true, error: 'Supabase Edge Functions belum tersedia.' };
+        }
+        const { data, error } = await supabase.functions.invoke('send-push', {
+          body: bodyPayload
+        });
+        if (error) {
+          return { success: false, fallback: true, error: error.message || String(error) };
+        }
+        return { success: true, data: data };
+      } catch (err) {
+        return { success: false, fallback: true, error: (err && err.message) || String(err) };
+      }
     }
 
     // --------------------------------------------------------------------------

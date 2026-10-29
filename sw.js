@@ -1,11 +1,11 @@
-const CACHE_NAME = 'kios-idep-v5.9';
+const CACHE_NAME = 'kios-idep-v6.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './style.css?v=5.6',
-  './i18n.js?v=2.8',
-  './app.js?v=5.6',
-  './supabaseClient.js?v=5.2',
+  './style.css?v=5.7',
+  './i18n.js?v=2.9',
+  './app.js?v=5.7',
+  './supabaseClient.js?v=5.3',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
@@ -69,5 +69,128 @@ self.addEventListener('fetch', (event) => {
           }
         });
       })
+  );
+});
+
+// Helper penyusun opsi notifikasi native OS Handphone / Desktop
+function buildSwNotificationOptions(payload) {
+  const p = payload || {};
+  const isUrgent = Boolean(p.urgent);
+  const cleanRoute = p.route
+    ? (String(p.route).startsWith('#') ? String(p.route) : '#' + String(p.route))
+    : '#dashboard';
+
+  return {
+    body: p.body || 'Ada pembaruan operasional baru di Kios IDEP.',
+    icon: p.icon || './icon-192.png',
+    badge: p.badge || './icon-192.png',
+    tag: p.tag || p.id || ('idep-notif-' + Date.now()),
+    renotify: true,
+    requireInteraction: isUrgent,
+    vibrate: isUrgent ? [240, 100, 240, 100, 320] : [150, 70, 150],
+    data: {
+      id: p.id || ('notif-' + Date.now()),
+      title: p.title || 'Kios IDEP',
+      body: p.body || '',
+      category: p.category || 'general',
+      route: cleanRoute,
+      urgent: isUrgent,
+      actor_name: p.actor_name || '',
+      created_at: p.created_at || new Date().toISOString()
+    }
+  };
+}
+
+// Event Push: Menerima Web Push W3C (VAPID) dari Supabase Edge Function saat aplikasi tertutup
+self.addEventListener('push', (event) => {
+  let payload = {
+    title: '🔔 Kios IDEP',
+    body: 'Terdapat aktivitas operasional baru yang memerlukan perhatian.',
+    category: 'general',
+    route: '#dashboard',
+    urgent: false
+  };
+
+  if (event.data) {
+    try {
+      const parsed = event.data.json();
+      if (parsed && typeof parsed === 'object') {
+        payload = Object.assign(payload, parsed);
+      }
+    } catch (err) {
+      try {
+        payload.body = event.data.text() || payload.body;
+      } catch (e) {}
+    }
+  }
+
+  const title = payload.title || '🔔 Kios IDEP';
+  const options = buildSwNotificationOptions(payload);
+
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, options),
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        clientList.forEach((client) => {
+          try {
+            client.postMessage({
+              type: 'SW_PUSH_RECEIVED',
+              payload: Object.assign({}, options.data, { title: title })
+            });
+          } catch (e) {}
+        });
+      })
+    ])
+  );
+});
+
+// Event Message: Menerima instruksi tampilkan notifikasi lokal/realtime dari halaman PWA aktif
+self.addEventListener('message', (event) => {
+  const msg = event.data;
+  if (!msg || typeof msg !== 'object') return;
+
+  if (msg.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    return;
+  }
+
+  if (msg.type === 'SHOW_LOCAL_NOTIFICATION') {
+    const payload = msg.payload || {};
+    const title = payload.title || '🔔 Kios IDEP';
+    const options = buildSwNotificationOptions(payload);
+    event.waitUntil(self.registration.showNotification(title, options));
+  }
+});
+
+// Event Notification Click: Buka aplikasi Kios IDEP & arahkan langsung ke modul terkait (Deep-Link)
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const data = event.notification.data || {};
+  const targetRoute = data.route
+    ? (String(data.route).startsWith('#') ? String(data.route) : '#' + String(data.route))
+    : '#dashboard';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (let i = 0; i < clientList.length; i++) {
+        const client = clientList[i];
+        if (client && 'focus' in client) {
+          return client.focus().then((focusedClient) => {
+            try {
+              (focusedClient || client).postMessage({
+                type: 'NAVIGATE_FROM_NOTIFICATION',
+                route: targetRoute,
+                notifId: data.id || ''
+              });
+            } catch (e) {}
+            return focusedClient || client;
+          });
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow('./index.html' + targetRoute);
+      }
+    })
   );
 });

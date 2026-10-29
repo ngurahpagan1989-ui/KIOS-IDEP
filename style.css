@@ -5437,3 +5437,65 @@ table.purchase-items-table tr.pur-item-row:hover td {
 }
 
 
+
+/* === ROLE VIEW-ONLY & PERMISSION SHIELD === */
+body.perm-no-edit #content button[onclick*="openProductModal"],
+body.perm-no-edit #content button[onclick*="openStockAdjustmentModal"],
+body.perm-no-edit #content button[onclick*="submitProduction"],
+body.perm-no-edit #content button[onclick*="openQCEntryModal"],
+body.perm-no-edit #content button[onclick*="actionCompleteDHT"],
+body.perm-no-edit #content button[onclick*="openPurchaseModal"],
+body.perm-no-edit #content button[onclick*="openSupplierModal"],
+body.perm-no-edit #content button[onclick*="openFarmerModal"],
+body.perm-no-edit #content button[onclick*="openCheckoutModal"],
+body.perm-no-edit #content button[onclick*="openQuickCustomerModal"],
+body.perm-no-edit #content button[onclick*="openOutletModal"],
+body.perm-no-edit #content button[onclick*="openTransferStockModal"],
+body.perm-no-edit #content button[onclick*="openConsignmentAuditModal"],
+body.perm-no-edit #content button[onclick*="openConsignmentInvoiceModal"],
+body.perm-no-edit #content button[onclick*="openDeliveryReceiptModal"],
+body.perm-no-edit #content button[onclick*="openPaymentReceivableModal"],
+body.perm-no-edit #content button[onclick*="openCustomerFormModal"],
+body.perm-no-edit #content button[onclick*="openClaimModal"],
+body.perm-no-edit #content button[onclick*="claimSeedFromTransaction"],
+body.perm-no-edit #content button[onclick*="createComplaintWithBatch"],
+body.perm-no-edit #content button[onclick*="openConsultationModal"],
+body.perm-no-edit #content button[onclick*="markFollowUpDirect"],
+body.perm-no-edit #content button[onclick*="startEditTransaction"],
+body.perm-no-edit #content button[onclick*="saveStoreSettings"],
+body.perm-no-edit #content button[onclick*="addPriceTierPresetRow"],
+body.perm-no-edit #content button[onclick*="clearLogoSetting"],
+body.perm-no-edit #content button[onclick*="unlockBankSettings"],
+body.perm-no-edit #content button[onclick*="openRoleModal"],
+body.perm-no-edit #content button[onclick*="saveRoleMatrixSettings"],
+body.perm-no-edit #content button[onclick*="openUserModal"],
+body.perm-no-edit #content button[onclick*="saveTelegramSettings"],
+body.perm-no-edit #content button[onclick*="testTelegramConnectionUI"],
+body.perm-no-edit #content button[onclick*="resetDefaultExpenseCategories"],
+body.perm-no-edit #modal-container button[onclick*="startEditTransaction"],
+body.perm-no-edit #modal-container button[onclick*="openStockAdjustmentModal"],
+body.perm-no-edit #modal-container button[onclick*="openProductModal"],
+body.perm-no-edit #modal-container button[onclick*="openCustomerFormModal"],
+body.perm-no-edit #modal-container button[onclick*="openOutletModal"],
+body.perm-no-edit #modal-container button[onclick*="openDeliveryReceiptModal"],
+body.perm-no-edit #pos-btn-checkout,
+body.perm-no-edit #pos-btn-hold,
+body.perm-no-edit #btn-save-expense,
+body.perm-no-edit #btn-save-qris-cfg,
+body.perm-no-edit #btn-save-cat {
+  display: none !important;
+}
+
+body.perm-no-delete #content button[onclick*="delete"],
+body.perm-no-delete #content button[onclick*="promptVoidTransaction"],
+body.perm-no-delete #content button[onclick*="executeVoidTransaction"],
+body.perm-no-delete #content button[onclick*="openResetDataModal"],
+body.perm-no-delete #content button[onclick*=".remove()"],
+body.perm-no-delete #content #panel-set-danger,
+body.perm-no-delete #content .btn-void,
+body.perm-no-delete #modal-container button[onclick*="delete"],
+body.perm-no-delete #modal-container button[onclick*="promptVoidTransaction"],
+body.perm-no-delete #modal-container button[onclick*="executeVoidTransaction"],
+body.perm-no-delete #modal-container .btn-void {
+  display: none !important;
+}

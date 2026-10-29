@@ -1614,7 +1614,10 @@
     'Hapus Peran': 'Delete Role',
     '🗑️ Hapus Peran': '🗑️ Delete Role',
     'Memuat daftar pengguna...': 'Loading user list...',
-    'Memuat matriks hak akses...': 'Loading permission matrix...'
+    'Memuat matriks hak akses...': 'Loading permission matrix...',
+    'Mode Pantau (View-Only): Transaksi kasir dinonaktifkan untuk peran ini.': 'View-Only Mode: Cashier transactions are disabled for this role.',
+    'Akses ditolak: Akun Anda berada dalam Mode Pantau (View-Only) dan tidak diizinkan mengubah data.': 'Access denied: Your account is in View-Only Mode and is not permitted to modify data.',
+    'Akses ditolak: Peran Anda tidak memiliki izin menghapus / membatalkan data pada modul ini.': 'Access denied: Your role does not have permission to delete or void records in this module.'
   };
 
   // Pre-compiled regex patterns for dynamic phrases and mixed content

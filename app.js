@@ -44,32 +44,48 @@ try {
   if (cachedRoles) AVAILABLE_ROLES = JSON.parse(cachedRoles);
 } catch (e) { }
 
+function normalizeModuleKey(route) {
+  const r = String(route || 'dashboard').replace(/^#/, '').trim().toLowerCase();
+  if (r === 'purna-jual') return 'purnajual';
+  if (r === 'stok-valuasi' || r === 'valuasi-stok') return 'laporan';
+  return r || 'dashboard';
+}
+
 function isAdmin() {
   const r = (CURRENT_USER && CURRENT_USER.role) || USER_ROLE || '';
   const u = (CURRENT_USER && CURRENT_USER.username) || USER_NAME || '';
   return String(r).toLowerCase().indexOf('admin') !== -1 || String(u).toLowerCase() === 'admin';
 }
 
+function isCoordinator() {
+  if (isAdmin()) return false;
+  const r = String((CURRENT_USER && CURRENT_USER.role) || USER_ROLE || '').trim().toLowerCase();
+  return r.indexOf('koordinator') !== -1 || r.indexOf('coordinator') !== -1;
+}
+
 function userCanView(moduleKey) {
-  if (isAdmin()) return true;
+  if (isAdmin() || isCoordinator()) return true;
+  const key = normalizeModuleKey(moduleKey);
   if (!CURRENT_USER_PERMISSIONS) return true;
-  const mod = CURRENT_USER_PERMISSIONS[moduleKey];
+  const mod = CURRENT_USER_PERMISSIONS[key];
   return mod ? !!mod.can_view : false;
 }
 
 function userCanEdit(moduleKey) {
   if (isAdmin()) return true;
-  if (USER_ROLE === 'Koordinator') return false;
+  if (isCoordinator()) return false;
+  const key = normalizeModuleKey(moduleKey);
   if (!CURRENT_USER_PERMISSIONS) return true;
-  const mod = CURRENT_USER_PERMISSIONS[moduleKey];
+  const mod = CURRENT_USER_PERMISSIONS[key];
   return mod ? !!mod.can_edit : false;
 }
 
 function userCanDelete(moduleKey) {
   if (isAdmin()) return true;
-  if (USER_ROLE === 'Koordinator') return false;
+  if (isCoordinator()) return false;
+  const key = normalizeModuleKey(moduleKey);
   if (!CURRENT_USER_PERMISSIONS) return false;
-  const mod = CURRENT_USER_PERMISSIONS[moduleKey];
+  const mod = CURRENT_USER_PERMISSIONS[key];
   return mod ? !!mod.can_delete : false;
 }
 let PRODUCTS_CACHE = [];
@@ -192,7 +208,64 @@ function setProgressLoading(isLoading) {
   }
 }
 
+const API_WRITE_MODULE_MAP = {
+  'saveProduct': 'produk',
+  'saveBundledProducts': 'produk',
+  'adjustStockBatch': 'stok',
+  'createStockMutation': 'stok',
+  'processProduction': 'produksi',
+  'saveQCStageWithPhoto': 'qc',
+  'startDHTSession': 'qc',
+  'completeDHTSession': 'qc',
+  'createPurchase': 'pembelian',
+  'saveSupplier': 'pembelian',
+  'saveFarmer': 'pembelian',
+  'createTransaction': 'pos',
+  'updateTransaction': 'faktur',
+  'saveOutlet': 'konsinyasi',
+  'transferStockToOutlet': 'konsinyasi',
+  'submitConsignmentAudit': 'konsinyasi',
+  'createConsignmentInvoice': 'konsinyasi',
+  'confirmDeliveryReceipt': 'konsinyasi',
+  'recordReceivablePayment': 'piutang',
+  'createExpense': 'expenses',
+  'createExpenseCategory': 'expenses',
+  'saveCustomer': 'crm',
+  'submitAfterSalesClaim': 'purnajual',
+  'updateAfterSalesClaimStatus': 'purnajual',
+  'saveConsultationLog': 'purnajual',
+  'markFollowUpStatus': 'purnajual',
+  'saveSettings': 'pengaturan',
+  'saveRolePermissions': 'pengaturan',
+  'saveUser': 'pengaturan',
+  'setupTelegramWebhook': 'pengaturan',
+  'testTelegramConnection': 'pengaturan'
+};
+
+const API_DELETE_MODULE_MAP = {
+  'deleteProduct': 'produk',
+  'deleteProduction': 'produksi',
+  'deletePurchase': 'pembelian',
+  'voidTransaction': 'faktur',
+  'deleteTransaction': 'faktur',
+  'deleteExpense': 'expenses',
+  'deleteExpenseCategory': 'expenses',
+  'deleteCustomer': 'crm',
+  'deleteUser': 'pengaturan',
+  'resetTestingData': 'pengaturan'
+};
+
 function api(fnName, ...args) {
+  if (API_DELETE_MODULE_MAP[fnName] && !userCanDelete(API_DELETE_MODULE_MAP[fnName])) {
+    const errDel = new Error('Akses ditolak: Peran Anda tidak memiliki izin menghapus / membatalkan data pada modul ini.');
+    showToast(errDel.message, true);
+    return Promise.reject(errDel);
+  }
+  if (API_WRITE_MODULE_MAP[fnName] && !userCanEdit(API_WRITE_MODULE_MAP[fnName])) {
+    const errEdit = new Error('Akses ditolak: Akun Anda berada dalam Mode Pantau (View-Only) dan tidak diizinkan mengubah data.');
+    showToast(errEdit.message, true);
+    return Promise.reject(errEdit);
+  }
   setProgressLoading(true);
   if (typeof window.dispatchApiCall === 'function') {
     return Promise.resolve(window.dispatchApiCall(fnName, args))
@@ -750,6 +823,12 @@ function handleLogout() {
   removeSafeSession('ekasir_role');
   removeSafeSession('ekasir_permissions');
   removeSafeSession('ekasir_available_roles');
+  if (document.body) {
+    document.body.classList.remove('perm-no-edit', 'perm-no-delete', 'role-koordinator-active');
+  }
+  if (document.body) {
+    document.body.classList.remove('perm-no-edit', 'perm-no-delete', 'role-koordinator-active');
+  }
   if (document.documentElement) document.documentElement.classList.remove('has-session');
   invalidateCache();
   if (typeof logoutSupabaseUser === 'function') {
@@ -857,6 +936,18 @@ function updateSidebarVisibility() {
     }
     sec.style.display = hasVisible ? 'block' : 'none';
   });
+
+  document.querySelectorAll('.mobile-nav-item').forEach(function (mobItem) {
+    const mobRoute = mobItem.getAttribute('data-route') || (mobItem.getAttribute('href') || '').replace('#', '');
+    if (mobRoute) {
+      mobItem.style.display = userCanView(mobRoute) ? '' : 'none';
+    }
+  });
+
+  const quickPosBtn = document.querySelector('.topbar-quick-pos');
+  if (quickPosBtn) {
+    quickPosBtn.style.display = (userCanView('pos') && userCanEdit('pos')) ? '' : 'none';
+  }
 }
 
 function prefetchCoreDataInBackground() {
@@ -1151,78 +1242,347 @@ function router(forceRefresh) {
   applyViewOnlyRestrictions(route);
 }
 
-function applyViewOnlyRestrictions(route) {
-  setTimeout(function () {
+const PERM_EDIT_SELECTORS = [
+  '#pos-btn-checkout',
+  '#pos-btn-hold',
+  '#btn-save-product',
+  '#btn-submit-adj',
+  '#btn-save-qc',
+  '#btn-start-dht',
+  '#btn-complete-dht',
+  '#btn-submit-outlet',
+  '#btn-submit-transfer',
+  '#btn-submit-delivery',
+  '#btn-submit-audit',
+  '#btn-submit-consign-inv',
+  '#btn-submit-rec-pay',
+  '#btn-submit-claim',
+  '#btn-submit-csl',
+  '#btn-unlock-bank-settings',
+  '#btn-save-tg',
+  '#btn-test-tg',
+  '#btn-webhook-tg',
+  '#btn-save-user',
+  '#btn-save-expense',
+  '#btn-save-qris-cfg',
+  '#btn-save-cat',
+  'button[onclick*="openProductModal"]',
+  'button[onclick*="submitProduct"]',
+  'button[onclick*="addPriceTierRow"]',
+  'button[onclick*="addBundledPackRow"]',
+  'button[onclick*="addCustomTierToPack"]',
+  'button[onclick*="openStockAdjustmentModal"]',
+  'button[onclick*="submitStockAdjustment"]',
+  'button[onclick*="submitProduction"]',
+  'button[onclick*="processQuickPackaging"]',
+  'button[onclick*="setGramToBatchMax"]',
+  'button[onclick*="openQCEntryModal"]',
+  'button[onclick*="actionCompleteDHT"]',
+  'button[onclick*="submitQCForm"]',
+  'button[onclick*="triggerQCCamera"]',
+  'button[onclick*="removeQCPhoto"]',
+  'button[onclick*="openPurchaseModal"]',
+  'button[onclick*="openSupplierModal"]',
+  'button[onclick*="openFarmerModal"]',
+  'button[onclick*="submitPurchase"]',
+  'button[onclick*="addPurchaseItemRow"]',
+  'button[onclick*="regenerateBatchRow"]',
+  'button[onclick*="toggleManualBatchInput"]',
+  'button[onclick*="openCheckoutModal"]',
+  'button[onclick*="submitCheckout"]',
+  'button[onclick*="openQuickCustomerModal"]',
+  'button[onclick*="updateCartQty"]',
+  'button[onclick*="addToCartWithTier"]',
+  'button[onclick*="openOutletModal"]',
+  'button[onclick*="openTransferStockModal"]',
+  'button[onclick*="openConsignmentAuditModal"]',
+  'button[onclick*="openConsignmentInvoiceModal"]',
+  'button[onclick*="openDeliveryReceiptModal"]',
+  'button[onclick*="submitOutletForm"]',
+  'button[onclick*="submitTransferStock"]',
+  'button[onclick*="submitConsignmentAuditUI"]',
+  'button[onclick*="submitConsignmentInvoice"]',
+  'button[onclick*="submitDeliveryReceipt"]',
+  'button[onclick*="addTransferStockRow"]',
+  'button[onclick*="openPaymentReceivableModal"]',
+  'button[onclick*="submitReceivablePayment"]',
+  'button[onclick*="submitNewExpense"]',
+  'button[onclick*="submitNewExpenseCategory"]',
+  'button[onclick*="saveExpensesQrisConfig"]',
+  'button[onclick*="resetDefaultExpenseCategories"]',
+  'button[onclick*="openCustomerFormModal"]',
+  'button[onclick*="submitCustomerForm"]',
+  'button[onclick*="openClaimModal"]',
+  'button[onclick*="claimSeedFromTransaction"]',
+  'button[onclick*="createComplaintWithBatch"]',
+  'button[onclick*="openConsultationModal"]',
+  'button[onclick*="markFollowUpDirect"]',
+  'button[onclick*="submitClaimForm"]',
+  'button[onclick*="submitConsultationForm"]',
+  'button[onclick*="startEditTransaction"]',
+  'button[onclick*="saveStoreSettings"]',
+  'button[onclick*="addPriceTierPresetRow"]',
+  'button[onclick*="clearLogoSetting"]',
+  'button[onclick*="unlockBankSettings"]',
+  'button[onclick*="openRoleModal"]',
+  'button[onclick*="saveRoleMatrixSettings"]',
+  'button[onclick*="openUserModal"]',
+  'button[onclick*="submitUserForm"]',
+  'button[onclick*="submitRoleForm"]',
+  'button[onclick*="saveTelegramSettings"]',
+  'button[onclick*="testTelegramConnectionUI"]'
+].join(', ');
+
+const PERM_DELETE_SELECTORS = [
+  '#btn-submit-void-tx',
+  '#btn-execute-reset',
+  '#panel-set-danger',
+  'button[onclick*="deleteProductUI"]',
+  'button[onclick*="deleteProductionUI"]',
+  'button[onclick*="deletePurchaseUI"]',
+  'button[onclick*="deleteTransactionUI"]',
+  'button[onclick*="promptVoidTransaction"]',
+  'button[onclick*="executeVoidTransaction"]',
+  'button[onclick*="deleteCustomerUI"]',
+  'button[onclick*="deleteExpenseRecord"]',
+  'button[onclick*="deleteExpenseUI"]',
+  'button[onclick*="deleteExpenseCategory"]',
+  'button[onclick*="deleteUserAccount"]',
+  'button[onclick*="deleteUserUI"]',
+  'button[onclick*="deleteCustomRole"]',
+  'button[onclick*="openResetDataModal"]',
+  'button[onclick*="executeResetTestingData"]',
+  'button[onclick*=".remove()"]',
+  '.btn-void'
+].join(', ');
+
+function isSafeNonMutationButton(el) {
+  if (!el) return true;
+  if (el.id === 'alert-modal-ok-btn' || el.id === 'confirm-modal-cancel-btn' || el.classList.contains('modal-close-btn') || el.classList.contains('lang-btn')) {
+    return true;
+  }
+  const onclickStr = String(el.getAttribute('onclick') || '').toLowerCase();
+  if (!onclickStr) return false;
+  return (
+    onclickStr.indexOf('setlanguage') !== -1 ||
+    onclickStr.indexOf('switch') !== -1 ||
+    onclickStr.indexOf('selectroletab') !== -1 ||
+    onclickStr.indexOf('filter') !== -1 ||
+    onclickStr.indexOf('search') !== -1 ||
+    onclickStr.indexOf('print') !== -1 ||
+    onclickStr.indexOf('export') !== -1 ||
+    onclickStr.indexOf('close') !== -1 ||
+    onclickStr.indexOf('cancel') !== -1 ||
+    onclickStr.indexOf('zoom') !== -1 ||
+    onclickStr.indexOf('viewdeliveryreceiptmodal') !== -1 ||
+    onclickStr.indexOf('openclaimphotoview') !== -1 ||
+    onclickStr.indexOf('openqcphotoviewer') !== -1 ||
+    onclickStr.indexOf('openqchistorymodal') !== -1 ||
+    onclickStr.indexOf('openbatchdetailmodal') !== -1 ||
+    onclickStr.indexOf('showbatchdetail') !== -1 ||
+    onclickStr.indexOf('showcustomerdetail') !== -1 ||
+    onclickStr.indexOf('showoutletdetailmodal') !== -1 ||
+    onclickStr.indexOf('opentransactiondetailmodal') !== -1 ||
+    onclickStr.indexOf('opentransactionhistorymodal') !== -1 ||
+    onclickStr.indexOf('openinvoicemodal') !== -1 ||
+    onclickStr.indexOf('loadinvoicepreview') !== -1 ||
+    onclickStr.indexOf('opentransfersuratjalan') !== -1 ||
+    onclickStr.indexOf('changemutationpage') !== -1
+  );
+}
+
+let _permObserverInitialized = false;
+let _permApplying = false;
+
+function getCurrentActiveRoute() {
+  try {
+    return normalizeModuleKey((location.hash || '#dashboard').replace('#', '') || 'dashboard');
+  } catch (e) {
+    return 'dashboard';
+  }
+}
+
+function enforceRolePermissionsDOM(routeOverride) {
+  if (_permApplying) return;
+  _permApplying = true;
+  try {
+    const route = normalizeModuleKey(routeOverride || getCurrentActiveRoute());
     const isEditAllowed = userCanEdit(route);
     const isDeleteAllowed = userCanDelete(route);
 
+    if (document.body) {
+      document.body.classList.toggle('perm-no-edit', !isEditAllowed);
+      document.body.classList.toggle('perm-no-delete', !isDeleteAllowed);
+      document.body.classList.toggle('role-koordinator-active', isCoordinator());
+    }
+
+    // Pulihkan elemen yang sebelumnya disembunyikan jika sekarang diizinkan
+    if (isEditAllowed) {
+      document.querySelectorAll('[data-hidden-by-perm="edit"]').forEach(function (el) {
+        el.style.removeProperty('display');
+        el.removeAttribute('data-hidden-by-perm');
+      });
+    }
+    if (isDeleteAllowed) {
+      document.querySelectorAll('[data-hidden-by-perm="delete"]').forEach(function (el) {
+        el.style.removeProperty('display');
+        el.removeAttribute('data-hidden-by-perm');
+      });
+    }
+    if (isEditAllowed && isDeleteAllowed) {
+      document.querySelectorAll('.perm-empty-action-dash').forEach(function (el) { el.remove(); });
+      return;
+    }
+
+    const scopes = [
+      document.getElementById('content'),
+      document.getElementById('modal-container'),
+      document.getElementById('modal-qc-entry'),
+      document.getElementById('modal-user-entry'),
+      document.getElementById('modal-role-entry'),
+      document.getElementById('modal-delivery-receipt')
+    ].filter(Boolean);
+
     if (!isEditAllowed) {
-      const content = document.getElementById('content');
-      if (!content) return;
+      scopes.forEach(function (scope) {
+        scope.querySelectorAll(PERM_EDIT_SELECTORS).forEach(function (el) {
+          if (!isSafeNonMutationButton(el)) {
+            el.style.setProperty('display', 'none', 'important');
+            el.setAttribute('data-hidden-by-perm', 'edit');
+          }
+        });
 
-      const mutationSelectors = [
-        '#pos-btn-checkout',
-        '#pos-btn-hold',
-        '#btn-save-qc',
-        '#btn-start-dht',
-        '#btn-complete-dht',
-        'button[onclick*="save"]',
-        'button[onclick*="create"]',
-        'button[onclick*="add"]',
-        'button[onclick*="process"]',
-        'button[onclick*="submit"]',
-        'button[onclick*="openProductModal"]',
-        'button[onclick*="openQCEntryModal"]',
-        'button[onclick*="openPurchaseModal"]',
-        'button[onclick*="processQuickPackaging"]',
-        'button[onclick*="openNewTransferModal"]',
-        'button[onclick*="openAuditModal"]'
-      ];
-
-      mutationSelectors.forEach(function (sel) {
-        content.querySelectorAll(sel).forEach(function (btn) {
-          const onclickStr = (btn.getAttribute('onclick') || '').toLowerCase();
-          const isNavOrPreview = onclickStr.indexOf('switch') !== -1 ||
-            onclickStr.indexOf('filter') !== -1 ||
-            onclickStr.indexOf('search') !== -1 ||
-            onclickStr.indexOf('tab') !== -1 ||
-            onclickStr.indexOf('print') !== -1 ||
-            onclickStr.indexOf('export') !== -1 ||
-            onclickStr.indexOf('close') !== -1 ||
-            onclickStr.indexOf('zoom') !== -1 ||
-            onclickStr.indexOf('view') !== -1 ||
-            onclickStr.indexOf('photo') !== -1;
-          if (!isNavOrPreview) {
-            btn.disabled = true;
-            btn.classList.add('disabled');
-            btn.title = 'Peran ' + USER_ROLE + ' dalam mode pantau (View-Only)';
-            btn.style.opacity = '0.5';
-            btn.style.cursor = 'not-allowed';
+        // Sembunyikan tombol upload logo pada Pengaturan
+        scope.querySelectorAll('#set-logo-file, #set-logo-light-file').forEach(function (inp) {
+          const lbl = inp.closest('label');
+          if (lbl) {
+            lbl.style.setProperty('display', 'none', 'important');
+            lbl.setAttribute('data-hidden-by-perm', 'edit');
           }
         });
       });
+
+      const contentEl = document.getElementById('content');
+      if (contentEl) {
+        // Sembunyikan card Form Pengemasan Baru di modul Kemas Mandiri agar bersih
+        if (route === 'produksi') {
+          const prodSource = contentEl.querySelector('#prod-source');
+          const prodCard = prodSource ? prodSource.closest('.card') : null;
+          if (prodCard) {
+            prodCard.style.setProperty('display', 'none', 'important');
+            prodCard.setAttribute('data-hidden-by-perm', 'edit');
+          }
+        }
+
+        // Sembunyikan card Form Catat Pengeluaran & Tambah Kategori di modul Pengeluaran
+        if (route === 'expenses') {
+          const expForm = contentEl.querySelector('#form-new-expense');
+          const expCard = expForm ? expForm.closest('.card') : null;
+          if (expCard) {
+            expCard.style.setProperty('display', 'none', 'important');
+            expCard.setAttribute('data-hidden-by-perm', 'edit');
+            if (expCard.parentElement && expCard.parentElement.style && expCard.parentElement.style.gridTemplateColumns) {
+              expCard.parentElement.style.gridTemplateColumns = '1fr';
+            }
+          }
+          const catInput = contentEl.querySelector('#cat-name-input');
+          const catCard = catInput ? catInput.closest('.card') : null;
+          if (catCard) {
+            catCard.style.setProperty('display', 'none', 'important');
+            catCard.setAttribute('data-hidden-by-perm', 'edit');
+            if (catCard.parentElement && catCard.parentElement.style && catCard.parentElement.style.gridTemplateColumns) {
+              catCard.parentElement.style.gridTemplateColumns = '1fr';
+            }
+          }
+          contentEl.querySelectorAll('#qris-mdr-input, input[name="qris-mdr-payer"]').forEach(function (inp) {
+            inp.disabled = true;
+          });
+        }
+
+        // Kunci seluruh field input di modul Pengaturan (kecuali pencarian/filter)
+        if (route === 'pengaturan') {
+          contentEl.querySelectorAll('input, select, textarea').forEach(function (inp) {
+            inp.disabled = true;
+            inp.style.cursor = 'not-allowed';
+          });
+        }
+      }
     }
 
     if (!isDeleteAllowed) {
-      const content = document.getElementById('content');
-      if (!content) return;
-      const deleteSelectors = [
-        'button[onclick*="void"]',
-        'button[onclick*="delete"]',
-        'button[onclick*="remove"]',
-        '.btn-danger',
-        '.btn-void'
-      ];
-      deleteSelectors.forEach(function (sel) {
-        content.querySelectorAll(sel).forEach(function (btn) {
-          const onclickStr = (btn.getAttribute('onclick') || '').toLowerCase();
-          if (onclickStr.indexOf('close') === -1 && onclickStr.indexOf('cancel') === -1) {
-            btn.style.display = 'none';
+      scopes.forEach(function (scope) {
+        scope.querySelectorAll(PERM_DELETE_SELECTORS).forEach(function (el) {
+          if (!isSafeNonMutationButton(el)) {
+            el.style.setProperty('display', 'none', 'important');
+            el.setAttribute('data-hidden-by-perm', 'delete');
+          }
+        });
+        scope.querySelectorAll('.btn-danger').forEach(function (el) {
+          if (!isSafeNonMutationButton(el)) {
+            el.style.setProperty('display', 'none', 'important');
+            el.setAttribute('data-hidden-by-perm', 'delete');
           }
         });
       });
     }
-  }, 120);
+
+    // Rapikan kolom Aksi pada tabel: jika seluruh tombol di dalam <td> disembunyikan, tampilkan tanda '—'
+    const contentNode = document.getElementById('content');
+    if (contentNode) {
+      contentNode.querySelectorAll('table tbody td').forEach(function (td) {
+        const hasHiddenBtn = td.querySelector('[data-hidden-by-perm]');
+        if (!hasHiddenBtn) return;
+        const visibleInteractive = Array.from(td.querySelectorAll('button, a.btn, input, select')).filter(function (item) {
+          return item.style.display !== 'none' && !item.hasAttribute('data-hidden-by-perm');
+        });
+        const existingDash = td.querySelector('.perm-empty-action-dash');
+        if (visibleInteractive.length === 0) {
+          const plainText = td.textContent.replace(/s+/g, '').trim();
+          // Cek apakah teks yang tersisa hanya berasal dari tombol yang disembunyikan
+          let clone = td.cloneNode(true);
+          clone.querySelectorAll('[data-hidden-by-perm], .perm-empty-action-dash').forEach(function (n) { n.remove(); });
+          if (!clone.textContent.trim() && !existingDash) {
+            const dash = document.createElement('span');
+            dash.className = 'perm-empty-action-dash';
+            dash.style.cssText = 'color:#9CA3AF;font-size:12px;user-select:none;';
+            dash.textContent = '—';
+            td.appendChild(dash);
+          }
+        } else if (existingDash) {
+          existingDash.remove();
+        }
+      });
+    }
+  } finally {
+    _permApplying = false;
+  }
+}
+
+function initPermissionDOMObserver() {
+  if (_permObserverInitialized || typeof MutationObserver === 'undefined') return;
+  _permObserverInitialized = true;
+  let rafScheduled = false;
+  const observer = new MutationObserver(function () {
+    if (_permApplying || rafScheduled) return;
+    const route = getCurrentActiveRoute();
+    if (userCanEdit(route) && userCanDelete(route)) return;
+    rafScheduled = true;
+    requestAnimationFrame(function () {
+      rafScheduled = false;
+      enforceRolePermissionsDOM();
+    });
+  });
+  if (document.body) {
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+}
+
+function applyViewOnlyRestrictions(route) {
+  initPermissionDOMObserver();
+  enforceRolePermissionsDOM(route);
+  setTimeout(function () {
+    enforceRolePermissionsDOM(route);
+  }, 150);
 }
 
 function renderPlaceholder(route) {
@@ -5682,6 +6042,10 @@ function getDefaultTierForProduct(product) {
 }
 
 function handlePOSProductClick(productId, forceDirectReguler) {
+  if (!userCanEdit('pos')) {
+    showToast('Mode Pantau (View-Only): Transaksi kasir dinonaktifkan untuk peran ini.', false, true);
+    return;
+  }
   const p = PRODUCTS_CACHE.filter(function (x) { return x.id === productId; })[0];
   if (!p) return;
   if (Number(p.stock || 0) <= 0) {
@@ -15497,6 +15861,10 @@ function onExpenseAmountInput(val) {
 
 async function submitNewExpense(e) {
   if (e && e.preventDefault) e.preventDefault();
+  if (!userCanEdit('expenses')) {
+    showToast('Akses ditolak: Akun Anda berada dalam Mode Pantau (View-Only) dan tidak diizinkan mengubah data.', true);
+    return false;
+  }
 
   const dateInput = document.getElementById('exp-date');
   const catInput = document.getElementById('exp-category');
@@ -15588,6 +15956,14 @@ async function submitNewExpense(e) {
 }
 
 function deleteExpenseRecord(id, desc, amount) {
+  if (!userCanDelete('expenses')) {
+    showToast('Akses ditolak: Peran Anda tidak memiliki izin menghapus / membatalkan data pada modul ini.', true);
+    return;
+  }
+  if (!userCanDelete('expenses')) {
+    showToast('Akses ditolak: Peran Anda tidak memiliki izin menghapus / membatalkan data pada modul ini.', true);
+    return;
+  }
   showConfirmDialog(
     'Hapus Catatan Pengeluaran?',
     'Apakah Anda yakin ingin membatalkan/menghapus pengeluaran "' + desc + '" sebesar ' + formatRupiah(amount) + '? Data yang dihapus tidak dapat dipulihkan.',
@@ -15661,6 +16037,10 @@ function onQrisSimulateChange() {
 
 function saveExpensesQrisConfig(e) {
   if (e && e.preventDefault) e.preventDefault();
+  if (!userCanEdit('expenses')) {
+    showToast('Akses ditolak: Akun Anda berada dalam Mode Pantau (View-Only) dan tidak diizinkan mengubah data.', true);
+    return false;
+  }
 
   const mdrInput = document.getElementById('qris-mdr-input');
   const payerRadio = document.querySelector('input[name="qris-mdr-payer"]:checked');
@@ -15680,6 +16060,10 @@ function saveExpensesQrisConfig(e) {
 
 async function submitNewExpenseCategory(e) {
   if (e && e.preventDefault) e.preventDefault();
+  if (!userCanEdit('expenses')) {
+    showToast('Akses ditolak: Akun Anda berada dalam Mode Pantau (View-Only) dan tidak diizinkan mengubah data.', true);
+    return false;
+  }
 
   const nameInput = document.getElementById('cat-name-input');
   const descInput = document.getElementById('cat-desc-input');
@@ -15728,6 +16112,14 @@ async function submitNewExpenseCategory(e) {
 }
 
 function deleteExpenseCategory(catId, catName) {
+  if (!userCanDelete('expenses')) {
+    showToast('Akses ditolak: Peran Anda tidak memiliki izin menghapus / membatalkan data pada modul ini.', true);
+    return;
+  }
+  if (!userCanDelete('expenses')) {
+    showToast('Akses ditolak: Peran Anda tidak memiliki izin menghapus / membatalkan data pada modul ini.', true);
+    return;
+  }
   showConfirmDialog(
     'Hapus Kategori Biaya?',
     'Apakah Anda yakin ingin menghapus kategori "' + catName + '"?',
@@ -15762,6 +16154,14 @@ function deleteExpenseCategory(catId, catName) {
 }
 
 function resetDefaultExpenseCategories() {
+  if (!userCanEdit('expenses')) {
+    showToast('Akses ditolak: Akun Anda berada dalam Mode Pantau (View-Only) dan tidak diizinkan mengubah data.', true);
+    return;
+  }
+  if (!userCanEdit('expenses')) {
+    showToast('Akses ditolak: Akun Anda berada dalam Mode Pantau (View-Only) dan tidak diizinkan mengubah data.', true);
+    return;
+  }
   showConfirmDialog(
     'Pulihkan Kategori Standar?',
     'Daftar kategori pengeluaran akan diatur ulang ke 7 kategori standar IDEP. Lanjutkan?',
@@ -16014,7 +16414,7 @@ if ('serviceWorker' in navigator) {
     window.location.reload();
   });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js?v=5.6', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=5.7', { updateViaCache: 'none' })
       .then(function (reg) {
         console.log('[PWA] Service Worker Kios IDEP berhasil terdaftar:', reg.scope);
         try { if (reg.update) reg.update(); } catch (e) {}

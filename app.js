@@ -800,6 +800,28 @@ function enterApp() {
   router();
   updateGlobalReceivableBadge();
   prefetchCoreDataInBackground();
+  syncGlobalRolePermissions();
+}
+
+function syncGlobalRolePermissions() {
+  api('getRolePermissions', TOKEN).then(function (res) {
+    if (!res) return;
+    const perms = (res.permissions && typeof res.permissions === 'object') ? res.permissions : (typeof res === 'object' && !res.error ? res : null);
+    if (!perms) return;
+    CURRENT_ROLES_PERMISSIONS = perms;
+    const rolesList = Array.isArray(res.roles) && res.roles.length > 0 ? res.roles : Object.keys(perms);
+    AVAILABLE_ROLES = rolesList;
+    setSafeSession('ekasir_available_roles', JSON.stringify(AVAILABLE_ROLES));
+    if (USER_ROLE && perms[USER_ROLE]) {
+      CURRENT_USER_PERMISSIONS = perms[USER_ROLE];
+      setSafeSession('ekasir_permissions', JSON.stringify(CURRENT_USER_PERMISSIONS));
+    }
+    updateSidebarVisibility();
+    const roleContainer = document.getElementById('role-matrix-container');
+    if (roleContainer) {
+      renderRoleMatrixUI();
+    }
+  }).catch(function () {});
 }
 
 function updateSidebarVisibility() {
@@ -13243,6 +13265,21 @@ function drawPengaturanUI(settings) {
     });
   }
 
+  if (settings && settings['role_permissions']) {
+    try {
+      const parsedPerms = typeof settings['role_permissions'] === 'string'
+        ? JSON.parse(settings['role_permissions'])
+        : settings['role_permissions'];
+      const resolvedPerms = (parsedPerms && parsedPerms.permissions && typeof parsedPerms.permissions === 'object')
+        ? parsedPerms.permissions
+        : parsedPerms;
+      if (resolvedPerms && typeof resolvedPerms === 'object' && !Array.isArray(resolvedPerms)) {
+        CURRENT_ROLES_PERMISSIONS = resolvedPerms;
+        AVAILABLE_ROLES = Object.keys(resolvedPerms);
+        setSafeSession('ekasir_available_roles', JSON.stringify(AVAILABLE_ROLES));
+      }
+    } catch (e) {}
+  }
   if (!CURRENT_ROLES_PERMISSIONS) {
     CURRENT_ROLES_PERMISSIONS = getDefaultRolesPermissions();
   }
@@ -13291,15 +13328,19 @@ function loadRolePermissionsUI() {
   }
   renderRoleMatrixUI();
 
-  if (!isAdmin()) return;
-
   api('getRolePermissions', TOKEN).then(function (res) {
     if (res && res.permissions && typeof res.permissions === 'object') {
       CURRENT_ROLES_PERMISSIONS = res.permissions;
-      if (res.roles) AVAILABLE_ROLES = res.roles;
+      AVAILABLE_ROLES = Array.isArray(res.roles) && res.roles.length > 0 ? res.roles : Object.keys(res.permissions);
+      setSafeSession('ekasir_available_roles', JSON.stringify(AVAILABLE_ROLES));
+      if (APP_SETTINGS && typeof APP_SETTINGS === 'object') {
+        APP_SETTINGS['role_permissions'] = JSON.stringify(CURRENT_ROLES_PERMISSIONS);
+      }
       renderRoleMatrixUI();
     } else if (res && typeof res === 'object' && !res.error) {
       CURRENT_ROLES_PERMISSIONS = res;
+      AVAILABLE_ROLES = Object.keys(res);
+      setSafeSession('ekasir_available_roles', JSON.stringify(AVAILABLE_ROLES));
       renderRoleMatrixUI();
     }
   }).catch(function (err) {
@@ -13486,11 +13527,25 @@ function saveRoleMatrixSettings() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
 
   api('saveRolePermissions', TOKEN, CURRENT_ROLES_PERMISSIONS).then(function () {
+    AVAILABLE_ROLES = Object.keys(CURRENT_ROLES_PERMISSIONS);
+    setSafeSession('ekasir_available_roles', JSON.stringify(AVAILABLE_ROLES));
+    if (APP_SETTINGS && typeof APP_SETTINGS === 'object') {
+      APP_SETTINGS['role_permissions'] = JSON.stringify(CURRENT_ROLES_PERMISSIONS);
+    }
+    invalidateCache('settings');
     showToast('Matriks hak akses berhasil disimpan!');
-    if (btn) { btn.disabled = false; btn.textContent = '💾 Simpan Matriks Hak Akses'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '💾 Simpan Matriks Hak Akses';
+      if (window.i18n && typeof window.i18n.translateDOM === 'function') window.i18n.translateDOM(btn);
+    }
   }).catch(function (err) {
     showToast('Gagal menyimpan hak akses: ' + (err.message || err), true);
-    if (btn) { btn.disabled = false; btn.textContent = '💾 Simpan Matriks Hak Akses'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '💾 Simpan Matriks Hak Akses';
+      if (window.i18n && typeof window.i18n.translateDOM === 'function') window.i18n.translateDOM(btn);
+    }
   });
 }
 window.saveRoleMatrixSettings = saveRoleMatrixSettings;
@@ -13501,7 +13556,12 @@ function deleteCustomRole(roleName) {
     if (CURRENT_ROLES_PERMISSIONS && CURRENT_ROLES_PERMISSIONS[roleName]) {
       delete CURRENT_ROLES_PERMISSIONS[roleName];
     }
-    AVAILABLE_ROLES = (AVAILABLE_ROLES || []).filter(function (r) { return r !== roleName; });
+    AVAILABLE_ROLES = Object.keys(CURRENT_ROLES_PERMISSIONS || {});
+    setSafeSession('ekasir_available_roles', JSON.stringify(AVAILABLE_ROLES));
+    if (APP_SETTINGS && typeof APP_SETTINGS === 'object') {
+      APP_SETTINGS['role_permissions'] = JSON.stringify(CURRENT_ROLES_PERMISSIONS);
+    }
+    invalidateCache('settings');
     CURRENT_SELECTED_ROLE_TAB = 'Admin';
     renderRoleMatrixUI();
     api('saveRolePermissions', TOKEN, CURRENT_ROLES_PERMISSIONS).then(function () {
@@ -13552,12 +13612,15 @@ function submitRoleForm(e) {
     return false;
   }
 
-  if (CURRENT_ROLES_PERMISSIONS && CURRENT_ROLES_PERMISSIONS[newRole]) {
-    showToast('Peran "' + newRole + '" sudah ada.', true);
+  if (!CURRENT_ROLES_PERMISSIONS) CURRENT_ROLES_PERMISSIONS = getDefaultRolesPermissions();
+  const existingRole = Object.keys(CURRENT_ROLES_PERMISSIONS).find(function (r) {
+    return r.toLowerCase() === newRole.toLowerCase();
+  });
+  if (existingRole) {
+    showToast('Peran "' + existingRole + '" sudah ada.', true);
     return false;
   }
 
-  if (!CURRENT_ROLES_PERMISSIONS) CURRENT_ROLES_PERMISSIONS = getDefaultRolesPermissions();
   const defaultPerms = {};
   const allRoutes = ['dashboard', 'pos', 'produk', 'stok', 'produksi', 'qc', 'pembelian', 'konsinyasi', 'piutang', 'expenses', 'crm', 'purnajual', 'faktur', 'laporan', 'pengaturan'];
   allRoutes.forEach(function (m) {
@@ -13565,12 +13628,21 @@ function submitRoleForm(e) {
   });
 
   CURRENT_ROLES_PERMISSIONS[newRole] = defaultPerms;
-  if (AVAILABLE_ROLES.indexOf(newRole) === -1) AVAILABLE_ROLES.push(newRole);
+  AVAILABLE_ROLES = Object.keys(CURRENT_ROLES_PERMISSIONS);
+  setSafeSession('ekasir_available_roles', JSON.stringify(AVAILABLE_ROLES));
+  if (APP_SETTINGS && typeof APP_SETTINGS === 'object') {
+    APP_SETTINGS['role_permissions'] = JSON.stringify(CURRENT_ROLES_PERMISSIONS);
+  }
+  invalidateCache('settings');
 
   closeRoleModal();
   selectRoleTab(newRole);
-  api('saveRolePermissions', TOKEN, CURRENT_ROLES_PERMISSIONS).catch(function () {});
-  showToast('Peran baru berhasil ditambahkan.');
+
+  api('saveRolePermissions', TOKEN, CURRENT_ROLES_PERMISSIONS).then(function () {
+    showToast('Peran baru berhasil ditambahkan.');
+  }).catch(function (err) {
+    showToast('Gagal menyimpan hak akses: ' + (err.message || err), true);
+  });
   return false;
 }
 
@@ -15942,7 +16014,7 @@ if ('serviceWorker' in navigator) {
     window.location.reload();
   });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js?v=5.5', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=5.6', { updateViaCache: 'none' })
       .then(function (reg) {
         console.log('[PWA] Service Worker Kios IDEP berhasil terdaftar:', reg.scope);
         try { if (reg.update) reg.update(); } catch (e) {}

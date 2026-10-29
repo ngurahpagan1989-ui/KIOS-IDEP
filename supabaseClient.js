@@ -790,7 +790,10 @@ async function dispatchApiCall(fnName, args) {
         price_tiers: tiersRes.data || [],
         priceTiers: ['Reguler', 'Outlet', 'Bali Buda'],
         customers: customersRes.data || [],
-        settings: settingsRes?.data || []
+        settings: (settingsRes?.data || []).reduce((acc, s) => {
+          if (s && s.key) acc[s.key] = s.value;
+          return acc;
+        }, {})
       };
     }
 
@@ -2916,29 +2919,44 @@ async function dispatchApiCall(fnName, args) {
     }
 
     case 'getRolePermissions': {
-      const { data, error } = await supabase.from('settings').select('value').eq('key', 'role_permissions').maybeSingle();
+      const { data: rows } = await supabase
+        .from('settings')
+        .select('value, updated_at')
+        .eq('key', 'role_permissions')
+        .order('updated_at', { ascending: false })
+        .limit(1);
+      const data = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
       let perms = null;
       if (data && data.value) {
         try {
-          const parsed = JSON.parse(data.value);
-          perms = parsed.permissions ? parsed.permissions : parsed;
+          const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+          perms = (parsed && parsed.permissions && typeof parsed.permissions === 'object') ? parsed.permissions : parsed;
         } catch (e) { }
       }
-      if (!perms || typeof perms !== 'object') {
-        const defaultAll = { can_view: true, can_edit: true, can_delete: true };
-        const viewOnly = { can_view: true, can_edit: false, can_delete: false };
-        const modules = ['dashboard', 'pos', 'produk', 'stok', 'produksi', 'qc', 'pembelian', 'konsinyasi', 'piutang', 'expenses', 'crm', 'purnajual', 'faktur', 'laporan', 'pengaturan'];
-        perms = {
-          'Admin': {},
-          'Koordinator': {},
-          'QC': {},
-          'Kasir': {}
-        };
-        modules.forEach(m => {
-          perms['Admin'][m] = Object.assign({}, defaultAll);
-          perms['Koordinator'][m] = Object.assign({}, viewOnly);
-          perms['QC'][m] = (['dashboard', 'qc', 'stok', 'produksi'].includes(m)) ? Object.assign({}, defaultAll) : Object.assign({}, viewOnly);
-          perms['Kasir'][m] = (['dashboard', 'pos', 'produk', 'faktur', 'crm', 'purnajual'].includes(m)) ? Object.assign({}, defaultAll) : Object.assign({}, viewOnly);
+      const defaultAll = { can_view: true, can_edit: true, can_delete: true };
+      const viewOnly = { can_view: true, can_edit: false, can_delete: false };
+      const modules = ['dashboard', 'pos', 'produk', 'stok', 'produksi', 'qc', 'pembelian', 'konsinyasi', 'piutang', 'expenses', 'crm', 'purnajual', 'faktur', 'laporan', 'pengaturan'];
+      const basePerms = {
+        'Admin': {},
+        'Koordinator': {},
+        'QC': {},
+        'Kasir': {}
+      };
+      modules.forEach(m => {
+        basePerms['Admin'][m] = Object.assign({}, defaultAll);
+        basePerms['Koordinator'][m] = Object.assign({}, viewOnly);
+        basePerms['QC'][m] = (['dashboard', 'qc', 'stok', 'produksi'].includes(m)) ? Object.assign({}, defaultAll) : Object.assign({}, viewOnly);
+        basePerms['Kasir'][m] = (['dashboard', 'pos', 'produk', 'faktur', 'crm', 'purnajual'].includes(m)) ? Object.assign({}, defaultAll) : Object.assign({}, viewOnly);
+      });
+
+      if (!perms || typeof perms !== 'object' || Array.isArray(perms)) {
+        perms = basePerms;
+      } else {
+        // Pastikan 4 role utama tetap ada, sambil mempertahankan seluruh role baru/kustom dari database
+        Object.keys(basePerms).forEach(baseRole => {
+          if (!perms[baseRole] || typeof perms[baseRole] !== 'object') {
+            perms[baseRole] = basePerms[baseRole];
+          }
         });
       }
       return {
@@ -2949,13 +2967,36 @@ async function dispatchApiCall(fnName, args) {
 
     case 'saveRolePermissions': {
       const [, perms] = args;
+      const toSave = (perms && perms.permissions && typeof perms.permissions === 'object') ? perms.permissions : perms;
+      const nowIso = new Date().toISOString();
       const { error } = await supabase.from('settings').upsert({
         key: 'role_permissions',
-        value: JSON.stringify(perms),
-        updated_at: new Date().toISOString()
-      });
-      if (error) throw error;
-      return { success: true };
+        value: JSON.stringify(toSave),
+        updated_at: nowIso
+      }, { onConflict: 'key' });
+      if (error) {
+        // Fallback: update jika sudah ada, insert jika belum ada
+        const { data: exist } = await supabase.from('settings').select('key').eq('key', 'role_permissions').limit(1);
+        if (exist && exist.length > 0) {
+          const { error: updErr } = await supabase.from('settings').update({
+            value: JSON.stringify(toSave),
+            updated_at: nowIso
+          }).eq('key', 'role_permissions');
+          if (updErr) throw updErr;
+        } else {
+          const { error: insErr } = await supabase.from('settings').insert({
+            key: 'role_permissions',
+            value: JSON.stringify(toSave),
+            updated_at: nowIso
+          });
+          if (insErr) throw insErr;
+        }
+      }
+      return {
+        success: true,
+        roles: Object.keys(toSave || {}),
+        permissions: toSave
+      };
     }
 
     case 'changePassword': {

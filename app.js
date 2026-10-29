@@ -1511,6 +1511,10 @@ function router(forceRefresh) {
   if (titleEl) titleEl.textContent = (window.t ? window.t(rawTitle) : rawTitle);
 
   closeSidebarMobile();
+  const activeTopbar = document.querySelector('.topbar');
+  if (activeTopbar) activeTopbar.classList.remove('mobile-search-open');
+  const mobSearchBtn = document.getElementById('mobile-search-toggle-btn');
+  if (mobSearchBtn) mobSearchBtn.classList.remove('active');
 
   switch (route) {
     case 'dashboard': renderDashboard(forceRefresh); break;
@@ -1664,6 +1668,7 @@ function isSafeNonMutationButton(el) {
   return (
     onclickStr.indexOf('setlanguage') !== -1 ||
     onclickStr.indexOf('switch') !== -1 ||
+    onclickStr.indexOf('scroll') !== -1 ||
     onclickStr.indexOf('selectroletab') !== -1 ||
     onclickStr.indexOf('filter') !== -1 ||
     onclickStr.indexOf('search') !== -1 ||
@@ -1960,7 +1965,7 @@ function drawDashboardUI(data) {
     '<div class="stat-meta">Tagihan tempo berjalan</div>' +
     '</div>' +
     '</div>' +
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;">' +
+    '<div class="dashboard-panels-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">' +
     renderPanel('Stok Menipis (&le; 5 pcs/gr)', data.lowStock, function (item) {
       return '<span style="font-weight:600;">' + escapeHtml(item.name) + '</span><span class="badge badge-danger">Sisa ' + item.stock + '</span>';
     }, 'Semua persediaan stok dalam batas aman.') +
@@ -2026,11 +2031,14 @@ function drawProdukUI(products) {
     '</div>' +
     '<button type="button" class="btn btn-primary" onclick="openProductModal()">+ Tambah Produk</button>' +
     '</div>' +
-    '<div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap;">' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
     '<button type="button" class="btn ' + (CURRENT_PRODUCT_TAB === 'all' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" id="tab-all" onclick="setProductTab(\'all\')">Semua (' + countAll + ')</button>' +
     '<button type="button" class="btn ' + (CURRENT_PRODUCT_TAB === 'jadi' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" id="tab-jadi" onclick="setProductTab(\'jadi\')">📦 Siap Jual (' + countJadi + ')</button>' +
     '<button type="button" class="btn ' + (CURRENT_PRODUCT_TAB === 'mentah' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" id="tab-mentah" onclick="setProductTab(\'mentah\')">🌾 Curah/Gram (' + countMentah + ')</button>' +
     '<button type="button" class="btn ' + (CURRENT_PRODUCT_TAB === 'media' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" id="tab-media" onclick="setProductTab(\'media\')">📚 Media/Buku (' + countMedia + ')</button>' +
+    '</div>' +
+    '<input type="text" id="produk-search-input" placeholder="🔍 Cari nama produk atau kategori..." oninput="PRODUCT_SEARCH_QUERY=(this.value||\'\').toLowerCase().trim();renderFilteredProducts();" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:260px;background:#fff;">' +
     '</div>' +
     '<div class="card">' +
     '<div class="table-container">' +
@@ -5332,11 +5340,7 @@ function openPurchaseModal() {
   openModal('Pembelian / Pengadaan Baru', bodyHtml, footerHtml, true);
   const dialog = document.getElementById('modal-dialog');
   if (dialog) {
-    dialog.classList.add('w-[94vw]', 'max-w-7xl', 'max-h-[92vh]', 'overflow-y-auto', 'p-6');
-    dialog.style.width = '94vw';
-    dialog.style.maxWidth = '1280px';
-    dialog.style.maxHeight = '92vh';
-    dialog.style.overflowY = 'auto';
+    dialog.classList.add('modal-dialog-xl');
   }
   renderSupplierOptions();
   renderFarmerOptions();
@@ -6062,14 +6066,18 @@ function submitPurchase() {
 }
 
 // ========================= KASIR (POS) =========================
+let POS_MOBILE_ACTIVE_PANE = 'catalog';
+
 function renderPOS(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
+  POS_MOBILE_ACTIVE_PANE = EDITING_TRANSACTION ? 'cart' : 'catalog';
+
   let editBannerHTML = '';
   if (EDITING_TRANSACTION) {
     editBannerHTML =
-      '<div style="background:var(--warning-bg);border:1px solid rgba(217,130,43,0.3);color:var(--warning);padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">' +
+      '<div style="background:var(--warning-bg);border:1px solid rgba(217,130,43,0.3);color:var(--warning);padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">' +
       '<div><strong>🔄 MODE KOREKSI NOTA:</strong> #' + escapeHtml(EDITING_TRANSACTION.id) + ' (' + formatDate(EDITING_TRANSACTION.created_at) + ')</div>' +
       '<button type="button" class="btn btn-secondary btn-sm" onclick="cancelEditMode()">Batal Koreksi</button>' +
       '</div>';
@@ -6077,7 +6085,11 @@ function renderPOS(forceRefresh) {
 
   content.innerHTML =
     editBannerHTML +
-    '<div class="pos-layout">' +
+    '<div class="pos-mobile-tabs" role="tablist" aria-label="Mode Tampilan Kasir">' +
+    '<button type="button" id="pos-mob-tab-catalog" class="pos-mob-tab-btn' + (POS_MOBILE_ACTIVE_PANE === 'catalog' ? ' active' : '') + '" onclick="switchPOSMobilePane(\'catalog\')">📦 Katalog Produk</button>' +
+    '<button type="button" id="pos-mob-tab-cart" class="pos-mob-tab-btn' + (POS_MOBILE_ACTIVE_PANE === 'cart' ? ' active' : '') + '" onclick="switchPOSMobilePane(\'cart\')">🛒 Keranjang <span id="pos-mob-cart-badge" class="pos-mob-cart-badge" data-no-i18n="true">0</span></button>' +
+    '</div>' +
+    '<div class="pos-layout" data-mobile-pane="' + POS_MOBILE_ACTIVE_PANE + '">' +
     '<div class="pos-catalog-panel">' +
     '<div class="pos-filter-bar">' +
     '<input type="text" id="pos-search" class="topbar-search" placeholder="Cari produk kemasan..." style="flex:1;">' +
@@ -6088,7 +6100,10 @@ function renderPOS(forceRefresh) {
     '<div class="pos-cart-panel">' +
     '<div class="pos-cart-header">' +
     '<strong>' + (EDITING_TRANSACTION ? 'Koreksi Nota' : 'Keranjang Penjualan') + '</strong>' +
+    '<div style="display:flex;gap:6px;align-items:center;">' +
+    '<button type="button" class="btn btn-secondary btn-sm pos-mobile-back-catalog-btn" onclick="switchPOSMobilePane(\'catalog\')">+ Produk</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="CART=[];renderCart();">Kosongkan</button>' +
+    '</div>' +
     '</div>' +
     '<div style="padding:10px 14px;background:var(--surface-muted);border-bottom:1px solid var(--border);">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
@@ -6114,6 +6129,13 @@ function renderPOS(forceRefresh) {
     '<div class="pos-cart-items" id="pos-cart-items"></div>' +
     '<div class="pos-cart-summary" id="pos-cart-summary"></div>' +
     '</div>' +
+    '</div>' +
+    '<div id="pos-mobile-sticky-bar" class="pos-mobile-sticky-bar" data-visible="false">' +
+    '<div class="pos-sticky-info" onclick="switchPOSMobilePane(\'cart\')" style="cursor:pointer;">' +
+    '<span id="pos-sticky-qty" class="pos-sticky-qty">0 Item di Keranjang</span>' +
+    '<span id="pos-sticky-total" class="pos-sticky-total" data-no-i18n="true">Rp 0</span>' +
+    '</div>' +
+    '<button type="button" class="btn btn-primary btn-sm pos-sticky-cta" onclick="switchPOSMobilePane(\'cart\')">Buka Keranjang &rarr;</button>' +
     '</div>';
 
   populateCustomerDatalist();
@@ -6544,6 +6566,7 @@ function renderCart() {
   if (CART.length === 0) {
     itemsEl.innerHTML = '<div style="text-align:center;padding:40px 10px;color:var(--text-secondary);font-size:13px;">Keranjang masih kosong.<br>Klik produk untuk menambahkan.</div>';
     summaryEl.innerHTML = '';
+    updatePOSMobileCartIndicators(0, 0);
     return;
   }
 
@@ -6620,6 +6643,55 @@ function renderCart() {
     '<button type="button" class="btn btn-primary btn-block btn-lg" style="margin-top:12px;" onclick="openCheckoutModal(' + total + ')">' +
     (EDITING_TRANSACTION ? 'Simpan Koreksi' : '⚡ Bayar Transaksi') +
     '</button>';
+
+  const totalQtyCount = CART.reduce(function (s, i) { return s + Number(i.qty || 0); }, 0);
+  updatePOSMobileCartIndicators(totalQtyCount, total);
+}
+
+
+function switchPOSMobilePane(pane) {
+  POS_MOBILE_ACTIVE_PANE = (pane === 'cart') ? 'cart' : 'catalog';
+  const layout = document.querySelector('.pos-layout');
+  if (layout) {
+    layout.setAttribute('data-mobile-pane', POS_MOBILE_ACTIVE_PANE);
+  }
+  const tabCatalog = document.getElementById('pos-mob-tab-catalog');
+  const tabCart = document.getElementById('pos-mob-tab-cart');
+  if (tabCatalog) tabCatalog.classList.toggle('active', POS_MOBILE_ACTIVE_PANE === 'catalog');
+  if (tabCart) tabCart.classList.toggle('active', POS_MOBILE_ACTIVE_PANE === 'cart');
+  const subtotal = CART.reduce(function (s, i) { return s + (i.price * i.qty); }, 0);
+  const taxRate = Number(APP_SETTINGS['tax_rate'] || 0) / 100;
+  const total = subtotal + Math.round(subtotal * taxRate);
+  const totalQty = CART.reduce(function (s, i) { return s + Number(i.qty || 0); }, 0);
+  updatePOSMobileCartIndicators(totalQty, total);
+  const contentEl = document.getElementById('content');
+  if (contentEl && window.innerWidth <= 768) {
+    contentEl.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+window.switchPOSMobilePane = switchPOSMobilePane;
+
+function updatePOSMobileCartIndicators(totalQty, totalAmount) {
+  const badge = document.getElementById('pos-mob-cart-badge');
+  if (badge) badge.textContent = String(totalQty || 0);
+
+  const stickyBar = document.getElementById('pos-mobile-sticky-bar');
+  const stickyQty = document.getElementById('pos-sticky-qty');
+  const stickyTotal = document.getElementById('pos-sticky-total');
+  const layout = document.querySelector('.pos-layout');
+  const activePane = layout ? (layout.getAttribute('data-mobile-pane') || 'catalog') : POS_MOBILE_ACTIVE_PANE;
+
+  if (stickyQty) {
+    const itemLabel = (window.t ? window.t('Item di Keranjang') : 'Item di Keranjang');
+    stickyQty.textContent = String(totalQty || 0) + ' ' + itemLabel;
+  }
+  if (stickyTotal) {
+    stickyTotal.textContent = formatRupiah(totalAmount || 0);
+  }
+  if (stickyBar) {
+    const shouldShow = (totalQty > 0) && (activePane !== 'cart') && userCanEdit('pos');
+    stickyBar.setAttribute('data-visible', shouldShow ? 'true' : 'false');
+  }
 }
 
 function openCheckoutModal(total) {
@@ -7892,6 +7964,14 @@ function buildInvoiceControlBarHTML(tx, activeMode) {
     '</div>';
 }
 
+function scrollToFakturListMobile() {
+  const listCard = document.querySelector('.faktur-list-card');
+  if (listCard && window.innerWidth <= 768) {
+    listCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+window.scrollToFakturListMobile = scrollToFakturListMobile;
+
 function closeInvoicePanel() {
   const panel = document.getElementById('invoice-panel');
   if (panel) {
@@ -7902,6 +7982,7 @@ function closeInvoicePanel() {
       '<p style="font-size:13px;">Klik salah satu nota di panel kiri untuk membuka faktur dan menu aksinya.</p>' +
       '</div>';
   }
+  scrollToFakturListMobile();
 }
 
 function openInvoiceModal(transactionId, template) {
@@ -10536,6 +10617,9 @@ function drawCRMUI(customers) {
     '</div>' +
     '<button type="button" class="btn btn-primary" onclick="openCustomerFormModal()">+ Tambah Pelanggan</button>' +
     '</div>' +
+    '<div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">' +
+    '<input type="text" id="crm-search" placeholder="🔍 Cari nama pelanggan, no. WhatsApp, atau kategori..." oninput="renderFilteredCustomers()" style="padding:8px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:340px;background:#fff;">' +
+    '</div>' +
     '<div class="table-container">' +
     '<table>' +
     '<thead>' +
@@ -10548,6 +10632,20 @@ function drawCRMUI(customers) {
 
   renderCustomerTable(customers);
 }
+
+function renderFilteredCustomers() {
+  const inp = document.getElementById('crm-search');
+  const q = (inp ? inp.value : '').toLowerCase().trim();
+  const filtered = (CUSTOMERS_CACHE || []).filter(function (c) {
+    return !q ||
+      String(c.name || '').toLowerCase().includes(q) ||
+      String(c.phone || '').toLowerCase().includes(q) ||
+      String(c.email || '').toLowerCase().includes(q) ||
+      String(c.category || '').toLowerCase().includes(q);
+  });
+  renderCustomerTable(filtered);
+}
+window.renderFilteredCustomers = renderFilteredCustomers;
 
 function renderCustomerTable(customers) {
   const tbody = document.getElementById('crm-tbody');
@@ -10638,6 +10736,9 @@ function showCustomerDetail(customerId) {
   const detailEl = document.getElementById('crm-detail');
   if (!detailEl) return;
   detailEl.innerHTML = '<div class="card"><div class="empty-state">Menyusun riwayat transaksi 360°...</div></div>';
+  if (window.innerWidth <= 768) {
+    setTimeout(function () { detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+  }
 
   api('getCustomerDetail', TOKEN, customerId).then(function (data) {
     const c = data.customer || {};
@@ -10646,17 +10747,17 @@ function showCustomerDetail(customerId) {
 
     detailEl.innerHTML =
       '<div class="card">' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:16px;">' +
       '<div>' +
       '<h2>' + escapeHtml(c.name) + '</h2>' +
       '<div style="color:var(--text-secondary);font-size:13px;margin-top:2px;">' + escapeHtml(c.phone || '-') + ' &bull; ' + escapeHtml(c.email || '-') + '</div>' +
       '</div>' +
-      '<div style="text-align:right;">' +
+      '<div style="text-align:left;">' +
       '<div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;">Total Pengeluaran Belanja</div>' +
       '<div style="font-size:24px;font-weight:800;color:var(--primary);">' + formatRupiah(data.totalSpending) + '</div>' +
       '</div>' +
       '</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
+      '<div class="crm-detail-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">' +
       '<div>' +
       '<h3 style="font-size:14px;margin-bottom:10px;">Riwayat Nota Belanja</h3>' +
       '<div style="max-height:220px;overflow-y:auto;">' +
@@ -13762,7 +13863,7 @@ function drawPengaturanUI(settings) {
     '</div>' +
 
     '<div id="pane-profile" class="setting-pane" style="display:' + (activeTab === 'profile' ? 'block' : 'none') + ';">' +
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">' +
+    '<div class="settings-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">' +
     '<div class="card">' +
     '<h3 style="margin-bottom:16px;">Profil Toko &amp; Pajak</h3>' +
     '<div class="field-group">' +
@@ -15272,8 +15373,8 @@ function drawFakturUI(list) {
     '</div>' +
     '</div>' +
 
-    '<div style="display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start;">' +
-    '<div class="card" style="max-height:86vh;overflow-y:auto;padding:14px;">' +
+    '<div class="faktur-master-grid" style="display:grid;grid-template-columns:360px 1fr;gap:16px;align-items:start;">' +
+    '<div class="card faktur-list-card" style="max-height:86vh;overflow-y:auto;padding:14px;">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
     '<h3 style="font-size:14px;margin:0;">Daftar Transaksi</h3>' +
     '<span style="font-size:11px;color:var(--text-secondary);">' + list.length + ' Nota</span>' +
@@ -15368,7 +15469,7 @@ function renderFakturRows(list) {
       ? '<div style="font-size:10px;color:#DC2626;margin-top:2px;font-style:italic;">Dibatalkan: ' + escapeHtml(t.void_reason || 'Nota Void') + '</div>'
       : '';
 
-    return '<div style="' + cardStyle + '" onclick="loadInvoicePreview(\'' + t.id + '\')">' +
+    return '<div style="' + cardStyle + '" onclick="loadInvoicePreview(\'' + t.id + '\', true)">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;">' +
       '<strong style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);font-size:12px;">#' + escapeHtml(t.id) + '</strong>' +
       badge +
@@ -15417,13 +15518,16 @@ function filterFakturList() {
   filterFakturTable();
 }
 
-function loadInvoicePreview(transactionId) {
+function loadInvoicePreview(transactionId, fromUserTap) {
   SELECTED_FAKTUR_ID = transactionId;
   filterFakturList();
 
   const panel = document.getElementById('invoice-panel');
   if (!panel) return;
   panel.innerHTML = '<div class="card"><div class="empty-state"><span class="spinner" style="display:inline-block;width:24px;height:24px;border:3px solid rgba(30,77,63,0.2);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:8px;"></span><br>Memuat faktur #' + escapeHtml(transactionId) + '...</div></div>';
+  if (fromUserTap && window.innerWidth <= 768) {
+    setTimeout(function () { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+  }
 
   api('getInvoiceData', TOKEN, transactionId).then(function (data) {
     window._curInv = data;
@@ -15513,6 +15617,7 @@ function renderInvoiceLayout(data, template) {
     (!isVoid ? '<button type="button" class="btn btn-secondary btn-sm" onclick="startEditTransaction(\'' + tx.id + '\')">✏️ Koreksi Nota</button>' : '') +
     (!isVoid && adminUser ? '<button type="button" class="btn btn-danger btn-sm btn-tx-void" onclick="promptVoidTransaction(\'' + tx.id + '\', \'' + escapeHtml(custName).replace(/'/g, "\\'") + '\')" style="font-weight:700;">⚠️ Batalkan (Void)</button>' : '') +
     (adminUser ? '<button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTransactionUI(\'' + tx.id + '\')" style="color:#DC2626;border:1px solid #DC2626;padding:4px 8px;font-size:11px;" title="Hapus permanen darurat (khusus admin)">🗑️</button>' : '') +
+    '<button type="button" class="btn btn-secondary btn-sm faktur-mobile-back-btn" onclick="scrollToFakturListMobile()">&uarr; Daftar Nota</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="closeInvoicePanel()" title="Tutup pratinjau faktur">✕ Tutup</button>' +
     '</div>' +
     '</div>' +
@@ -15899,7 +16004,7 @@ function renderExpensesEntryTabHtml(filteredList, categories, totalMonth, totalC
     '</div>' +
 
     // 2. Form Input Pengeluaran & Riwayat Grid
-    '<div style="display:grid;grid-template-columns:minmax(320px, 380px) 1fr;gap:20px;align-items:start;">' +
+    '<div class="expenses-split-grid" style="display:grid;grid-template-columns:minmax(320px, 380px) 1fr;gap:20px;align-items:start;">' +
     // FORMULIR PENCATATAN PENGELUARAN
     '<div class="card" style="padding:20px;">' +
     '<h3 style="font-size:16px;font-weight:700;margin:0 0 16px;display:flex;align-items:center;gap:8px;">' +
@@ -16129,7 +16234,7 @@ function renderExpensesCategoriesTabHtml(categories, expenses) {
   });
 
   return (
-    '<div style="display:grid;grid-template-columns:minmax(300px, 360px) 1fr;gap:20px;align-items:start;">' +
+    '<div class="expenses-split-grid" style="display:grid;grid-template-columns:minmax(300px, 360px) 1fr;gap:20px;align-items:start;">' +
     // FORM TAMBAH KATEGORI
     '<div class="card" style="padding:20px;">' +
     '<h3 style="font-size:16px;font-weight:700;margin:0 0 16px;display:flex;align-items:center;gap:8px;">' +
@@ -16659,9 +16764,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // 6. Pencarian Global Topbar (#topbar-global-search & #search-clear-btn)
+  // 6. Pencarian Global Topbar (#topbar-global-search, #search-clear-btn & #mobile-search-toggle-btn)
   const globalSearchInput = document.getElementById('topbar-global-search');
   const searchClearBtn = document.getElementById('search-clear-btn');
+  const mobileSearchToggleBtn = document.getElementById('mobile-search-toggle-btn');
+
+  if (mobileSearchToggleBtn) {
+    mobileSearchToggleBtn.addEventListener('click', function (e) {
+      if (e) e.preventDefault();
+      const topbarEl = document.querySelector('.topbar');
+      if (!topbarEl) return;
+      const isOpen = topbarEl.classList.toggle('mobile-search-open');
+      mobileSearchToggleBtn.classList.toggle('active', isOpen);
+      if (isOpen && globalSearchInput) {
+        setTimeout(function () { globalSearchInput.focus(); }, 60);
+      }
+    });
+  }
 
   function handleGlobalSearch(query) {
     const q = (query || '').trim().toLowerCase();
@@ -16692,6 +16811,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // 2. Jika di Katalog Produk
     else if (currentRoute === 'produk') {
       PRODUCT_SEARCH_QUERY = q;
+      const prodSearch = document.getElementById('produk-search-input');
+      if (prodSearch && prodSearch.value !== query) {
+        prodSearch.value = query;
+      }
       if (typeof renderFilteredProducts === 'function') {
         renderFilteredProducts();
       }

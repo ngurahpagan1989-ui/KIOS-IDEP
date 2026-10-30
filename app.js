@@ -250,6 +250,7 @@ const API_DELETE_MODULE_MAP = {
   'deleteTransaction': 'faktur',
   'deleteExpense': 'expenses',
   'deleteExpenseCategory': 'expenses',
+  'deleteOutlet': 'konsinyasi',
   'deleteCustomer': 'crm',
   'deleteUser': 'pengaturan',
   'resetTestingData': 'pengaturan'
@@ -1651,6 +1652,7 @@ const PERM_DELETE_SELECTORS = [
   'button[onclick*="deleteTransactionUI"]',
   'button[onclick*="promptVoidTransaction"]',
   'button[onclick*="executeVoidTransaction"]',
+  'button[onclick*="deleteOutletUI"]',
   'button[onclick*="deleteCustomerUI"]',
   'button[onclick*="deleteExpenseRecord"]',
   'button[onclick*="deleteExpenseUI"]',
@@ -8196,7 +8198,7 @@ function drawKonsinyasiUI(list) {
         '<td>' +
         '<div style="font-weight:700;color:var(--text-main);font-size:13px;display:flex;align-items:center;gap:6px;">' +
         '<span>' + escapeHtml(o.name) + '</span>' +
-        (o.status === 'inactive' ? '<span class="badge badge-neutral" style="font-size:9px;">Nonaktif</span>' : '') +
+        (String(o.status || '').toLowerCase() === 'inactive' ? '<span class="badge badge-neutral" style="font-size:9px;">Nonaktif</span>' : '') +
         '</div>' +
         (o.address ? ('<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">📍 ' + escapeHtml(o.address) + '</div>') : '') +
         '</td>' +
@@ -8212,7 +8214,8 @@ function drawKonsinyasiUI(list) {
         '</td>' +
         '<td style="text-align:right;white-space:nowrap;">' +
         '<button type="button" class="btn btn-primary btn-sm" onclick="showOutletDetailModal(\'' + o.id + '\')" style="margin-right:4px;">👁️ Lihat Detail</button>' +
-        '<button type="button" class="btn btn-secondary btn-sm" onclick="openOutletModal(\'' + o.id + '\')" title="Edit Profil Outlet">✏️</button>' +
+        '<button type="button" class="btn btn-secondary btn-sm" onclick="openOutletModal(\'' + o.id + '\')" title="Edit Profil Outlet" style="margin-right:4px;">✏️</button>' +
+        '<button type="button" class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="deleteOutletUI(\'' + o.id + '\', \'' + escapeHtml(o.name || '').replace(/'/g, "\\'") + '\')" title="Hapus Outlet">🗑️</button>' +
         '</td>' +
         '</tr>';
     }).join('') : '<tr><td colspan="6"><div style="text-align:center;padding:24px;">Belum ada outlet mitra terdaftar. Klik "+ Tambah Outlet Mitra" untuk mendaftarkan toko mitra baru.</div></td></tr>') +
@@ -8278,8 +8281,8 @@ function openOutletModal(outletId) {
     '<div>' +
     '<label class="field-label">Status Operasional Outlet</label>' +
     '<select id="out-status" class="field-input" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
-    '<option value="active"' + (!existing || existing.status !== 'inactive' ? ' selected' : '') + '>Aktif (Bisa Terima Drop Stok)</option>' +
-    '<option value="inactive"' + (existing && existing.status === 'inactive' ? ' selected' : '') + '>Nonaktif</option>' +
+    '<option value="active"' + (!existing || String(existing.status || '').toLowerCase() !== 'inactive' ? ' selected' : '') + '>Aktif (Bisa Terima Drop Stok)</option>' +
+    '<option value="inactive"' + (existing && String(existing.status || '').toLowerCase() === 'inactive' ? ' selected' : '') + '>Nonaktif</option>' +
     '</select>' +
     '</div>' +
     '</div>';
@@ -8329,6 +8332,26 @@ function submitOutletForm(outletId) {
     showToast('Gagal: ' + (err.message || err), true);
   });
 }
+
+function deleteOutletUI(outletId, outletName) {
+  if (!outletId) return;
+  const label = outletName || 'Outlet Mitra';
+  showConfirmDialog(
+    'Hapus Outlet Mitra',
+    'Apakah Anda yakin ingin menghapus data outlet "' + label + '"? (Hanya outlet yang belum memiliki stok di rak atau riwayat surat jalan yang dapat dihapus).',
+    function () {
+      api('deleteOutlet', TOKEN, outletId).then(function () {
+        if (DATA_CACHE.outlets) DATA_CACHE.outlets.timestamp = 0;
+        showToast('Outlet "' + label + '" berhasil dihapus.');
+        renderKonsinyasi(true);
+      }).catch(function (err) {
+        showToast('Gagal menghapus outlet: ' + (err.message || err), true);
+      });
+    },
+    true
+  );
+}
+window.deleteOutletUI = deleteOutletUI;
 
 // ========================= MODAL 360° DETAIL OUTLET MITRA =========================
 window._currentOutletDetail = null;
@@ -16944,7 +16967,7 @@ if ('serviceWorker' in navigator) {
     }
   });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js?v=6.0', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=6.1', { updateViaCache: 'none' })
       .then(function (reg) {
         console.log('[PWA] Service Worker Kios IDEP berhasil terdaftar:', reg.scope);
         try { if (reg.update) reg.update(); } catch (e) {}

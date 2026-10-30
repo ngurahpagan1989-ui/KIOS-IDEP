@@ -2030,13 +2030,56 @@ async function dispatchApiCall(fnName, args) {
     // G. KONSINYASI CABANG (OUTLETS, AUDITS, TRANSFERS)
     // --------------------------------------------------------------------------
     case 'getOutlets': {
-      const { data, error } = await supabase
-        .from('outlets')
-        .select('*')
-        .eq('status', 'ACTIVE')
-        .order('name', { ascending: true });
-      if (error) throw error;
-      return data || [];
+      const [outletsRes, stocksRes, auditsRes] = await Promise.all([
+        supabase.from('outlets').select('*').order('name', { ascending: true }),
+        supabase.from('outlet_stocks').select('outlet_id, qty_current'),
+        supabase.from('consignment_audits').select('outlet_id, audit_date, created_at').order('audit_date', { ascending: false })
+      ]);
+      if (outletsRes.error) throw outletsRes.error;
+
+      const stockSumMap = {};
+      (stocksRes.data || []).forEach(s => {
+        if (!s || !s.outlet_id) return;
+        stockSumMap[s.outlet_id] = (stockSumMap[s.outlet_id] || 0) + Number(s.qty_current || 0);
+      });
+
+      const lastAuditMap = {};
+      (auditsRes.data || []).forEach(a => {
+        if (!a || !a.outlet_id) return;
+        const dt = a.audit_date || a.created_at;
+        if (dt && !lastAuditMap[a.outlet_id]) {
+          lastAuditMap[a.outlet_id] = dt;
+        }
+      });
+
+      const nowMs = Date.now();
+      const enriched = (outletsRes.data || []).map(o => {
+        const isInactive = String(o.status || 'active').trim().toLowerCase() === 'inactive';
+        const refDateStr = lastAuditMap[o.id] || o.created_at || null;
+        let daysSinceAudit = 0;
+        if (refDateStr) {
+          const parsedMs = new Date(refDateStr).getTime();
+          if (!isNaN(parsedMs)) {
+            daysSinceAudit = Math.max(0, Math.floor((nowMs - parsedMs) / 86400000));
+          }
+        }
+        const auditStatus = daysSinceAudit > 30 ? 'red' : (daysSinceAudit > 14 ? 'yellow' : 'green');
+        return {
+          ...o,
+          status: isInactive ? 'inactive' : 'active',
+          total_stock_pcs: stockSumMap[o.id] || 0,
+          last_audit_date: lastAuditMap[o.id] || null,
+          days_since_audit: daysSinceAudit,
+          audit_status: auditStatus
+        };
+      });
+
+      enriched.sort((a, b) => {
+        if (a.status !== b.status) return a.status === 'active' ? -1 : 1;
+        return String(a.name || '').localeCompare(String(b.name || ''), 'id');
+      });
+
+      return enriched;
     }
 
     case 'getAllConsignmentTransfers': {
@@ -2863,15 +2906,31 @@ async function dispatchApiCall(fnName, args) {
 
     case 'saveOutlet': {
       const [, payload] = args;
+      const cleanName = String(payload.name || '').trim();
+      if (!cleanName) {
+        throw new Error('Nama outlet mitra wajib diisi.');
+      }
+      if (!payload.id) {
+        const { data: dupList } = await supabase
+          .from('outlets')
+          .select('id, name')
+          .ilike('name', cleanName)
+          .limit(1);
+        if (Array.isArray(dupList) && dupList.length > 0) {
+          throw new Error('Outlet mitra dengan nama "' + cleanName + '" sudah terdaftar.');
+        }
+      }
+      const isInactive = String(payload.status || 'ACTIVE').trim().toLowerCase() === 'inactive';
       const outletObj = {
-        name: payload.name,
-        pic_name: payload.pic_name,
+        name: cleanName,
+        pic_name: String(payload.pic_name || '').trim(),
         phone: payload.phone || '',
         address: payload.address || '',
         price_tier: payload.price_tier || 'Outlet',
         visit_interval_days: Number(payload.visit_interval_days) || 14,
         notes: payload.notes || '',
-        status: payload.status || 'ACTIVE'
+        status: isInactive ? 'INACTIVE' : 'ACTIVE',
+        updated_at: new Date().toISOString()
       };
       if (payload.id) {
         outletObj.id = payload.id;
@@ -2881,24 +2940,80 @@ async function dispatchApiCall(fnName, args) {
       return { success: true, id: data.id, outlet: data };
     }
 
+    case 'deleteOutlet': {
+      const [, outletId] = args;
+      if (!outletId) throw new Error('ID outlet tidak valid.');
+
+      const [stkCheck, trfCheck, audCheck] = await Promise.all([
+        supabase.from('outlet_stocks').select('qty_current').eq('outlet_id', outletId),
+        supabase.from('consignment_transfers').select('id').eq('outlet_id', outletId).limit(1),
+        supabase.from('consignment_audits').select('id').eq('outlet_id', outletId).limit(1)
+      ]);
+
+      const activeQty = (stkCheck.data || []).reduce((s, r) => s + Number(r.qty_current || 0), 0);
+      if (activeQty > 0 || (trfCheck.data && trfCheck.data.length > 0) || (audCheck.data && audCheck.data.length > 0)) {
+        throw new Error('Outlet ini sudah memiliki stok rak atau riwayat surat jalan/opname. Silakan ubah statusnya menjadi Nonaktif.');
+      }
+
+      await supabase.from('outlet_stocks').delete().eq('outlet_id', outletId);
+      const { error } = await supabase.from('outlets').delete().eq('id', outletId);
+      if (error) throw error;
+      return { success: true };
+    }
+
     case 'getOutletDetail': {
       const [, outletId] = args;
-      const [outletRes, stocksRes, transfersRes, auditsRes] = await Promise.all([
+      const [outletRes, stocksRes, transfersRes, auditsRes, tiersRes] = await Promise.all([
         supabase.from('outlets').select('*').eq('id', outletId).single(),
-        supabase.from('outlet_stocks').select('*, products(name, unit)').eq('outlet_id', outletId),
+        supabase.from('outlet_stocks').select('*, products(name, unit, sell_price)').eq('outlet_id', outletId),
         supabase.from('consignment_transfers').select('*').eq('outlet_id', outletId).order('sent_at', { ascending: false }).limit(30),
-        supabase.from('consignment_audits').select('*, consignment_audit_items(*)').eq('outlet_id', outletId).order('audit_date', { ascending: false }).limit(30)
+        supabase.from('consignment_audits').select('*, consignment_audit_items(*)').eq('outlet_id', outletId).order('audit_date', { ascending: false }).limit(30),
+        supabase.from('price_tiers').select('product_id, tier_name, price')
       ]);
       if (outletRes.error) throw outletRes.error;
+
+      const outletRow = outletRes.data || {};
+      const outletTierName = String(outletRow.price_tier || 'Outlet').trim().toLowerCase();
+      const tiersByProd = {};
+      (tiersRes.data || []).forEach(t => {
+        if (!t || !t.product_id) return;
+        if (!tiersByProd[t.product_id]) tiersByProd[t.product_id] = [];
+        tiersByProd[t.product_id].push(t);
+      });
+
+      const auditsList = auditsRes.data || [];
+      const latestAuditStr = (auditsList[0] && (auditsList[0].audit_date || auditsList[0].created_at)) || outletRow.created_at || null;
+      let daysSinceAudit = 0;
+      if (latestAuditStr) {
+        const ms = new Date(latestAuditStr).getTime();
+        if (!isNaN(ms)) daysSinceAudit = Math.max(0, Math.floor((Date.now() - ms) / 86400000));
+      }
+      const normalizedOutlet = {
+        ...outletRow,
+        status: String(outletRow.status || 'active').trim().toLowerCase() === 'inactive' ? 'inactive' : 'active',
+        days_since_audit: daysSinceAudit,
+        audit_status: daysSinceAudit > 30 ? 'red' : (daysSinceAudit > 14 ? 'yellow' : 'green')
+      };
+
       return {
-        outlet: outletRes.data,
-        stocks: (stocksRes.data || []).map(s => ({
-          ...s,
-          product_name: s.products ? s.products.name : 'Produk',
-          unit: s.products ? s.products.unit : 'pcs'
-        })),
+        outlet: normalizedOutlet,
+        stocks: (stocksRes.data || []).map(s => {
+          const pTiers = tiersByProd[s.product_id] || [];
+          const exactTier = pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === outletTierName)
+            || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'outlet')
+            || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'reguler');
+          const unitPrice = exactTier ? Number(exactTier.price || 0) : Number(s.products?.sell_price || 0);
+          const qtyCur = Number(s.qty_current || 0);
+          return {
+            ...s,
+            product_name: s.products ? s.products.name : 'Produk',
+            unit: s.products ? s.products.unit : 'pcs',
+            tier_price: unitPrice,
+            subtotal: qtyCur * unitPrice
+          };
+        }),
         transfers: transfersRes.data || [],
-        audits: auditsRes.data || []
+        audits: auditsList
       };
     }
 

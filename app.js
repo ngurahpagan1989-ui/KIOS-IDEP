@@ -210,6 +210,7 @@ function setProgressLoading(isLoading) {
 
 const API_WRITE_MODULE_MAP = {
   'saveProduct': 'produk',
+  'importBulkProducts': 'produk',
   'saveBundledProducts': 'produk',
   'adjustStockBatch': 'stok',
   'createStockMutation': 'stok',
@@ -2040,7 +2041,11 @@ function drawProdukUI(products) {
     '<h1 class="page-title">Katalog Produk</h1>' +
     '<p class="page-subtitle">Kelola master data barang siap jual, bahan baku curah, media dan varian bahasa.</p>' +
     '</div>' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
+    '<button type="button" class="btn btn-secondary" onclick="downloadProductTemplate()">📥 Download Templat CSV</button>' +
+    '<button type="button" class="btn btn-secondary" onclick="openBulkProductUploadModal()">📤 Impor Massal Produk</button>' +
     '<button type="button" class="btn btn-primary" onclick="openProductModal()">+ Tambah Produk</button>' +
+    '</div>' +
     '</div>' +
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap;">' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
@@ -2119,8 +2124,9 @@ function renderProductRows(products) {
     const extraTiers = p.priceTiers && p.priceTiers.length > 1 ? ' <span class="badge badge-neutral">+' + (p.priceTiers.length - 1) + ' tier</span>' : '';
     const stockBadge = Number(p.stock || 0) <= 5 ? 'badge-danger' : 'badge-neutral';
 
+    const skuHint = p.sku ? '<div style="font-size:11px;color:var(--text-muted);font-family:monospace;margin-top:2px;">SKU: ' + escapeHtml(p.sku) + '</div>' : '';
     return '<tr>' +
-      '<td><strong>' + escapeHtml(p.name) + '</strong>' + variantBadge + '</td>' +
+      '<td><strong>' + escapeHtml(p.name) + '</strong>' + skuHint + variantBadge + '</td>' +
       '<td>' + escapeHtml(p.category || '-') + '</td>' +
       '<td>' + typeBadge + '</td>' +
       '<td><span class="badge ' + stockBadge + '">' + (p.stock || 0) + ' ' + escapeHtml(p.unit || '') + '</span></td>' +
@@ -2143,6 +2149,402 @@ function deleteProductUI(id, name) {
       renderProduk(true);
     }).catch(function (err) { showToast('Gagal: ' + (err.message || err), true); });
   }, true);
+}
+
+// ==============================================================================
+// FITUR BULK UPLOAD / IMPOR MASSAL PRODUK (CSV)
+// ==============================================================================
+
+let CURRENT_PARSED_PRODUCTS = [];
+let BULK_IMPORT_FILE_NAME = '';
+
+function downloadProductTemplate() {
+  const headers = [
+    'SKU',
+    'Nama_Produk',
+    'Kategori',
+    'Tipe_Produk',
+    'Satuan',
+    'Umur_Panen',
+    'Harga_Reguler',
+    'Harga_Outlet',
+    'Harga_Bali_Buda'
+  ];
+
+  const sampleRows = [
+    ['BNH-001', 'Benih Bayam Merah', 'Benih', 'Benih', 'pcs', '30', '25000', '20000', '22000'],
+    ['BNH-002', 'Benih Cabai Rawit Unggul', 'Benih', 'Benih', 'pcs', '90', '30000', '24000', '27000'],
+    ['BNH-003', 'Benih Kangkung Lombok Curah', 'Benih', 'Benih', 'gr', '45', '500', '400', '450'],
+    ['MED-001', 'Buku Panduan Kebun Permakultur', 'Media', 'Buku', 'pcs', '0', '75000', '60000', '65000']
+  ];
+
+  const csvRows = [headers.join(','), ...sampleRows.map(function (row) { return row.join(','); })];
+  const csvString = '\uFEFF' + csvRows.join('\r\n');
+  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'templat_impor_produk_kios_idep.csv');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  showToast('Templat CSV berhasil diunduh.', false);
+}
+
+function openBulkProductUploadModal() {
+  CURRENT_PARSED_PRODUCTS = [];
+  BULK_IMPORT_FILE_NAME = '';
+
+  const bodyHtml =
+    '<div id="bulk-import-container" style="display:flex;flex-direction:column;gap:16px;">' +
+    '  <div id="bulk-dropzone" style="border:2px dashed var(--border-focus, #2E7D32);border-radius:var(--radius-md, 8px);background:#F9FBF9;padding:26px 20px;text-align:center;cursor:pointer;transition:all 0.2s;" ' +
+    '       onclick="document.getElementById(\'bulk-product-file-input\').click()" ' +
+    '       ondragover="event.preventDefault();this.style.background=\'#E8F5E9\';" ' +
+    '       ondragleave="this.style.background=\'#F9FBF9\';" ' +
+    '       ondrop="handleProductCsvDrop(event)">' +
+    '    <input type="file" id="bulk-product-file-input" accept=".csv,text/csv" style="display:none;" onchange="handleProductCsvFileSelect(event)">' +
+    '    <div style="font-size:36px;margin-bottom:6px;">📄</div>' +
+    '    <div style="font-weight:700;font-size:14.5px;color:var(--text-primary);margin-bottom:4px;">Klik untuk memilih file CSV atau seret file ke sini</div>' +
+    '    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Mendukung pemisah koma (,) maupun titik koma (;). Delimiter terdeteksi otomatis.</div>' +
+    '    <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();downloadProductTemplate();" style="display:inline-flex;align-items:center;gap:6px;">' +
+    '      📥 Download Templat CSV' +
+    '    </button>' +
+    '  </div>' +
+    '  <div id="bulk-preview-area" style="display:none;"></div>' +
+    '</div>';
+
+  const footerHtml =
+    '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;flex-wrap:wrap;gap:8px;">' +
+    '  <div id="bulk-footer-info" style="font-size:12px;color:var(--text-secondary);">Pilih file CSV untuk melihat pratinjau.</div>' +
+    '  <div style="display:flex;gap:8px;">' +
+    '    <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
+    '    <button type="button" class="btn btn-primary" id="btn-submit-bulk-import" disabled onclick="submitBulkProductImport()">' +
+    '      💾 Simpan ke Database' +
+    '    </button>' +
+    '  </div>' +
+    '</div>';
+
+  openModal('Impor Massal Katalog Produk (CSV)', bodyHtml, footerHtml, true);
+
+  const dialog = document.getElementById('modal-dialog');
+  if (dialog) {
+    dialog.style.maxWidth = '980px';
+    dialog.style.width = '96%';
+  }
+}
+
+function handleProductCsvDrop(event) {
+  event.preventDefault();
+  const dropzone = document.getElementById('bulk-dropzone');
+  if (dropzone) dropzone.style.background = '#F9FBF9';
+  if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
+    loadProductCsvFile(event.dataTransfer.files[0]);
+  }
+}
+
+function handleProductCsvFileSelect(event) {
+  if (event.target && event.target.files && event.target.files[0]) {
+    loadProductCsvFile(event.target.files[0]);
+  }
+}
+
+function loadProductCsvFile(file) {
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    showToast('Harap pilih file dengan format CSV (.csv).', true);
+    return;
+  }
+  BULK_IMPORT_FILE_NAME = file.name;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    processProductCsvText(e.target.result);
+  };
+  reader.onerror = function () {
+    showToast('Gagal membaca file CSV.', true);
+  };
+  reader.readAsText(file);
+}
+
+function parseCsvText(text) {
+  if (!text || !text.trim()) return { headers: [], rows: [], delimiter: ',' };
+  if (text.charCodeAt(0) === 0xFEFF) {
+    text = text.slice(1);
+  }
+  const lines = text.split(/\r?\n/).filter(function (l) { return l.trim().length > 0; });
+  if (lines.length === 0) return { headers: [], rows: [], delimiter: ',' };
+
+  const firstLine = lines[0];
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  const semiCount = (firstLine.match(/;/g) || []).length;
+  const delimiter = semiCount > commaCount ? ';' : ',';
+
+  function parseRow(line) {
+    const cells = [];
+    let cell = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
+        cells.push(cell.trim());
+        cell = '';
+      } else {
+        cell += char;
+      }
+    }
+    cells.push(cell.trim());
+    return cells;
+  }
+
+  const rawHeader = parseRow(lines[0]);
+  const headers = rawHeader.map(function (h) { return h.replace(/^["']|["']$/g, '').trim(); });
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const rawCells = parseRow(lines[i]);
+    if (rawCells.length === 0 || (rawCells.length === 1 && !rawCells[0])) continue;
+    const rowObj = {};
+    headers.forEach(function (hdr, idx) {
+      rowObj[hdr] = (rawCells[idx] !== undefined ? rawCells[idx].replace(/^["']|["']$/g, '').trim() : '');
+    });
+    rows.push(rowObj);
+  }
+  return { headers: headers, rows: rows, delimiter: delimiter };
+}
+
+function parsePrice(val) {
+  if (val === undefined || val === null) return null;
+  let str = String(val).trim().replace(/^Rp\.?\s*/i, '');
+  if (!str) return null;
+  if (/^\d{1,3}(\.\d{3})+$/.test(str)) {
+    str = str.replace(/\./g, '');
+  } else if (/^\d{1,3}(,\d{3})+$/.test(str)) {
+    str = str.replace(/,/g, '');
+  } else {
+    str = str.replace(/[^0-9.-]/g, '');
+  }
+  if (!str) return null;
+  const num = Number(str);
+  return isNaN(num) ? null : num;
+}
+
+function getRowValue(row, possibleKeys) {
+  const rowKeys = Object.keys(row);
+  for (let i = 0; i < possibleKeys.length; i++) {
+    const targetNorm = possibleKeys[i].toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (let j = 0; j < rowKeys.length; j++) {
+      const rkNorm = rowKeys[j].toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (rkNorm === targetNorm) {
+        return row[rowKeys[j]];
+      }
+    }
+  }
+  return '';
+}
+
+function processProductCsvText(text) {
+  const parsed = parseCsvText(text);
+  if (!parsed.rows || parsed.rows.length === 0) {
+    showToast('File CSV tidak memiliki baris data produk.', true);
+    return;
+  }
+
+  const seenSkus = new Set();
+  CURRENT_PARSED_PRODUCTS = parsed.rows.map(function (row, idx) {
+    const lineNo = idx + 2;
+    const sku = getRowValue(row, ['sku', 'kode_sku', 'kode', 'item_code']).trim();
+    const name = getRowValue(row, ['nama_produk', 'nama', 'name', 'product_name']).trim();
+    const category = getRowValue(row, ['kategori', 'category']).trim() || 'Benih';
+    const productType = getRowValue(row, ['tipe_produk', 'tipe', 'type', 'product_type']).trim() || 'Benih';
+    const unit = getRowValue(row, ['satuan', 'unit']).trim() || 'pcs';
+    const harvestDays = Number(getRowValue(row, ['umur_panen', 'umurpanen', 'harvest_days'])) || 0;
+
+    const rawReg = getRowValue(row, ['harga_reguler', 'reguler', 'price_reguler', 'harga']);
+    const rawOut = getRowValue(row, ['harga_outlet', 'outlet', 'price_outlet']);
+    const rawBB = getRowValue(row, ['harga_bali_buda', 'balibuda', 'bali_buda', 'price_bali_buda']);
+
+    const priceReg = parsePrice(rawReg);
+    const priceOut = parsePrice(rawOut);
+    const priceBB = parsePrice(rawBB);
+
+    const issues = [];
+    if (!sku) {
+      issues.push('SKU wajib diisi');
+    } else if (seenSkus.has(sku.toLowerCase())) {
+      issues.push('Duplikat SKU di file (' + sku + ')');
+    } else {
+      seenSkus.add(sku.toLowerCase());
+    }
+
+    if (!name) {
+      issues.push('Nama Produk wajib diisi');
+    }
+
+    if (priceReg === null || priceReg < 0) {
+      issues.push('Harga Reguler wajib angka valid');
+    }
+
+    if (rawOut && (priceOut === null || priceOut < 0)) {
+      issues.push('Harga Outlet tidak valid');
+    }
+
+    if (rawBB && (priceBB === null || priceBB < 0)) {
+      issues.push('Harga Bali Buda tidak valid');
+    }
+
+    const isValid = issues.length === 0;
+
+    return {
+      lineNo: lineNo,
+      isValid: isValid,
+      issues: issues,
+      data: {
+        sku: sku,
+        name: name,
+        category: category,
+        product_type: productType,
+        unit: unit,
+        harvest_days: harvestDays,
+        harga_reguler: priceReg !== null ? priceReg : 0,
+        harga_outlet: priceOut !== null ? priceOut : 0,
+        harga_bali_buda: priceBB !== null ? priceBB : 0
+      }
+    };
+  });
+
+  renderBulkProductPreview(parsed.delimiter);
+}
+
+function renderBulkProductPreview(delimiter) {
+  const previewArea = document.getElementById('bulk-preview-area');
+  const footerInfo = document.getElementById('bulk-footer-info');
+  const submitBtn = document.getElementById('btn-submit-bulk-import');
+  if (!previewArea) return;
+
+  previewArea.style.display = 'block';
+
+  const total = CURRENT_PARSED_PRODUCTS.length;
+  const validCount = CURRENT_PARSED_PRODUCTS.filter(function (p) { return p.isValid; }).length;
+  const errorCount = total - validCount;
+
+  if (submitBtn) {
+    submitBtn.disabled = (validCount === 0);
+    submitBtn.innerHTML = '💾 Simpan (' + validCount + ' Produk)';
+  }
+
+  if (footerInfo) {
+    footerInfo.innerHTML = 'File: <strong>' + escapeHtml(BULK_IMPORT_FILE_NAME) + '</strong> (' + (delimiter === ';' ? 'Titik Koma ;' : 'Koma ,') + ') &bull; ' +
+      '<span style="color:#2E7D32;font-weight:700;">' + validCount + ' Siap</span> / ' +
+      (errorCount > 0 ? '<span style="color:#C62828;font-weight:700;">' + errorCount + ' Bermasalah</span>' : '0 Error');
+  }
+
+  let summaryBanner =
+    '<div style="display:flex;justify-content:space-between;align-items:center;background:#F4F6F8;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:12px;flex-wrap:wrap;gap:8px;">' +
+    '  <div style="font-size:12.5px;color:var(--text-secondary);">' +
+    '    Total: <strong>' + total + ' baris</strong> &bull; ' +
+    '    Pemisah: <strong>' + (delimiter === ';' ? 'Titik Koma (;)' : 'Koma (,)') + '</strong>' +
+    '  </div>' +
+    '  <div style="display:flex;gap:6px;">' +
+    '    <span class="badge badge-success">✓ ' + validCount + ' Siap Diimpor</span>' +
+    (errorCount > 0 ? '    <span class="badge badge-danger">✕ ' + errorCount + ' Bermasalah</span>' : '') +
+    '  </div>' +
+    '</div>';
+
+  if (errorCount > 0) {
+    summaryBanner +=
+      '<div style="background:#FEE2E2;border:1px solid #FCA5A5;color:#991B1B;padding:8px 12px;border-radius:var(--radius-sm);font-size:12px;margin-bottom:12px;">' +
+      '  ⚠️ Terdapat <strong>' + errorCount + ' baris bermasalah</strong> (ditandai merah). Baris yang bermasalah akan otomatis dilewati saat proses simpan.' +
+      '</div>';
+  }
+
+  const tableRows = CURRENT_PARSED_PRODUCTS.map(function (item) {
+    const d = item.data;
+    const rowBg = item.isValid ? '' : 'background:#FEF2F2;';
+    const statusBadge = item.isValid
+      ? '<span class="badge badge-success" style="font-size:10px;">✓ Siap</span>'
+      : '<span class="badge badge-danger" style="font-size:10px;">✕ Error</span>';
+
+    const issuesText = item.isValid
+      ? '<span style="color:#2E7D32;font-size:11px;">✓ Siap Diimpor (Upsert)</span>'
+      : '<span style="color:#DC2626;font-size:11px;font-weight:600;">' + escapeHtml(item.issues.join(', ')) + '</span>';
+
+    return '<tr style="' + rowBg + '">' +
+      '<td style="font-size:11px;color:var(--text-muted);">' + item.lineNo + '</td>' +
+      '<td>' + statusBadge + '</td>' +
+      '<td style="font-family:monospace;font-weight:600;">' + escapeHtml(d.sku || '-') + '</td>' +
+      '<td><strong>' + escapeHtml(d.name || '-') + '</strong></td>' +
+      '<td style="font-size:11.5px;">' + escapeHtml(d.category) + '</td>' +
+      '<td style="font-size:11.5px;">' + escapeHtml(d.unit) + '</td>' +
+      '<td style="font-size:11.5px;">' + (d.harga_reguler ? formatRupiah(d.harga_reguler) : '-') + '</td>' +
+      '<td style="font-size:11.5px;">' + (d.harga_outlet ? formatRupiah(d.harga_outlet) : '-') + '</td>' +
+      '<td style="font-size:11.5px;">' + (d.harga_bali_buda ? formatRupiah(d.harga_bali_buda) : '-') + '</td>' +
+      '<td>' + issuesText + '</td>' +
+      '</tr>';
+  }).join('');
+
+  const tableHtml =
+    '<div class="table-container" style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
+    '  <table style="width:100%;font-size:12px;">' +
+    '    <thead style="position:sticky;top:0;background:#fff;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.05);">' +
+    '      <tr>' +
+    '        <th>#</th>' +
+    '        <th>Status</th>' +
+    '        <th>SKU</th>' +
+    '        <th>Nama Produk</th>' +
+    '        <th>Kategori</th>' +
+    '        <th>Satuan</th>' +
+    '        <th>Reguler</th>' +
+    '        <th>Outlet</th>' +
+    '        <th>Bali Buda</th>' +
+    '        <th>Keterangan</th>' +
+    '      </tr>' +
+    '    </thead>' +
+    '    <tbody>' + tableRows + '</tbody>' +
+    '  </table>' +
+    '</div>';
+
+  previewArea.innerHTML = summaryBanner + tableHtml;
+}
+
+function submitBulkProductImport() {
+  const validItems = CURRENT_PARSED_PRODUCTS
+    .filter(function (p) { return p.isValid; })
+    .map(function (p) { return p.data; });
+
+  if (validItems.length === 0) {
+    showToast('Tidak ada data produk yang valid untuk disimpan.', true);
+    return;
+  }
+
+  const submitBtn = document.getElementById('btn-submit-bulk-import');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="sync-spinner" style="display:inline-block;width:14px;height:14px;margin-right:6px;"></span> Menyimpan...';
+  }
+
+  showToast('Sedang memproses impor ' + validItems.length + ' produk...', false);
+
+  api('importBulkProducts', TOKEN, validItems)
+    .then(function (res) {
+      const count = res && res.count !== undefined ? res.count : validItems.length;
+      showToast('Berhasil mengimpor/memperbarui ' + count + ' produk!', false);
+      invalidateCache('products');
+      closeModal();
+      renderProduk(true);
+    })
+    .catch(function (err) {
+      showToast('Gagal mengimpor produk: ' + (err.message || err), true);
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '💾 Simpan (' + validItems.length + ' Produk)';
+      }
+    });
 }
 
 function isSeedProductClient(productOrId) {

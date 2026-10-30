@@ -786,6 +786,7 @@ async function dispatchApiCall(fnName, args) {
 
       return (prodsRes.data || []).map(p => ({
         id: p.id,
+        sku: p.sku || '',
         name: p.name,
         category: p.category,
         product_type: p.product_type,
@@ -808,6 +809,7 @@ async function dispatchApiCall(fnName, args) {
       const isSeed = String(payload.product_type || payload.category || '').toLowerCase().includes('benih');
       const productObj = {
         name: payload.name,
+        ...(payload.sku !== undefined ? { sku: payload.sku } : {}),
         category: payload.category || 'Benih',
         product_type: payload.product_type || 'raw_seed',
         variant: payload.variant || '',
@@ -861,6 +863,177 @@ async function dispatchApiCall(fnName, args) {
         .eq('id', productId);
       if (error) throw error;
       return { success: true };
+    }
+
+    case 'importBulkProducts': {
+      const [, productsArray] = args;
+      const list = Array.isArray(productsArray) ? productsArray : (Array.isArray(args[0]) ? args[0] : []);
+      if (!list || list.length === 0) {
+        return { success: true, count: 0, totalRequested: 0, errors: [], message: 'Tidak ada data produk untuk diimpor.' };
+      }
+
+      // 1. Kumpulkan list SKU untuk query eksisting di database
+      const skuList = list
+        .map(p => String(p.sku || p.SKU || '').trim())
+        .filter(Boolean);
+
+      const existingMap = {};
+      if (skuList.length > 0) {
+        const { data: existingData, error: fetchErr } = await supabase
+          .from('products')
+          .select('id, sku, name')
+          .in('sku', skuList);
+        if (fetchErr) throw fetchErr;
+        (existingData || []).forEach(p => {
+          if (p.sku) existingMap[p.sku.toLowerCase()] = p;
+        });
+      }
+
+      let totalSuccess = 0;
+      const errors = [];
+
+      for (const item of list) {
+        try {
+          const sku = String(item.sku || item.SKU || '').trim();
+          const name = String(item.name || item.nama_produk || item.Nama_Produk || '').trim();
+          if (!sku || !name) {
+            continue; // Lewati baris tanpa SKU atau Nama
+          }
+
+          const category = String(item.category || item.kategori || item.Kategori || 'Benih').trim() || 'Benih';
+          const productType = String(item.product_type || item.tipe_produk || item.Tipe_Produk || 'Benih').trim() || 'Benih';
+          const unit = String(item.unit || item.satuan || item.Satuan || 'pcs').trim() || 'pcs';
+          const harvestDays = Number(item.harvest_days || item.umur_panen || item.Umur_Panen) || 0;
+          const isSeed = (category + ' ' + productType).toLowerCase().includes('benih');
+
+          let productId;
+          const existing = existingMap[sku.toLowerCase()];
+
+          if (existing) {
+            productId = existing.id;
+            const { error: updErr } = await supabase
+              .from('products')
+              .update({
+                name: name,
+                category: category,
+                product_type: productType,
+                unit: unit,
+                harvest_days: harvestDays,
+                is_active: true,
+                active: true,
+                is_seed: isSeed,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', productId);
+            if (updErr) throw updErr;
+          } else {
+            productId = crypto.randomUUID();
+            const { error: insErr } = await supabase
+              .from('products')
+              .insert({
+                id: productId,
+                sku: sku,
+                name: name,
+                category: category,
+                product_type: productType,
+                variant: item.variant || '',
+                unit: unit,
+                harvest_days: harvestDays,
+                is_active: true,
+                active: true,
+                is_seed: isSeed,
+                stock: 0,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
+            if (insErr) throw insErr;
+            // Catat ke map jika ada kemunculan SKU yang sama berikutnya
+            existingMap[sku.toLowerCase()] = { id: productId, sku: sku, name: name };
+          }
+
+          // Parse Price Tiers: Reguler, Outlet, Bali Buda
+          const parseNum = (val) => {
+            if (val === undefined || val === null) return null;
+            let str = String(val).trim().replace(/^Rp\\.?\\s*/i, '');
+            if (!str) return null;
+            if (/^\\d{1,3}(\\.\\d{3})+$/.test(str)) {
+              str = str.replace(/\\./g, '');
+            } else if (/^\\d{1,3}(,\\d{3})+$/.test(str)) {
+              str = str.replace(/,/g, '');
+            } else {
+              str = str.replace(/[^0-9.-]/g, '');
+            }
+            if (!str) return null;
+            const num = Number(str);
+            return isNaN(num) ? null : num;
+          };
+
+          const pReg = parseNum(item.harga_reguler ?? item.Harga_Reguler ?? item.reguler ?? item.price_reguler);
+          const pOut = parseNum(item.harga_outlet ?? item.Harga_Outlet ?? item.outlet ?? item.price_outlet);
+          const pBB = parseNum(item.harga_bali_buda ?? item.Harga_Bali_Buda ?? item.bali_buda ?? item.price_bali_buda);
+
+          const tiersToInsert = [];
+          if (pReg !== null && pReg >= 0) {
+            tiersToInsert.push({
+              id: 'PT-' + crypto.randomUUID().slice(0, 12).toUpperCase(),
+              product_id: productId,
+              tier_name: 'Reguler',
+              price: pReg
+            });
+          }
+          if (pOut !== null && pOut >= 0) {
+            tiersToInsert.push({
+              id: 'PT-' + crypto.randomUUID().slice(0, 12).toUpperCase(),
+              product_id: productId,
+              tier_name: 'Outlet',
+              price: pOut
+            });
+          }
+          if (pBB !== null && pBB >= 0) {
+            tiersToInsert.push({
+              id: 'PT-' + crypto.randomUUID().slice(0, 12).toUpperCase(),
+              product_id: productId,
+              tier_name: 'Bali Buda',
+              price: pBB
+            });
+          }
+
+          if (Array.isArray(item.priceTiers)) {
+            item.priceTiers.forEach(pt => {
+              const ptPrice = parseNum(pt.price);
+              if (pt.tier_name && ptPrice !== null && ptPrice >= 0) {
+                if (!tiersToInsert.some(t => t.tier_name.toLowerCase() === String(pt.tier_name).toLowerCase())) {
+                  tiersToInsert.push({
+                    id: 'PT-' + crypto.randomUUID().slice(0, 12).toUpperCase(),
+                    product_id: productId,
+                    tier_name: String(pt.tier_name).trim(),
+                    price: ptPrice
+                  });
+                }
+              }
+            });
+          }
+
+          if (tiersToInsert.length > 0) {
+            await supabase.from('price_tiers').delete().eq('product_id', productId);
+            const { error: tierErr } = await supabase.from('price_tiers').insert(tiersToInsert);
+            if (tierErr) throw tierErr;
+          }
+
+          totalSuccess++;
+        } catch (itemErr) {
+          console.error('Error importing product item:', item, itemErr);
+          errors.push({ sku: item.sku || item.SKU, error: itemErr.message || String(itemErr) });
+        }
+      }
+
+      return {
+        success: true,
+        count: totalSuccess,
+        totalRequested: list.length,
+        errors: errors,
+        message: 'Berhasil mengimpor/memperbarui ' + totalSuccess + ' produk katalog.'
+      };
     }
 
     // --------------------------------------------------------------------------
@@ -3996,6 +4169,7 @@ window.loginSupabaseUser = loginSupabaseUser;
 window.logoutSupabaseUser = logoutSupabaseUser;
 window.checkSupabaseSession = checkSupabaseSession;
 window.uploadToSupabaseStorage = uploadToSupabaseStorage;
+window.importBulkProducts = (token, productsArray) => dispatchApiCall('importBulkProducts', [token, productsArray]);
 
 // Inisialisasi otomatis saat script dimuat
 document.addEventListener('DOMContentLoaded', () => {

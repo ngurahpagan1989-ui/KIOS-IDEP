@@ -178,30 +178,40 @@ function dataURLtoBlob(dataurl) {
 /**
  * Unggah gambar base64 langsung ke Supabase Storage dan kembalikan URL publiknya
  */
-async function uploadToSupabaseStorage(bucketName, fileName, base64Data, contentType = 'image/jpeg') {
-  if (!supabase) throw new Error('Supabase client belum terinisialisasi.');
+async function uploadToSupabaseStorage(bucketName, fileName, base64Data, contentType = 'image/jpeg', allowFallback = true) {
+  if (!supabase) {
+    if (allowFallback && base64Data) return base64Data;
+    throw new Error('Supabase client belum terinisialisasi.');
+  }
   if (!base64Data) return '';
 
-  const blob = dataURLtoBlob(base64Data);
-  const cleanPath = `${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  try {
+    const blob = dataURLtoBlob(base64Data);
+    const cleanPath = `${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
 
-  const { data, error } = await supabase.storage
-    .from(bucketName)
-    .upload(cleanPath, blob, {
-      contentType: contentType,
-      upsert: true
-    });
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(cleanPath, blob, {
+        contentType: contentType,
+        upsert: true
+      });
 
-  if (error) {
-    console.error(`[Storage Upload Error] Bucket: ${bucketName}`, error);
-    throw new Error(`Gagal mengunggah berkas ke ${bucketName}: ${error.message}`);
+    if (error) {
+      console.warn(`[Storage Upload Error] Bucket: ${bucketName}. Menggunakan cadangan data URL Base64.`, error);
+      if (allowFallback) return base64Data;
+      throw new Error(`Gagal mengunggah berkas ke ${bucketName}: ${error.message}`);
+    }
+
+    const { data: publicData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(cleanPath);
+
+    return publicData && publicData.publicUrl ? publicData.publicUrl : (allowFallback ? base64Data : '');
+  } catch (err) {
+    console.warn(`[Storage Exception] Bucket: ${bucketName}. Menggunakan cadangan data URL Base64.`, err);
+    if (allowFallback) return base64Data;
+    throw new Error(`Gagal mengunggah berkas ke ${bucketName}: ${err.message || err}`);
   }
-
-  const { data: publicData } = supabase.storage
-    .from(bucketName)
-    .getPublicUrl(cleanPath);
-
-  return publicData.publicUrl;
 }
 
 // ==============================================================================
@@ -2420,7 +2430,12 @@ async function dispatchApiCall(fnName, args) {
       let signatureUrl = '';
       if (payload.signatureBase64 && payload.signatureBase64.startsWith('data:image')) {
         const sigFileName = `sig_transfer_${payload.deliveryId}.png`;
-        signatureUrl = await uploadToSupabaseStorage('signatures', sigFileName, payload.signatureBase64, 'image/png');
+        try {
+          signatureUrl = await uploadToSupabaseStorage('signatures', sigFileName, payload.signatureBase64, 'image/png', true);
+        } catch (e) {
+          console.warn('Fallback tanda tangan serah terima ke base64:', e);
+          signatureUrl = payload.signatureBase64;
+        }
       }
 
       const { data, error } = await supabase

@@ -1490,11 +1490,16 @@ function router(forceRefresh) {
     }
   });
 
+  const primaryRoutes = ['dashboard', 'pos', 'produk', 'stok'];
   document.querySelectorAll('.mobile-nav-item').forEach(function (el) {
     if (el && el.dataset) {
       el.classList.toggle('active', el.dataset.route === route);
     }
   });
+  const moreMenuBtn = document.getElementById('mobile-menu-more-btn');
+  if (moreMenuBtn) {
+    moreMenuBtn.classList.toggle('active', !primaryRoutes.includes(route));
+  }
 
   const titleEl = document.getElementById('current-view-title');
   const routeTitles = {
@@ -2041,20 +2046,20 @@ function drawProdukUI(products) {
     '<h1 class="page-title">Katalog Produk</h1>' +
     '<p class="page-subtitle">Kelola master data barang siap jual, bahan baku curah, media dan varian bahasa.</p>' +
     '</div>' +
-    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
-    '<button type="button" class="btn btn-secondary" onclick="downloadProductTemplate()">📥 Download Templat CSV</button>' +
-    '<button type="button" class="btn btn-secondary" onclick="openBulkProductUploadModal()">📤 Impor Massal Produk</button>' +
+    '<div class="product-header-actions">' +
     '<button type="button" class="btn btn-primary" onclick="openProductModal()">+ Tambah Produk</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="downloadProductTemplate()">📥 Templat CSV</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="openBulkProductUploadModal()">📤 Impor CSV</button>' +
     '</div>' +
     '</div>' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap;">' +
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+    '<div class="product-toolbar-wrap">' +
+    '<div class="product-tabs-wrapper">' +
     '<button type="button" class="btn ' + (CURRENT_PRODUCT_TAB === 'all' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" id="tab-all" onclick="setProductTab(\'all\')">Semua (' + countAll + ')</button>' +
     '<button type="button" class="btn ' + (CURRENT_PRODUCT_TAB === 'jadi' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" id="tab-jadi" onclick="setProductTab(\'jadi\')">📦 Siap Jual (' + countJadi + ')</button>' +
     '<button type="button" class="btn ' + (CURRENT_PRODUCT_TAB === 'mentah' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" id="tab-mentah" onclick="setProductTab(\'mentah\')">🌾 Curah/Gram (' + countMentah + ')</button>' +
     '<button type="button" class="btn ' + (CURRENT_PRODUCT_TAB === 'media' ? 'btn-primary' : 'btn-secondary') + ' btn-sm" id="tab-media" onclick="setProductTab(\'media\')">📚 Media/Buku (' + countMedia + ')</button>' +
     '</div>' +
-    '<input type="text" id="produk-search-input" placeholder="🔍 Cari nama produk atau kategori..." oninput="PRODUCT_SEARCH_QUERY=(this.value||\'\').toLowerCase().trim();renderFilteredProducts();" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:260px;background:#fff;">' +
+    '<input type="text" id="produk-search-input" placeholder="🔍 Cari nama produk atau kategori..." oninput="PRODUCT_SEARCH_QUERY=(this.value||\'\').toLowerCase().trim();renderFilteredProducts();" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;">' +
     '</div>' +
     '<div class="card">' +
     '<div class="table-container">' +
@@ -2216,10 +2221,10 @@ function openBulkProductUploadModal() {
 
   const footerHtml =
     '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;flex-wrap:wrap;gap:8px;">' +
-    '  <div id="bulk-footer-info" style="font-size:12px;color:var(--text-secondary);">Pilih file CSV untuk melihat pratinjau.</div>' +
-    '  <div style="display:flex;gap:8px;">' +
-    '    <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
-    '    <button type="button" class="btn btn-primary" id="btn-submit-bulk-import" disabled onclick="submitBulkProductImport()">' +
+    '  <div id="bulk-footer-info" style="font-size:12px;color:var(--text-secondary);width:100%;">Pilih file CSV untuk melihat pratinjau.</div>' +
+    '  <div style="display:flex;gap:8px;width:100%;">' +
+    '    <button type="button" class="btn btn-secondary" onclick="closeModal()" style="flex:1;">Batal</button>' +
+    '    <button type="button" class="btn btn-primary" id="btn-submit-bulk-import" disabled onclick="submitBulkProductImport()" style="flex:1;">' +
     '      💾 Simpan ke Database' +
     '    </button>' +
     '  </div>' +
@@ -2489,20 +2494,20 @@ function renderBulkProductPreview(delimiter) {
   }).join('');
 
   const tableHtml =
-    '<div class="table-container" style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
-    '  <table style="width:100%;font-size:12px;">' +
+    '<div class="table-container" style="max-height:340px;overflow-x:auto;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y !important;">' +
+    '  <table style="width:100%;min-width:720px;border-collapse:collapse;font-size:12px;">' +
     '    <thead style="position:sticky;top:0;background:#fff;z-index:2;box-shadow:0 1px 2px rgba(0,0,0,0.05);">' +
     '      <tr>' +
-    '        <th>#</th>' +
-    '        <th>Status</th>' +
-    '        <th>SKU</th>' +
-    '        <th>Nama Produk</th>' +
-    '        <th>Kategori</th>' +
-    '        <th>Satuan</th>' +
-    '        <th>Reguler</th>' +
-    '        <th>Outlet</th>' +
-    '        <th>Bali Buda</th>' +
-    '        <th>Keterangan</th>' +
+    '        <th style="white-space:nowrap;">#</th>' +
+    '        <th style="white-space:nowrap;">Status</th>' +
+    '        <th style="white-space:nowrap;">SKU</th>' +
+    '        <th style="white-space:nowrap;min-width:140px;">Nama Produk</th>' +
+    '        <th style="white-space:nowrap;">Kategori</th>' +
+    '        <th style="white-space:nowrap;">Satuan</th>' +
+    '        <th style="white-space:nowrap;">Reguler</th>' +
+    '        <th style="white-space:nowrap;">Outlet</th>' +
+    '        <th style="white-space:nowrap;">Bali Buda</th>' +
+    '        <th style="white-space:nowrap;min-width:160px;">Keterangan</th>' +
     '      </tr>' +
     '    </thead>' +
     '    <tbody>' + tableRows + '</tbody>' +

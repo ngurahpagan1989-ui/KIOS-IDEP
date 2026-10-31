@@ -55,6 +55,7 @@
 html, body {
   width: 100%;
   height: 100%;
+  overflow-x: hidden;
   font-family: 'Figtree', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.5;
@@ -777,6 +778,9 @@ button, input, select, textarea {
 .topbar-page-badge {
   display: flex;
   align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  flex: 1;
 }
 
 .current-view-title {
@@ -784,6 +788,10 @@ button, input, select, textarea {
   font-weight: 700;
   font-size: 18px;
   color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
 
 .topbar-search-wrapper {
@@ -5706,10 +5714,7 @@ body.perm-no-delete #modal-container .btn-void {
   }
 
   .topbar-quick-pos {
-    padding: 6px 11px;
-    min-width: 34px;
-    height: 34px;
-    justify-content: center;
+    display: none !important;
   }
 
   .topbar.mobile-search-open .topbar-search-wrapper {
@@ -5784,6 +5789,10 @@ body.perm-no-delete #modal-container .btn-void {
     max-width: 100%;
   }
 
+  .table-container table {
+    min-width: 620px;
+  }
+
   thead th {
     padding: 10px 12px;
     font-size: 10.5px;
@@ -5822,10 +5831,12 @@ body.perm-no-delete #modal-container .btn-void {
     min-width: 0 !important;
   }
 
-  /* 7. Sub-Tab Navigasi Geser Horizontal (Pengaturan, Purna Jual, QC, Konsinyasi) */
+  /* 7. Sub-Tab Navigasi Geser Horizontal (Pengaturan, Purna Jual, QC, Konsinyasi, Produk) */
   .settings-tabs-wrapper,
   .pj-subnav,
-  .qc-filter-bar {
+  .qc-filter-bar,
+  .konsinyasi-subnav,
+  .product-tabs-wrapper {
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
@@ -5836,15 +5847,49 @@ body.perm-no-delete #modal-container .btn-void {
 
   .settings-tabs-wrapper::-webkit-scrollbar,
   .pj-subnav::-webkit-scrollbar,
-  .qc-filter-bar::-webkit-scrollbar {
+  .qc-filter-bar::-webkit-scrollbar,
+  .konsinyasi-subnav::-webkit-scrollbar,
+  .product-tabs-wrapper::-webkit-scrollbar {
     display: none;
   }
 
   .settings-tab-btn,
   .pj-subnav-btn,
-  .qc-filter-btn {
+  .qc-filter-btn,
+  .konsinyasi-subnav-btn,
+  .product-tabs-wrapper .btn {
     flex-shrink: 0;
     white-space: nowrap;
+  }
+
+  /* Header & Aksi Katalog Produk Mobile */
+  .product-header-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .product-header-actions .btn-primary {
+    grid-column: span 2;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    justify-content: center;
+  }
+
+  .product-header-actions .btn-secondary {
+    padding: 8px 10px;
+    font-size: 12px;
+    justify-content: center;
+  }
+
+  .product-toolbar-wrap {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
   }
 
   /* 8. Kasir POS Mode Mobile (Tab Katalog <-> Keranjang + Sticky Floating Cart Bar) */

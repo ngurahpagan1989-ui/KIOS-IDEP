@@ -2390,13 +2390,28 @@ async function dispatchApiCall(fnName, args) {
 
     case 'createConsignmentInvoice': {
       const [, payload] = args;
-      const { data: auditItems, error: aiErr } = await supabase
+      const { data: rawAuditItems, error: aiErr } = await supabase
         .from('consignment_audit_items')
-        .select('*, products(name)')
+        .select('*')
         .eq('audit_id', payload.audit_id);
       if (aiErr) throw aiErr;
 
-      const soldItems = (auditItems || []).filter(it => Number(it.qty_sold || 0) > 0);
+      const auditItems = rawAuditItems || [];
+      const prodIds = [...new Set(auditItems.map(it => it.product_id).filter(Boolean))];
+      let pMap = {};
+      if (prodIds.length > 0) {
+        try {
+          const { data: prods } = await supabase.from('products').select('id, name').in('id', prodIds);
+          (prods || []).forEach(p => { if (p && p.id) pMap[p.id] = p.name; });
+        } catch (e) {
+          console.warn('Gagal memuat produk audit konsinyasi:', e);
+        }
+      }
+
+      const soldItems = auditItems.filter(it => Number(it.qty_sold || 0) > 0).map(it => ({
+        ...it,
+        products: { name: pMap[it.product_id] || it.product_name || 'Produk' }
+      }));
       return { success: true, count: soldItems.length, message: 'Nota konsinyasi siap diproses.' };
     }
 
@@ -3193,30 +3208,75 @@ async function dispatchApiCall(fnName, args) {
     case 'getDeliveryOrderReceiptData': {
       const [, transferId] = args;
       const targetId = transferId || args[0];
-      const { data: transfer, error: tErr } = await supabase
+
+      // 1. Ambil data header transfer
+      let transfer = null;
+      const { data: tData, error: tErr } = await supabase
         .from('consignment_transfers')
         .select('*, outlets(*)')
         .eq('id', targetId)
-        .single();
-      if (tErr) throw tErr;
+        .maybeSingle();
 
-      const { data: items, error: iErr } = await supabase
+      if (tErr || !tData) {
+        const { data: dtData, error: dtErr } = await supabase
+          .from('consignment_transfers')
+          .select('*')
+          .eq('id', targetId)
+          .single();
+        if (dtErr) throw dtErr;
+        transfer = dtData;
+        if (transfer && transfer.outlet_id) {
+          const { data: oData } = await supabase
+            .from('outlets')
+            .select('*')
+            .eq('id', transfer.outlet_id)
+            .maybeSingle();
+          transfer.outlets = oData || {};
+        }
+      } else {
+        transfer = tData;
+      }
+
+      // 2. Ambil data item transfer secara mandiri (hindari error 'relationship in schema cache')
+      const { data: rawItems, error: iErr } = await supabase
         .from('consignment_transfer_items')
-        .select('*, products(name, unit)')
+        .select('*')
         .eq('transfer_id', targetId);
       if (iErr) throw iErr;
+
+      const items = rawItems || [];
+
+      // 3. Ambil data produk terkait secara independen
+      const productIds = [...new Set(items.map(it => it.product_id).filter(Boolean))];
+      let productsMap = {};
+      if (productIds.length > 0) {
+        try {
+          const { data: prods } = await supabase
+            .from('products')
+            .select('id, name, unit, sku')
+            .in('id', productIds);
+          (prods || []).forEach(p => {
+            if (p && p.id) productsMap[p.id] = p;
+          });
+        } catch (pErr) {
+          console.warn('Gagal memuat produk untuk surat jalan:', pErr);
+        }
+      }
 
       return {
         transfer: transfer,
         outlet: transfer.outlets || {},
-        items: (items || []).map(it => {
-          const prodName = it.products ? it.products.name : (it.name || it.product_name || 'Produk');
-          const prodUnit = it.products ? it.products.unit : (it.unit || 'pcs');
+        items: items.map(it => {
+          const prod = productsMap[it.product_id] || {};
+          const prodName = prod.name || it.name || it.product_name || 'Produk';
+          const prodUnit = prod.unit || it.unit || 'pcs';
+          const prodSku = prod.sku || it.sku || '-';
           return {
             ...it,
             name: prodName,
             product_name: prodName,
-            unit: prodUnit
+            unit: prodUnit,
+            sku: prodSku
           };
         })
       };

@@ -9228,7 +9228,7 @@ function printConsignmentSuratJalan(transferId) {
       const batchDisplay = it.batch_id ? escapeHtml(it.batch_id).replace(/,/g, '<br/>') : '-';
       return '<tr>' +
         '<td style="text-align:center;padding:7px 8px;border:1px solid #cbd5e1;font-size:11px;">' + (idx + 1) + '</td>' +
-        '<td style="padding:7px 8px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;color:#1e293b;">' + escapeHtml(it.product_name || it.product_id) + '</td>' +
+        '<td style="padding:7px 8px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;color:#1e293b;">' + escapeHtml(typeof formatCleanProductName === 'function' ? formatCleanProductName(it.product_name || it.product_id) : (it.product_name || it.product_id)) + '</td>' +
         '<td style="text-align:center;padding:7px 8px;border:1px solid #cbd5e1;font-size:10px;color:#475569;font-family:monospace;">' + batchDisplay + '</td>' +
         '<td style="text-align:center;padding:7px 8px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;color:#7A5031;">' + qty + ' ' + escapeHtml(it.unit || 'pcs') + '</td>' +
         '<td style="text-align:right;padding:7px 8px;border:1px solid #cbd5e1;font-size:11px;">Rp ' + price.toLocaleString('id-ID') + '</td>' +
@@ -9435,9 +9435,11 @@ function openDeliveryReceiptModal(deliveryId, parentOutletId) {
       itemsRows = items.map(function (it) {
         const qty = Number(it.qty || 0);
         totalPcs += qty;
+        const skuDisplay = it.sku || (it.product_id && it.product_id.length > 12 ? it.product_id.slice(0, 8).toUpperCase() : it.product_id) || '-';
+        const cleanName = typeof formatCleanProductName === 'function' ? formatCleanProductName(it.product_name) : it.product_name;
         return '<tr>' +
-          '<td style="font-family:\'JetBrains Mono\',monospace;color:var(--text-secondary);">' + escapeHtml(it.product_id || '-') + '</td>' +
-          '<td><strong>' + escapeHtml(it.product_name) + '</strong></td>' +
+          '<td style="font-family:\'JetBrains Mono\',monospace;color:var(--text-secondary);font-size:11px;font-weight:600;">' + escapeHtml(skuDisplay) + '</td>' +
+          '<td><strong>' + escapeHtml(cleanName) + '</strong></td>' +
           '<td style="text-align:center;font-family:\'JetBrains Mono\',monospace;font-size:11px;">' + escapeHtml(it.batch_id || '-') + '</td>' +
           '<td style="text-align:center;font-weight:700;color:var(--primary);">' + qty + ' ' + escapeHtml(it.unit || 'pcs') + '</td>' +
           '</tr>';
@@ -9965,8 +9967,9 @@ function viewDeliveryReceiptModal(deliveryId, parentOutletId) {
     const items = res.items || [];
 
     let itemsRows = items.map(function (it) {
+      const cleanName = typeof formatCleanProductName === 'function' ? formatCleanProductName(it.product_name) : it.product_name;
       return '<tr>' +
-        '<td>' + escapeHtml(it.product_name) + '</td>' +
+        '<td>' + escapeHtml(cleanName) + '</td>' +
         '<td style="text-align:center;font-family:\'JetBrains Mono\',monospace;">' + escapeHtml(it.batch_id || '-') + '</td>' +
         '<td style="text-align:center;font-weight:bold;">' + Number(it.qty || 0) + ' ' + escapeHtml(it.unit || 'pcs') + '</td>' +
         '</tr>';

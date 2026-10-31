@@ -3263,6 +3263,35 @@ async function dispatchApiCall(fnName, args) {
         }
       }
 
+      // 4. Cari kode batch dari stock_mutations atau stock_movements jika batch_id belum ada di item
+      let batchMap = {};
+      try {
+        const { data: muts } = await supabase
+          .from('stock_mutations')
+          .select('product_id, batch_id')
+          .or(`reference_no.eq.${targetId},reference_no.eq.${transfer.invoice_no || ''}`)
+          .in('product_id', productIds);
+
+        if (muts && muts.length > 0) {
+          const bIds = [...new Set(muts.map(m => m.batch_id).filter(Boolean))];
+          const { data: bData } = await supabase
+            .from('stock_batches')
+            .select('id, batch_code')
+            .in('id', bIds);
+          const bCodeMap = {};
+          (bData || []).forEach(b => { if (b && b.id) bCodeMap[b.id] = b.batch_code || b.id; });
+          muts.forEach(m => {
+            const code = bCodeMap[m.batch_id] || m.batch_id;
+            if (code) {
+              if (!batchMap[m.product_id]) batchMap[m.product_id] = [];
+              if (!batchMap[m.product_id].includes(code)) batchMap[m.product_id].push(code);
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Gagal lookup batch code:', e);
+      }
+
       return {
         transfer: transfer,
         outlet: transfer.outlets || {},
@@ -3270,13 +3299,15 @@ async function dispatchApiCall(fnName, args) {
           const prod = productsMap[it.product_id] || {};
           const prodName = prod.name || it.name || it.product_name || 'Produk';
           const prodUnit = prod.unit || it.unit || 'pcs';
-          const prodSku = prod.sku || it.sku || '-';
+          const prodSku = prod.sku || it.sku || '';
+          const batchDisplay = it.batch_id || (batchMap[it.product_id] ? batchMap[it.product_id].join(', ') : '-');
           return {
             ...it,
             name: prodName,
             product_name: prodName,
             unit: prodUnit,
-            sku: prodSku
+            sku: prodSku,
+            batch_id: batchDisplay
           };
         })
       };

@@ -3816,7 +3816,8 @@ function openStockAdjustmentModal(defaultProductId, defaultBatchId) {
   const prodOptions = _STOK_PRODUCTS.map(function (p) {
     const isRaw = isRawProduct(p.unit);
     const sel = (p.id === defaultProductId) ? ' selected' : '';
-    return '<option value="' + p.id + '" data-unit="' + (isRaw ? 'gr' : (p.unit || 'pcs')) + '"' + sel + '>' + escapeHtml(p.name) + ' (' + (isRaw ? 'Curah' : 'Kemasan') + ')</option>';
+    const cleanName = typeof formatCleanProductName === 'function' ? formatCleanProductName(p.name) : p.name;
+    return '<option value="' + p.id + '" data-unit="' + (isRaw ? 'gr' : (p.unit || 'pcs')) + '"' + sel + '>' + (isRaw ? '🌾 ' : '📦 ') + escapeHtml(cleanName) + ' (' + (isRaw ? 'Curah' : 'Kemasan') + ')</option>';
   }).join('');
 
   const bodyHtml =
@@ -5782,6 +5783,28 @@ function isCurahInventoryProduct(p) {
   return false;
 }
 
+function formatCleanProductName(name) {
+  if (!name) return '';
+  return String(name)
+    .replace(/\s*\((kemasan|curah)\)\s*/gi, ' ')
+    .replace(/\s*\[(kemasan|curah)\]\s*/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function formatProductClaimLabel(p) {
+  if (!p) return '';
+  const cleanName = formatCleanProductName(p.name);
+  let varText = '';
+  if (p.variant) {
+    const vTrim = String(p.variant).trim();
+    if (!/^(kemasan|curah)$/i.test(vTrim) && !cleanName.toLowerCase().includes(vTrim.toLowerCase())) {
+      varText = ' - ' + vTrim;
+    }
+  }
+  return cleanName + varText;
+}
+
 function buildProductOptionsHTML(category, selectedId) {
   const list = PRODUCTS_CACHE || [];
   const filtered = list.filter(function (p) {
@@ -5795,11 +5818,19 @@ function buildProductOptionsHTML(category, selectedId) {
   if (filtered.length === 0) return '<option value="">-- Tidak ada produk --</option>';
 
   return filtered.map(function (p) {
-    let tag = isCurahInventoryProduct(p) ? '🌾 [Curah] ' : '📦 [Kemasan] ';
-    const varTag = p.variant ? ' [' + escapeHtml(p.variant) + ']' : '';
+    const isRaw = isCurahInventoryProduct(p);
+    const icon = isRaw ? '🌾 ' : '📦 ';
+    const cleanName = formatCleanProductName(p.name);
+    let varTag = '';
+    if (p.variant) {
+      const vTrim = String(p.variant).trim();
+      if (!/^(kemasan|curah)$/i.test(vTrim) && !cleanName.toLowerCase().includes(vTrim.toLowerCase())) {
+        varTag = ' [' + escapeHtml(vTrim) + ']';
+      }
+    }
     const isSel = (p.id === selectedId) ? ' selected' : '';
     const stockTxt = p.stock !== undefined ? (' — Sisa: ' + p.stock + ' ' + escapeHtml(p.unit || '')) : (' (' + escapeHtml(p.unit || '') + ')');
-    return '<option value="' + p.id + '"' + isSel + ' data-stock="' + (p.stock || 0) + '">' + tag + escapeHtml(p.name) + varTag + stockTxt + '</option>';
+    return '<option value="' + p.id + '"' + isSel + ' data-stock="' + (p.stock || 0) + '">' + icon + escapeHtml(cleanName) + varTag + stockTxt + '</option>';
   }).join('');
 }
 
@@ -9079,14 +9110,14 @@ function addTransferStockRow() {
   const container = document.getElementById('transfer-items-container');
   if (!container) return;
   const row = document.createElement('div');
-  row.className = 'price-tier-row';
+  row.className = 'price-tier-row transfer-stock-row';
   row.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;align-items:center;';
   row.innerHTML =
-    '<select class="transfer-product" style="flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;font-weight:600;">' +
+    '<select class="transfer-product" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;font-weight:600;font-size:13px;text-overflow:ellipsis;">' +
     buildProductOptionsHTML('jadi') +
     '</select>' +
-    '<input type="number" class="transfer-qty" placeholder="Qty Pcs" min="1" value="10" style="width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);text-align:center;font-weight:700;">' +
-    '<button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()" title="Hapus baris">&times;</button>';
+    '<input type="number" class="transfer-qty" placeholder="Qty Pcs" min="1" value="10" style="width:85px;min-width:70px;padding:8px 8px;border:1px solid var(--border);border-radius:var(--radius-xs);text-align:center;font-weight:700;font-size:13px;">' +
+    '<button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()" title="Hapus baris" style="padding:6px 10px;line-height:1;font-size:14px;flex-shrink:0;">&times;</button>';
   container.appendChild(row);
 }
 
@@ -11512,7 +11543,7 @@ function openClaimModal(prefillData) {
   }).join('');
 
   const prodOptions = (PRODUCTS_CACHE || []).map(function (p) {
-    return '<option value="' + p.id + '">' + escapeHtml(p.name + (p.variant ? ' - ' + p.variant : '')) + '</option>';
+    return '<option value="' + p.id + '">' + escapeHtml(typeof formatProductClaimLabel === 'function' ? formatProductClaimLabel(p) : (p.name + (p.variant ? ' - ' + p.variant : ''))) + '</option>';
   }).join('');
 
   const bodyHtml =
@@ -11831,7 +11862,7 @@ function selectClaimTxFromSearch(index) {
 
     opts += '<optgroup label="📦 Seluruh Katalog Produk">';
     (PRODUCTS_CACHE || []).forEach(function (p) {
-      opts += '<option value="' + p.id + '">' + escapeHtml(p.name + (p.variant ? ' - ' + p.variant : '')) + '</option>';
+      opts += '<option value="' + p.id + '">' + escapeHtml(typeof formatProductClaimLabel === 'function' ? formatProductClaimLabel(p) : (p.name + (p.variant ? ' - ' + p.variant : ''))) + '</option>';
     });
     opts += '</optgroup>';
 
@@ -11864,7 +11895,7 @@ function clearSelectedClaimTx() {
   const prodSelect = document.getElementById('clm-product-id');
   if (prodSelect) {
     const prodOptions = (PRODUCTS_CACHE || []).map(function (p) {
-      return '<option value="' + p.id + '">' + escapeHtml(p.name + (p.variant ? ' - ' + p.variant : '')) + '</option>';
+      return '<option value="' + p.id + '">' + escapeHtml(typeof formatProductClaimLabel === 'function' ? formatProductClaimLabel(p) : (p.name + (p.variant ? ' - ' + p.variant : ''))) + '</option>';
     }).join('');
     prodSelect.innerHTML = '<option value="">-- Pilih Produk --</option>' + prodOptions;
   }
@@ -11886,7 +11917,7 @@ function toggleClaimNoInvoiceMode(isNoInvoice) {
     const prodSelect = document.getElementById('clm-product-id');
     if (prodSelect) {
       const prodOptions = (PRODUCTS_CACHE || []).map(function (p) {
-        return '<option value="' + p.id + '">' + escapeHtml(p.name + (p.variant ? ' - ' + p.variant : '')) + '</option>';
+        return '<option value="' + p.id + '">' + escapeHtml(typeof formatProductClaimLabel === 'function' ? formatProductClaimLabel(p) : (p.name + (p.variant ? ' - ' + p.variant : ''))) + '</option>';
       }).join('');
       prodSelect.innerHTML = '<option value="">-- Pilih Produk Benih --</option>' + prodOptions;
     }

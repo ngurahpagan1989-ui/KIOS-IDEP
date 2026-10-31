@@ -1,10 +1,10 @@
-const CACHE_NAME = 'kios-idep-v6.3';
+const CACHE_NAME = 'kios-idep-v6.4';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './style.css?v=5.8',
   './i18n.js?v=2.9',
-  './app.js?v=6.0',
+  './app.js?v=6.1',
   './supabaseClient.js?v=5.5',
   './manifest.json',
   './icon-192.png',

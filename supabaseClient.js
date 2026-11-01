@@ -603,7 +603,7 @@ async function dispatchApiCall(fnName, args) {
         supabase.from('stock_batches').select('*, products(name, category)').or(`id.eq.${batchId},batch_no.eq.${batchId}`).maybeSingle(),
         supabase.from('after_sales_claims').select('id', { count: 'exact', head: true }).eq('batch_id', batchId),
         supabase.from('transaction_items').select('*, transactions(invoice_no, customer_name, customer_phone, created_at)').eq('batch_id', batchId),
-        supabase.from('consignment_transfer_items').select('*, consignment_transfers(invoice_no, transfer_date, outlets(name, phone))').eq('batch_id', batchId)
+        supabase.from('consignment_transfer_items').select('*, consignment_transfers(invoice_no, transfer_date, outlets(name, phone))').eq('batch_id', batchId).catch(function () { return { data: [] }; })
       ]);
 
       const bData = batchRes.data || {};
@@ -2527,11 +2527,22 @@ async function dispatchApiCall(fnName, args) {
     }
 
     case 'getReceivables': {
-      const { data, error } = await supabase
+      let data = [];
+      const res = await supabase
         .from('receivables')
         .select('*, customers(name, phone), transactions(invoice_no, created_at)')
         .order('created_at', { ascending: false });
-      if (error) throw error;
+      if (res.error) {
+        console.warn('getReceivables join failed, retrying simple select:', res.error);
+        const res2 = await supabase
+          .from('receivables')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (res2.error) throw res2.error;
+        data = res2.data || [];
+      } else {
+        data = res.data || [];
+      }
       return (data || []).map(r => {
         const remaining = Number(r.remaining !== undefined ? r.remaining : (Number(r.total || 0) - Number(r.paid || 0)));
         const rawStatus = String(r.status || '').toUpperCase();
@@ -4053,8 +4064,21 @@ async function dispatchApiCall(fnName, args) {
         q = q.eq('product_id', prodId);
       }
 
-      const { data, error } = await q;
-      if (error) throw error;
+      let data = [];
+      const res = await q;
+      if (res.error) {
+        console.warn('searchBatchTraceability join purchases failed, retrying without purchases join:', res.error);
+        let qFallback = supabase
+          .from('stock_batches')
+          .select('*, products(name, category, variant, unit)')
+          .order('expiry_date', { ascending: true });
+        if (prodId) qFallback = qFallback.eq('product_id', prodId);
+        const res2 = await qFallback;
+        if (res2.error) throw res2.error;
+        data = res2.data || [];
+      } else {
+        data = res.data || [];
+      }
 
       let list = (data || []).map(b => {
         const prod = b.products || {};
@@ -4138,6 +4162,7 @@ async function dispatchApiCall(fnName, args) {
       }));
     }
 
+    case 'getFollowUpQueue':
     case 'getFollowUpList': {
       const [txRes, savedFollowUpsRes] = await Promise.all([
         supabase

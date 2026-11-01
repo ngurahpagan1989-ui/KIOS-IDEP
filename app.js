@@ -19460,7 +19460,7 @@ async function runSmartOperationalAlertScan(isManual) {
       api('getQCRecords', TOKEN),
       api('getReceivables', TOKEN),
       api('getOutlets', TOKEN),
-      api('getFollowUpQueue', TOKEN)
+      api('getFollowUpList', TOKEN)
     ]);
 
     // 1. Stok Menipis & Mendekati Kadaluarsa

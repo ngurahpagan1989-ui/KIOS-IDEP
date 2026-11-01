@@ -2048,8 +2048,8 @@ function drawProdukUI(products) {
     '</div>' +
     '<div class="product-header-actions">' +
     '<button type="button" class="btn btn-primary" onclick="openProductModal()">+ Tambah Produk</button>' +
-    '<button type="button" class="btn btn-secondary btn-sm" onclick="downloadProductTemplate()">📥 Templat CSV</button>' +
-    '<button type="button" class="btn btn-secondary btn-sm" onclick="openBulkProductUploadModal()">📤 Impor CSV</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="openBulkProductUploadModal()">📤 Impor Excel / CSV</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="exportProductsToExcel()">📊 Ekspor ke Excel</button>' +
     '</div>' +
     '</div>' +
     '<div class="product-toolbar-wrap">' +
@@ -2157,13 +2157,114 @@ function deleteProductUI(id, name) {
 }
 
 // ==============================================================================
-// FITUR BULK UPLOAD / IMPOR MASSAL PRODUK (CSV)
+// ==============================================================================
+// FITUR BULK UPLOAD & EKSPOR KATALOG PRODUK (EXCEL .XLSX & CSV)
 // ==============================================================================
 
 let CURRENT_PARSED_PRODUCTS = [];
 let BULK_IMPORT_FILE_NAME = '';
 
-function downloadProductTemplate() {
+/**
+ * Pemuatan dinamis pustaka SheetJS (XLSX) dengan proteksi fallback
+ */
+function ensureXlsxLoaded() {
+  if (typeof XLSX !== 'undefined') return Promise.resolve(window.XLSX);
+  return new Promise(function (resolve, reject) {
+    const existing = document.querySelector('script[src*="xlsx"]');
+    if (existing) {
+      if (typeof window.XLSX !== 'undefined') return resolve(window.XLSX);
+      existing.addEventListener('load', function () { resolve(window.XLSX); });
+      existing.addEventListener('error', function () { reject(new Error('Gagal memuat library Excel (SheetJS).')); });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    script.onload = function () { resolve(window.XLSX); };
+    script.onerror = function () { reject(new Error('Gagal memuat pustaka Excel (SheetJS).')); };
+    document.head.appendChild(script);
+  });
+}
+
+/**
+ * Unduh Templat Excel (.xlsx) dengan Sheet Katalog & Sheet Panduan Pengisian
+ */
+function downloadProductExcelTemplate() {
+  showToast('Menyiapkan templat Excel (.xlsx)...');
+  ensureXlsxLoaded().then(function (XLSX) {
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Katalog_Produk
+    const headers = [
+      'SKU',
+      'Nama_Produk',
+      'Kategori',
+      'Tipe_Produk',
+      'Satuan',
+      'Umur_Panen',
+      'Harga_Reguler',
+      'Harga_Outlet',
+      'Harga_Bali_Buda'
+    ];
+
+    const sampleRows = [
+      headers,
+      ['BNH-BYMM-JADI', 'Benih Bayam Merah', 'Benih', 'Benih', 'pcs', 25, 25000, 20000, 22000],
+      ['BNH-ERCS-JADI', 'Benih Ercis', 'Benih', 'Benih', 'pcs', 60, 30000, 24000, 27000],
+      ['BNH-CBKC-JADI', 'Benih Cabai Kecil', 'Benih', 'Benih', 'pcs', 90, 30000, 24000, 27000],
+      ['BNH-BYMH-CURAH', 'Benih Bayam Hijau Curah', 'Benih', 'Curah', 'gr', 25, 250, 200, 220],
+      ['BK-PERM-01', 'Buku Panduan Kebun Permakultur IDEP', 'Buku', 'Buku', 'pcs', 0, 75000, 60000, 65000]
+    ];
+
+    const wsProduk = XLSX.utils.aoa_to_sheet(sampleRows);
+    wsProduk['!cols'] = [
+      { wch: 18 }, // SKU
+      { wch: 36 }, // Nama_Produk
+      { wch: 14 }, // Kategori
+      { wch: 14 }, // Tipe_Produk
+      { wch: 10 }, // Satuan
+      { wch: 13 }, // Umur_Panen
+      { wch: 16 }, // Harga_Reguler
+      { wch: 16 }, // Harga_Outlet
+      { wch: 18 }  // Harga_Bali_Buda
+    ];
+
+    // Sheet 2: Petunjuk_Pengisian
+    const guideHeaders = ['Nama Kolom', 'Status', 'Contoh Nilai', 'Penjelasan & Aturan Format'];
+    const guideRows = [
+      guideHeaders,
+      ['SKU', 'WAJIB', 'BNH-BYMM-JADI', 'Kode identifikasi unik produk. Jika SKU sudah ada di database, sistem otomatis memperbarui nama, kategori, dan harga (Upsert).'],
+      ['Nama_Produk', 'WAJIB', 'Benih Bayam Merah', 'Nama varietas benih atau barang lengkap.'],
+      ['Kategori', 'OPSIONAL', 'Benih / Buku / Pupuk', 'Kategori produk untuk pengelompokan di katalog. Default: Benih.'],
+      ['Tipe_Produk', 'OPSIONAL', 'Benih / Curah / Buku', 'Tipe persediaan master. Default: Benih.'],
+      ['Satuan', 'OPSIONAL', 'pcs / gr / kg / buku', 'Satuan persediaan. Gunakan pcs untuk sachet kemasan jadi, gr/kg untuk bahan curah toples. Default: pcs.'],
+      ['Umur_Panen', 'OPSIONAL', '25 / 60 / 90', 'Estimasi umur panen benih dalam angka hari. Isi 0 jika buku atau non-benih.'],
+      ['Harga_Reguler', 'WAJIB', '25000', 'Harga jual standar kasir POS untuk pembeli umum/ritel. Wajib diisi angka murni tanpa simbol Rp atau titik.'],
+      ['Harga_Outlet', 'OPSIONAL', '20000', 'Harga khusus untuk mitra toko cabang titip konsinyasi. Jika dikosongkan, bernilai 0.'],
+      ['Harga_Bali_Buda', 'OPSIONAL', '22000', 'Harga khusus untuk mitra outlet jaringan Bali Buda. Jika dikosongkan, bernilai 0.']
+    ];
+
+    const wsPanduan = XLSX.utils.aoa_to_sheet(guideRows);
+    wsPanduan['!cols'] = [
+      { wch: 18 },
+      { wch: 12 },
+      { wch: 22 },
+      { wch: 80 }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, wsProduk, 'Katalog_Produk');
+    XLSX.utils.book_append_sheet(wb, wsPanduan, 'Petunjuk_Pengisian');
+
+    XLSX.writeFile(wb, 'templat_impor_produk_kios_idep.xlsx');
+    showToast('Templat Excel (.xlsx) berhasil diunduh.');
+  }).catch(function (err) {
+    showToast('Gagal membuat templat Excel: ' + (err.message || err), true);
+  });
+}
+
+/**
+ * Unduh Templat CSV (.csv) Standar
+ */
+function downloadProductCsvTemplate() {
   const headers = [
     'SKU',
     'Nama_Produk',
@@ -2177,10 +2278,11 @@ function downloadProductTemplate() {
   ];
 
   const sampleRows = [
-    ['BNH-001', 'Benih Bayam Merah', 'Benih', 'Benih', 'pcs', '30', '25000', '20000', '22000'],
-    ['BNH-002', 'Benih Cabai Rawit Unggul', 'Benih', 'Benih', 'pcs', '90', '30000', '24000', '27000'],
-    ['BNH-003', 'Benih Kangkung Lombok Curah', 'Benih', 'Benih', 'gr', '45', '500', '400', '450'],
-    ['MED-001', 'Buku Panduan Kebun Permakultur', 'Media', 'Buku', 'pcs', '0', '75000', '60000', '65000']
+    ['BNH-BYMM-JADI', 'Benih Bayam Merah', 'Benih', 'Benih', 'pcs', '25', '25000', '20000', '22000'],
+    ['BNH-ERCS-JADI', 'Benih Ercis', 'Benih', 'Benih', 'pcs', '60', '30000', '24000', '27000'],
+    ['BNH-CBKC-JADI', 'Benih Cabai Kecil', 'Benih', 'Benih', 'pcs', '90', '30000', '24000', '27000'],
+    ['BNH-BYMH-CURAH', 'Benih Bayam Hijau Curah', 'Benih', 'Curah', 'gr', '25', '250', '200', '220'],
+    ['BK-PERM-01', 'Buku Panduan Kebun Permakultur IDEP', 'Buku', 'Buku', 'pcs', '0', '75000', '60000', '65000']
   ];
 
   const csvRows = [headers.join(','), ...sampleRows.map(function (row) { return row.join(','); })];
@@ -2197,6 +2299,90 @@ function downloadProductTemplate() {
   showToast('Templat CSV berhasil diunduh.', false);
 }
 
+// Alias fungsi templat
+function downloadProductTemplate() {
+  downloadProductExcelTemplate();
+}
+
+/**
+ * Ekspor Seluruh Master Produk Aktif ke File Excel (.xlsx)
+ */
+function exportProductsToExcel() {
+  const list = PRODUCTS_CACHE || [];
+  if (list.length === 0) {
+    showToast('Belum ada data produk di katalog untuk diekspor.', true);
+    return;
+  }
+
+  showToast('Menyiapkan file ekspor katalog Excel...');
+  ensureXlsxLoaded().then(function (XLSX) {
+    const wb = XLSX.utils.book_new();
+
+    const headers = [
+      'SKU',
+      'Nama_Produk',
+      'Kategori',
+      'Tipe_Produk',
+      'Satuan',
+      'Umur_Panen',
+      'Harga_Reguler',
+      'Harga_Outlet',
+      'Harga_Bali_Buda',
+      'Sisa_Stok'
+    ];
+
+    function getTierPrice(p, tierName) {
+      if (!p || !p.priceTiers || !Array.isArray(p.priceTiers)) return 0;
+      const t = p.priceTiers.find(function (x) {
+        return (x.tier_name || '').toLowerCase() === tierName.toLowerCase();
+      });
+      return t ? Number(t.price || 0) : 0;
+    }
+
+    const rows = [headers];
+    list.forEach(function (p) {
+      rows.push([
+        p.sku || '',
+        p.name || '',
+        p.category || 'Benih',
+        p.product_type || 'Benih',
+        p.unit || 'pcs',
+        Number(p.harvest_days || 0),
+        getTierPrice(p, 'Reguler'),
+        getTierPrice(p, 'Outlet'),
+        getTierPrice(p, 'Bali Buda'),
+        Number(p.stock || 0)
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [
+      { wch: 18 }, // SKU
+      { wch: 34 }, // Nama_Produk
+      { wch: 14 }, // Kategori
+      { wch: 14 }, // Tipe_Produk
+      { wch: 10 }, // Satuan
+      { wch: 13 }, // Umur_Panen
+      { wch: 15 }, // Harga_Reguler
+      { wch: 15 }, // Harga_Outlet
+      { wch: 16 }, // Harga_Bali_Buda
+      { wch: 12 }  // Sisa_Stok
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Katalog_Produk');
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    const fileName = 'katalog_produk_kios_idep_' + dateStr + '.xlsx';
+    XLSX.writeFile(wb, fileName);
+    showToast('Katalog berhasil diekspor (' + list.length + ' produk ke ' + fileName + ').');
+  }).catch(function (err) {
+    showToast('Gagal mengekspor katalog: ' + (err.message || err), true);
+  });
+}
+
+/**
+ * Modal Impor Massal Produk Mendukung Excel (.xlsx, .xls) dan CSV (.csv)
+ */
 function openBulkProductUploadModal() {
   CURRENT_PARSED_PRODUCTS = [];
   BULK_IMPORT_FILE_NAME = '';
@@ -2207,21 +2393,26 @@ function openBulkProductUploadModal() {
     '       onclick="document.getElementById(\'bulk-product-file-input\').click()" ' +
     '       ondragover="event.preventDefault();this.style.background=\'#E8F5E9\';" ' +
     '       ondragleave="this.style.background=\'#F9FBF9\';" ' +
-    '       ondrop="handleProductCsvDrop(event)">' +
-    '    <input type="file" id="bulk-product-file-input" accept=".csv,text/csv" style="display:none;" onchange="handleProductCsvFileSelect(event)">' +
-    '    <div style="font-size:36px;margin-bottom:6px;">📄</div>' +
-    '    <div style="font-weight:700;font-size:14.5px;color:var(--text-primary);margin-bottom:4px;">Klik untuk memilih file CSV atau seret file ke sini</div>' +
-    '    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Mendukung pemisah koma (,) maupun titik koma (;). Delimiter terdeteksi otomatis.</div>' +
-    '    <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();downloadProductTemplate();" style="display:inline-flex;align-items:center;gap:6px;">' +
-    '      📥 Download Templat CSV' +
-    '    </button>' +
+    '       ondrop="handleProductFileDrop(event)">' +
+    '    <input type="file" id="bulk-product-file-input" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="display:none;" onchange="handleProductFileSelect(event)">' +
+    '    <div style="font-size:38px;margin-bottom:6px;">📊</div>' +
+    '    <div style="font-weight:700;font-size:15px;color:var(--text-primary);margin-bottom:4px;">Pilih File Excel (.xlsx) / CSV (.csv) atau seret ke sini</div>' +
+    '    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Mendukung file Microsoft Excel (.xlsx, .xls) dan CSV (koma maupun titik koma).</div>' +
+    '    <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">' +
+    '      <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();downloadProductExcelTemplate();" style="display:inline-flex;align-items:center;gap:6px;">' +
+    '        📥 Download Templat Excel (.xlsx)' +
+    '      </button>' +
+    '      <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();downloadProductCsvTemplate();" style="display:inline-flex;align-items:center;gap:6px;">' +
+    '        📥 Download Templat CSV' +
+    '      </button>' +
+    '    </div>' +
     '  </div>' +
     '  <div id="bulk-preview-area" style="display:none;"></div>' +
     '</div>';
 
   const footerHtml =
     '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;flex-wrap:wrap;gap:8px;">' +
-    '  <div id="bulk-footer-info" style="font-size:12px;color:var(--text-secondary);width:100%;">Pilih file CSV untuk melihat pratinjau.</div>' +
+    '  <div id="bulk-footer-info" style="font-size:12px;color:var(--text-secondary);width:100%;">Pilih file Excel atau CSV untuk melihat pratinjau.</div>' +
     '  <div style="display:flex;gap:8px;width:100%;">' +
     '    <button type="button" class="btn btn-secondary" onclick="closeModal()" style="flex:1;">Batal</button>' +
     '    <button type="button" class="btn btn-primary" id="btn-submit-bulk-import" disabled onclick="submitBulkProductImport()" style="flex:1;">' +
@@ -2230,7 +2421,7 @@ function openBulkProductUploadModal() {
     '  </div>' +
     '</div>';
 
-  openModal('Impor Massal Katalog Produk (CSV)', bodyHtml, footerHtml, true);
+  openModal('Impor Massal Katalog Produk (Excel & CSV)', bodyHtml, footerHtml, true);
 
   const dialog = document.getElementById('modal-dialog');
   if (dialog) {
@@ -2239,36 +2430,94 @@ function openBulkProductUploadModal() {
   }
 }
 
-function handleProductCsvDrop(event) {
+function handleProductFileDrop(event) {
   event.preventDefault();
   const dropzone = document.getElementById('bulk-dropzone');
   if (dropzone) dropzone.style.background = '#F9FBF9';
   if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
-    loadProductCsvFile(event.dataTransfer.files[0]);
+    loadProductFile(event.dataTransfer.files[0]);
   }
 }
 
-function handleProductCsvFileSelect(event) {
+function handleProductFileSelect(event) {
   if (event.target && event.target.files && event.target.files[0]) {
-    loadProductCsvFile(event.target.files[0]);
+    loadProductFile(event.target.files[0]);
   }
 }
 
-function loadProductCsvFile(file) {
+// Backward compatibility handlers
+function handleProductCsvDrop(e) { handleProductFileDrop(e); }
+function handleProductCsvFileSelect(e) { handleProductFileSelect(e); }
+
+function loadProductFile(file) {
   if (!file) return;
-  if (!file.name.toLowerCase().endsWith('.csv')) {
-    showToast('Harap pilih file dengan format CSV (.csv).', true);
+  const fileName = (file.name || '').toLowerCase();
+  const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+  const isCsv = fileName.endsWith('.csv');
+
+  if (!isExcel && !isCsv) {
+    showToast('Harap pilih file dengan format Excel (.xlsx, .xls) atau CSV (.csv).', true);
     return;
   }
+
   BULK_IMPORT_FILE_NAME = file.name;
-  const reader = new FileReader();
-  reader.onload = function (e) {
-    processProductCsvText(e.target.result);
-  };
-  reader.onerror = function () {
-    showToast('Gagal membaca file CSV.', true);
-  };
-  reader.readAsText(file);
+
+  if (isExcel) {
+    showToast('Membaca file Excel ' + file.name + '...');
+    ensureXlsxLoaded().then(function (XLSX) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+
+          // Prioritaskan sheet pertama atau sheet bernama Katalog/Produk
+          let targetSheetName = workbook.SheetNames[0];
+          const foundSheet = workbook.SheetNames.find(function (s) {
+            return /katalog|produk|product/i.test(s);
+          });
+          if (foundSheet) targetSheetName = foundSheet;
+
+          const worksheet = workbook.Sheets[targetSheetName];
+          if (!worksheet) {
+            showToast('Sheet data produk tidak ditemukan di file Excel.', true);
+            return;
+          }
+
+          const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+          if (!rawRows || rawRows.length === 0) {
+            showToast('Sheet "' + targetSheetName + '" tidak memiliki baris data produk.', true);
+            return;
+          }
+
+          processParsedProductRows(rawRows, 'Excel (' + targetSheetName + ')');
+        } catch (parseErr) {
+          showToast('Gagal memproses file Excel: ' + (parseErr.message || parseErr), true);
+        }
+      };
+      reader.onerror = function () {
+        showToast('Gagal membaca berkas Excel.', true);
+      };
+      reader.readAsArrayBuffer(file);
+    }).catch(function (err) {
+      showToast('Pustaka Excel belum siap: ' + (err.message || err), true);
+    });
+  } else {
+    // Membaca file CSV
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const parsed = parseCsvText(e.target.result);
+      if (!parsed.rows || parsed.rows.length === 0) {
+        showToast('File CSV tidak memiliki baris data produk.', true);
+        return;
+      }
+      processParsedProductRows(parsed.rows, 'CSV (' + (parsed.delimiter === ';' ? 'Titik Koma ;' : 'Koma ,') + ')');
+    };
+    reader.onerror = function () {
+      showToast('Gagal membaca file CSV.', true);
+    };
+    reader.readAsText(file);
+  }
 }
 
 function parseCsvText(text) {
@@ -2353,15 +2602,9 @@ function getRowValue(row, possibleKeys) {
   return '';
 }
 
-function processProductCsvText(text) {
-  const parsed = parseCsvText(text);
-  if (!parsed.rows || parsed.rows.length === 0) {
-    showToast('File CSV tidak memiliki baris data produk.', true);
-    return;
-  }
-
+function processParsedProductRows(rawRows, fileTypeLabel) {
   const seenSkus = new Set();
-  CURRENT_PARSED_PRODUCTS = parsed.rows.map(function (row, idx) {
+  CURRENT_PARSED_PRODUCTS = rawRows.map(function (row, idx) {
     const lineNo = idx + 2;
     const sku = getRowValue(row, ['sku', 'kode_sku', 'kode', 'item_code']).trim();
     const name = getRowValue(row, ['nama_produk', 'nama', 'name', 'product_name']).trim();
@@ -2423,10 +2666,10 @@ function processProductCsvText(text) {
     };
   });
 
-  renderBulkProductPreview(parsed.delimiter);
+  renderBulkProductPreview(fileTypeLabel);
 }
 
-function renderBulkProductPreview(delimiter) {
+function renderBulkProductPreview(fileTypeLabel) {
   const previewArea = document.getElementById('bulk-preview-area');
   const footerInfo = document.getElementById('bulk-footer-info');
   const submitBtn = document.getElementById('btn-submit-bulk-import');
@@ -2444,7 +2687,7 @@ function renderBulkProductPreview(delimiter) {
   }
 
   if (footerInfo) {
-    footerInfo.innerHTML = 'File: <strong>' + escapeHtml(BULK_IMPORT_FILE_NAME) + '</strong> (' + (delimiter === ';' ? 'Titik Koma ;' : 'Koma ,') + ') &bull; ' +
+    footerInfo.innerHTML = 'File: <strong>' + escapeHtml(BULK_IMPORT_FILE_NAME) + '</strong> (' + escapeHtml(fileTypeLabel || '') + ') &bull; ' +
       '<span style="color:#2E7D32;font-weight:700;">' + validCount + ' Siap</span> / ' +
       (errorCount > 0 ? '<span style="color:#C62828;font-weight:700;">' + errorCount + ' Bermasalah</span>' : '0 Error');
   }
@@ -2453,7 +2696,7 @@ function renderBulkProductPreview(delimiter) {
     '<div style="display:flex;justify-content:space-between;align-items:center;background:#F4F6F8;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:12px;flex-wrap:wrap;gap:8px;">' +
     '  <div style="font-size:12.5px;color:var(--text-secondary);">' +
     '    Total: <strong>' + total + ' baris</strong> &bull; ' +
-    '    Pemisah: <strong>' + (delimiter === ';' ? 'Titik Koma (;)' : 'Koma (,)') + '</strong>' +
+    '    Format: <strong>' + escapeHtml(fileTypeLabel || '-') + '</strong>' +
     '  </div>' +
     '  <div style="display:flex;gap:6px;">' +
     '    <span class="badge badge-success">✓ ' + validCount + ' Siap Diimpor</span>' +

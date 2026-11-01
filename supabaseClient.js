@@ -2941,6 +2941,96 @@ async function dispatchApiCall(fnName, args) {
     }
 
     // --------------------------------------------------------------------------
+    // K.2. CUT-OFF & TUTUP BUKU PERIODE AKUNTANSI
+    // --------------------------------------------------------------------------
+    case 'getAccountingPeriods': {
+      try {
+        const { data, error } = await supabase
+          .from('accounting_periods')
+          .select('*')
+          .order('cut_off_date', { ascending: false });
+        if (error) throw error;
+        try { localStorage.setItem('kios_idep_accounting_periods_cache', JSON.stringify(data || [])); } catch (e) {}
+        return data || [];
+      } catch (err) {
+        console.warn('getAccountingPeriods fallback to localStorage cache:', err);
+        try {
+          return JSON.parse(localStorage.getItem('kios_idep_accounting_periods_cache') || '[]');
+        } catch (e) {
+          return [];
+        }
+      }
+    }
+
+    case 'closeAccountingPeriod': {
+      const [, payload] = args;
+      const periodId = payload.id || crypto.randomUUID();
+      const periodRecord = {
+        id: periodId,
+        period_name: String(payload.period_name || 'Tutup Buku Periode').trim(),
+        start_date: payload.start_date || new Date().toISOString().slice(0, 10),
+        cut_off_date: payload.cut_off_date || new Date().toISOString(),
+        closed_at: new Date().toISOString(),
+        closed_by: payload.closed_by || 'Admin IDEP',
+        status: 'CLOSED',
+        total_revenue: Number(payload.total_revenue || 0),
+        total_cogs: Number(payload.total_cogs || 0),
+        gross_profit: Number(payload.gross_profit || 0),
+        gross_margin_pct: Number(payload.gross_margin_pct || 0),
+        total_inventory_valuation: Number(payload.total_inventory_valuation || 0),
+        total_items_count: Number(payload.total_items_count || 0),
+        summary: payload.summary || {},
+        inventory_snapshot: Array.isArray(payload.inventory_snapshot) ? payload.inventory_snapshot : [],
+        notes: String(payload.notes || '').trim(),
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        const { data, error } = await supabase
+          .from('accounting_periods')
+          .insert(periodRecord)
+          .select()
+          .single();
+        if (error) throw error;
+
+        let local = [];
+        try { local = JSON.parse(localStorage.getItem('kios_idep_accounting_periods_cache') || '[]'); } catch (e) {}
+        local = [data || periodRecord, ...local.filter(p => p.id !== periodId)];
+        try { localStorage.setItem('kios_idep_accounting_periods_cache', JSON.stringify(local)); } catch (e) {}
+
+        return { success: true, period: data || periodRecord };
+      } catch (err) {
+        console.warn('closeAccountingPeriod insert to Supabase failed, storing locally:', err);
+        let local = [];
+        try { local = JSON.parse(localStorage.getItem('kios_idep_accounting_periods_cache') || '[]'); } catch (e) {}
+        local = [periodRecord, ...local.filter(p => p.id !== periodId)];
+        try { localStorage.setItem('kios_idep_accounting_periods_cache', JSON.stringify(local)); } catch (e) {}
+
+        return {
+          success: true,
+          period: periodRecord,
+          isLocal: true,
+          message: 'Tutup buku berhasil disimpan ke penyimpanan lokal. Silakan jalankan file supabase_accounting_periods_setup.sql di Supabase SQL Editor agar tersimpan di cloud.'
+        };
+      }
+    }
+
+    case 'reopenAccountingPeriod': {
+      const [, periodId] = args;
+      if (!periodId) throw new Error('ID Periode diperlukan.');
+      try {
+        await supabase.from('accounting_periods').delete().eq('id', periodId);
+      } catch (err) {
+        console.warn('Supabase delete accounting_periods failed:', err);
+      }
+      let local = [];
+      try { local = JSON.parse(localStorage.getItem('kios_idep_accounting_periods_cache') || '[]'); } catch (e) {}
+      local = local.filter(p => p.id !== periodId);
+      try { localStorage.setItem('kios_idep_accounting_periods_cache', JSON.stringify(local)); } catch (e) {}
+      return { success: true };
+    }
+
+    // --------------------------------------------------------------------------
     // L. PENGATURAN SISTEM (SETTINGS)
     // --------------------------------------------------------------------------
     case 'getSettings': {

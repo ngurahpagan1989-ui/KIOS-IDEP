@@ -108,6 +108,8 @@ let CURRENT_REPORT_SUBTAB = 'channels';
 let CURRENT_LAPORAN_VIEW = 'sales';
 let STOCK_VALUATION_DATA = null;
 let STOCK_VALUATION_FILTER = { query: '', type: 'all', status: 'all' };
+let ACCOUNTING_PERIODS_CACHE = [];
+let CURRENT_CLOSING_WIZARD_DATA = null;
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const DATA_CACHE = {
@@ -7536,6 +7538,13 @@ function submitCheckout() {
   const type = document.getElementById('chk-type').value;
   const source = document.getElementById('chk-source').value;
   const txDate = document.getElementById('chk-date').value;
+  if (txDate) {
+    const lockCheck = isDateLockedByClosing(txDate);
+    if (lockCheck.locked) {
+      showToast('⚠️ Transaksi kasir ditolak: Tanggal ' + txDate + ' berada pada periode yang telah ditutup buku (' + lockCheck.periodName + ').', true);
+      return;
+    }
+  }
   const taxRate = Number(APP_SETTINGS['tax_rate'] || 0) / 100;
 
   const saveMemberChk = document.getElementById('pos-save-member-chk');
@@ -13131,6 +13140,10 @@ function renderLaporan(forceRefresh) {
     loadStockValuationReport(forceRefresh);
     return;
   }
+  if (CURRENT_LAPORAN_VIEW === 'period_closing') {
+    loadPeriodClosingReport(forceRefresh);
+    return;
+  }
 
   // Set default filter awal bulan s/d hari ini jika belum terisi
   if (!CURRENT_REPORT_FILTER.startDate || !CURRENT_REPORT_FILTER.endDate) {
@@ -13587,8 +13600,9 @@ function drawLaporanUI(data, filter) {
 
     '<!-- SWITCHER TAB UTAMA MODUL LAPORAN -->' +
     '<div class="laporan-nav-switcher">' +
-    '<button type="button" class="laporan-nav-tab-btn active" onclick="switchLaporanMainView(\'sales\')">📈 Laporan Penjualan &amp; Margin FIFO</button>' +
-    '<button type="button" class="laporan-nav-tab-btn" onclick="switchLaporanMainView(\'stock_valuation\')">📦 Posisi Stok &amp; Valuasi Aset</button>' +
+    '<button type="button" class="laporan-nav-tab-btn' + (CURRENT_LAPORAN_VIEW === 'sales' ? ' active' : '') + '" onclick="switchLaporanMainView(\'sales\')">📈 Laporan Penjualan &amp; Margin FIFO</button>' +
+    '<button type="button" class="laporan-nav-tab-btn' + (CURRENT_LAPORAN_VIEW === 'stock_valuation' ? ' active' : '') + '" onclick="switchLaporanMainView(\'stock_valuation\')">📦 Posisi Stok &amp; Valuasi Aset</button>' +
+    '<button type="button" class="laporan-nav-tab-btn' + (CURRENT_LAPORAN_VIEW === 'period_closing' ? ' active' : '') + '" onclick="switchLaporanMainView(\'period_closing\')">🔒 Tutup Buku &amp; Cut-Off Periode</button>' +
     '</div>' +
 
     '<!-- BAR FILTER PERIODE FLEKSIBEL & TOMBOL AKSI -->' +
@@ -13611,6 +13625,7 @@ function drawLaporanUI(data, filter) {
     '<button type="button" class="btn btn-primary btn-sm" onclick="applyCustomReportFilter()">🔎 Terapkan</button>' +
     '</div>' +
     '<div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">' +
+    '<button type="button" class="btn btn-primary btn-sm" onclick="openPeriodClosingWizard()" style="background:#7A5031;border-color:#7A5031;font-weight:700;" title="Tutup buku dan bekukan saldo akhir periode ini">⚡ Tutup Buku Periode</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="exportReportToCSV()" title="Unduh data laporan lengkap ke format CSV / Excel">📥 Ekspor CSV/Excel</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="printReportSummary()" title="Cetak rekapitulasi laporan resmi (format A4/PDF)">🖨️ Cetak Rekap Laporan (A4/PDF)</button>' +
     '</div>' +
@@ -13688,6 +13703,7 @@ function drawLaporanUI(data, filter) {
     '<button type="button" class="report-tab-btn ' + (CURRENT_REPORT_SUBTAB === 'stocks' ? 'active' : '') + '" data-tab="stocks" onclick="switchReportSubtab(\'stocks\')">⚠️ Kesehatan Stok &amp; Expired</button>' +
     '<button type="button" class="report-tab-btn ' + (CURRENT_REPORT_SUBTAB === 'products' ? 'active' : '') + '" data-tab="products" onclick="switchReportSubtab(\'products\')">📊 Rotasi Produk (Top &amp; Slow)</button>' +
     '<button type="button" class="report-tab-btn" data-tab="stock_valuation" onclick="switchLaporanMainView(\'stock_valuation\')">📦 Posisi Stok &amp; Valuasi</button>' +
+    '<button type="button" class="report-tab-btn" data-tab="period_closing" onclick="switchLaporanMainView(\'period_closing\')">🔒 Tutup Buku &amp; Cut-Off</button>' +
     '</div>' +
     '<div style="padding:16px;">' +
     '<div class="report-subtab-pane" id="report-subtab-channels" style="display:' + (CURRENT_REPORT_SUBTAB === 'channels' ? 'block' : 'none') + ';">' + channelsHtml + '</div>' +
@@ -13988,6 +14004,8 @@ function switchLaporanMainView(viewName) {
   CURRENT_LAPORAN_VIEW = viewName || 'sales';
   if (CURRENT_LAPORAN_VIEW === 'stock_valuation') {
     loadStockValuationReport();
+  } else if (CURRENT_LAPORAN_VIEW === 'period_closing') {
+    loadPeriodClosingReport();
   } else {
     loadReport(CURRENT_REPORT_FILTER);
   }
@@ -14057,6 +14075,7 @@ function drawStockValuationUI(data) {
     '<div class="laporan-nav-switcher">' +
     '<button type="button" class="laporan-nav-tab-btn" onclick="switchLaporanMainView(\'sales\')">📈 Laporan Penjualan &amp; Margin FIFO</button>' +
     '<button type="button" class="laporan-nav-tab-btn active" onclick="switchLaporanMainView(\'stock_valuation\')">📦 Posisi Stok &amp; Valuasi Aset</button>' +
+    '<button type="button" class="laporan-nav-tab-btn" onclick="switchLaporanMainView(\'period_closing\')">🔒 Tutup Buku &amp; Cut-Off Periode</button>' +
     '</div>' +
 
     '<!-- 4 KARTU RINGKASAN METRIK (KPI) -->' +
@@ -14103,6 +14122,7 @@ function drawStockValuationUI(data) {
     '<button type="button" class="btn btn-secondary btn-sm" onclick="loadStockValuationReport(true)" title="Segarkan Data">&#8635; Segarkan</button>' +
     '</div>' +
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+    '<button type="button" class="btn btn-primary btn-sm" onclick="openPeriodClosingWizard()" style="background:#7A5031;border-color:#7A5031;font-weight:700;" title="Tutup buku dan bekukan saldo akhir periode ini">⚡ Tutup Buku Periode</button>' +
     '<button type="button" class="btn btn-primary btn-sm" onclick="printStockValuationA4()" title="Cetak Laporan Valuasi Aset Modal format A4 Resmi">🖨️ Cetak Valuasi Aset (A4)</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="printStockOpnameSheetA4()" title="Cetak Lembar Kerja Stock Opname Fisik format A4 (Harga disembunyikan)">📋 Cetak Lembar Opname Fisik (A4)</button>' +
     '</div>' +
@@ -14486,6 +14506,782 @@ function printStockOpnameSheetA4() {
   setTimeout(function () {
     window.print();
   }, 350);
+}
+
+// ==============================================================================
+// MODUL CUT-OFF & TUTUP BUKU PERIODE AKUNTANSI (PERIOD CLOSING & SNAPSHOT)
+// ==============================================================================
+
+function loadPeriodClosingReport(forceRefresh) {
+  const content = document.getElementById('content');
+  if (!content) return;
+
+  CURRENT_LAPORAN_VIEW = 'period_closing';
+
+  content.innerHTML =
+    '<div class="card">' +
+    '<div class="empty-state">' +
+    '<span class="sync-spinner" style="display:inline-block;width:28px;height:28px;margin-bottom:10px;"></span><br>' +
+    'Memuat riwayat tutup buku dan arsip snapshot periode akuntansi...' +
+    '</div>' +
+    '</div>';
+
+  setProgressLoading(true);
+  api('getAccountingPeriods', TOKEN).then(function (periods) {
+    setProgressLoading(false);
+    ACCOUNTING_PERIODS_CACHE = Array.isArray(periods) ? periods : [];
+    drawPeriodClosingUI();
+  }).catch(function (err) {
+    setProgressLoading(false);
+    showToast('Gagal memuat periode tutup buku: ' + (err.message || err), true);
+    drawPeriodClosingUI();
+  });
+}
+
+function drawPeriodClosingUI() {
+  const content = document.getElementById('content');
+  if (!content) return;
+
+  const periods = ACCOUNTING_PERIODS_CACHE || [];
+  const closedPeriods = periods.filter(function (p) { return p.status === 'CLOSED'; });
+  const latestClosed = closedPeriods.length > 0 ? closedPeriods[0] : null;
+
+  // Nama bulan saat ini
+  const monthNamesIndo = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const now = new Date();
+  const currentMonthName = monthNamesIndo[now.getMonth()] + ' ' + now.getFullYear();
+
+  let latestCutoffStr = 'Belum Ada Periode Ditutup';
+  if (latestClosed && latestClosed.cut_off_date) {
+    latestCutoffStr = formatDateIndo(latestClosed.cut_off_date) + ' (' + escapeHtml(latestClosed.period_name) + ')';
+  }
+
+  const tableRowsHtml = periods.length > 0 ? periods.map(function (p, idx) {
+    const isClosed = (p.status || 'CLOSED') === 'CLOSED';
+    const statusBadge = isClosed
+      ? '<span class="badge badge-success" style="font-weight:700;"><i class="fas fa-lock" style="font-size:10px;margin-right:4px;"></i> CLOSED</span>'
+      : '<span class="badge badge-warning" style="font-weight:700;"><i class="fas fa-unlock" style="font-size:10px;margin-right:4px;"></i> REOPENED</span>';
+
+    const omzetDisplay = formatRupiah(p.total_revenue || 0);
+    const hppDisplay = formatRupiah(p.total_cogs || 0);
+    const marginDisplay = (p.gross_margin_pct !== undefined && p.gross_margin_pct !== null)
+      ? (Number(p.gross_margin_pct || 0) + '%')
+      : '-';
+    const valuasiDisplay = formatRupiah(p.total_inventory_valuation || 0);
+    const dateRangeStr = formatDate(p.start_date) + ' s/d ' + formatDate(p.cut_off_date);
+
+    return '<tr>' +
+      '<td style="text-align:center;font-size:11px;color:var(--text-muted);">' + (idx + 1) + '</td>' +
+      '<td>' +
+      '  <div style="font-weight:700;color:var(--primary);font-size:13px;">' + escapeHtml(p.period_name) + '</div>' +
+      '  <div style="font-size:11px;color:var(--text-secondary);">' + dateRangeStr + '</div>' +
+      '</td>' +
+      '<td style="font-size:12px;font-family:monospace;">' + formatDateIndo(p.cut_off_date) + '</td>' +
+      '<td style="text-align:right;font-weight:700;font-family:monospace;color:var(--text-main);">' + omzetDisplay + '</td>' +
+      '<td style="text-align:right;font-family:monospace;color:var(--text-secondary);">' + hppDisplay + '</td>' +
+      '<td style="text-align:center;font-weight:600;color:var(--success);">' + marginDisplay + '</td>' +
+      '<td style="text-align:right;font-weight:700;font-family:monospace;color:var(--primary);">' + valuasiDisplay + '</td>' +
+      '<td style="font-size:12px;">' + escapeHtml(p.closed_by || 'Admin IDEP') + '</td>' +
+      '<td style="text-align:center;">' + statusBadge + '</td>' +
+      '<td style="text-align:right;">' +
+      '  <div style="display:flex;justify-content:flex-end;gap:5px;flex-wrap:wrap;">' +
+      '    <button type="button" class="btn btn-secondary btn-sm" onclick="downloadPeriodJSON(\'' + p.id + '\')" title="Unduh snapshot arsip murni .JSON" style="padding:3px 8px;font-size:11px;"><i class="fas fa-file-code" style="color:#2563eb;margin-right:3px;"></i> .JSON</button>' +
+      '    <button type="button" class="btn btn-secondary btn-sm" onclick="downloadPeriodExcel(\'' + p.id + '\')" title="Unduh lembar kerja Excel multi-sheet" style="padding:3px 8px;font-size:11px;"><i class="fas fa-file-excel" style="color:#16a34a;margin-right:3px;"></i> Excel</button>' +
+      '    <button type="button" class="btn btn-secondary btn-sm" onclick="printPeriodMinutes(\'' + p.id + '\')" title="Cetak Berita Acara Tutup Buku resmi format A4" style="padding:3px 8px;font-size:11px;"><i class="fas fa-print" style="margin-right:3px;"></i> Berita Acara</button>' +
+      '    <button type="button" class="btn btn-secondary btn-sm" onclick="viewPeriodSnapshotDetail(\'' + p.id + '\')" title="Lihat rincian saldo awal stok yang dibekukan" style="padding:3px 8px;font-size:11px;">👁️ Rincian</button>' +
+      '    <button type="button" class="btn btn-danger btn-sm" onclick="reopenPeriodModal(\'' + p.id + '\')" title="Buka kembali periode (khusus audit darurat)" style="padding:3px 6px;font-size:11px;">🔓</button>' +
+      '  </div>' +
+      '</td>' +
+      '</tr>';
+  }).join('') :
+    '<tr><td colspan="10"><div style="text-align:center;padding:36px;color:var(--text-secondary);">' +
+    '  <div style="font-size:32px;margin-bottom:8px;">🔒</div>' +
+    '  <div style="font-weight:700;font-size:14px;color:var(--text-main);margin-bottom:4px;">Belum Ada Periode yang Ditutup Buku</div>' +
+    '  <div style="font-size:12px;max-width:480px;margin:0 auto 14px auto;">Lakukan penutupan buku akhir bulan untuk membekukan saldo awal persediaan, mencegah pengeditan data mundur, dan mengunduh berkas arsip .JSON serta Excel resmi.</div>' +
+    '  <button type="button" class="btn btn-primary" onclick="openPeriodClosingWizard()" style="background:#7A5031;border-color:#7A5031;font-weight:700;">⚡ Tutup Buku Periode Pertama Sekarang</button>' +
+    '</div></td></tr>';
+
+  content.innerHTML =
+    '<div class="page-header">' +
+    '<div>' +
+    '<h1 class="page-title">🔒 Tutup Buku &amp; Cut-Off Periode</h1>' +
+    '<p class="page-subtitle">Manajemen penutupan siklus akuntansi berkala, pembekuan data transaksi lama, dan arsip snapshot saldo awal inventaris.</p>' +
+    '</div>' +
+    '</div>' +
+
+    '<!-- SWITCHER TAB UTAMA MODUL LAPORAN -->' +
+    '<div class="laporan-nav-switcher">' +
+    '<button type="button" class="laporan-nav-tab-btn" onclick="switchLaporanMainView(\'sales\')">📈 Laporan Penjualan &amp; Margin FIFO</button>' +
+    '<button type="button" class="laporan-nav-tab-btn" onclick="switchLaporanMainView(\'stock_valuation\')">📦 Posisi Stok &amp; Valuasi Aset</button>' +
+    '<button type="button" class="laporan-nav-tab-btn active" onclick="switchLaporanMainView(\'period_closing\')">🔒 Tutup Buku &amp; Cut-Off Periode</button>' +
+    '</div>' +
+
+    '<!-- 4 KARTU RINGKASAN STATUS CLOSING -->' +
+    '<div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:18px;">' +
+    '<div class="stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Periode Terkunci Terakhir</span><span class="stat-icon">🔒</span></div>' +
+    '<div class="stat-value" style="font-size:16px;color:var(--text-main);font-weight:700;line-height:1.4;">' + escapeHtml(latestCutoffStr) + '</div>' +
+    '<div class="stat-meta">Transaksi pada/sebelum cut-off telah dibekukan</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Status Pembukuan Saat Ini</span><span class="stat-icon">🟢</span></div>' +
+    '<div class="stat-value" style="font-size:20px;color:var(--success);font-weight:800;">Periode Terbuka</div>' +
+    '<div class="stat-meta">Aktif Berjalan: ' + escapeHtml(currentMonthName) + '</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Total Periode Terarsip</span><span class="stat-icon">📚</span></div>' +
+    '<div class="stat-value" style="font-size:24px;color:var(--primary);font-family:monospace;">' + periods.length + ' Periode</div>' +
+    '<div class="stat-meta">' + closedPeriods.length + ' berstatus terkunci permanen</div>' +
+    '</div>' +
+    '<div class="stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Format Cadangan Digital</span><span class="stat-icon">💾</span></div>' +
+    '<div class="stat-value" style="font-size:18px;color:#7A5031;font-weight:700;">.JSON &amp; Excel</div>' +
+    '<div class="stat-meta">Tersedia unduh offline kapan saja</div>' +
+    '</div>' +
+    '</div>' +
+
+    '<!-- KARTU TABEL RIWAYAT TUTUP BUKU -->' +
+    '<div class="card" style="padding:16px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">' +
+    '  <div>' +
+    '    <h3 style="font-size:16px;font-weight:700;color:var(--primary);display:flex;align-items:center;gap:6px;margin:0 0 2px 0;">' +
+    '      <span>📋</span> Riwayat Tutup Buku &amp; Arsip Snapshot Saldo' +
+    '    </h3>' +
+    '    <div style="font-size:11.5px;color:var(--text-secondary);">Daftar periode akuntansi resmi yang telah dibekukan lengkap dengan tombol unduh berkas .JSON dan Excel.</div>' +
+    '  </div>' +
+    '  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+    '    <button type="button" class="btn btn-secondary btn-sm" onclick="loadPeriodClosingReport(true)">&#8635; Segarkan</button>' +
+    '    <button type="button" class="btn btn-primary btn-sm" onclick="openPeriodClosingWizard()" style="background:#7A5031;border-color:#7A5031;font-weight:700;">⚡ Tutup Buku Periode Ini</button>' +
+    '  </div>' +
+    '</div>' +
+
+    '<div class="table-container" style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--radius-sm);border:1px solid var(--border);">' +
+    '<table style="width:100%;min-width:1150px;border-collapse:collapse;">' +
+    '<thead>' +
+    '<tr>' +
+    '<th style="width:40px;text-align:center;">#</th>' +
+    '<th style="width:220px;">Nama Periode</th>' +
+    '<th style="width:140px;">Tgl Cut-Off</th>' +
+    '<th style="width:130px;text-align:right;">Omzet Penjualan</th>' +
+    '<th style="width:120px;text-align:right;">HPP Modal FIFO</th>' +
+    '<th style="width:80px;text-align:center;">Margin</th>' +
+    '<th style="width:140px;text-align:right;">Valuasi Stok Terkunci</th>' +
+    '<th style="width:110px;">Ditutup Oleh</th>' +
+    '<th style="width:100px;text-align:center;">Status</th>' +
+    '<th style="width:260px;text-align:right;">Arsip &amp; Dokumen</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' + tableRowsHtml + '</tbody>' +
+    '</table>' +
+    '</div>' +
+    '</div>';
+}
+
+function openPeriodClosingWizard() {
+  const monthNamesIndo = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const now = new Date();
+  
+  // Rekomendasi periode default: jika tanggal 1-5, rekomendasikan bulan lalu; jika > 5, bulan berjalan
+  let targetMonth = now.getMonth();
+  let targetYear = now.getFullYear();
+  if (now.getDate() <= 5) {
+    targetMonth = now.getMonth() - 1;
+    if (targetMonth < 0) {
+      targetMonth = 11;
+      targetYear -= 1;
+    }
+  }
+
+  const defaultPeriodName = 'Tutup Buku Periode ' + monthNamesIndo[targetMonth] + ' ' + targetYear;
+  
+  // Tanggal awal & akhir bulan target
+  const startDay = new Date(targetYear, targetMonth, 1);
+  const endDay = new Date(targetYear, targetMonth + 1, 0);
+
+  const startStr = targetYear + '-' + String(targetMonth + 1).padStart(2, '0') + '-01';
+  const endStr = targetYear + '-' + String(targetMonth + 1).padStart(2, '0') + '-' + String(endDay.getDate()).padStart(2, '0');
+  const cutoffDateTimeDefault = endStr + 'T23:59';
+
+  const bodyHtml =
+    '<div style="margin-bottom:14px;background:#FAF7F2;border:1px solid #E4D8CE;padding:12px 16px;border-radius:var(--radius-sm);">' +
+    '  <div style="font-weight:700;color:#7A5031;font-size:13px;margin-bottom:4px;display:flex;align-items:center;gap:6px;">' +
+    '    <span>🔒</span> Panduan Penutupan Buku Periode' +
+    '  </div>' +
+    '  <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;">' +
+    '    Sistem akan merekapitulasi total omzet, HPP FIFO, dan mengambil <strong>snapshot permanen seluruh saldo aset benih</strong> per tanggal cut-off. ' +
+    '    Data ini akan dibekukan sebagai <strong>Saldo Awal resmi</strong> periode berikutnya dan dapat diunduh dalam format <strong>.JSON</strong> maupun <strong>Excel</strong>.' +
+    '  </div>' +
+    '</div>' +
+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">' +
+    '  <div>' +
+    '    <label class="field-label">Nama Periode Tutup Buku <span style="color:#ef4444;">*</span></label>' +
+    '    <div class="input-wrapper">' +
+    '      <input type="text" id="closing-period-name" value="' + escapeHtml(defaultPeriodName) + '" placeholder="Contoh: Tutup Buku Periode Oktober 2026" style="padding-left:14px;font-weight:600;">' +
+    '    </div>' +
+    '  </div>' +
+    '  <div>' +
+    '    <label class="field-label">Nama Petugas / Penanggung Jawab <span style="color:#ef4444;">*</span></label>' +
+    '    <div class="input-wrapper">' +
+    '      <input type="text" id="closing-admin-name" value="Admin Kios IDEP" placeholder="Nama Admin" style="padding-left:14px;">' +
+    '    </div>' +
+    '  </div>' +
+    '</div>' +
+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">' +
+    '  <div>' +
+    '    <label class="field-label">Tanggal Awal Periode <span style="color:#ef4444;">*</span></label>' +
+    '    <div class="input-wrapper">' +
+    '      <input type="date" id="closing-start-date" value="' + startStr + '" style="padding-left:14px;" onchange="calculateWizardClosingPreview()">' +
+    '    </div>' +
+    '  </div>' +
+    '  <div>' +
+    '    <label class="field-label">Tanggal &amp; Jam Batas Cut-Off <span style="color:#ef4444;">*</span></label>' +
+    '    <div class="input-wrapper">' +
+    '      <input type="datetime-local" id="closing-cutoff-date" value="' + cutoffDateTimeDefault + '" style="padding-left:14px;" onchange="calculateWizardClosingPreview()">' +
+    '    </div>' +
+    '    <small style="font-size:11px;color:var(--text-secondary);">Semua transaksi pada/sebelum waktu ini akan dikunci dari pengeditan.</small>' +
+    '  </div>' +
+    '</div>' +
+
+    '<!-- KOTAK PRATINJAU OTOMATIS LIVE (KALKULASI SISTEM) -->' +
+    '<div id="closing-wizard-preview" style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">' +
+    '  <div style="font-size:11.5px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">' +
+    '    <span>📊 Pratinjau Rekapitulasi Pembukuan &amp; Snapshot</span>' +
+    '    <button type="button" class="btn btn-secondary btn-sm" onclick="calculateWizardClosingPreview()" style="font-size:10.5px;padding:2px 8px;">🔄 Hitung Ulang</button>' +
+    '  </div>' +
+    '  <div id="closing-preview-body">' +
+    '    <div style="text-align:center;padding:12px;color:var(--text-secondary);font-size:12px;">Menghitung posisi angka keuangan dan sisa inventaris...</div>' +
+    '  </div>' +
+    '</div>' +
+
+    '<div class="field-group" style="margin-bottom:14px;">' +
+    '  <label class="field-label">Catatan Resmi / Memo Penutupan Buku</label>' +
+    '  <div class="input-wrapper">' +
+    '    <textarea id="closing-notes" rows="2" placeholder="Contoh: Seluruh rekonsiliasi kasir POS dan stok fisik toples telah diverifikasi tanpa selisih." style="padding:8px 12px;width:100%;border:1px solid var(--border);border-radius:var(--radius-xs);font-size:12px;resize:vertical;"></textarea>' +
+    '  </div>' +
+    '</div>' +
+
+    '<div style="background:#FFFBEB;border:1px solid #FDE68A;padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:16px;">' +
+    '  <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin:0;font-size:12px;font-weight:600;color:#92400E;">' +
+    '    <input type="checkbox" id="closing-confirm-check" style="width:18px;height:18px;margin-top:2px;accent-color:#92400E;cursor:pointer;">' +
+    '    <span>Saya mengonfirmasi bahwa data keuangan dan stok fisik periode ini telah direkonsiliasi. Saya memahami bahwa data transaksi pada atau sebelum tanggal cut-off akan dibekukan.</span>' +
+    '  </label>' +
+    '</div>';
+
+  const footerHtml =
+    '<button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
+    '<button type="button" class="btn btn-primary" id="btn-submit-closing" onclick="submitPeriodClosing()" style="background:#7A5031;border-color:#7A5031;font-weight:700;">🔒 Kunci &amp; Terbitkan Saldo Awal</button>';
+
+  openModal('Wizard Tutup Buku &amp; Cut-Off Periode', bodyHtml, footerHtml);
+  calculateWizardClosingPreview();
+}
+
+function calculateWizardClosingPreview() {
+  const previewBody = document.getElementById('closing-preview-body');
+  if (!previewBody) return;
+
+  const startEl = document.getElementById('closing-start-date');
+  const cutoffEl = document.getElementById('closing-cutoff-date');
+  const sDate = startEl ? startEl.value : '';
+  const cDateTime = cutoffEl ? cutoffEl.value : '';
+  const cDateOnly = cDateTime ? cDateTime.slice(0, 10) : '';
+
+  previewBody.innerHTML = '<div style="text-align:center;padding:10px;"><span class="sync-spinner" style="display:inline-block;width:16px;height:16px;margin-right:6px;"></span> Mengkalkulasi angka riil periode...</div>';
+
+  Promise.all([
+    api('getReport', TOKEN, 'custom', sDate, cDateOnly),
+    api('getStockValuationReport', TOKEN)
+  ]).then(function (results) {
+    const repData = results[0] || {};
+    const stockData = results[1] || {};
+
+    const repSummary = repData.summary || {
+      totalSubtotal: repData.totalSubtotalRevenue || repData.netRevenue || repData.totalRevenue || 0,
+      totalCost: repData.totalCost || 0,
+      grossMargin: repData.grossMargin || 0,
+      grossMarginPct: repData.grossMarginPct || 0,
+      totalTransactions: repData.totalTransactions || 0
+    };
+
+    const stockSummary = stockData.summary || {
+      totalVarieties: 0,
+      totalPackedPcs: 0,
+      totalBulkGrams: 0,
+      totalAssetValue: 0
+    };
+
+    CURRENT_CLOSING_WIZARD_DATA = {
+      revenue: Number(repSummary.totalSubtotal || 0),
+      cogs: Number(repSummary.totalCost || 0),
+      grossProfit: Number(repSummary.grossMargin || 0),
+      grossMarginPct: Number(repSummary.grossMarginPct || 0),
+      totalTransactions: Number(repSummary.totalTransactions || 0),
+      stockValuation: Number(stockSummary.totalAssetValue || 0),
+      totalVarieties: Number(stockSummary.totalVarieties || 0),
+      stockItems: stockData.items || [],
+      repData: repData
+    };
+
+    previewBody.innerHTML =
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;text-align:center;">' +
+      '  <div style="background:#fff;padding:8px 10px;border-radius:var(--radius-xs);border:1px solid #CBD5E1;">' +
+      '    <div style="font-size:10.5px;color:var(--text-secondary);font-weight:700;">TOTAL OMZET</div>' +
+      '    <div style="font-size:14px;font-weight:800;color:var(--text-main);font-family:monospace;margin-top:2px;">' + formatRupiah(CURRENT_CLOSING_WIZARD_DATA.revenue) + '</div>' +
+      '    <div style="font-size:10px;color:var(--text-muted);">' + CURRENT_CLOSING_WIZARD_DATA.totalTransactions + ' Nota</div>' +
+      '  </div>' +
+      '  <div style="background:#fff;padding:8px 10px;border-radius:var(--radius-xs);border:1px solid #CBD5E1;">' +
+      '    <div style="font-size:10.5px;color:var(--text-secondary);font-weight:700;">HPP FIFO TERJUAL</div>' +
+      '    <div style="font-size:14px;font-weight:800;color:var(--text-secondary);font-family:monospace;margin-top:2px;">' + formatRupiah(CURRENT_CLOSING_WIZARD_DATA.cogs) + '</div>' +
+      '    <div style="font-size:10px;color:var(--text-muted);">Biaya Pokok Modal</div>' +
+      '  </div>' +
+      '  <div style="background:#fff;padding:8px 10px;border-radius:var(--radius-xs);border:1px solid #CBD5E1;">' +
+      '    <div style="font-size:10.5px;color:var(--text-secondary);font-weight:700;">LABA KOTOR (EST.)</div>' +
+      '    <div style="font-size:14px;font-weight:800;color:var(--success);font-family:monospace;margin-top:2px;">' + formatRupiah(CURRENT_CLOSING_WIZARD_DATA.grossProfit) + '</div>' +
+      '    <div style="font-size:10px;color:var(--success);font-weight:700;">Margin ' + CURRENT_CLOSING_WIZARD_DATA.grossMarginPct + '%</div>' +
+      '  </div>' +
+      '  <div style="background:#fff;padding:8px 10px;border-radius:var(--radius-xs);border:1px solid #CBD5E1;">' +
+      '    <div style="font-size:10.5px;color:var(--text-secondary);font-weight:700;">VALUASI ASET SISA</div>' +
+      '    <div style="font-size:14px;font-weight:800;color:var(--primary);font-family:monospace;margin-top:2px;">' + formatRupiah(CURRENT_CLOSING_WIZARD_DATA.stockValuation) + '</div>' +
+      '    <div style="font-size:10px;color:var(--text-muted);">' + CURRENT_CLOSING_WIZARD_DATA.stockItems.length + ' Lot / Batch</div>' +
+      '  </div>' +
+      '</div>';
+  }).catch(function (err) {
+    previewBody.innerHTML = '<div style="color:var(--danger);font-size:12px;padding:6px;">⚠️ Gagal mengkalkulasi pratinjau: ' + escapeHtml(err.message || err) + '</div>';
+  });
+}
+
+function submitPeriodClosing() {
+  const periodName = (document.getElementById('closing-period-name') ? document.getElementById('closing-period-name').value : '').trim();
+  const adminName = (document.getElementById('closing-admin-name') ? document.getElementById('closing-admin-name').value : '').trim();
+  const startDate = document.getElementById('closing-start-date') ? document.getElementById('closing-start-date').value : '';
+  const cutoffDateTime = document.getElementById('closing-cutoff-date') ? document.getElementById('closing-cutoff-date').value : '';
+  const notes = (document.getElementById('closing-notes') ? document.getElementById('closing-notes').value : '').trim();
+  const confirmCheck = document.getElementById('closing-confirm-check');
+
+  if (!periodName) {
+    showToast('Nama Periode wajib diisi.', true);
+    return;
+  }
+  if (!startDate || !cutoffDateTime) {
+    showToast('Tanggal awal dan tanggal batas cut-off wajib diisi.', true);
+    return;
+  }
+  if (!confirmCheck || !confirmCheck.checked) {
+    showToast('Harap centang kotak konfirmasi sebelum menutup buku.', true);
+    return;
+  }
+
+  const submitBtn = document.getElementById('btn-submit-closing');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="sync-spinner" style="display:inline-block;width:14px;height:14px;margin-right:6px;"></span> Membekukan Saldo...';
+  }
+
+  showToast('Sedang memproses tutup buku & snapshot inventaris...', false);
+
+  // Ambil data snapshot inventaris & produk lengkap
+  const wiz = CURRENT_CLOSING_WIZARD_DATA || {
+    revenue: 0,
+    cogs: 0,
+    grossProfit: 0,
+    grossMarginPct: 0,
+    stockValuation: 0,
+    stockItems: []
+  };
+
+  const inventorySnapshot = (wiz.stockItems || []).map(function (item) {
+    return {
+      batch_id: item.id || '',
+      batch_code: item.batch_code || '',
+      product_name: item.product_name || '',
+      category: item.category || 'Benih',
+      product_type: item.product_type || 'raw_seed',
+      unit: item.unit || 'pcs',
+      qty_remaining: Number(item.qty_remaining || 0),
+      buy_price: Number(item.buy_price || 0),
+      asset_value: Number(item.asset_value || 0),
+      expiry_date: item.expiry_date || '',
+      quality_status: item.quality_status || 'NORMAL',
+      qc_status: item.qc_status || 'APPROVED'
+    };
+  });
+
+  const payload = {
+    period_name: periodName,
+    start_date: startDate,
+    cut_off_date: new Date(cutoffDateTime).toISOString(),
+    closed_by: adminName || 'Admin IDEP',
+    total_revenue: wiz.revenue,
+    total_cogs: wiz.cogs,
+    gross_profit: wiz.grossProfit,
+    gross_margin_pct: wiz.grossMarginPct,
+    total_inventory_valuation: wiz.stockValuation,
+    total_items_count: inventorySnapshot.length,
+    inventory_snapshot: inventorySnapshot,
+    summary: {
+      totalTransactions: wiz.totalTransactions,
+      totalVarieties: wiz.totalVarieties,
+      notes: notes
+    },
+    notes: notes
+  };
+
+  api('closeAccountingPeriod', TOKEN, payload).then(function (res) {
+    const closedPeriod = (res && res.period) ? res.period : payload;
+    showToast('Tutup buku "' + escapeHtml(periodName) + '" berhasil diselesaikan!', false);
+    closeModal();
+    loadPeriodClosingReport(true);
+    showPeriodClosingSuccessModal(closedPeriod);
+  }).catch(function (err) {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '🔒 Kunci &amp; Terbitkan Saldo Awal';
+    }
+    showToast('Gagal menutup buku: ' + (err.message || err), true);
+  });
+}
+
+function showPeriodClosingSuccessModal(period) {
+  const pId = period.id || '';
+  const bodyHtml =
+    '<div style="text-align:center;padding:10px 0 16px 0;">' +
+    '  <div style="width:56px;height:56px;background:#ecfdf5;color:#16a34a;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px auto;font-size:26px;">✓</div>' +
+    '  <h3 style="font-size:18px;font-weight:800;color:var(--text-main);margin-bottom:6px;">Tutup Buku Periode Berhasil!</h3>' +
+    '  <p style="font-size:13px;color:var(--text-secondary);max-width:440px;margin:0 auto 16px auto;">' +
+    '    Periode <strong>' + escapeHtml(period.period_name) + '</strong> telah resmi dibekukan. ' +
+    '    Snapshot saldo persediaan kini siap diunduh untuk kebutuhan arsip kantor maupun tim IT.' +
+    '  </p>' +
+    '  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">' +
+    '    <button type="button" class="btn btn-primary" onclick="downloadPeriodJSON(\'' + pId + '\')" style="background:#2563eb;border-color:#2563eb;font-weight:700;">' +
+    '      <i class="fas fa-file-code" style="margin-right:6px;"></i> Unduh Berkas .JSON' +
+    '    </button>' +
+    '    <button type="button" class="btn btn-primary" onclick="downloadPeriodExcel(\'' + pId + '\')" style="background:#16a34a;border-color:#16a34a;font-weight:700;">' +
+    '      <i class="fas fa-file-excel" style="margin-right:6px;"></i> Unduh Excel (.xlsx)' +
+    '    </button>' +
+    '    <button type="button" class="btn btn-secondary" onclick="printPeriodMinutes(\'' + pId + '\')">' +
+    '      <i class="fas fa-print" style="margin-right:6px;"></i> Cetak Berita Acara' +
+    '    </button>' +
+    '  </div>' +
+    '</div>';
+
+  openModal('Tutup Buku Sukses', bodyHtml, '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>');
+}
+
+function downloadPeriodJSON(periodId) {
+  const p = (ACCOUNTING_PERIODS_CACHE || []).find(function (x) { return String(x.id) === String(periodId); });
+  if (!p) {
+    showToast('Data periode tidak ditemukan.', true);
+    return;
+  }
+
+  const exportObj = {
+    metadata: {
+      aplikasi: 'KIOS IDEP System',
+      jenis_arsip: 'PERIOD_CUT_OFF_SNAPSHOT',
+      periode_id: p.id,
+      nama_periode: p.period_name,
+      rentang_mulai: p.start_date,
+      tanggal_cutoff: p.cut_off_date,
+      waktu_tutup_buku: p.closed_at,
+      eksekutor: p.closed_by || 'Admin IDEP',
+      status: p.status || 'CLOSED',
+      diekspor_pada: new Date().toISOString()
+    },
+    ringkasan_keuangan: {
+      total_omzet_penjualan: Number(p.total_revenue || 0),
+      total_hpp_fifo: Number(p.total_cogs || 0),
+      laba_kotor: Number(p.gross_profit || 0),
+      margin_laba_pct: Number(p.gross_margin_pct || 0),
+      total_valuasi_aset_stok: Number(p.total_inventory_valuation || 0),
+      total_item_batch_terkunci: (p.inventory_snapshot || []).length
+    },
+    ringkasan_analitik: p.summary || {},
+    catatan_resmi: p.notes || '',
+    saldo_awal_persediaan_terkunci: p.inventory_snapshot || []
+  };
+
+  const jsonStr = JSON.stringify(exportObj, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const safeName = (p.period_name || 'periode').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  const dateStr = String(p.cut_off_date || '').slice(0, 10);
+
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'cut_off_' + safeName + '_' + dateStr + '.json');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  showToast('Berkas snapshot JSON "' + p.period_name + '" berhasil diunduh.');
+}
+
+function downloadPeriodExcel(periodId) {
+  const p = (ACCOUNTING_PERIODS_CACHE || []).find(function (x) { return String(x.id) === String(periodId); });
+  if (!p) {
+    showToast('Data periode tidak ditemukan.', true);
+    return;
+  }
+
+  showToast('Menyiapkan berkas Excel (.xlsx)...');
+  ensureXlsxLoaded().then(function (XLSX) {
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Ringkasan_Periode
+    const summaryRows = [
+      ['PARAMETER AKUNTANSI', 'NILAI / DATA RESMI'],
+      ['Nama Periode', p.period_name || ''],
+      ['Tanggal Awal Periode', formatDate(p.start_date)],
+      ['Tanggal & Waktu Cut-Off', formatDateIndo(p.cut_off_date)],
+      ['Waktu Penutupan Buku', formatDateIndo(p.closed_at)],
+      ['Penanggung Jawab / Admin', p.closed_by || 'Admin IDEP'],
+      ['Status Dokumen', p.status || 'CLOSED'],
+      ['Total Omzet Penjualan (Rp)', Number(p.total_revenue || 0)],
+      ['Total HPP Modal FIFO (Rp)', Number(p.total_cogs || 0)],
+      ['Laba Kotor (Rp)', Number(p.gross_profit || 0)],
+      ['Persentase Margin Laba', (p.gross_margin_pct || 0) + '%'],
+      ['Total Valuasi Persediaan (Rp)', Number(p.total_inventory_valuation || 0)],
+      ['Jumlah Batch Stok Terkunci', (p.inventory_snapshot || []).length],
+      ['Catatan Memo', p.notes || '-']
+    ];
+
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+    wsSummary['!cols'] = [{ wch: 30 }, { wch: 50 }];
+
+    // Sheet 2: Saldo_Awal_Persediaan
+    const snapshotHeaders = [
+      'No',
+      'Kode_Batch',
+      'Nama_Produk_Benih',
+      'Kategori',
+      'Tipe_Barang',
+      'Satuan',
+      'Sisa_Stok_Fisik',
+      'HPP_Satuan_FIFO',
+      'Total_Nilai_Modal',
+      'Tgl_Kedaluwarsa',
+      'Status_QC'
+    ];
+
+    const snapshotRows = [snapshotHeaders];
+    const items = p.inventory_snapshot || [];
+    items.forEach(function (it, idx) {
+      snapshotRows.push([
+        idx + 1,
+        it.batch_code || it.batch_id || '',
+        it.product_name || '',
+        it.category || 'Benih',
+        it.product_type || 'raw_seed',
+        it.unit || 'pcs',
+        Number(it.qty_remaining || 0),
+        Number(it.buy_price || 0),
+        Number(it.asset_value || 0),
+        it.expiry_date || '',
+        it.qc_status || 'APPROVED'
+      ]);
+    });
+
+    const wsSnapshot = XLSX.utils.aoa_to_sheet(snapshotRows);
+    wsSnapshot['!cols'] = [
+      { wch: 6 },
+      { wch: 22 },
+      { wch: 34 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 10 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 18 },
+      { wch: 14 },
+      { wch: 14 }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan_Periode');
+    XLSX.utils.book_append_sheet(wb, wsSnapshot, 'Saldo_Awal_Persediaan');
+
+    const safeName = (p.period_name || 'periode').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+    const dateStr = String(p.cut_off_date || '').slice(0, 10);
+    XLSX.writeFile(wb, 'cut_off_' + safeName + '_' + dateStr + '.xlsx');
+
+    showToast('Berkas Excel penutupan buku berhasil diunduh.');
+  }).catch(function (err) {
+    showToast('Gagal membuat berkas Excel: ' + (err.message || err), true);
+  });
+}
+
+function printPeriodMinutes(periodId) {
+  const p = (ACCOUNTING_PERIODS_CACHE || []).find(function (x) { return String(x.id) === String(periodId); });
+  if (!p) {
+    showToast('Data periode tidak ditemukan.', true);
+    return;
+  }
+
+  const storeName = (APP_SETTINGS && APP_SETTINGS['store_name']) ? APP_SETTINGS['store_name'] : 'Kios Benih Komunitas IDEP';
+  const items = p.inventory_snapshot || [];
+
+  const printContainer = document.createElement('div');
+  printContainer.id = 'print-period-minutes-container';
+  printContainer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;z-index:999999;padding:25mm 20mm;font-family:Inter,sans-serif;color:#111;overflow-y:auto;box-sizing:border-box;';
+
+  printContainer.innerHTML =
+    '<div style="text-align:center;border-bottom:2px solid #333;padding-bottom:12px;margin-bottom:16px;">' +
+    '  <div style="font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#1e4d3f;">' + escapeHtml(storeName) + '</div>' +
+    '  <div style="font-size:15px;font-weight:800;margin-top:4px;">BERITA ACARA TUTUP BUKU &amp; CUT-OFF PERIODE</div>' +
+    '  <div style="font-size:12px;color:#555;margin-top:2px;">Ref. ID: ' + escapeHtml(p.id) + ' &bull; Tanggal Cetak: ' + formatDateIndo(new Date()) + '</div>' +
+    '</div>' +
+
+    '<div style="font-size:12px;line-height:1.6;margin-bottom:16px;">' +
+    '  Pada hari ini telah dilaksanakan penutupan siklus buku dan pembekuan saldo inventaris fisik untuk periode:' +
+    '  <div style="font-weight:800;font-size:14px;color:#1e4d3f;margin-top:4px;">' + escapeHtml(p.period_name) + '</div>' +
+    '  <div style="color:#555;">Rentang Periode: ' + formatDate(p.start_date) + ' s/d ' + formatDateIndo(p.cut_off_date) + '</div>' +
+    '</div>' +
+
+    '<div style="font-weight:700;font-size:12.5px;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;color:#1e4d3f;">A. Rekapitulasi Finansial &amp; Operasional</div>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:16px;border:1px solid #999;">' +
+    '  <tbody>' +
+    '    <tr style="background:#f4f6f8;"><td style="padding:6px 10px;font-weight:700;width:40%;border:1px solid #ccc;">Total Omzet Penjualan (POS &amp; Konsinyasi)</td><td style="padding:6px 10px;font-weight:800;border:1px solid #ccc;font-family:monospace;">' + formatRupiah(p.total_revenue) + '</td></tr>' +
+    '    <tr><td style="padding:6px 10px;font-weight:700;border:1px solid #ccc;">Total HPP Modal FIFO Barang Terjual</td><td style="padding:6px 10px;border:1px solid #ccc;font-family:monospace;">' + formatRupiah(p.total_cogs) + '</td></tr>' +
+    '    <tr style="background:#f4f6f8;"><td style="padding:6px 10px;font-weight:700;border:1px solid #ccc;">Laba Kotor Periode (Margin ' + (p.gross_margin_pct || 0) + '%)</td><td style="padding:6px 10px;font-weight:800;color:#16a34a;border:1px solid #ccc;font-family:monospace;">' + formatRupiah(p.gross_profit) + '</td></tr>' +
+    '    <tr><td style="padding:6px 10px;font-weight:700;border:1px solid #ccc;">Total Valuasi Aset Stok Akhir (Saldo Awal Baru)</td><td style="padding:6px 10px;font-weight:800;color:#1e4d3f;border:1px solid #ccc;font-family:monospace;">' + formatRupiah(p.total_inventory_valuation) + '</td></tr>' +
+    '    <tr style="background:#f4f6f8;"><td style="padding:6px 10px;font-weight:700;border:1px solid #ccc;">Jumlah Batch/Lot Inventaris Fisik Terkunci</td><td style="padding:6px 10px;border:1px solid #ccc;">' + items.length + ' Lot / Batch Benih</td></tr>' +
+    '  </tbody>' +
+    '</table>' +
+
+    (p.notes ? ('<div style="font-size:11.5px;background:#f9fafb;border:1px solid #e5e7eb;padding:8px 12px;margin-bottom:16px;"><strong>Catatan Penutupan:</strong> ' + escapeHtml(p.notes) + '</div>') : '') +
+
+    '<div style="font-size:11.5px;color:#555;margin-bottom:24px;line-height:1.5;">' +
+    '  Dengan ditandatanganinya Berita Acara ini, seluruh mutasi transaksi belanja, konsinyasi, dan produksi sebelum batas cut-off dinyatakan sah dan dikunci. Data persediaan di atas resmi menjadi Saldo Awal (Opening Balance) untuk periode berikutnya.' +
+    '</div>' +
+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;text-align:center;font-size:11.5px;margin-top:20px;">' +
+    '  <div>' +
+    '    <div>Petugas Penutup Buku,</div>' +
+    '    <div style="height:60px;"></div>' +
+    '    <div style="font-weight:800;text-decoration:underline;">' + escapeHtml(p.closed_by || 'Admin IDEP') + '</div>' +
+    '    <div style="font-size:10px;color:#666;">Staff Administrasi / Toko</div>' +
+    '  </div>' +
+    '  <div>' +
+    '    <div>Mengetahui &amp; Menyetujui,</div>' +
+    '    <div style="height:60px;"></div>' +
+    '    <div style="font-weight:800;text-decoration:underline;">(_____________________________)</div>' +
+    '    <div style="font-size:10px;color:#666;">Direktur / Manajer Unit Kios</div>' +
+    '  </div>' +
+    '</div>';
+
+  document.body.appendChild(printContainer);
+  document.body.classList.add('printing-stock-report');
+
+  const cleanup = function () {
+    document.body.classList.remove('printing-stock-report');
+    if (printContainer && printContainer.parentNode) {
+      printContainer.parentNode.removeChild(printContainer);
+    }
+    window.removeEventListener('afterprint', cleanup);
+  };
+
+  window.addEventListener('afterprint', cleanup);
+  setTimeout(function () {
+    window.print();
+  }, 350);
+}
+
+function viewPeriodSnapshotDetail(periodId) {
+  const p = (ACCOUNTING_PERIODS_CACHE || []).find(function (x) { return String(x.id) === String(periodId); });
+  if (!p) {
+    showToast('Data periode tidak ditemukan.', true);
+    return;
+  }
+
+  const items = p.inventory_snapshot || [];
+  const rowsHtml = items.length > 0 ? items.map(function (it, idx) {
+    return '<tr>' +
+      '<td style="text-align:center;font-size:11px;color:var(--text-muted);">' + (idx + 1) + '</td>' +
+      '<td><code style="font-size:11px;">' + escapeHtml(it.batch_code || it.batch_id || '-') + '</code></td>' +
+      '<td><strong>' + escapeHtml(it.product_name) + '</strong></td>' +
+      '<td style="font-size:11px;">' + escapeHtml(it.category || 'Benih') + '</td>' +
+      '<td style="text-align:right;font-family:monospace;font-weight:700;">' + (it.qty_remaining || 0) + ' ' + escapeHtml(it.unit || 'pcs') + '</td>' +
+      '<td style="text-align:right;font-family:monospace;">' + formatRupiah(it.buy_price) + '</td>' +
+      '<td style="text-align:right;font-family:monospace;font-weight:700;color:var(--primary);">' + formatRupiah(it.asset_value) + '</td>' +
+      '<td style="font-size:11.5px;">' + escapeHtml(it.expiry_date || '-') + '</td>' +
+      '<td style="text-align:center;"><span class="badge badge-success" style="font-size:10px;">' + escapeHtml(it.qc_status || 'APPROVED') + '</span></td>' +
+      '</tr>';
+  }).join('') : '<tr><td colspan="9" style="text-align:center;padding:16px;">Tidak ada rincian snapshot inventaris pada periode ini.</td></tr>';
+
+  const bodyHtml =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;background:#FAF7F2;padding:10px 14px;border-radius:var(--radius-sm);border:1px solid #E4D8CE;">' +
+    '  <div>' +
+    '    <div style="font-size:13px;font-weight:700;color:#7A5031;">' + escapeHtml(p.period_name) + '</div>' +
+    '    <div style="font-size:11px;color:var(--text-secondary);">Cut-Off: ' + formatDateIndo(p.cut_off_date) + ' &bull; Total Valuasi: <strong>' + formatRupiah(p.total_inventory_valuation) + '</strong></div>' +
+    '  </div>' +
+    '  <div style="display:flex;gap:6px;">' +
+    '    <button type="button" class="btn btn-secondary btn-sm" onclick="downloadPeriodJSON(\'' + p.id + '\')"><i class="fas fa-file-code" style="color:#2563eb;"></i> .JSON</button>' +
+    '    <button type="button" class="btn btn-secondary btn-sm" onclick="downloadPeriodExcel(\'' + p.id + '\')"><i class="fas fa-file-excel" style="color:#16a34a;"></i> Excel</button>' +
+    '  </div>' +
+    '</div>' +
+    '<div class="table-container" style="max-height:360px;overflow-y:auto;overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
+    '<table style="width:100%;min-width:760px;font-size:12px;border-collapse:collapse;">' +
+    '<thead style="position:sticky;top:0;background:#fff;z-index:2;">' +
+    '<tr><th>#</th><th>Kode Batch</th><th>Nama Varietas Benih</th><th>Kategori</th><th style="text-align:right;">Sisa Stok</th><th style="text-align:right;">HPP Modal</th><th style="text-align:right;">Total Valuasi</th><th>Kedaluwarsa</th><th style="text-align:center;">QC</th></tr>' +
+    '</thead>' +
+    '<tbody>' + rowsHtml + '</tbody>' +
+    '</table>' +
+    '</div>';
+
+  openModal('Detail Snapshot Saldo Awal Terkunci', bodyHtml, '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>');
+}
+
+function reopenPeriodModal(periodId) {
+  const p = (ACCOUNTING_PERIODS_CACHE || []).find(function (x) { return String(x.id) === String(periodId); });
+  if (!p) return;
+
+  const bodyHtml =
+    '<div style="padding:10px 0;">' +
+    '  <div style="font-size:13px;color:var(--text-main);margin-bottom:10px;">' +
+    '    Apakah Anda yakin ingin <strong>membuka kembali (reopen)</strong> periode <strong>' + escapeHtml(p.period_name) + '</strong>?' +
+    '  </div>' +
+    '  <div style="background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;padding:10px 12px;border-radius:var(--radius-sm);font-size:11.5px;line-height:1.5;">' +
+    '    ⚠️ <strong>Peringatan Keamanan Akuntansi:</strong> Membuka kunci periode akan menghapus arsip snapshot saldo awal dan mengizinkan kembali transaksi mundur. Tindakan ini hanya boleh dilakukan atas persetujuan manajer toko.' +
+    '  </div>' +
+    '</div>';
+
+  const footerHtml =
+    '<button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
+    '<button type="button" class="btn btn-danger" onclick="confirmReopenPeriod(\'' + p.id + '\')">Buka Kunci Periode</button>';
+
+  openModal('Konfirmasi Buka Kunci Periode', bodyHtml, footerHtml);
+}
+
+function confirmReopenPeriod(periodId) {
+  showToast('Membuka kunci periode...', false);
+  api('reopenAccountingPeriod', TOKEN, periodId).then(function () {
+    showToast('Periode berhasil dibuka kembali.');
+    closeModal();
+    loadPeriodClosingReport(true);
+  }).catch(function (err) {
+    showToast('Gagal membuka kunci: ' + (err.message || err), true);
+  });
+}
+
+// Helper untuk memeriksa apakah suatu tanggal transaksi berada pada periode terkunci (Anti-Backdating)
+function isDateLockedByClosing(dateStr) {
+  if (!dateStr) return { locked: false };
+  const targetDate = new Date(dateStr);
+  if (isNaN(targetDate.getTime())) return { locked: false };
+
+  const closed = (ACCOUNTING_PERIODS_CACHE || []).filter(function (p) { return p.status === 'CLOSED'; });
+  for (let i = 0; i < closed.length; i++) {
+    const cutoff = new Date(closed[i].cut_off_date);
+    if (!isNaN(cutoff.getTime()) && targetDate <= cutoff) {
+      return {
+        locked: true,
+        periodName: closed[i].period_name,
+        cutOffDate: closed[i].cut_off_date
+      };
+    }
+  }
+  return { locked: false };
 }
 
 let CURRENT_ROLES_PERMISSIONS = null;

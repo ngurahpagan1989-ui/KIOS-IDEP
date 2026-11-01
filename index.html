@@ -269,6 +269,10 @@
             <span class="btn-label">Buka Kasir</span>
           </a>
 
+          <button type="button" id="topbar-guide-btn" class="topbar-icon-btn topbar-guide-btn" onclick="openCurrentPageGuide()" title="Buka Panduan SOP Fitur Ini (Bantuan)" aria-label="Buka Panduan SOP">
+            <span class="icon-help" aria-hidden="true" style="font-size:15px;font-weight:700;">&#10068;</span>
+          </button>
+
           <button type="button" id="topbar-notif-btn" class="topbar-icon-btn topbar-notif-btn" onclick="toggleNotificationCenter(event)" title="Pusat Notifikasi" aria-label="Pusat Notifikasi" aria-expanded="false">
             <span class="icon-bell" aria-hidden="true">&#128276;</span>
             <span id="topbar-notif-badge" class="topbar-notif-badge" style="display:none;" data-no-i18n="true">0</span>
@@ -859,6 +863,6 @@
   <!-- Multi-Language i18n Engine -->
   <script src="i18n.js?v=2.9"></script>
   <!-- Core Application Logic -->
-  <script src="app.js?v=6.5"></script>
+  <script src="app.js?v=6.6"></script>
 </body>
 </html>

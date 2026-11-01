@@ -1410,10 +1410,12 @@ async function dispatchApiCall(fnName, args) {
         const additionalCost = isCurah ? 0 : Number(item.additional_cost || 0);
         const costPerUnit = isCurah ? buyPrice : Number(item.cost_per_unit !== undefined ? item.cost_per_unit : (buyPrice + additionalCost));
 
-        // Benih curah masuk ke antrean PENDING_QC; non-benih/pabrikan langsung APPROVED & NORMAL
-        const isSeed = item.is_seed !== false && item.category !== 'Non-Benih';
-        const qcStatus = isSeed ? 'PENDING_QC' : 'APPROVED';
-        const qualityStatus = isSeed ? 'QUARANTINE' : 'NORMAL';
+        // Hanya benih mentah curah yang masuk ke antrean PENDING_QC (butuh uji semai lab & oven DHT);
+        // Barang kemasan sachet siap jual, non-curah, dan produk non-benih (buku, media, dsb) langsung APPROVED & NORMAL
+        const isSeed = item.is_seed !== false && String(item.category || '').toLowerCase() !== 'non-benih' && String(item.product_type || '').toLowerCase() !== 'buku';
+        const needsQC = isCurah && isSeed;
+        const qcStatus = needsQC ? 'PENDING_QC' : 'APPROVED';
+        const qualityStatus = needsQC ? 'QUARANTINE' : 'NORMAL';
 
         // 2a. Simpan ke purchase_items jika tabel tersedia
         try {

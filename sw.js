@@ -1,10 +1,10 @@
-const CACHE_NAME = 'kios-idep-v7.0';
+const CACHE_NAME = 'kios-idep-v7.1';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './style.css?v=5.8',
   './i18n.js?v=2.9',
-  './app.js?v=6.5',
+  './app.js?v=6.6',
   './supabaseClient.js?v=6.0',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
   './manifest.json',

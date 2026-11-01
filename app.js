@@ -2200,6 +2200,7 @@ function downloadProductExcelTemplate() {
       'Kategori',
       'Tipe_Produk',
       'Satuan',
+      'Berat_Kemasan_Gram',
       'Umur_Panen',
       'Harga_Reguler',
       'Harga_Outlet',
@@ -2208,11 +2209,11 @@ function downloadProductExcelTemplate() {
 
     const sampleRows = [
       headers,
-      ['BNH-BYMM-JADI', 'Benih Bayam Merah', 'Benih', 'Benih', 'pcs', 25, 25000, 20000, 22000],
-      ['BNH-ERCS-JADI', 'Benih Ercis', 'Benih', 'Benih', 'pcs', 60, 30000, 24000, 27000],
-      ['BNH-CBKC-JADI', 'Benih Cabai Kecil', 'Benih', 'Benih', 'pcs', 90, 30000, 24000, 27000],
-      ['BNH-BYMH-CURAH', 'Benih Bayam Hijau Curah', 'Benih', 'Curah', 'gr', 25, 250, 200, 220],
-      ['BK-PERM-01', 'Buku Panduan Kebun Permakultur IDEP', 'Buku', 'Buku', 'pcs', 0, 75000, 60000, 65000]
+      ['BNH-BYMM-JADI', 'Benih Bayam Merah', 'Benih', 'Benih', 'pcs', 20, 25, 25000, 20000, 22000],
+      ['BNH-ERCS-JADI', 'Benih Ercis', 'Benih', 'Benih', 'pcs', 30, 60, 30000, 24000, 27000],
+      ['BNH-CBKC-JADI', 'Benih Cabai Kecil', 'Benih', 'Benih', 'pcs', 10, 90, 30000, 24000, 27000],
+      ['BNH-BYMH-CURAH', 'Benih Bayam Hijau Curah', 'Benih', 'Curah', 'gr', 0, 25, 250, 200, 220],
+      ['BK-PERM-01', 'Buku Panduan Kebun Permakultur IDEP', 'Buku', 'Buku', 'pcs', 0, 0, 75000, 60000, 65000]
     ];
 
     const wsProduk = XLSX.utils.aoa_to_sheet(sampleRows);
@@ -2222,6 +2223,7 @@ function downloadProductExcelTemplate() {
       { wch: 14 }, // Kategori
       { wch: 14 }, // Tipe_Produk
       { wch: 10 }, // Satuan
+      { wch: 20 }, // Berat_Kemasan_Gram
       { wch: 13 }, // Umur_Panen
       { wch: 16 }, // Harga_Reguler
       { wch: 16 }, // Harga_Outlet
@@ -2237,6 +2239,7 @@ function downloadProductExcelTemplate() {
       ['Kategori', 'OPSIONAL', 'Benih / Buku / Pupuk', 'Kategori produk untuk pengelompokan di katalog. Default: Benih.'],
       ['Tipe_Produk', 'OPSIONAL', 'Benih / Curah / Buku', 'Tipe persediaan master. Default: Benih.'],
       ['Satuan', 'OPSIONAL', 'pcs / gr / kg / buku', 'Satuan persediaan. Gunakan pcs untuk sachet kemasan jadi, gr/kg untuk bahan curah toples. Default: pcs.'],
+      ['Berat_Kemasan_Gram', 'OPSIONAL', '20 / 30 / 10', 'Netto / berat isi benih per kemasan sachet dalam satuan gram. Digunakan otomatis saat produksi Kemas Mandiri. Isi 0 untuk produk curah toples atau buku.'],
       ['Umur_Panen', 'OPSIONAL', '25 / 60 / 90', 'Estimasi umur panen benih dalam angka hari. Isi 0 jika buku atau non-benih.'],
       ['Harga_Reguler', 'WAJIB', '25000', 'Harga jual standar kasir POS untuk pembeli umum/ritel. Wajib diisi angka murni tanpa simbol Rp atau titik.'],
       ['Harga_Outlet', 'OPSIONAL', '20000', 'Harga khusus untuk mitra toko cabang titip konsinyasi. Jika dikosongkan, bernilai 0.'],
@@ -2271,6 +2274,7 @@ function downloadProductCsvTemplate() {
     'Kategori',
     'Tipe_Produk',
     'Satuan',
+    'Berat_Kemasan_Gram',
     'Umur_Panen',
     'Harga_Reguler',
     'Harga_Outlet',
@@ -2278,11 +2282,11 @@ function downloadProductCsvTemplate() {
   ];
 
   const sampleRows = [
-    ['BNH-BYMM-JADI', 'Benih Bayam Merah', 'Benih', 'Benih', 'pcs', '25', '25000', '20000', '22000'],
-    ['BNH-ERCS-JADI', 'Benih Ercis', 'Benih', 'Benih', 'pcs', '60', '30000', '24000', '27000'],
-    ['BNH-CBKC-JADI', 'Benih Cabai Kecil', 'Benih', 'Benih', 'pcs', '90', '30000', '24000', '27000'],
-    ['BNH-BYMH-CURAH', 'Benih Bayam Hijau Curah', 'Benih', 'Curah', 'gr', '25', '250', '200', '220'],
-    ['BK-PERM-01', 'Buku Panduan Kebun Permakultur IDEP', 'Buku', 'Buku', 'pcs', '0', '75000', '60000', '65000']
+    ['BNH-BYMM-JADI', 'Benih Bayam Merah', 'Benih', 'Benih', 'pcs', '20', '25', '25000', '20000', '22000'],
+    ['BNH-ERCS-JADI', 'Benih Ercis', 'Benih', 'Benih', 'pcs', '30', '60', '30000', '24000', '27000'],
+    ['BNH-CBKC-JADI', 'Benih Cabai Kecil', 'Benih', 'Benih', 'pcs', '10', '90', '30000', '24000', '27000'],
+    ['BNH-BYMH-CURAH', 'Benih Bayam Hijau Curah', 'Benih', 'Curah', 'gr', '0', '25', '250', '200', '220'],
+    ['BK-PERM-01', 'Buku Panduan Kebun Permakultur IDEP', 'Buku', 'Buku', 'pcs', '0', '0', '75000', '60000', '65000']
   ];
 
   const csvRows = [headers.join(','), ...sampleRows.map(function (row) { return row.join(','); })];
@@ -2324,6 +2328,7 @@ function exportProductsToExcel() {
       'Kategori',
       'Tipe_Produk',
       'Satuan',
+      'Berat_Kemasan_Gram',
       'Umur_Panen',
       'Harga_Reguler',
       'Harga_Outlet',
@@ -2341,12 +2346,19 @@ function exportProductsToExcel() {
 
     const rows = [headers];
     list.forEach(function (p) {
+      let weightGrams = Number(p.weight_grams || 0);
+      if (!weightGrams && p.variant) {
+        const m = String(p.variant).match(/(\d+(?:\.\d+)?)\s*(?:g|gr|gram)/i);
+        if (m) weightGrams = Number(m[1]);
+      }
+
       rows.push([
         p.sku || '',
         p.name || '',
         p.category || 'Benih',
         p.product_type || 'Benih',
         p.unit || 'pcs',
+        weightGrams,
         Number(p.harvest_days || 0),
         getTierPrice(p, 'Reguler'),
         getTierPrice(p, 'Outlet'),
@@ -2362,6 +2374,7 @@ function exportProductsToExcel() {
       { wch: 14 }, // Kategori
       { wch: 14 }, // Tipe_Produk
       { wch: 10 }, // Satuan
+      { wch: 20 }, // Berat_Kemasan_Gram
       { wch: 13 }, // Umur_Panen
       { wch: 15 }, // Harga_Reguler
       { wch: 15 }, // Harga_Outlet
@@ -2611,6 +2624,8 @@ function processParsedProductRows(rawRows, fileTypeLabel) {
     const category = getRowValue(row, ['kategori', 'category']).trim() || 'Benih';
     const productType = getRowValue(row, ['tipe_produk', 'tipe', 'type', 'product_type']).trim() || 'Benih';
     const unit = getRowValue(row, ['satuan', 'unit']).trim() || 'pcs';
+    const rawWeight = getRowValue(row, ['berat_kemasan_gram', 'berat_kemasan', 'berat_gram', 'netto', 'gramatur', 'weight_grams', 'weight', 'berat']);
+    const weightGrams = Number(rawWeight) || 0;
     const harvestDays = Number(getRowValue(row, ['umur_panen', 'umurpanen', 'harvest_days'])) || 0;
 
     const rawReg = getRowValue(row, ['harga_reguler', 'reguler', 'price_reguler', 'harga']);
@@ -2658,6 +2673,8 @@ function processParsedProductRows(rawRows, fileTypeLabel) {
         category: category,
         product_type: productType,
         unit: unit,
+        weight_grams: weightGrams,
+        variant: weightGrams > 0 ? (weightGrams + 'g') : '',
         harvest_days: harvestDays,
         harga_reguler: priceReg !== null ? priceReg : 0,
         harga_outlet: priceOut !== null ? priceOut : 0,
@@ -2729,6 +2746,7 @@ function renderBulkProductPreview(fileTypeLabel) {
       '<td><strong>' + escapeHtml(d.name || '-') + '</strong></td>' +
       '<td style="font-size:11.5px;">' + escapeHtml(d.category) + '</td>' +
       '<td style="font-size:11.5px;">' + escapeHtml(d.unit) + '</td>' +
+      '<td style="font-size:11.5px;text-align:center;">' + (d.weight_grams ? ('<strong>' + d.weight_grams + '</strong> gr') : '-') + '</td>' +
       '<td style="font-size:11.5px;">' + (d.harga_reguler ? formatRupiah(d.harga_reguler) : '-') + '</td>' +
       '<td style="font-size:11.5px;">' + (d.harga_outlet ? formatRupiah(d.harga_outlet) : '-') + '</td>' +
       '<td style="font-size:11.5px;">' + (d.harga_bali_buda ? formatRupiah(d.harga_bali_buda) : '-') + '</td>' +
@@ -2747,6 +2765,7 @@ function renderBulkProductPreview(fileTypeLabel) {
     '        <th style="white-space:nowrap;min-width:140px;">Nama Produk</th>' +
     '        <th style="white-space:nowrap;">Kategori</th>' +
     '        <th style="white-space:nowrap;">Satuan</th>' +
+    '        <th style="white-space:nowrap;">Netto (gr)</th>' +
     '        <th style="white-space:nowrap;">Reguler</th>' +
     '        <th style="white-space:nowrap;">Outlet</th>' +
     '        <th style="white-space:nowrap;">Bali Buda</th>' +
@@ -2926,7 +2945,7 @@ function openProductModal(productId) {
     '</div>' +
     '<input type="text" id="pf-variant" placeholder="Varian bahasa" value="' + escapeHtml(currentVariant || 'Bahasa Indonesia') + '" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;">' +
     '</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px;">' +
     '<div>' +
     '<label class="field-label">Tipe Barang</label>' +
     '<div class="input-wrapper">' +
@@ -2940,6 +2959,12 @@ function openProductModal(productId) {
     '<label class="field-label">Satuan (Unit)</label>' +
     '<div class="input-wrapper">' +
     '<select id="pf-unit" style="padding-left:14px;"></select>' +
+    '</div>' +
+    '</div>' +
+    '<div>' +
+    '<label class="field-label">Berat Isi / Netto (gr)</label>' +
+    '<div class="input-wrapper">' +
+    '<input type="number" id="pf-weight-grams" min="0" placeholder="Contoh: 20" value="' + (product && product.weight_grams ? product.weight_grams : '') + '" style="padding-left:14px;">' +
     '</div>' +
     '</div>' +
     '<div>' +
@@ -3249,6 +3274,7 @@ function submitProduct(productId) {
         name: packName,
         product_type: productType,
         variant: packGram > 0 ? (packGram + 'g') : '',
+        weight_grams: packGram,
         unit: packUnit,
         priceTiers: packTiers
       });
@@ -3313,13 +3339,16 @@ function submitProduct(productId) {
   }
 
   const harvestDays = Number((document.getElementById('pf-harvest-days') && document.getElementById('pf-harvest-days').value) || 0);
+  const weightGrams = Number((document.getElementById('pf-weight-grams') && document.getElementById('pf-weight-grams').value) || 0);
+  const finalVariant = variant || (weightGrams > 0 ? (weightGrams + 'g') : '');
 
   api('saveProduct', TOKEN, {
     id: productId || null,
     name: name,
     product_type: productType,
     category: category,
-    variant: variant,
+    variant: finalVariant,
+    weight_grams: weightGrams,
     unit: unit,
     harvest_days: harvestDays,
     priceTiers: tiers
@@ -4438,10 +4467,11 @@ function drawProduksiUI(allProducts, history, allBatches) {
     '<div>' +
     '<label class="field-label">Target Kemasan (Siap Jual)</label>' +
     '<div class="input-wrapper">' +
-    '<select id="prod-target" onchange="calculateTheoreticalPcs()" style="padding-left:14px;">' +
+    '<select id="prod-target" onchange="onPackagingTargetChange()" style="padding-left:14px;">' +
     '<option value="">-- Pilih Kemasan Pcs --</option>' +
     targetPacks.map(function (t) {
-      return '<option value="' + t.id + '">' + escapeHtml(t.name) + '</option>';
+      const netLabel = t.weight_grams ? (' [' + t.weight_grams + ' gr]') : (t.variant ? (' [' + t.variant + ']') : '');
+      return '<option value="' + t.id + '">' + escapeHtml(t.name) + netLabel + '</option>';
     }).join('') +
     '</select>' +
     '</div>' +
@@ -4554,6 +4584,27 @@ function drawProduksiUI(allProducts, history, allBatches) {
     '</table>' +
     '</div>' +
     '</div>';
+}
+
+function onPackagingTargetChange() {
+  const tgtSelect = document.getElementById('prod-target');
+  if (tgtSelect && tgtSelect.value) {
+    const p = (PRODUCTS_CACHE || []).find(function (x) { return String(x.id) === String(tgtSelect.value); });
+    if (p) {
+      let gram = Number(p.weight_grams || 0);
+      if (!gram && p.variant) {
+        const m = String(p.variant).match(/(\d+(?:\.\d+)?)\s*(?:g|gr|gram)/i);
+        if (m) gram = Number(m[1]);
+      }
+      if (gram > 0) {
+        const gramInput = document.getElementById('prod-gram-pack');
+        if (gramInput) {
+          gramInput.value = gram;
+        }
+      }
+    }
+  }
+  calculateTheoreticalPcs();
 }
 
 function calculateTheoreticalPcs() {

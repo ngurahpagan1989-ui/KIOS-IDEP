@@ -794,35 +794,44 @@ async function dispatchApiCall(fnName, args) {
         }
       });
 
-      return (prodsRes.data || []).map(p => ({
-        id: p.id,
-        sku: p.sku || '',
-        name: p.name,
-        category: p.category,
-        product_type: p.product_type,
-        variant: p.variant || '',
-        unit: p.unit || 'pcs',
-        photo_url: p.photo_url || '',
-        packaging_type_id: p.packaging_type_id,
-        harvest_days: p.harvest_days || 0,
-        active: p.is_active,
-        is_active: p.is_active,
-        stock: stockMap[p.id] || 0,
-        batches: batchMap[p.id] || [],
-        priceTiers: p.price_tiers || [],
-        packaging: p.packaging_types || null
-      }));
+      return (prodsRes.data || []).map(p => {
+        let weightGrams = Number(p.weight_grams || 0);
+        if (!weightGrams && p.variant) {
+          const m = String(p.variant).match(/(\d+(?:\.\d+)?)\s*(?:g|gr|gram)/i);
+          if (m) weightGrams = Number(m[1]);
+        }
+        return {
+          id: p.id,
+          sku: p.sku || '',
+          name: p.name,
+          category: p.category,
+          product_type: p.product_type,
+          variant: p.variant || '',
+          weight_grams: weightGrams,
+          unit: p.unit || 'pcs',
+          photo_url: p.photo_url || '',
+          packaging_type_id: p.packaging_type_id,
+          harvest_days: p.harvest_days || 0,
+          active: p.is_active,
+          is_active: p.is_active,
+          stock: stockMap[p.id] || 0,
+          batches: batchMap[p.id] || [],
+          priceTiers: p.price_tiers || [],
+          packaging: p.packaging_types || null
+        };
+      });
     }
 
     case 'saveProduct': {
       const [, payload] = args;
       const isSeed = String(payload.product_type || payload.category || '').toLowerCase().includes('benih');
+      const weightGrams = Number(payload.weight_grams || 0);
       const productObj = {
         name: payload.name,
         ...(payload.sku !== undefined ? { sku: payload.sku } : {}),
         category: payload.category || 'Benih',
         product_type: payload.product_type || 'raw_seed',
-        variant: payload.variant || '',
+        variant: payload.variant || (weightGrams > 0 ? (weightGrams + 'g') : ''),
         unit: payload.unit || 'pcs',
         photo_url: payload.photo_url || '',
         packaging_type_id: payload.packaging_type_id || null,
@@ -831,10 +840,18 @@ async function dispatchApiCall(fnName, args) {
         active: payload.active !== false,
         is_seed: isSeed
       };
+      if (weightGrams > 0) {
+        productObj.weight_grams = weightGrams;
+      }
 
       let productId = payload.id;
       if (productId) {
-        const { error } = await supabase.from('products').update(productObj).eq('id', productId);
+        let { error } = await supabase.from('products').update(productObj).eq('id', productId);
+        if (error && error.message && error.message.includes('weight_grams')) {
+          delete productObj.weight_grams;
+          const retry = await supabase.from('products').update(productObj).eq('id', productId);
+          error = retry.error;
+        }
         if (error) throw error;
       } else {
         const newId = crypto.randomUUID();
@@ -842,7 +859,13 @@ async function dispatchApiCall(fnName, args) {
           id: newId,
           ...productObj
         };
-        const { data, error } = await supabase.from('products').insert(insertObj).select('id').single();
+        let { data, error } = await supabase.from('products').insert(insertObj).select('id').single();
+        if (error && error.message && error.message.includes('weight_grams')) {
+          delete insertObj.weight_grams;
+          const retry = await supabase.from('products').insert(insertObj).select('id').single();
+          data = retry.data;
+          error = retry.error;
+        }
         if (error) throw error;
         productId = data ? data.id : newId;
       }
@@ -915,47 +938,67 @@ async function dispatchApiCall(fnName, args) {
           const unit = String(item.unit || item.satuan || item.Satuan || 'pcs').trim() || 'pcs';
           const harvestDays = Number(item.harvest_days || item.umur_panen || item.Umur_Panen) || 0;
           const isSeed = (category + ' ' + productType).toLowerCase().includes('benih');
+          const rawWeight = item.weight_grams ?? item.berat_kemasan_gram ?? item.Berat_Kemasan_Gram ?? item.netto ?? item.gramatur;
+          const weightGrams = Number(rawWeight) || 0;
+          const variant = item.variant || (weightGrams > 0 ? (weightGrams + 'g') : '');
 
           let productId;
           const existing = existingMap[sku.toLowerCase()];
 
+          const updateObj = {
+            name: name,
+            category: category,
+            product_type: productType,
+            variant: variant,
+            unit: unit,
+            harvest_days: harvestDays,
+            is_active: true,
+            active: true,
+            is_seed: isSeed,
+            updated_at: new Date().toISOString()
+          };
+          if (weightGrams > 0) updateObj.weight_grams = weightGrams;
+
           if (existing) {
             productId = existing.id;
-            const { error: updErr } = await supabase
+            let { error: updErr } = await supabase
               .from('products')
-              .update({
-                name: name,
-                category: category,
-                product_type: productType,
-                unit: unit,
-                harvest_days: harvestDays,
-                is_active: true,
-                active: true,
-                is_seed: isSeed,
-                updated_at: new Date().toISOString()
-              })
+              .update(updateObj)
               .eq('id', productId);
+            if (updErr && updErr.message && updErr.message.includes('weight_grams')) {
+              delete updateObj.weight_grams;
+              const retry = await supabase.from('products').update(updateObj).eq('id', productId);
+              updErr = retry.error;
+            }
             if (updErr) throw updErr;
           } else {
             productId = crypto.randomUUID();
-            const { error: insErr } = await supabase
+            const insertObj = {
+              id: productId,
+              sku: sku,
+              name: name,
+              category: category,
+              product_type: productType,
+              variant: variant,
+              unit: unit,
+              harvest_days: harvestDays,
+              is_active: true,
+              active: true,
+              is_seed: isSeed,
+              stock: 0,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            if (weightGrams > 0) insertObj.weight_grams = weightGrams;
+
+            let { error: insErr } = await supabase
               .from('products')
-              .insert({
-                id: productId,
-                sku: sku,
-                name: name,
-                category: category,
-                product_type: productType,
-                variant: item.variant || '',
-                unit: unit,
-                harvest_days: harvestDays,
-                is_active: true,
-                active: true,
-                is_seed: isSeed,
-                stock: 0,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              });
+              .insert(insertObj);
+            if (insErr && insErr.message && insErr.message.includes('weight_grams')) {
+              delete insertObj.weight_grams;
+              const retry = await supabase.from('products').insert(insertObj);
+              insErr = retry.error;
+            }
             if (insErr) throw insErr;
             // Catat ke map jika ada kemunculan SKU yang sama berikutnya
             existingMap[sku.toLowerCase()] = { id: productId, sku: sku, name: name };
@@ -1890,18 +1933,29 @@ async function dispatchApiCall(fnName, args) {
       const packList = payload.packProducts || payload.packagedProducts || [];
       for (const pack of packList) {
         const packId = pack.id || crypto.randomUUID();
-        const { data: pProd } = await supabase.from('products').insert({
+        const packGram = Number(pack.weight_grams || 0);
+        const packObj = {
           id: packId,
           name: pack.name,
           category: raw.category || 'Benih',
           product_type: 'packaged_seed',
-          variant: pack.variant || '',
+          variant: pack.variant || (packGram > 0 ? (packGram + 'g') : ''),
           unit: pack.unit || 'pcs',
           packaging_type_id: pack.packaging_type_id || null,
           is_active: true,
           active: true,
           is_seed: true
-        }).select('id').single();
+        };
+        if (packGram > 0) packObj.weight_grams = packGram;
+
+        let { data: pProd, error: pErr } = await supabase.from('products').insert(packObj).select('id').single();
+        if (pErr && pErr.message && pErr.message.includes('weight_grams')) {
+          delete packObj.weight_grams;
+          const retry = await supabase.from('products').insert(packObj).select('id').single();
+          pProd = retry.data;
+          pErr = retry.error;
+        }
+        if (pErr) throw pErr;
 
         const actualPackId = pProd ? pProd.id : packId;
 

@@ -47,3 +47,10 @@ CREATE POLICY "Allow all access to accounting_periods"
 -- 4. Beri Izin Akses untuk Role Anon dan Authenticated
 GRANT ALL ON TABLE public.accounting_periods TO anon, authenticated, service_role;
 
+-- 5. Kolom Tanda Tangan & Pengesahan Bagian Keuangan (Finance) pada Faktur / Transaksi
+ALTER TABLE public.transactions 
+  ADD COLUMN IF NOT EXISTS finance_signature text,
+  ADD COLUMN IF NOT EXISTS finance_signer_name text,
+  ADD COLUMN IF NOT EXISTS finance_signed_at timestamptz;
+
+

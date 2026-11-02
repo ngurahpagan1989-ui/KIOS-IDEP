@@ -38,7 +38,7 @@ try {
   if (cachedPerms) CURRENT_USER_PERMISSIONS = JSON.parse(cachedPerms);
 } catch (e) { }
 
-let AVAILABLE_ROLES = ['Admin', 'Koordinator', 'QC', 'Kasir'];
+let AVAILABLE_ROLES = ['Admin', 'Koordinator', 'QC', 'Kasir', 'Finance'];
 try {
   const cachedRoles = getSafeSession('ekasir_available_roles');
   if (cachedRoles) AVAILABLE_ROLES = JSON.parse(cachedRoles);
@@ -61,6 +61,15 @@ function isCoordinator() {
   if (isAdmin()) return false;
   const r = String((CURRENT_USER && CURRENT_USER.role) || USER_ROLE || '').trim().toLowerCase();
   return r.indexOf('koordinator') !== -1 || r.indexOf('coordinator') !== -1;
+}
+
+function isFinance() {
+  const r = String((CURRENT_USER && CURRENT_USER.role) || USER_ROLE || '').trim().toLowerCase();
+  return r.indexOf('finance') !== -1 || r.indexOf('keuangan') !== -1;
+}
+
+function isCurrentUserFinance() {
+  return isFinance();
 }
 
 function userCanView(moduleKey) {
@@ -8312,6 +8321,347 @@ function printMiniReceiptFromInvoice(invoiceData) {
   printMiniReceipt(receiptData);
 }
 
+
+// ==============================================================================
+// MODUL TANDA TANGAN & STEMPEL DIGITAL FAKTUR RESMI (ROLE: FINANCE)
+// ==============================================================================
+function getInvoiceSignatureData(tx) {
+  if (!tx) return null;
+  if (tx.finance_signature) {
+    return {
+      signature: tx.finance_signature,
+      signer_name: tx.finance_signer_name || 'Bagian Keuangan IDEP',
+      signed_at: tx.finance_signed_at || tx.created_at || new Date().toISOString()
+    };
+  }
+  const id = tx.id || tx.invoice_no;
+  if (id) {
+    try {
+      const raw = localStorage.getItem('inv_sig_' + id);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+  }
+  return null;
+}
+
+function renderInvoiceSignButtonHTML(tx) {
+  if (!tx) return '';
+  const sigData = getInvoiceSignatureData(tx);
+  const isSigned = !!(sigData && sigData.signature);
+  const txId = tx.id || tx.invoice_no || '';
+  if (isSigned) {
+    return '<button type="button" class="btn btn-secondary btn-sm" onclick="openInvoiceSignatureModal(\'' + escapeHtml(txId) + '\')" style="background:#ECFDF5;color:#065F46;border-color:#A7F3D0;font-weight:600;" title="Faktur sudah disahkan & ditandatangani Finance"><span style="font-size:12px;">✅</span> Disahkan Finance</button>';
+  }
+  return '<button type="button" class="btn btn-warning btn-sm" onclick="openInvoiceSignatureModal(\'' + escapeHtml(txId) + '\')" style="background:#FEF3C7;color:#92400E;border-color:#FCD34D;font-weight:700;" title="Bubuhkan tanda tangan & stempel resmi digital Finance"><span style="font-size:12px;">✍️</span> Sahkan &amp; TTD (Finance)</button>';
+}
+
+function renderFinanceSignatureBlock(tx, s, isPrint) {
+  s = s || APP_SETTINGS || {};
+  const sigData = getInvoiceSignatureData(tx);
+  const txId = (tx && (tx.id || tx.invoice_no)) || 'INV';
+
+  if (sigData && sigData.signature) {
+    const signerName = sigData.signer_name || 'Bagian Keuangan IDEP';
+    const signedDate = sigData.signed_at ? new Date(sigData.signed_at) : new Date();
+    const signedDateStr = formatDate(signedDate);
+    const timeStr = String(signedDate.getHours()).padStart(2, '0') + ':' + String(signedDate.getMinutes()).padStart(2, '0');
+
+    let stampHtml = '';
+    if (s.store_stamp) {
+      stampHtml = '<img src="' + escapeHtml(s.store_stamp) + '" alt="Cap Toko" style="position:absolute;top:-8px;right:12px;width:86px;height:86px;object-fit:contain;opacity:0.88;transform:rotate(-12deg);pointer-events:none;mix-blend-mode:multiply;z-index:3;">';
+    } else {
+      const stampDay = String(signedDate.getDate()).padStart(2, '0') + '/' + String(signedDate.getMonth() + 1).padStart(2, '0') + '/' + signedDate.getFullYear();
+      const curveIdTop = 'stmp-top-' + String(txId).replace(/[^a-zA-Z0-9]/g, '');
+      const curveIdBtm = 'stmp-btm-' + String(txId).replace(/[^a-zA-Z0-9]/g, '');
+      stampHtml =
+        '<div style="position:absolute;top:-8px;right:12px;width:88px;height:88px;opacity:0.88;transform:rotate(-12deg);pointer-events:none;mix-blend-mode:multiply;z-index:3;">' +
+        '<svg viewBox="0 0 100 100" style="width:100%;height:100%;">' +
+        '<circle cx="50" cy="50" r="47" fill="none" stroke="#1d4ed8" stroke-width="2.2"/>' +
+        '<circle cx="50" cy="50" r="41" fill="none" stroke="#1d4ed8" stroke-width="1.2"/>' +
+        '<path id="' + curveIdTop + '" d="M 18,50 A 32,32 0 1,1 82,50" fill="none"/>' +
+        '<text font-size="6.5" font-weight="bold" fill="#1d4ed8" letter-spacing="0.8">' +
+        '<textPath href="#' + curveIdTop + '" startOffset="50%" text-anchor="middle">★ YAYASAN IDEP ★</textPath>' +
+        '</text>' +
+        '<path id="' + curveIdBtm + '" d="M 82,50 A 32,32 0 0,1 18,50" fill="none"/>' +
+        '<text font-size="6.2" font-weight="bold" fill="#1d4ed8" letter-spacing="0.5">' +
+        '<textPath href="#' + curveIdBtm + '" startOffset="50%" text-anchor="middle">KIOS BENIH LESTARI</textPath>' +
+        '</text>' +
+        '<line x1="20" y1="40" x2="80" y2="40" stroke="#1d4ed8" stroke-width="1"/>' +
+        '<text x="50" y="48" font-size="7.5" font-weight="900" fill="#1d4ed8" text-anchor="middle" letter-spacing="0.8">LUNAS / SAH</text>' +
+        '<text x="50" y="56" font-size="5.8" font-weight="bold" fill="#1d4ed8" text-anchor="middle">' + stampDay + '</text>' +
+        '<line x1="20" y1="60" x2="80" y2="60" stroke="#1d4ed8" stroke-width="1"/>' +
+        '</svg>' +
+        '</div>';
+    }
+
+    return (
+      '<div style="width:220px;text-align:center;">' +
+      '<div style="font-weight:600;color:' + (isPrint ? '#4B5563' : '#6B5749') + ';">Hormat Kami,</div>' +
+      '<div style="font-weight:700;color:#7A5031;margin-top:1px;">Kios IDEP Selaras Alam</div>' +
+      '<div style="position:relative;height:65px;width:100%;margin:2px auto 4px auto;display:flex;align-items:center;justify-content:center;">' +
+      '<img src="' + escapeHtml(sigData.signature) + '" alt="Tanda Tangan Finance" style="max-height:60px;max-width:160px;object-fit:contain;z-index:2;position:relative;">' +
+      stampHtml +
+      '</div>' +
+      '<div style="font-weight:700;color:#362417;border-bottom:1px solid #362417;display:inline-block;min-width:160px;padding-bottom:2px;">( ' + escapeHtml(signerName) + ' )</div>' +
+      '<div style="font-size:9.5px;color:#059669;font-weight:700;margin-top:2px;">✅ Disahkan Finance &bull; ' + signedDateStr + ' ' + timeStr + '</div>' +
+      '</div>'
+    );
+  }
+
+  const actionBtn = (!isPrint)
+    ? '<div style="margin-top:4px;" class="no-print"><button type="button" class="btn btn-warning btn-sm" onclick="openInvoiceSignatureModal(\'' + escapeHtml(txId) + '\')" style="background:#FEF3C7;color:#92400E;border-color:#FCD34D;font-size:10.5px;font-weight:700;padding:2px 8px;">✍️ Sahkan &amp; TTD (Finance)</button></div>'
+    : '';
+
+  return (
+    '<div style="width:200px;text-align:center;">' +
+    '<div style="font-weight:600;color:' + (isPrint ? '#4B5563' : '#6B5749') + ';">Hormat Kami,</div>' +
+    '<div style="font-weight:700;color:#7A5031;margin-top:1px;">Kios IDEP Selaras Alam</div>' +
+    '<div style="height:44px;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:10px;font-style:italic;">(Menunggu TTD Finance)</div>' +
+    '<div style="font-weight:700;color:#362417;border-bottom:1px solid #362417;display:inline-block;min-width:160px;padding-bottom:2px;">( Bagian Keuangan )</div>' +
+    '<div style="font-size:10px;color:#6B5749;margin-top:2px;">Petugas Kios IDEP</div>' +
+    actionBtn +
+    '</div>'
+  );
+}
+
+function openInvoiceSignatureModal(txId) {
+  if (!txId) {
+    if (window._curInv && window._curInv.transaction) {
+      txId = window._curInv.transaction.id;
+    }
+  }
+  if (!txId) {
+    showToast('Pilih faktur terlebih dahulu.', true);
+    return;
+  }
+
+  showToast('Menyiapkan formulir pengesahan faktur #' + txId + '...');
+  api('getInvoiceData', TOKEN, txId).then(function (data) {
+    if (!data || !data.transaction) {
+      showToast('Data faktur tidak ditemukan.', true);
+      return;
+    }
+
+    if (isCurrentUserFinance()) {
+      showInvoiceSignaturePadDialog(data, CURRENT_USER);
+    } else {
+      promptFinanceSupervisorAuth(
+        'Otorisasi Tanda Tangan Faktur #' + txId,
+        'Pengesahan dan pembubuhan tanda tangan formal A4 merupakan kewenangan Bagian Keuangan (Role Finance). Silakan minta akun Finance untuk mengesahkan.',
+        function (financeUser) {
+          showInvoiceSignaturePadDialog(data, financeUser);
+        }
+      );
+    }
+  }).catch(function (err) {
+    showToast('Gagal memuat data faktur: ' + (err.message || err), true);
+  });
+}
+
+function showInvoiceSignaturePadDialog(data, signerUser) {
+  const tx = data.transaction || {};
+  const txId = tx.id || tx.invoice_no;
+  const signerName = (signerUser && (signerUser.name || signerUser.full_name || signerUser.username)) || 'Bagian Keuangan IDEP';
+  const existingSig = getInvoiceSignatureData(tx);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.zIndex = '2250';
+  overlay.innerHTML =
+    '<div class="modal-backdrop"></div>' +
+    '<div class="modal-dialog" style="max-width:520px;">' +
+    '<div class="modal-header" style="background:#F0FDF4;border-bottom:1px solid #BBF7D0;">' +
+    '<h3 class="modal-title" style="color:#166534;display:flex;align-items:center;gap:8px;font-size:16px;">' +
+    '<span>✍️</span> Pengesahan &amp; TTD Faktur Digital</h3>' +
+    '<button type="button" class="modal-close-btn" id="sig-pad-close">&times;</button>' +
+    '</div>' +
+    '<div class="modal-body" style="padding:16px 20px;">' +
+    '<div style="background:#F8FAFC;padding:10px 14px;border-radius:6px;border:1px solid #E2E8F0;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;">' +
+    '<div><div>No. Faktur: <strong style="font-family:monospace;color:var(--primary);">#' + escapeHtml(txId) + '</strong></div>' +
+    '<div>Pelanggan: <strong>' + escapeHtml(tx.customer_name || 'Umum') + '</strong></div></div>' +
+    '<div style="text-align:right;"><div>Total: <strong style="color:var(--accent);">' + formatRupiah(tx.total) + '</strong></div>' +
+    '<div style="font-size:11px;color:#16A34A;font-weight:700;">Role: Finance</div></div>' +
+    '</div>' +
+    '<div class="field-group" style="margin-bottom:12px;">' +
+    '<label class="field-label" style="font-size:12px;font-weight:600;">Nama Petugas Finance / Penandatangan</label>' +
+    '<div class="input-wrapper">' +
+    '<input type="text" id="sig-pad-signer" value="' + escapeHtml(existingSig ? existingSig.signer_name : signerName) + '" style="padding-left:14px;font-size:13px;font-weight:600;">' +
+    '</div>' +
+    '</div>' +
+    '<div class="field-group" style="margin-bottom:6px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+    '<label class="field-label" style="margin:0;font-size:12px;font-weight:600;">Goreskan Tanda Tangan Anda di Bawah:</label>' +
+    '<button type="button" class="btn btn-secondary btn-sm" id="sig-pad-clear" style="padding:2px 8px;font-size:11px;">🗑️ Bersihkan TTD</button>' +
+    '</div>' +
+    '<div style="border:2px dashed #94A3B8;border-radius:6px;background:#FFFFFF;position:relative;touch-action:none;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,0.06);">' +
+    '<canvas id="invoice-signature-canvas" width="480" height="180" style="display:block;width:100%;height:180px;cursor:crosshair;"></canvas>' +
+    '<div style="position:absolute;bottom:25px;left:20px;right:20px;border-bottom:1px dashed #CBD5E1;pointer-events:none;text-align:right;color:#94A3B8;font-size:10px;padding-bottom:2px;">(Tanda Tangan Sah)</div>' +
+    '</div>' +
+    '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Gunakan jari/stylus pada layar sentuh atau mouse pada desktop untuk menggambar tanda tangan.</small>' +
+    '</div>' +
+    '<div style="margin-top:12px;padding:10px 12px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;display:flex;align-items:center;gap:10px;">' +
+    '<input type="checkbox" id="sig-pad-with-stamp" checked style="width:18px;height:18px;accent-color:#16A34A;cursor:pointer;">' +
+    '<label for="sig-pad-with-stamp" style="font-size:12px;color:#166534;cursor:pointer;margin:0;line-height:1.3;">' +
+    '<strong>Bubuhkan Stempel Resmi Digital Kios IDEP</strong><br>' +
+    '<span style="font-size:11px;color:#475569;">Stempel resmi otomatis diletakkan bersanding dengan tanda tangan pada Faktur Formal A4.</span>' +
+    '</label>' +
+    '</div>' +
+    '</div>' +
+    '<div class="modal-footer" style="padding:12px 20px;background:var(--surface-muted);display:flex;justify-content:space-between;">' +
+    '<button type="button" class="btn btn-secondary" id="sig-pad-cancel">Batal</button>' +
+    '<button type="button" class="btn btn-primary" id="sig-pad-save" style="background:#16A34A;border-color:#16A34A;font-weight:700;">💾 Sahkan &amp; Simpan TTD</button>' +
+    '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  document.body.classList.add('modal-open');
+
+  const canvas = overlay.querySelector('#invoice-signature-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#0F172A';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  let isDrawing = false;
+  let hasDrawn = false;
+  let lastX = 0;
+  let lastY = 0;
+
+  function getCanvasCoords(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    let clientX, clientY;
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  }
+
+  function startDraw(e) {
+    isDrawing = true;
+    hasDrawn = true;
+    const c = getCanvasCoords(e);
+    lastX = c.x;
+    lastY = c.y;
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+  }
+
+  function drawMove(e) {
+    if (!isDrawing) return;
+    const c = getCanvasCoords(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(c.x, c.y);
+    ctx.stroke();
+    lastX = c.x;
+    lastY = c.y;
+  }
+
+  function stopDraw() {
+    isDrawing = false;
+  }
+
+  canvas.addEventListener('mousedown', function (e) { startDraw(e); });
+  canvas.addEventListener('mousemove', function (e) { drawMove(e); });
+  canvas.addEventListener('mouseup', function () { stopDraw(); });
+  canvas.addEventListener('mouseleave', function () { stopDraw(); });
+
+  canvas.addEventListener('touchstart', function (e) {
+    e.preventDefault();
+    startDraw(e);
+  }, { passive: false });
+  canvas.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+    drawMove(e);
+  }, { passive: false });
+  canvas.addEventListener('touchend', function (e) {
+    e.preventDefault();
+    stopDraw();
+  }, { passive: false });
+
+  overlay.querySelector('#sig-pad-clear').onclick = function () {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasDrawn = false;
+  };
+
+  const closeDialog = function () {
+    overlay.remove();
+    document.body.classList.remove('modal-open');
+  };
+  overlay.querySelector('#sig-pad-close').onclick = closeDialog;
+  overlay.querySelector('#sig-pad-cancel').onclick = closeDialog;
+
+  overlay.querySelector('#sig-pad-save').onclick = function () {
+    if (!hasDrawn) {
+      showToast('Silakan goreskan tanda tangan terlebih dahulu pada kotak.', true);
+      return;
+    }
+
+    const inputSigner = (overlay.querySelector('#sig-pad-signer').value || '').trim() || signerName;
+    const signatureDataUrl = canvas.toDataURL('image/png');
+    const signedAtISO = new Date().toISOString();
+
+    const signPayload = {
+      signature: signatureDataUrl,
+      signer_name: inputSigner,
+      signed_at: signedAtISO
+    };
+
+    showToast('Menyimpan tanda tangan & pengesahan Finance...');
+    api('signInvoice', TOKEN, txId, signPayload).then(function (res) {
+      try {
+        localStorage.setItem('inv_sig_' + txId, JSON.stringify(signPayload));
+      } catch (e) {}
+
+      tx.finance_signature = signatureDataUrl;
+      tx.finance_signer_name = inputSigner;
+      tx.finance_signed_at = signedAtISO;
+
+      if (window._curInv && window._curInv.transaction && (window._curInv.transaction.id === txId || window._curInv.transaction.invoice_no === txId)) {
+        window._curInv.transaction.finance_signature = signatureDataUrl;
+        window._curInv.transaction.finance_signer_name = inputSigner;
+        window._curInv.transaction.finance_signed_at = signedAtISO;
+      }
+
+      closeDialog();
+      showToast('Faktur #' + txId + ' berhasil disahkan oleh ' + inputSigner + '!');
+
+      const docBody = document.getElementById('invoice-doc-body');
+      if (docBody && window._curInv) {
+        docBody.innerHTML = buildInvoiceRenderAreaHTML(window._curInv, CURRENT_INVOICE_VIEW_MODE || 'formal');
+        switchInvoiceView(CURRENT_INVOICE_VIEW_MODE || 'formal');
+      }
+      const renderArea = document.getElementById('invoice-render-area');
+      if (renderArea && window._curInv) {
+        renderArea.outerHTML = buildInvoiceRenderAreaHTML(window._curInv, CURRENT_INVOICE_VIEW_MODE || 'formal');
+        switchInvoiceView(CURRENT_INVOICE_VIEW_MODE || 'formal');
+      }
+    }).catch(function (err) {
+      showToast('Gagal menyimpan tanda tangan: ' + (err.message || err), true);
+    });
+  };
+}
+
+window.openInvoiceSignatureModal = openInvoiceSignatureModal;
+window.showInvoiceSignaturePadDialog = showInvoiceSignaturePadDialog;
+window.promptFinanceSupervisorAuth = promptFinanceSupervisorAuth;
+window.renderFinanceSignatureBlock = renderFinanceSignatureBlock;
+window.renderInvoiceSignButtonHTML = renderInvoiceSignButtonHTML;
+window.getInvoiceSignatureData = getInvoiceSignatureData;
+window.isFinance = isFinance;
+window.isCurrentUserFinance = isCurrentUserFinance;
+
+
 function printInvoiceA4(invoiceData) {
   if (!invoiceData) invoiceData = window._curInv;
   if (!invoiceData || !invoiceData.transaction) {
@@ -8415,17 +8765,13 @@ function printInvoiceA4(invoiceData) {
     '</tfoot>' +
     '</table>' +
 
-    '<div style="display:flex;justify-content:space-between;gap:40px;margin-top:40px;padding-top:20px;text-align:center;">' +
+    '<div style="display:flex;justify-content:space-between;gap:40px;margin-top:30px;padding-top:15px;text-align:center;">' +
     '<div style="width:200px;">' +
     '<div style="font-weight:600;color:#4B5563;">Tanda Terima Pelanggan,</div>' +
-    '<div style="height:60px;"></div>' +
+    '<div style="height:50px;"></div>' +
     '<div style="font-weight:700;color:#111827;border-bottom:1px solid #111827;padding-bottom:2px;">( ' + escapeHtml(c.name || tx.customer_name || '___________________') + ' )</div>' +
     '</div>' +
-    '<div style="width:200px;">' +
-    '<div style="font-weight:600;color:#4B5563;">Hormat Kami,</div>' +
-    '<div style="height:60px;"></div>' +
-    '<div style="font-weight:700;color:#111827;border-bottom:1px solid #111827;padding-bottom:2px;">( ' + escapeHtml(s.store_name || 'Kios IDEP') + ' )</div>' +
-    '</div>' +
+    renderFinanceSignatureBlock(tx, s, true) +
     '</div>' +
 
     '<div style="text-align:center;font-size:11px;color:#6B7280;margin-top:30px;border-top:1px dashed #D1D5DB;padding-top:8px;">' +
@@ -9141,13 +9487,7 @@ function renderFormalInvoiceHTML(data, isActive) {
     '<div style="font-weight:700;color:#362417;border-bottom:1px solid #362417;display:inline-block;min-width:160px;padding-bottom:2px;">( ' + escapeHtml(c ? c.name : (tx.customer_name || '_____________________')) + ' )</div>' +
     '<div style="font-size:10px;color:#6B5749;margin-top:2px;">Nama Terang &amp; Cap</div>' +
     '</div>' +
-    '<div style="width:200px;">' +
-    '<div style="font-weight:600;color:#6B5749;">Hormat Kami,</div>' +
-    '<div style="font-weight:700;color:#7A5031;margin-top:1px;">Kios IDEP Selaras Alam</div>' +
-    '<div style="height:36px;"></div>' +
-    '<div style="font-weight:700;color:#362417;border-bottom:1px solid #362417;display:inline-block;min-width:160px;padding-bottom:2px;">( Bagian Keuangan / Kasir )</div>' +
-    '<div style="font-size:10px;color:#6B5749;margin-top:2px;">Petugas Kios IDEP</div>' +
-    '</div>' +
+    renderFinanceSignatureBlock(tx, s, false) +
     '</div>' +
     '<div style="text-align:center;color:#6B5749;font-size:10.5px;margin-top:20px;border-top:1px dashed #E8E0C9;padding-top:8px;">' +
     escapeHtml(s.invoice_footer || 'Terima kasih telah melestarikan benih lokal bersama Kios IDEP. Salam Lestari!') +
@@ -9179,6 +9519,7 @@ function buildInvoiceControlBarHTML(tx, activeMode) {
     '</div>' +
     '</div>' +
     '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+    renderInvoiceSignButtonHTML(tx) +
     '<button type="button" class="btn btn-primary btn-sm" onclick="printActiveInvoice()" style="font-weight:700;"><span style="font-size:13px;">🖨️</span> Cetak / Simpan PDF</button>' +
     '<button type="button" class="btn btn-secondary btn-sm btn-tx-wa" onclick="sendReceiptToWhatsApp(window._curInv)" style="background:#25D366;color:#FFFFFF;border-color:#25D366;font-weight:600;">📲 Kirim WA</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="closeModal()">✕ Tutup</button>' +
@@ -15862,6 +16203,8 @@ function getDefaultRolesPermissions() {
     perms['Koordinator'][m] = Object.assign({}, viewOnly);
     perms['QC'][m] = (['dashboard', 'qc', 'stok', 'produksi'].indexOf(m) !== -1) ? Object.assign({}, defaultAll) : Object.assign({}, viewOnly);
     perms['Kasir'][m] = (['dashboard', 'pos', 'produk', 'faktur', 'crm', 'purnajual'].indexOf(m) !== -1) ? Object.assign({}, defaultAll) : Object.assign({}, viewOnly);
+    perms['Finance'] = perms['Finance'] || {};
+    perms['Finance'][m] = (['dashboard', 'laporan', 'piutang', 'expenses', 'faktur', 'pembelian', 'konsinyasi', 'pengaturan'].indexOf(m) !== -1) ? Object.assign({}, defaultAll) : Object.assign({}, viewOnly);
   });
   return perms;
 }
@@ -15870,6 +16213,7 @@ function getDefaultUsersFallback() {
   return [
     { id: 'admin', username: 'admin', name: 'Administrator Utama', full_name: 'Administrator Utama', role: 'Admin', created_at: '2024-01-01 08:00' },
     { id: 'kasir', username: 'kasir', name: 'Staf Kasir Toko', full_name: 'Staf Kasir Toko', role: 'Kasir', created_at: '2024-01-15 09:30' },
+    { id: 'finance', username: 'finance', name: 'Staf Bagian Keuangan', full_name: 'Staf Bagian Keuangan', role: 'Finance', created_at: '2024-03-15 08:30' },
     { id: 'qc_staff', username: 'qc_staff', name: 'Operator Quality Control', full_name: 'Operator Quality Control', role: 'QC', created_at: '2024-02-10 11:15' },
     { id: 'koordinator', username: 'koordinator', name: 'Koordinator Lapangan & Evaluasi', full_name: 'Koordinator Lapangan & Evaluasi', role: 'Koordinator', created_at: '2024-03-01 14:00' }
   ];
@@ -15881,6 +16225,7 @@ function drawPengaturanUI(settings) {
 
   const currentLogo = settings['store_logo'] || '';
   const currentLogoLight = settings['store_logo_light'] || '';
+  const currentStamp = settings['store_stamp'] || '';
   const isUserAdmin = isAdmin();
   const activeTab = (CURRENT_SETTINGS_SUBTAB === 'pricing') ? 'batch' : (CURRENT_SETTINGS_SUBTAB || 'profile');
   const currentTimeoutMin = String(
@@ -15943,6 +16288,22 @@ function drawPengaturanUI(settings) {
     '</div>' +
     '<div class="input-wrapper"><input type="text" id="set-store-logo-light" placeholder="Atau paste link URL logo putih/transparan..." value="' + escapeHtml(currentLogoLight) + '" oninput="updateLogoPreview(this.value, \'setting-logo-light-preview\')" style="padding-left:14px;font-size:12px;"></div>' +
     '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Digunakan untuk menu samping (sidebar hijau tua) dan kop faktur formal.</small>' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
+    '<div class="field-group">' +
+    '<label class="field-label">Cap / Stempel Resmi Toko (Stempel Digital Faktur Formal)</label>' +
+    '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px;">' +
+    '<div class="logo-preview-box" id="setting-stamp-preview" style="background:#fff;border:1px dashed var(--border);width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-xs);overflow:hidden;padding:4px;">' +
+    (currentStamp ? '<img src="' + escapeHtml(currentStamp) + '" alt="Cap Toko" style="max-width:100%;max-height:100%;object-fit:contain;transform:rotate(-10deg);">' : '<span style="font-size:10px;color:var(--text-muted);text-align:center;">Stempel Bawaan IDEP</span>') +
+    '</div>' +
+    '<div style="flex:1;min-width:180px;">' +
+    '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">' +
+    '<label class="btn btn-secondary btn-sm" style="cursor:pointer;">📁 Upload Cap (PNG Transparan)<input type="file" id="set-stamp-file" accept="image/*" style="display:none;" onchange="handleLogoFileUpload(this, \'set-store-stamp\', \'setting-stamp-preview\')"></label>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="clearLogoSetting(\'set-store-stamp\', \'set-stamp-file\', \'setting-stamp-preview\')">Gunakan Default</button>' +
+    '</div>' +
+    '<div class="input-wrapper"><input type="text" id="set-store-stamp" placeholder="Atau paste link URL cap stempel..." value="' + escapeHtml(currentStamp) + '" oninput="updateLogoPreview(this.value, \'setting-stamp-preview\')" style="padding-left:14px;font-size:12px;"></div>' +
+    '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Gunakan file PNG dengan background transparan. Jika dikosongkan, faktur otomatis memakai Stempel Resmi Digital Yayasan IDEP.</small>' +
     '</div>' +
     '</div>' +
     '</div>' +
@@ -16196,7 +16557,7 @@ function renderRoleMatrixUI() {
     CURRENT_ROLES_PERMISSIONS = getDefaultRolesPermissions();
   }
 
-  const preferredOrder = ['Admin', 'Kasir', 'QC', 'Koordinator'];
+  const preferredOrder = ['Admin', 'Kasir', 'Finance', 'QC', 'Koordinator'];
   const existingKeys = Object.keys(CURRENT_ROLES_PERMISSIONS);
   const roles = [];
   preferredOrder.forEach(function (k) {
@@ -16392,7 +16753,7 @@ function saveRoleMatrixSettings() {
 window.saveRoleMatrixSettings = saveRoleMatrixSettings;
 
 function deleteCustomRole(roleName) {
-  if (!roleName || ['Admin', 'Koordinator', 'QC', 'Kasir'].indexOf(roleName) !== -1) return;
+  if (!roleName || ['Admin', 'Koordinator', 'QC', 'Kasir', 'Finance'].indexOf(roleName) !== -1) return;
   const doDelete = function () {
     if (CURRENT_ROLES_PERMISSIONS && CURRENT_ROLES_PERMISSIONS[roleName]) {
       delete CURRENT_ROLES_PERMISSIONS[roleName];
@@ -16598,7 +16959,7 @@ function openUserModal(userId) {
 
   // Gabungkan semua role yang tersedia (bawaan + kustom dari Matriks Hak Akses)
   const roleSet = [];
-  const baseRoles = (AVAILABLE_ROLES && AVAILABLE_ROLES.length > 0) ? AVAILABLE_ROLES : ['Admin', 'Koordinator', 'QC', 'Kasir'];
+  const baseRoles = (AVAILABLE_ROLES && AVAILABLE_ROLES.length > 0) ? AVAILABLE_ROLES : ['Admin', 'Koordinator', 'QC', 'Kasir', 'Finance'];
   baseRoles.forEach(function (r) { if (r && roleSet.indexOf(r) === -1) roleSet.push(r); });
   if (CURRENT_ROLES_PERMISSIONS && typeof CURRENT_ROLES_PERMISSIONS === 'object') {
     Object.keys(CURRENT_ROLES_PERMISSIONS).forEach(function (r) {
@@ -16817,6 +17178,117 @@ window.deleteUserAccount = deleteUserAccount;
 window.deleteUserUI = deleteUserUI;
 
 
+function applyBankInputsUnlock(label) {
+  const bankInputs = ['set-bank-name', 'set-bank-account', 'set-bank-account-name'];
+  bankInputs.forEach(function (fieldId) {
+    const field = document.getElementById(fieldId);
+    if (field) {
+      field.disabled = false;
+      field.style.opacity = '1';
+      field.style.cursor = 'text';
+    }
+  });
+
+  const btn = document.getElementById('btn-unlock-bank-settings');
+  if (btn) {
+    btn.textContent = label || '🔓 Rekening Terbuka (Finance)';
+    btn.disabled = true;
+    btn.classList.remove('btn-secondary');
+    btn.classList.add('btn-success');
+  }
+}
+
+function promptFinanceSupervisorAuth(title, description, onSuccess) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.zIndex = '2200';
+  overlay.innerHTML =
+    '<div class="modal-backdrop"></div>' +
+    '<div class="modal-dialog modal-dialog-sm" style="max-width:420px;">' +
+    '<div class="modal-header" style="background:#FEF3C7;border-bottom:1px solid #FDE68A;">' +
+    '<h3 class="modal-title" style="color:#92400E;display:flex;align-items:center;gap:8px;font-size:16px;">' +
+    '<span>🔐</span> ' + escapeHtml(title || 'Otorisasi Khusus Finance') + '</h3>' +
+    '<button type="button" class="modal-close-btn" id="fin-auth-close">&times;</button>' +
+    '</div>' +
+    '<div class="modal-body" style="padding:16px 20px;">' +
+    '<p style="margin:0 0 14px;color:var(--text-secondary);font-size:12.5px;line-height:1.45;">' +
+    escapeHtml(description || 'Wewenang ini dibatasi khusus untuk Bagian Keuangan (Role Finance). Masukkan kredensial akun Finance untuk otorisasi.') +
+    '</p>' +
+    '<div class="field-group" style="margin-bottom:12px;">' +
+    '<label class="field-label" style="font-size:12px;font-weight:600;">Username Petugas Finance</label>' +
+    '<div class="input-wrapper">' +
+    '<input type="text" id="fin-auth-username" placeholder="Username akun Finance" style="padding-left:14px;font-size:13px;" autocomplete="off">' +
+    '</div>' +
+    '</div>' +
+    '<div class="field-group" style="margin-bottom:8px;">' +
+    '<label class="field-label" style="font-size:12px;font-weight:600;">Password Petugas Finance</label>' +
+    '<div class="input-wrapper">' +
+    '<input type="password" id="fin-auth-password" placeholder="Password akun Finance" style="padding-left:14px;font-size:13px;" autocomplete="off">' +
+    '</div>' +
+    '</div>' +
+    '<small style="color:var(--text-muted);font-size:11px;display:block;">*Hanya akun dengan peran <strong>Finance</strong> yang dapat mengesahkan otorisasi ini.</small>' +
+    '</div>' +
+    '<div class="modal-footer" style="padding:12px 20px;background:var(--surface-muted);">' +
+    '<button type="button" class="btn btn-secondary" id="fin-auth-cancel">Batal</button>' +
+    '<button type="button" class="btn btn-primary" id="fin-auth-confirm" style="background:#B45309;border-color:#B45309;">Verifikasi Otorisasi</button>' +
+    '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  document.body.classList.add('modal-open');
+
+  const close = function () {
+    overlay.remove();
+    document.body.classList.remove('modal-open');
+  };
+
+  const uInput = overlay.querySelector('#fin-auth-username');
+  const pInput = overlay.querySelector('#fin-auth-password');
+  overlay.querySelector('#fin-auth-close').onclick = close;
+  overlay.querySelector('#fin-auth-cancel').onclick = close;
+
+  const handleVerify = function () {
+    const u = (uInput ? uInput.value : '').trim();
+    const p = (pInput ? pInput.value : '').trim();
+    if (!u || !p) {
+      showToast('Username dan password Finance wajib diisi.', true);
+      return;
+    }
+
+    showToast('Memverifikasi wewenang Finance...');
+    api('loginUser', u, p).then(function (res) {
+      if (res && res.success && res.user) {
+        const userRole = String(res.user.role || '').toLowerCase();
+        const isRoleFinance = userRole.indexOf('finance') !== -1 || userRole.indexOf('keuangan') !== -1;
+        if (!isRoleFinance) {
+          showToast('Akses ditolak: Akun "' + u + '" tidak berwenang (bukan role Finance)!', true);
+          return;
+        }
+        close();
+        showToast('Otorisasi Finance disetujui untuk ' + (res.user.name || res.user.username) + '.');
+        if (typeof onSuccess === 'function') onSuccess(res.user);
+      } else {
+        showToast('Username atau password salah, otorisasi ditolak!', true);
+      }
+    }).catch(function (err) {
+      showToast('Gagal memverifikasi: ' + (err.message || 'Kredensial salah'), true);
+    });
+  };
+
+  overlay.querySelector('#fin-auth-confirm').onclick = handleVerify;
+  if (uInput) {
+    uInput.focus();
+    uInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && pInput) pInput.focus();
+    });
+  }
+  if (pInput) {
+    pInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') handleVerify();
+    });
+  }
+}
+
 function unlockBankSettings() {
   const currentUserName = (CURRENT_USER && CURRENT_USER.username) || USER_NAME || '';
   if (!currentUserName) {
@@ -16824,6 +17296,20 @@ function unlockBankSettings() {
     return;
   }
 
+  // Jika user saat ini BUKAN Finance, mintakan otorisasi supervisor Finance
+  if (!isCurrentUserFinance()) {
+    promptFinanceSupervisorAuth(
+      'Buka Kunci Rekening Toko',
+      'Pengaturan rekening bank penerima toko dilindungi dan hanya dapat diubah oleh Bagian Keuangan (Role Finance). Silakan minta staf Finance untuk mengesahkan.',
+      function (finUser) {
+        applyBankInputsUnlock('🔓 Rekening Terbuka (Finance: ' + (finUser.name || finUser.username) + ')');
+        showToast('Kunci rekening terbuka oleh Finance (' + (finUser.name || finUser.username) + ').');
+      }
+    );
+    return;
+  }
+
+  // Jika user saat ini ADALAH Finance, konfirmasi password akun Finance saat ini
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.style.zIndex = '2100';
@@ -16831,18 +17317,18 @@ function unlockBankSettings() {
     '<div class="modal-backdrop"></div>' +
     '<div class="modal-dialog modal-dialog-sm" style="max-width:420px;">' +
     '<div class="modal-header">' +
-    '<h3 class="modal-title">Verifikasi Password</h3>' +
+    '<h3 class="modal-title">Konfirmasi Keamanan Finance</h3>' +
     '<button type="button" class="modal-close-btn" id="bank-lock-close">&times;</button>' +
     '</div>' +
     '<div class="modal-body">' +
-    '<p style="margin:0 0 12px;color:var(--text-secondary);font-size:13px;">Masukkan password akun Anda saat ini untuk membuka kunci data rekening bank.</p>' +
+    '<p style="margin:0 0 12px;color:var(--text-secondary);font-size:13px;">Masukkan password akun Finance Anda (' + escapeHtml(currentUserName) + ') untuk membuka kunci rekening bank.</p>' +
     '<div class="input-wrapper">' +
-    '<input type="password" id="bank-lock-password" placeholder="Password saat ini" style="padding-left:14px;">' +
+    '<input type="password" id="bank-lock-password" placeholder="Password akun Finance" style="padding-left:14px;">' +
     '</div>' +
     '</div>' +
     '<div class="modal-footer">' +
     '<button type="button" class="btn btn-secondary" id="bank-lock-cancel">Batal</button>' +
-    '<button type="button" class="btn btn-primary" id="bank-lock-confirm">Verifikasi</button>' +
+    '<button type="button" class="btn btn-primary" id="bank-lock-confirm">Buka Kunci</button>' +
     '</div>' +
     '</div>';
 
@@ -16867,22 +17353,7 @@ function unlockBankSettings() {
     api('loginUser', currentUserName, inputPassword).then(function (res) {
       const isValid = res && res.success;
       if (isValid) {
-        const bankInputs = ['set-bank-name', 'set-bank-account', 'set-bank-account-name'];
-        bankInputs.forEach(function (fieldId) {
-          const field = document.getElementById(fieldId);
-          if (field) {
-            field.disabled = false;
-            field.style.opacity = '1';
-            field.style.cursor = 'text';
-          }
-        });
-
-        const btn = document.getElementById('btn-unlock-bank-settings');
-        if (btn) {
-          btn.textContent = '🔓 Rekening Terbuka';
-          btn.disabled = true;
-        }
-
+        applyBankInputsUnlock('🔓 Rekening Terbuka (Role: Finance)');
         close();
         showToast('Kunci terbuka, silakan ubah data rekening.');
       } else {
@@ -16930,6 +17401,7 @@ function saveStoreSettingsUI() {
 function saveStoreSettings() {
   const storeLogo = (document.getElementById('set-store-logo') ? document.getElementById('set-store-logo').value.trim() : '');
   const storeLogoLight = (document.getElementById('set-store-logo-light') ? document.getElementById('set-store-logo-light').value.trim() : '');
+  const storeStamp = (document.getElementById('set-store-stamp') ? document.getElementById('set-store-stamp').value.trim() : '');
   const batchFormat = (document.getElementById('set-batch-format') ? document.getElementById('set-batch-format').value.trim() : '') || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}';
   const taxRateInput = document.getElementById('set-tax-rate');
   const taxRate = taxRateInput ? taxRateInput.value.trim() : (APP_SETTINGS.tax_rate || '0');
@@ -16970,6 +17442,7 @@ function saveStoreSettings() {
   const payload = {
     store_logo: storeLogo,
     store_logo_light: storeLogoLight,
+    store_stamp: storeStamp,
     store_name: document.getElementById('set-store-name') ? document.getElementById('set-store-name').value.trim() : '',
     store_address: document.getElementById('set-store-address') ? document.getElementById('set-store-address').value.trim() : '',
     store_phone: document.getElementById('set-store-phone') ? document.getElementById('set-store-phone').value.trim() : '',
@@ -17671,6 +18144,7 @@ function renderInvoiceLayout(data, template) {
     '</div>' +
     '</div>' +
     '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
+    renderInvoiceSignButtonHTML(tx) +
     '<button type="button" class="btn btn-primary btn-sm" onclick="printActiveInvoice()" style="font-weight:700;"><span style="font-size:13px;">🖨️</span> Cetak / Simpan PDF</button>' +
     '<button type="button" class="btn btn-secondary btn-sm btn-tx-wa" onclick="sendReceiptToWhatsApp(window._curInv)" style="background:#25D366;color:#FFFFFF;border-color:#25D366;font-weight:600;">📲 Kirim WA</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="openTransactionDetailModal(\'' + tx.id + '\')">🔍 Rincian Lengkap</button>' +

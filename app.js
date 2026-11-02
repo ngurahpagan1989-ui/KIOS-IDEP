@@ -9391,7 +9391,7 @@ function renderFormalInvoiceHTML(data, isActive) {
 
   const rowsFormal = items.map(function (i, idx) {
     const expInfo = (i.expiry_date ? ('<br><span style="font-size:10px;color:#6B5749;">Exp: ' + formatDate(i.expiry_date) + '</span>') : '') +
-      (i.batch_id ? ('<br><span style="font-size:10px;color:#6B5749;font-family:monospace;">[Batch: ' + escapeHtml(i.batch_id) + ']</span>') : '');
+      (i.batch_id ? ('<br><span style="display:inline-block;margin-top:2px;font-size:9.5px;color:#4B382A;background:#EFE9D9;padding:1px 6px;border-radius:3px;font-family:monospace;word-break:break-all;">Lot/Batch: ' + escapeHtml(i.batch_id) + '</span>') : '');
     return '<tr style="border-bottom:1px solid #E8E0C9;">' +
       '<td style="padding:8px 6px;border:1px solid #E8E0C9;text-align:center;vertical-align:top;font-size:11.5px;">' + (idx + 1) + '</td>' +
       '<td style="padding:8px 10px;border:1px solid #E8E0C9;vertical-align:top;font-size:12px;"><strong>' + escapeHtml(i.product_name) + '</strong>' + expInfo + '</td>' +
@@ -9430,11 +9430,11 @@ function renderFormalInvoiceHTML(data, isActive) {
     '</div>' +
     '<div style="text-align:right;min-width:210px;">' +
     '<div style="font-size:22px;font-weight:800;letter-spacing:1px;font-family:\'General Sans\',sans-serif;line-height:1.1;">FAKTUR PENJUALAN</div>' +
-    '<table style="margin-top:6px;margin-left:auto;border-collapse:collapse;font-size:9pt;color:#ffffff;width:auto;">' +
-    '<tr><td style="padding:1.5px 6px;text-align:right;opacity:0.9;border:none;">No. Faktur:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;font-weight:700;font-family:monospace;border:none;">#' + escapeHtml(tx.id) + '</td></tr>' +
-    '<tr><td style="padding:1.5px 6px;text-align:right;opacity:0.9;border:none;">Tanggal Faktur:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;border:none;">' + formatDate(tx.created_at) + '</td></tr>' +
-    '<tr><td style="padding:1.5px 6px;text-align:right;opacity:0.9;border:none;">Jatuh Tempo:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;font-weight:600;border:none;">' + dueDateStr + '</td></tr>' +
-    '<tr><td style="padding:1.5px 6px;text-align:right;opacity:0.9;border:none;">Status:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;font-weight:700;border:none;">' + (isVoid ? 'DIBATALKAN (VOID)' : (tx.status === 'paid' ? 'LUNAS' : 'TEMPO')) + '</td></tr>' +
+    '<table style="margin-top:6px;margin-left:auto;border-collapse:collapse;font-size:9pt;color:#ffffff !important;width:auto;">' +
+    '<tr><td style="padding:1.5px 6px;text-align:right;color:#ffffff !important;opacity:0.95;border:none;">No. Faktur:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;font-weight:700;font-family:monospace;color:#ffffff !important;border:none;">#' + escapeHtml(tx.invoice_no || tx.id) + '</td></tr>' +
+    '<tr><td style="padding:1.5px 6px;text-align:right;color:#ffffff !important;opacity:0.95;border:none;">Tanggal Faktur:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;color:#ffffff !important;border:none;">' + formatDate(tx.created_at) + '</td></tr>' +
+    '<tr><td style="padding:1.5px 6px;text-align:right;color:#ffffff !important;opacity:0.95;border:none;">Jatuh Tempo:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;font-weight:600;color:#ffffff !important;border:none;">' + dueDateStr + '</td></tr>' +
+    '<tr><td style="padding:1.5px 6px;text-align:right;color:#ffffff !important;opacity:0.95;border:none;">Status:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;font-weight:800;color:' + (isVoid ? '#FCA5A5' : (tx.status === 'paid' ? '#86EFAC' : '#FDE047')) + ' !important;border:none;">' + (isVoid ? 'DIBATALKAN (VOID)' : (tx.status === 'paid' ? 'LUNAS' : 'TEMPO')) + '</td></tr>' +
     '</table>' +
     '</div>' +
     '</div>' +

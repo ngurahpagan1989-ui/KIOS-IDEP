@@ -2665,11 +2665,37 @@ async function dispatchApiCall(fnName, args) {
       let normStatus = String(tx.status || '').toLowerCase();
       if (normStatus === 'completed') normStatus = 'paid';
 
+      let sig = tx.finance_signature || null;
+      let signer = tx.finance_signer_name || null;
+      let signedAt = tx.finance_signed_at || null;
+      if (!sig && settingsObj[`inv_sig_${tx.id}`]) {
+        try {
+          const parsed = JSON.parse(settingsObj[`inv_sig_${tx.id}`]);
+          sig = parsed.signature || null;
+          signer = parsed.signer_name || null;
+          signedAt = parsed.signed_at || null;
+        } catch (e) {}
+      }
+      if (!sig && typeof localStorage !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('inv_sig_' + (tx.id || tx.invoice_no));
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            sig = parsed.signature || null;
+            signer = parsed.signer_name || null;
+            signedAt = parsed.signed_at || null;
+          }
+        } catch (e) {}
+      }
+
       const enrichedTx = {
         ...tx,
         status: normStatus,
         total_cost: totalCost,
-        gross_profit: totalGrossProfit
+        gross_profit: totalGrossProfit,
+        finance_signature: sig,
+        finance_signer_name: signer,
+        finance_signed_at: signedAt
       };
 
       return {
@@ -2699,6 +2725,13 @@ async function dispatchApiCall(fnName, args) {
           .or(`id.eq.${transactionId},invoice_no.eq.${transactionId}`);
         if (error) {
           console.warn('[signInvoice] Update transactions warning (kolom database mungkin perlu migrasi):', error);
+          try {
+            await supabase.from('settings').upsert({
+              key: `inv_sig_${transactionId}`,
+              value: JSON.stringify({ signature: sig, signer_name: signerName, signed_at: signedAt }),
+              updated_at: new Date().toISOString()
+            });
+          } catch (e) {}
         }
       } catch (err) {
         console.warn('[signInvoice] Catatan update transaksi:', err);
@@ -2716,23 +2749,85 @@ async function dispatchApiCall(fnName, args) {
 
     case 'getRecentTransactionsForInvoice': {
       const [, startDate, endDate] = args;
-      let query = supabase
-        .from('transactions')
-        .select('id, invoice_no, customer_name, total, subtotal, tax, payment_method, payment_type, status, created_at, finance_signature, finance_signer_name, finance_signed_at, transaction_items(*, products(name, unit))')
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const baseFields = 'id, invoice_no, customer_name, total, subtotal, tax, payment_method, payment_type, status, created_at, transaction_items(*, products(name, unit))';
+      const extendedFields = 'id, invoice_no, customer_name, total, subtotal, tax, payment_method, payment_type, status, created_at, finance_signature, finance_signer_name, finance_signed_at, transaction_items(*, products(name, unit))';
 
-      if (startDate) query = query.gte('created_at', `${startDate}T00:00:00Z`);
-      if (endDate) query = query.lte('created_at', `${endDate}T23:59:59Z`);
+      let data = null;
+      try {
+        let query = supabase
+          .from('transactions')
+          .select(extendedFields)
+          .order('created_at', { ascending: false })
+          .limit(50);
 
-      const { data, error } = await query;
-      if (error) throw error;
+        if (startDate) query = query.gte('created_at', `${startDate}T00:00:00Z`);
+        if (endDate) query = query.lte('created_at', `${endDate}T23:59:59Z`);
+
+        const res = await query;
+        if (res.error) {
+          const errMsg = String(res.error.message || '').toLowerCase();
+          if (res.error.code === '42703' || errMsg.includes('finance_signature') || errMsg.includes('does not exist')) {
+            console.warn('[getRecentTransactionsForInvoice] Kolom finance_signature belum ada di Supabase, beralih ke fallback kolom standar.');
+            let fallbackQuery = supabase
+              .from('transactions')
+              .select(baseFields)
+              .order('created_at', { ascending: false })
+              .limit(50);
+            if (startDate) fallbackQuery = fallbackQuery.gte('created_at', `${startDate}T00:00:00Z`);
+            if (endDate) fallbackQuery = fallbackQuery.lte('created_at', `${endDate}T23:59:59Z`);
+            const fallbackRes = await fallbackQuery;
+            if (fallbackRes.error) throw fallbackRes.error;
+            data = fallbackRes.data;
+          } else {
+            throw res.error;
+          }
+        } else {
+          data = res.data;
+        }
+      } catch (err) {
+        const errMsg = String(err.message || '').toLowerCase();
+        if (err.code === '42703' || errMsg.includes('finance_signature') || errMsg.includes('does not exist')) {
+          console.warn('[getRecentTransactionsForInvoice] Catch fallback kolom standar.');
+          let fallbackQuery = supabase
+            .from('transactions')
+            .select(baseFields)
+            .order('created_at', { ascending: false })
+            .limit(50);
+          if (startDate) fallbackQuery = fallbackQuery.gte('created_at', `${startDate}T00:00:00Z`);
+          if (endDate) fallbackQuery = fallbackQuery.lte('created_at', `${endDate}T23:59:59Z`);
+          const fallbackRes = await fallbackQuery;
+          if (fallbackRes.error) throw fallbackRes.error;
+          data = fallbackRes.data;
+        } else {
+          throw err;
+        }
+      }
+
       return (data || []).map(t => {
         let normStatus = String(t.status || '').toLowerCase();
         if (normStatus === 'completed') normStatus = 'paid';
+
+        let sig = t.finance_signature || null;
+        let signer = t.finance_signer_name || null;
+        let signedAt = t.finance_signed_at || null;
+        if (!sig && typeof localStorage !== 'undefined') {
+          try {
+            const raw = localStorage.getItem('inv_sig_' + (t.id || t.invoice_no));
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              sig = parsed.signature || null;
+              signer = parsed.signer_name || null;
+              signedAt = parsed.signed_at || null;
+            }
+          } catch (e) {}
+        }
+
         return {
           ...t,
           status: normStatus,
+          finance_signature: sig,
+          finance_signer_name: signer,
+          finance_signed_at: signedAt,
           items: (t.transaction_items || []).map(i => {
             const prodName = i.products ? i.products.name : (i.product_name || i.name || 'Produk');
             const prodUnit = i.products ? i.products.unit : (i.unit || 'pcs');

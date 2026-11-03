@@ -1,11 +1,11 @@
-const CACHE_NAME = 'kios-idep-v7.6';
+const CACHE_NAME = 'pos-app-v8.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './style.css?v=5.8',
+  './style.css?v=6.0',
   './i18n.js?v=2.9',
-  './app.js?v=7.1',
-  './supabaseClient.js?v=6.1',
+  './app.js?v=7.2',
+  './supabaseClient.js?v=6.2',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
   './manifest.json',
   './icon-192.png',
@@ -82,16 +82,16 @@ function buildSwNotificationOptions(payload) {
     : '#dashboard';
 
   return {
-    body: p.body || 'Ada pembaruan operasional baru di Kios IDEP.',
+    body: p.body || 'Ada pembaruan operasional baru.',
     icon: p.icon || './icon-192.png',
     badge: p.badge || './icon-192.png',
-    tag: p.tag || p.id || ('idep-notif-' + Date.now()),
+    tag: p.tag || p.id || ('pos-notif-' + Date.now()),
     renotify: true,
     requireInteraction: isUrgent,
     vibrate: isUrgent ? [240, 100, 240, 100, 320] : [150, 70, 150],
     data: {
       id: p.id || ('notif-' + Date.now()),
-      title: p.title || 'Kios IDEP',
+      title: p.title || '🔔 Notifikasi Toko',
       body: p.body || '',
       category: p.category || 'general',
       route: cleanRoute,
@@ -105,7 +105,7 @@ function buildSwNotificationOptions(payload) {
 // Event Push: Menerima Web Push W3C (VAPID) dari Supabase Edge Function saat aplikasi tertutup
 self.addEventListener('push', (event) => {
   let payload = {
-    title: '🔔 Kios IDEP',
+    title: '🔔 Notifikasi Toko',
     body: 'Terdapat aktivitas operasional baru yang memerlukan perhatian.',
     category: 'general',
     route: '#dashboard',
@@ -125,7 +125,7 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  const title = payload.title || '🔔 Kios IDEP';
+  const title = payload.title || '🔔 Notifikasi Toko';
   const options = buildSwNotificationOptions(payload);
 
   event.waitUntil(
@@ -157,13 +157,13 @@ self.addEventListener('message', (event) => {
 
   if (msg.type === 'SHOW_LOCAL_NOTIFICATION') {
     const payload = msg.payload || {};
-    const title = payload.title || '🔔 Kios IDEP';
+    const title = payload.title || '🔔 Notifikasi Toko';
     const options = buildSwNotificationOptions(payload);
     event.waitUntil(self.registration.showNotification(title, options));
   }
 });
 
-// Event Notification Click: Buka aplikasi Kios IDEP & arahkan langsung ke modul terkait (Deep-Link)
+// Event Notification Click: Buka aplikasi POS & arahkan langsung ke modul terkait (Deep-Link)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 

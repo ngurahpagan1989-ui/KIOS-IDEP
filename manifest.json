@@ -1,7 +1,7 @@
 {
-  "name": "Kios IDEP POS & Manajemen Stok",
-  "short_name": "Kios IDEP",
-  "description": "Sistem Kasir & Inventaris Benih Terpadu - Yayasan IDEP Selaras Alam",
+  "name": "POS Kasir & Manajemen Stok",
+  "short_name": "POS & Stok",
+  "description": "Sistem Kasir & Inventaris Terpadu",
   "start_url": "./index.html#dashboard",
   "scope": "./",
   "display": "standalone",

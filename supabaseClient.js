@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * E-KASIR v2 (KIOS IDEP) - SUPABASE CLIENT ADAPTER & API BRIDGE
+ * POS & MANAJEMEN STOK - SUPABASE CLIENT ADAPTER & API BRIDGE
  * ==============================================================================
  * File ini menggantikan seluruh ketergantungan `google.script.run` dengan
  * Supabase SDK (@supabase/supabase-js v2):
@@ -84,7 +84,7 @@ function emitOperationalNotification(notif) {
     const rawRoute = String(notif.route || '#dashboard');
     const detail = {
       id: notif.id || ('notif-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)),
-      title: String(notif.title || '🔔 Kios IDEP'),
+      title: String(notif.title || '🔔 Notifikasi Toko'),
       body: String(notif.body || ''),
       category: String(notif.category || 'general'),
       route: rawRoute.startsWith('#') ? rawRoute : ('#' + rawRoute),
@@ -667,7 +667,7 @@ async function dispatchApiCall(fnName, args) {
         let waLink = '';
         if (phone) {
           const cleanPhone = phone.replace(/[^0-9]/g, '').replace(/^0/, '62');
-          const msg = encodeURIComponent(`Halo ${tx.customer_name || 'Bpk/Ibu'}, kami dari Kios IDEP ingin mengonfirmasi terkait benih ${prodName} (Batch: ${batchId}) yang Anda beli pada ${formatDateIndo(tx.created_at)}.`);
+          const msg = encodeURIComponent(`Halo ${tx.customer_name || 'Bpk/Ibu'}, kami dari Bagian Toko ingin mengonfirmasi terkait benih ${prodName} (Batch: ${batchId}) yang Anda beli pada ${formatDateIndo(tx.created_at)}.`);
           waLink = `https://wa.me/${cleanPhone}?text=${msg}`;
         }
         contacts.push({
@@ -690,7 +690,7 @@ async function dispatchApiCall(fnName, args) {
         let waLink = '';
         if (phone) {
           const cleanPhone = phone.replace(/[^0-9]/g, '').replace(/^0/, '62');
-          const msg = encodeURIComponent(`Halo ${outlet.name || 'Mitra Outlet'}, kami dari Kios IDEP ingin mengonfirmasi terkait stok benih ${prodName} (Batch: ${batchId}) pada Surat Jalan ${tr.invoice_no || '-'}.`);
+          const msg = encodeURIComponent(`Halo ${outlet.name || 'Mitra Outlet'}, kami dari Bagian Distribusi ingin mengonfirmasi terkait stok benih ${prodName} (Batch: ${batchId}) pada Surat Jalan ${tr.invoice_no || '-'}.`);
           waLink = `https://wa.me/${cleanPhone}?text=${msg}`;
         }
         contacts.push({
@@ -2748,7 +2748,7 @@ async function dispatchApiCall(fnName, args) {
       const [, transactionId, signPayload] = args;
       if (!transactionId) throw new Error('Transaction ID wajib diisi untuk pengesahan faktur.');
       const sig = signPayload && signPayload.signature;
-      const signerName = (signPayload && signPayload.signer_name) || 'Bagian Keuangan IDEP';
+      const signerName = (signPayload && signPayload.signer_name) || 'Bagian Keuangan';
       const signedAt = (signPayload && signPayload.signed_at) || new Date().toISOString();
 
       try {
@@ -3187,7 +3187,7 @@ async function dispatchApiCall(fnName, args) {
         start_date: payload.start_date || new Date().toISOString().slice(0, 10),
         cut_off_date: payload.cut_off_date || new Date().toISOString(),
         closed_at: new Date().toISOString(),
-        closed_by: payload.closed_by || 'Admin IDEP',
+        closed_by: payload.closed_by || 'Admin Toko',
         status: 'CLOSED',
         total_revenue: Number(payload.total_revenue || 0),
         total_cogs: Number(payload.total_cogs || 0),
@@ -4320,7 +4320,7 @@ async function dispatchApiCall(fnName, args) {
         topic: l.topic || 'Umum',
         problem_details: l.problem_details || '',
         solution_given: l.solution_given || '',
-        handled_by: l.handled_by || 'Staf IDEP'
+        handled_by: l.handled_by || 'Staf Toko'
       }));
     }
 
@@ -4334,7 +4334,7 @@ async function dispatchApiCall(fnName, args) {
           topic: payload.topic || 'Umum',
           problem_details: payload.problem_details || '',
           solution_given: payload.solution_given || '',
-          handled_by: payload.handled_by || 'Staf IDEP',
+          handled_by: payload.handled_by || 'Staf Toko',
           created_at: new Date().toISOString()
         }])
         .select()
@@ -4579,7 +4579,7 @@ async function dispatchApiCall(fnName, args) {
         throw new Error('Token bot atau Chat ID Telegram belum dikonfigurasi pada menu Pengaturan.');
       }
 
-      const text = encodeURIComponent('🔔 *KIOS IDEP POS - Tes Notifikasi*\nKoneksi bot Telegram Kios IDEP berhasil terhubung dan siap mengirimkan notifikasi operasional!');
+      const text = encodeURIComponent('🔔 *POS & Stok - Tes Notifikasi*\nKoneksi bot Telegram berhasil terhubung dan siap mengirimkan notifikasi operasional!');
       const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${text}&parse_mode=Markdown`);
       const json = await res.json();
       if (!json.ok) {
@@ -4692,8 +4692,8 @@ async function dispatchApiCall(fnName, args) {
     case 'sendTestWebPush': {
       const [, payload] = args;
       const bodyPayload = Object.assign({
-        title: '🔔 Tes Notifikasi Kios IDEP',
-        body: 'Selamat! Handphone Anda sudah terhubung dan siap menerima notifikasi operasional Kios IDEP secara langsung.',
+        title: '🔔 Tes Notifikasi POS',
+        body: 'Selamat! Handphone Anda sudah terhubung dan siap menerima notifikasi operasional toko secara langsung.',
         category: 'general',
         route: '#dashboard',
         urgent: false

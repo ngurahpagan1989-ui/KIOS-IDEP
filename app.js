@@ -884,7 +884,7 @@ const KIOS_SOP_GUIDES = {
     title: 'Quality Control (QC) & Sertifikasi Benih',
     icon: '🔬',
     tagline: '5 tahapan pengujian viabilitas benih, log oven DHT 24 jam, dan pembukaan kunci stok jual.',
-    purpose: 'Menjaga kemurnian genetik dan standar mutu benih IDEP (ambang minimal daya berkecambah 80%), memanaskan benih di oven DHT 24 jam pada suhu 50°C, serta mendokumentasikan foto baki semai secara resmi.',
+    purpose: 'Menjaga kemurnian genetik dan standar mutu benih (ambang minimal daya berkecambah 80%), memanaskan benih di oven DHT 24 jam pada suhu 50°C, serta mendokumentasikan foto baki semai secara resmi.',
     steps: [
       { num: '1', title: 'Tahap 1: Verifikasi Lapangan Petani', desc: 'Pemeriksaan kesehatan tanaman dan kemurnian varietas di kebun penangkar sebelum benih dipanen.' },
       { num: '2', title: 'Tahap 2: Pengujian Pra-DHT', desc: 'Pengukuran kadar air awal gabah benih sebelum dimasukkan ke dalam ruang oven pemanas.' },
@@ -936,7 +936,7 @@ const KIOS_SOP_GUIDES = {
       { num: '5', title: 'Kalkulasi Otomatis Barang Terjual (MOV)', desc: 'Sistem otomatis menghitung benih yang laku: Terjual = Saldo Awal + Restock - Retur - Sisa Fisik. Sistem menghitung omzet bersih dan komisi mitra, lalu kirim Berita Acara via WhatsApp!' }
     ],
     tips: [
-      'Gunakan fitur cetak Surat Jalan A4 rangkap 2: satu lembar untuk arsip Kios IDEP dan satu lembar diserahkan ke toko mitra.',
+      'Gunakan fitur cetak Surat Jalan A4 rangkap 2: satu lembar untuk arsip toko dan satu lembar diserahkan ke toko mitra.',
       'Perhatikan badge interval kunjungan: sistem memberi tanda kuning (perlu jadwal) jika sudah 15 hari dan merah (mendesak) jika > 30 hari belum dikunjungi.'
     ],
     warnings: [
@@ -956,7 +956,7 @@ const KIOS_SOP_GUIDES = {
       { num: '4', title: 'Cetak Kuitansi & Kirim Bukti', desc: 'Cetak tanda terima resmi pelunasan piutang atau kirimkan konfirmasi pelunasan ke nomor WhatsApp pelanggan.' }
     ],
     tips: [
-      'Gunakan tombol "Kirim Pengingat WA" untuk mengirimkan pesan rincian tagihan ramah lengkap dengan nomor rekening bank resmi IDEP.',
+      'Gunakan tombol "Kirim Pengingat WA" untuk mengirimkan pesan rincian tagihan ramah lengkap dengan nomor rekening bank resmi toko.',
       'Sisa piutang akan otomatis berkurang secara real-time setiap kali pembayaran dicatat.'
     ],
     warnings: [
@@ -989,10 +989,10 @@ const KIOS_SOP_GUIDES = {
     title: 'Pengaturan Sistem & Hak Akses',
     icon: '⚙️',
     tagline: 'Profil toko, logo struk, ukuran printer thermal, hak akses peran, dan akun kasir.',
-    purpose: 'Mengonfigurasi identitas resmi Kios IDEP pada struk dan dokumen, menentukan hak akses pengguna (Admin vs Kasir), mengatur lebar kertas printer thermal (58mm/80mm), dan menghubungkan notifikasi HP.',
+    purpose: 'Mengonfigurasi identitas resmi toko pada struk dan dokumen, menentukan hak akses pengguna (Admin vs Kasir), mengatur lebar kertas printer thermal (58mm/80mm), dan menghubungkan notifikasi HP.',
     steps: [
       { num: '1', title: 'Profil Toko & Kontak', desc: 'Atur nama toko, alamat lengkap di Tabanan, nomor telepon/WhatsApp, dan pesan footer struk belanja.' },
-      { num: '2', title: 'Unggah Logo Kios IDEP', desc: 'Unggah logo resmi Yayasan IDEP berlatar belakang transparan atau putih agar tercetak indah di struk thermal dan dokumen A4.' },
+      { num: '2', title: 'Unggah Logo Toko', desc: 'Unggah logo resmi toko berlatar belakang transparan atau putih agar tercetak indah di struk thermal dan dokumen A4.' },
       { num: '3', title: 'Preferensi Printer Kasir', desc: 'Tentukan ukuran lebar kertas printer thermal: 58 mm (printer mini bluetooth) atau 80 mm (printer meja kasir).' },
       { num: '4', title: 'Manajemen Akun Staf', desc: 'Buat akun pengguna baru, tentukan username, kata sandi, dan peran (Admin atau Kasir).' }
     ],
@@ -1139,7 +1139,7 @@ function printModuleSOP(moduleKey) {
 
   const g = KIOS_SOP_GUIDES[key] || KIOS_SOP_GUIDES['dashboard'];
   const s = APP_SETTINGS || {};
-  const storeName = s.store_name || 'Kios Benih Komunitas IDEP';
+  const storeName = s.store_name || 'Toko Kasir & Inventaris';
   const storeAddress = s.store_address || 'Banjar Baturinggit, Desa Belayu, Kec. Marga, Tabanan - Bali';
   const storeLogo = s.store_logo || s.store_logo_light || '';
 
@@ -1176,7 +1176,7 @@ function printModuleSOP(moduleKey) {
     '<div style="margin-top:6px;display:inline-block;padding:3px 12px;background:#e8f5e9;border-radius:4px;font-size:12px;font-weight:700;color:#1b5e20;letter-spacing:0.5px;">' +
     'STANDAR OPERASIONAL PROSEDUR (SOP): ' + escapeHtml(g.title).toUpperCase() +
     '</div>' +
-    '<div style="font-size:9.5px;color:#666;margin-top:3px;">Yayasan IDEP Selaras Alam &bull; Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + '</div>' +
+    '<div style="font-size:9.5px;color:#666;margin-top:3px;">Sistem Kasir &amp; Inventaris Terpadu &bull; Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + '</div>' +
     '</div>' +
 
     '<div style="margin-bottom:10px;padding:6px 10px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:10.5px;line-height:1.4;color:#14532d;">' +
@@ -1212,7 +1212,7 @@ function printModuleSOP(moduleKey) {
     '</div>' +
     '<div style="text-align:center;width:180px;">' +
     '<div>Disetujui Oleh:</div>' +
-    '<div style="margin-top:35px;border-top:1px solid #444;font-weight:bold;padding-top:2px;">Koordinator Kios IDEP</div>' +
+    '<div style="margin-top:35px;border-top:1px solid #444;font-weight:bold;padding-top:2px;">Koordinator Toko</div>' +
     '</div>' +
     '</div>';
 
@@ -1771,18 +1771,18 @@ function applyBrandLogo() {
   // Sidebar (Latar Belakang Hijau Gelap) -> Pakai Logo Light
   if (sidebarWrap) {
     if (logoLight) {
-      sidebarWrap.innerHTML = '<img src="' + escapeHtml(logoLight) + '" class="sidebar-brand-logo-img" alt="Logo Kios IDEP" onerror="this.parentElement.innerHTML=\'<div class=\\\'brand-logo\\\'>IDEP</div>\'">';
+      sidebarWrap.innerHTML = '<img src="' + escapeHtml(logoLight) + '" class="sidebar-brand-logo-img" alt="Logo Toko" onerror="this.parentElement.innerHTML=\'<div class=\\\'brand-logo\\\'>🏪</div>\'">';
     } else {
-      sidebarWrap.innerHTML = '<div class="brand-logo" aria-hidden="true">IDEP</div>';
+      sidebarWrap.innerHTML = '<div class="brand-logo" aria-hidden="true">🏪</div>';
     }
   }
 
   // Layar Login (Latar Belakang Terang) -> Pakai Logo Primer Full Color
   if (loginWrap) {
     if (logoPrimary) {
-      loginWrap.innerHTML = '<img src="' + escapeHtml(logoPrimary) + '" class="brand-logo-img" alt="Logo Kios IDEP" onerror="this.parentElement.innerHTML=\'<div class=\\\'brand-logo\\\'>IDEP</div>\'">';
+      loginWrap.innerHTML = '<img src="' + escapeHtml(logoPrimary) + '" class="brand-logo-img" alt="Logo Toko" onerror="this.parentElement.innerHTML=\'<div class=\\\'brand-logo\\\'>🏪</div>\'">';
     } else {
-      loginWrap.innerHTML = '<div class="brand-logo" aria-hidden="true">IDEP</div>';
+      loginWrap.innerHTML = '<div class="brand-logo" aria-hidden="true">🏪</div>';
     }
   }
 }
@@ -2418,7 +2418,7 @@ function drawDashboardUI(data) {
     '<p class="page-subtitle">Pantau performa penjualan hari ini dan alert stok kritis secara real-time.</p>' +
     '</div>' +
     '<div class="page-actions">' +
-    '<button type="button" class="btn btn-secondary btn-sm" onclick="openModuleGuide(\'dashboard\')" title="Buka Panduan Operasional Sistem KIOS IDEP">📖 Panduan Sistem</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="openModuleGuide(\'dashboard\')" title="Buka Panduan Operasional Sistem">📖 Panduan Sistem</button>' +
     '</div>' +
     '</div>' +
     '<div class="stat-grid">' +
@@ -2679,7 +2679,7 @@ function downloadProductExcelTemplate() {
       ['BNH-ERCS-JADI', 'Benih Ercis', 'Benih', 'Benih', 'pcs', 30, 60, 30000, 24000, 27000],
       ['BNH-CBKC-JADI', 'Benih Cabai Kecil', 'Benih', 'Benih', 'pcs', 10, 90, 30000, 24000, 27000],
       ['BNH-BYMH-CURAH', 'Benih Bayam Hijau Curah', 'Benih', 'Curah', 'gr', 0, 25, 250, 200, 220],
-      ['BK-PERM-01', 'Buku Panduan Kebun Permakultur IDEP', 'Buku', 'Buku', 'pcs', 0, 0, 75000, 60000, 65000]
+      ['BK-ORG-01', 'Buku Panduan Pertanian Organik', 'Buku', 'Buku', 'pcs', 0, 0, 75000, 60000, 65000]
     ];
 
     const wsProduk = XLSX.utils.aoa_to_sheet(sampleRows);
@@ -2723,7 +2723,7 @@ function downloadProductExcelTemplate() {
     XLSX.utils.book_append_sheet(wb, wsProduk, 'Katalog_Produk');
     XLSX.utils.book_append_sheet(wb, wsPanduan, 'Petunjuk_Pengisian');
 
-    XLSX.writeFile(wb, 'templat_impor_produk_kios_idep.xlsx');
+    XLSX.writeFile(wb, 'templat_impor_produk.xlsx');
     showToast('Templat Excel (.xlsx) berhasil diunduh.');
   }).catch(function (err) {
     showToast('Gagal membuat templat Excel: ' + (err.message || err), true);
@@ -2752,7 +2752,7 @@ function downloadProductCsvTemplate() {
     ['BNH-ERCS-JADI', 'Benih Ercis', 'Benih', 'Benih', 'pcs', '30', '60', '30000', '24000', '27000'],
     ['BNH-CBKC-JADI', 'Benih Cabai Kecil', 'Benih', 'Benih', 'pcs', '10', '90', '30000', '24000', '27000'],
     ['BNH-BYMH-CURAH', 'Benih Bayam Hijau Curah', 'Benih', 'Curah', 'gr', '0', '25', '250', '200', '220'],
-    ['BK-PERM-01', 'Buku Panduan Kebun Permakultur IDEP', 'Buku', 'Buku', 'pcs', '0', '0', '75000', '60000', '65000']
+    ['BK-ORG-01', 'Buku Panduan Pertanian Organik', 'Buku', 'Buku', 'pcs', '0', '0', '75000', '60000', '65000']
   ];
 
   const csvRows = [headers.join(','), ...sampleRows.map(function (row) { return row.join(','); })];
@@ -2761,7 +2761,7 @@ function downloadProductCsvTemplate() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', 'templat_impor_produk_kios_idep.csv');
+  link.setAttribute('download', 'templat_impor_produk.csv');
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -2851,7 +2851,7 @@ function exportProductsToExcel() {
     XLSX.utils.book_append_sheet(wb, ws, 'Katalog_Produk');
 
     const dateStr = new Date().toISOString().split('T')[0];
-    const fileName = 'katalog_produk_kios_idep_' + dateStr + '.xlsx';
+    const fileName = 'katalog_produk_' + dateStr + '.xlsx';
     XLSX.writeFile(wb, fileName);
     showToast('Katalog berhasil diekspor (' + list.length + ' produk ke ' + fileName + ').');
   }).catch(function (err) {
@@ -4619,7 +4619,7 @@ function openBatchDetailModal(productId, productName) {
         ? '<span class="badge badge-success" style="font-size:10px;padding:1px 5px;">QC Lulus</span>'
         : (b.qc_status === 'REJECTED' ? '<span class="badge badge-danger" style="font-size:10px;padding:1px 5px;">QC Ditolak</span>' : '<span class="badge badge-neutral" style="font-size:10px;padding:1px 5px;">Normal</span>');
 
-      const farmerText = escapeHtml(b.farmer_name || 'Mitra Penangkaran IDEP');
+      const farmerText = escapeHtml(b.farmer_name || 'Mitra Penangkaran');
 
       return '<tr style="' + (isDepleted ? 'opacity:0.65;' : '') + '">' +
         '<td>' + priorityBadge + '</td>' +
@@ -5769,7 +5769,7 @@ function renderQC(forceRefresh) {
 function getQCStageLabel(stageCode) {
   const map = {
     'UJI_1_PETANI': '1. Uji Lapangan Petani',
-    'UJI_2_IDEP': '2. Uji Semai Kantor (Pre-DHT)',
+    'UJI_2_IDEP': '2. Uji Semai Lab / Kantor (Pre-DHT)',
     'DHT_24JAM': '3. Log DHT 1 Hari',
     'UJI_3_PASCA_DHT': '4. Uji Semai Pasca-DHT',
     'UJI_BERKALA': '5. Uji Berkala (Simpan > 6 Bulan)'
@@ -5795,7 +5795,7 @@ function drawQCUI(records, products) {
     '<span>🔬</span> Quality Control &amp; Sertifikasi Benih' +
     '</h1>' +
     '<p class="page-subtitle" style="margin-top:2px;">' +
-    'Standardisasi uji duplo 100 butir (Ambang Minimal IDEP 80%), penjemuran DHT 24 jam, &amp; dokumentasi foto baki on-site.' +
+    'Standardisasi uji duplo 100 butir (Ambang Minimal Mutu 80%), penjemuran DHT 24 jam, &amp; dokumentasi foto baki on-site.' +
     '</p>' +
     '</div>' +
     '<div style="display:flex;gap:10px;align-items:center;">' +
@@ -6287,7 +6287,7 @@ function onQCStageChanged() {
     } else if (val === 'UJI_3_PASCA_DHT') {
       if (stageNote) stageNote.innerHTML = '⭐ <strong>Uji penentu mutu akhir:</strong> Jika total daya tumbuh ≥ 80%, batch otomatis berstatus APPROVED dan terbuka untuk kasir POS &amp; Kemas Mandiri.';
     } else if (val === 'UJI_2_IDEP') {
-      if (stageNote) stageNote.innerHTML = 'Uji verifikasi daya tumbuh di laboratorium/kantor IDEP sebelum benih dimasukkan ke lemari pengering DHT.';
+      if (stageNote) stageNote.innerHTML = 'Uji verifikasi daya tumbuh di laboratorium/kantor sebelum benih dimasukkan ke lemari pengering DHT.';
     } else {
       if (stageNote) stageNote.innerHTML = 'Uji semai awal di lahan petani mitra saat panen benih selesai dirontokkan.';
     }
@@ -6331,7 +6331,7 @@ function calculateQCGermination() {
   }
 
   const isPass = total >= 80;
-  if (textEl) textEl.textContent = 'Daya Tumbuh: ' + total + '% (Standar IDEP: Min 80%)';
+  if (textEl) textEl.textContent = 'Daya Tumbuh: ' + total + '% (Standar Mutu: Min 80%)';
   if (badgeEl) {
     badgeEl.className = 'badge ' + (isPass ? 'badge-success' : 'badge-danger');
     badgeEl.textContent = isPass ? 'MEMENUHI (≥80%)' : 'BELUM MEMENUHI (<80%)';
@@ -8469,7 +8469,7 @@ function openTxSuccessModal(res, payload) {
 
 // ========================= CETAK & STRUK NOTA =========================
 function generateMiniReceiptHTML(data) {
-  const storeName = (APP_SETTINGS && APP_SETTINGS['store_name']) ? APP_SETTINGS['store_name'] : 'KIOS IDEP POS';
+  const storeName = (APP_SETTINGS && APP_SETTINGS['store_name']) ? APP_SETTINGS['store_name'] : 'Toko POS Kasir';
   const storeAddress = (APP_SETTINGS && APP_SETTINGS['store_address']) ? APP_SETTINGS['store_address'] : '';
   const storePhone = (APP_SETTINGS && APP_SETTINGS['store_phone']) ? APP_SETTINGS['store_phone'] : '';
   const storeSocial = (APP_SETTINGS && APP_SETTINGS['store_social']) ? APP_SETTINGS['store_social'] : '';
@@ -8501,7 +8501,7 @@ function generateMiniReceiptHTML(data) {
   let headerLogoHtml = '';
   if (storeLogo) {
     headerLogoHtml = '<div style="text-align:center;margin-bottom:6px;">' +
-      '<img src="' + escapeHtml(storeLogo) + '" style="max-width:140px;max-height:55px;object-fit:contain;margin:0 auto;display:block;" alt="Kios IDEP">' +
+      '<img src="' + escapeHtml(storeLogo) + '" style="max-width:140px;max-height:55px;object-fit:contain;margin:0 auto;display:block;" alt="Logo Toko">' +
       '</div>';
   } else {
     // Fallback nama toko teks hanya jika logo belum disetel
@@ -8625,7 +8625,7 @@ function getInvoiceSignatureData(tx) {
   if (tx.finance_signature) {
     return {
       signature: tx.finance_signature,
-      signer_name: tx.finance_signer_name || 'Bagian Keuangan IDEP',
+      signer_name: tx.finance_signer_name || 'Bagian Keuangan',
       signed_at: tx.finance_signed_at || tx.created_at || new Date().toISOString()
     };
   }
@@ -8656,7 +8656,7 @@ function renderFinanceSignatureBlock(tx, s, isPrint) {
   const txId = (tx && (tx.id || tx.invoice_no)) || 'INV';
 
   if (sigData && sigData.signature) {
-    const signerName = sigData.signer_name || 'Bagian Keuangan IDEP';
+    const signerName = sigData.signer_name || 'Bagian Keuangan';
     const signedDate = sigData.signed_at ? new Date(sigData.signed_at) : new Date();
     const signedDateStr = formatDate(signedDate);
     const timeStr = String(signedDate.getHours()).padStart(2, '0') + ':' + String(signedDate.getMinutes()).padStart(2, '0');
@@ -8675,7 +8675,7 @@ function renderFinanceSignatureBlock(tx, s, isPrint) {
         '<circle cx="50" cy="50" r="41" fill="none" stroke="#1d4ed8" stroke-width="1.2"/>' +
         '<path id="' + curveIdTop + '" d="M 18,50 A 32,32 0 1,1 82,50" fill="none"/>' +
         '<text font-size="6.5" font-weight="bold" fill="#1d4ed8" letter-spacing="0.8">' +
-        '<textPath href="#' + curveIdTop + '" startOffset="50%" text-anchor="middle">★ YAYASAN IDEP ★</textPath>' +
+        '<textPath href="#' + curveIdTop + '" startOffset="50%" text-anchor="middle">★ MANAJEMEN KEUANGAN & FAKTUR RESMI ★</textPath>' +
         '</text>' +
         '<path id="' + curveIdBtm + '" d="M 82,50 A 32,32 0 0,1 18,50" fill="none"/>' +
         '<text font-size="6.2" font-weight="bold" fill="#1d4ed8" letter-spacing="0.5">' +
@@ -8692,7 +8692,7 @@ function renderFinanceSignatureBlock(tx, s, isPrint) {
     return (
       '<div style="width:220px;text-align:center;">' +
       '<div style="font-weight:600;color:' + (isPrint ? '#4B5563' : '#6B5749') + ';">Hormat Kami,</div>' +
-      '<div style="font-weight:700;color:#7A5031;margin-top:1px;">Kios IDEP Selaras Alam</div>' +
+      '<div style="font-weight:700;color:var(--primary);margin-top:1px;">PENGESAHAN DOKUMEN RESMI</div>' +
       '<div style="position:relative;height:65px;width:100%;margin:2px auto 4px auto;display:flex;align-items:center;justify-content:center;">' +
       '<img src="' + escapeHtml(sigData.signature) + '" alt="Tanda Tangan Finance" style="max-height:60px;max-width:160px;object-fit:contain;z-index:2;position:relative;">' +
       stampHtml +
@@ -8710,10 +8710,10 @@ function renderFinanceSignatureBlock(tx, s, isPrint) {
   return (
     '<div style="width:200px;text-align:center;">' +
     '<div style="font-weight:600;color:' + (isPrint ? '#4B5563' : '#6B5749') + ';">Hormat Kami,</div>' +
-    '<div style="font-weight:700;color:#7A5031;margin-top:1px;">Kios IDEP Selaras Alam</div>' +
+    '<div style="font-weight:700;color:var(--primary);margin-top:1px;">PENGESAHAN DOKUMEN RESMI</div>' +
     '<div style="height:44px;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:10px;font-style:italic;">(Menunggu TTD Finance)</div>' +
     '<div style="font-weight:700;color:#362417;border-bottom:1px solid #362417;display:inline-block;min-width:160px;padding-bottom:2px;">( Bagian Keuangan )</div>' +
-    '<div style="font-size:10px;color:#6B5749;margin-top:2px;">Petugas Kios IDEP</div>' +
+    '<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">Petugas Keuangan</div>' +
     actionBtn +
     '</div>'
   );
@@ -8756,7 +8756,7 @@ function openInvoiceSignatureModal(txId) {
 function showInvoiceSignaturePadDialog(data, signerUser) {
   const tx = data.transaction || {};
   const txId = tx.id || tx.invoice_no;
-  const signerName = (signerUser && (signerUser.name || signerUser.full_name || signerUser.username)) || 'Bagian Keuangan IDEP';
+  const signerName = (signerUser && (signerUser.name || signerUser.full_name || signerUser.username)) || 'Bagian Keuangan';
   const existingSig = getInvoiceSignatureData(tx);
 
   const overlay = document.createElement('div');
@@ -8797,7 +8797,7 @@ function showInvoiceSignaturePadDialog(data, signerUser) {
     '<div style="margin-top:12px;padding:10px 12px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;display:flex;align-items:center;gap:10px;">' +
     '<input type="checkbox" id="sig-pad-with-stamp" checked style="width:18px;height:18px;accent-color:#16A34A;cursor:pointer;">' +
     '<label for="sig-pad-with-stamp" style="font-size:12px;color:#166534;cursor:pointer;margin:0;line-height:1.3;">' +
-    '<strong>Bubuhkan Stempel Resmi Digital Kios IDEP</strong><br>' +
+    '<strong>Bubuhkan Stempel Resmi Digital Pengesahan Faktur</strong><br>' +
     '<span style="font-size:11px;color:#475569;">Stempel resmi otomatis diletakkan bersanding dengan tanda tangan pada Faktur Formal A4.</span>' +
     '</label>' +
     '</div>' +
@@ -8973,8 +8973,8 @@ function printInvoiceA4(invoiceData) {
   const logoPrimary = s.store_logo || '';
   // Cukup tampilkan <img> logo di sebelah kiri tanpa disertai teks nama toko bertingkat
   const logoHtml = logoPrimary
-    ? '<img src="' + escapeHtml(logoPrimary) + '" class="letterhead-logo" style="max-height:55px;max-width:200px;object-fit:contain;display:block;margin-bottom:6px;" alt="Logo Kios IDEP">'
-    : '<div style="font-size:18pt;font-weight:800;color:#1E4D3F;letter-spacing:0.5px;margin-bottom:4px;">' + escapeHtml(s.store_name || 'KIOS IDEP') + '</div>';
+    ? '<img src="' + escapeHtml(logoPrimary) + '" class="letterhead-logo" style="max-height:55px;max-width:200px;object-fit:contain;display:block;margin-bottom:6px;" alt="Logo Toko">'
+    : '<div style="font-size:18pt;font-weight:800;color:var(--primary);letter-spacing:0.5px;margin-bottom:4px;">' + escapeHtml(s.store_name || 'TOKO KASIR') + '</div>';
 
   const rowsHtml = items.map(function (it, idx) {
     const bInfo = it.batch_id ? ('<br><span style="font-size:10px;color:#555;font-family:monospace;">[Batch: ' + escapeHtml(it.batch_id) + ']</span>') : '';
@@ -9070,7 +9070,7 @@ function printInvoiceA4(invoiceData) {
     '</div>' +
 
     '<div style="text-align:center;font-size:11px;color:#6B7280;margin-top:30px;border-top:1px dashed #D1D5DB;padding-top:8px;">' +
-    escapeHtml(s.invoice_footer || 'Terima kasih telah melestarikan benih lokal bersama Kios IDEP. Salam Lestari!') +
+    escapeHtml(s.invoice_footer || 'Terima kasih atas kunjungan Anda!') +
     '</div>' +
 
     '<script>window.onload = function() { window.print(); };<\/script>' +
@@ -9122,7 +9122,7 @@ function sendReceiptToWhatsApp(txId, name, phone, total, method) {
     itemLines = '1x Pembelian Produk = ' + formatRupiah(tx.total);
   }
 
-  let text = '*Faktur Pembelian - Kios IDEP*\n';
+  let text = '*Faktur Pembelian*\n';
   text += 'No: #' + tx.id + '\n';
   text += 'Tgl: ' + dateStr + '\n';
   text += 'Pelanggan: ' + custName + '\n';
@@ -9131,7 +9131,7 @@ function sendReceiptToWhatsApp(txId, name, phone, total, method) {
   text += '--------------------------------\n';
   text += 'Total: *' + formatRupiah(tx.total) + '* (' + (tx.payment_method || 'Tunai') + ')\n';
   text += 'Status: ' + statusLabel + '\n\n';
-  text += 'Terima kasih telah berbelanja benih lokal di Kios IDEP. Salam lestari! 🙏';
+  text += 'Terima kasih telah berbelanja bersama kami. Salam sukses! 🙏';
 
   const url = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(text);
   window.open(url, '_blank');
@@ -9537,10 +9537,10 @@ function renderThermalReceiptHTML(data, isActive) {
   let headerLogoHtml = '';
   if (logoPrimary) {
     headerLogoHtml = '<div style="text-align:center;margin-bottom:6px;">' +
-      '<img src="' + escapeHtml(logoPrimary) + '" style="max-width:130px;max-height:50px;object-fit:contain;margin:0 auto;display:block;" alt="Logo Kios IDEP">' +
+      '<img src="' + escapeHtml(logoPrimary) + '" style="max-width:130px;max-height:50px;object-fit:contain;margin:0 auto;display:block;" alt="Logo Toko">' +
       '</div>';
   } else {
-    headerLogoHtml = '<div style="font-size:15px;font-weight:800;letter-spacing:0.5px;text-align:center;margin-bottom:4px;">' + escapeHtml((s.store_name || 'KIOS IDEP').toUpperCase()) + '</div>';
+    headerLogoHtml = '<div style="font-size:15px;font-weight:800;letter-spacing:0.5px;text-align:center;margin-bottom:4px;">' + escapeHtml((s.store_name || 'TOKO KASIR').toUpperCase()) + '</div>';
   }
 
   const tagline = s.store_tagline || s.store_slogan || 'Pusat Benih Tanaman Lokal & Edukasi Permakultur';
@@ -9611,9 +9611,9 @@ function renderMinimalistInvoiceHTML(data, isActive) {
 
   let logoHeaderHtml = '';
   if (logoPrimary) {
-    logoHeaderHtml = '<img src="' + escapeHtml(logoPrimary) + '" style="max-height:44px;max-width:180px;object-fit:contain;display:block;margin-bottom:4px;" alt="Logo Kios IDEP">';
+    logoHeaderHtml = '<img src="' + escapeHtml(logoPrimary) + '" style="max-height:44px;max-width:180px;object-fit:contain;display:block;margin-bottom:4px;" alt="Logo Toko">';
   } else {
-    logoHeaderHtml = '<div style="font-size:18px;font-weight:800;color:#1E4D3F;letter-spacing:0.5px;">' + escapeHtml(s.store_name || 'KIOS IDEP') + '</div>';
+    logoHeaderHtml = '<div style="font-size:18px;font-weight:800;color:var(--primary);letter-spacing:0.5px;">' + escapeHtml(s.store_name || 'TOKO KASIR') + '</div>';
   }
 
   const statusColor = isVoid ? '#DC2626' : (tx.status === 'paid' ? '#16A34A' : '#D97706');
@@ -9670,7 +9670,7 @@ function renderMinimalistInvoiceHTML(data, isActive) {
     '</div>' +
     '</div>' +
     '<div style="margin-top:28px;padding-top:12px;border-top:1px dashed #CBD5E1;font-size:11px;color:#64748B;text-align:center;">' +
-    escapeHtml(s.invoice_footer || 'Terima kasih telah berbelanja di Kios IDEP. Salam Lestari!') +
+    escapeHtml(s.invoice_footer || 'Terima kasih atas kunjungan Anda!') +
     '</div>' +
     '</div>';
 }
@@ -9700,8 +9700,8 @@ function renderFormalInvoiceHTML(data, isActive) {
   }).join('');
 
   const logoImgHTMLFormal = logoLight
-    ? '<img src="' + escapeHtml(logoLight) + '" style="max-height:50px;max-width:200px;object-fit:contain;display:block;margin-bottom:6px;" alt="Logo Kios IDEP">'
-    : '<div style="font-size:18px;font-weight:800;letter-spacing:0.5px;color:#ffffff;margin-bottom:4px;">' + escapeHtml(s.store_name || 'KIOS IDEP') + '</div>';
+    ? '<img src="' + escapeHtml(logoLight) + '" style="max-height:50px;max-width:200px;object-fit:contain;display:block;margin-bottom:6px;" alt="Logo Toko">'
+    : '<div style="font-size:18px;font-weight:800;letter-spacing:0.5px;color:#ffffff;margin-bottom:4px;">' + escapeHtml(s.store_name || 'TOKO KASIR') + '</div>';
 
   let dueDateStr = '- (Lunas Langsung)';
   if (isVoid) {
@@ -9775,7 +9775,7 @@ function renderFormalInvoiceHTML(data, isActive) {
     '<div style="line-height:1.4;">' +
     '<div style="font-weight:700;color:#7A5031;font-size:11.5px;">INFORMASI PEMBAYARAN TRANSFER BANK RESMI:</div>' +
     '<div>Bank: <strong>' + escapeHtml(s.bank_name || 'BNI (Bank Negara Indonesia)') + '</strong> &bull; No. Rekening: <strong style="font-family:monospace;font-size:12px;letter-spacing:0.5px;">' + escapeHtml(s.bank_account || '0178 849 203') + '</strong></div>' +
-    '<div>Atas Nama: <strong>' + escapeHtml(s.bank_account_name || 'Yayasan IDEP Selaras Alam') + '</strong> &bull; <span style="font-size:10px;color:#6B5749;">Mohon cantumkan No. Faktur pada berita transfer</span></div>' +
+    '<div>Atas Nama: <strong>' + escapeHtml(s.bank_account_name || 'Rekening Toko') + '</strong> &bull; <span style="font-size:10px;color:#6B5749;">Mohon cantumkan No. Faktur pada berita transfer</span></div>' +
     '</div>' +
     '</div>' +
     '<div style="display:flex;justify-content:space-between;gap:30px;margin-top:24px;padding-top:10px;font-size:11.5px;text-align:center;">' +
@@ -9788,7 +9788,7 @@ function renderFormalInvoiceHTML(data, isActive) {
     renderFinanceSignatureBlock(tx, s, false) +
     '</div>' +
     '<div style="text-align:center;color:#6B5749;font-size:10.5px;margin-top:20px;border-top:1px dashed #E8E0C9;padding-top:8px;">' +
-    escapeHtml(s.invoice_footer || 'Terima kasih telah melestarikan benih lokal bersama Kios IDEP. Salam Lestari!') +
+    escapeHtml(s.invoice_footer || 'Terima kasih atas kunjungan Anda!') +
     '</div>' +
     '</div>';
 }
@@ -10356,21 +10356,21 @@ function showOutletDetailModal(outletId, activeTab) {
         '<div class="audit-hist-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;">📦</div>';
 
       const missingWaLine = Number(a.total_missing || 0) > 0 ?
-        ('• Barang Hilang/Selisih: ' + a.total_missing + ' pcs (Ditagihkan ke Mitra: ' + (a.total_chargeable_missing || 0) + ' pcs, Beban IDEP: ' + (a.total_writeoff_missing || 0) + ' pcs)\n') : '';
+        ('• Barang Hilang/Selisih: ' + a.total_missing + ' pcs (Ditagihkan ke Mitra: ' + (a.total_chargeable_missing || 0) + ' pcs, Beban Toko: ' + (a.total_writeoff_missing || 0) + ' pcs)\n') : '';
 
       const waText = encodeURIComponent(
         'Halo Bapak/Ibu ' + (a.outlet_pic || o.pic_name || '') + ' (' + (o.name || 'Toko Mitra') + '),\n\n' +
-        'Berikut terlampir dokumen resmi *Berita Acara Stok Opname Konsinyasi Kios IDEP*:\n' +
+        'Berikut terlampir dokumen resmi *Berita Acara Stok Opname Konsinyasi*:\n' +
         '• No. Dokumen: #' + a.id + '\n' +
         '• Tanggal Opname: ' + formatDate(a.audit_date) + '\n' +
-        '• Petugas IDEP: ' + a.auditor_name + '\n' +
+        '• Petugas Pemeriksa: ' + a.auditor_name + '\n' +
         '• Terjual: ' + (a.total_sold || 0) + ' pcs\n' +
         '• Retur Rusak/Exp: ' + (a.total_returned || 0) + ' pcs\n' +
         missingWaLine +
         '• Restock Baru di Tempat: ' + (a.total_restock || 0) + ' pcs\n' +
         (a.notes ? ('• Catatan: ' + a.notes + '\n') : '') +
         (a.pdf_url ? ('\nDokumen PDF Berita Acara dapat diunduh pada tautan Google Drive:\n' + a.pdf_url + '\n\n') : '\n') +
-        'Terima kasih atas kerja samanya.\n*Kios IDEP — POS & Pusat Benih*'
+        'Terima kasih atas kerja samanya.\n*Manajemen POS & Inventaris*'
       );
       const waBtn = '<button type="button" class="btn btn-secondary btn-sm" onclick="openConsignmentAuditWAModal(\'' + escapeHtml(a.outlet_pic || o.pic_name) + '\',\'' + waText + '\')">💬 Kirim WA</button>';
 
@@ -10383,7 +10383,7 @@ function showOutletDetailModal(outletId, activeTab) {
       }
 
       const missingCardInfo = Number(a.total_missing || 0) > 0 ?
-        (' &bull; Hilang/Selisih: <strong style="color:#dc2626;">' + a.total_missing + ' pcs</strong> (' + (a.total_chargeable_missing || 0) + ' tagih mitra, ' + (a.total_writeoff_missing || 0) + ' beban IDEP)') : '';
+        (' &bull; Hilang/Selisih: <strong style="color:#dc2626;">' + a.total_missing + ' pcs</strong> (' + (a.total_chargeable_missing || 0) + ' tagih mitra, ' + (a.total_writeoff_missing || 0) + ' beban Toko)') : '';
 
       return '<div class="audit-hist-card">' +
         '<div class="audit-hist-info">' +
@@ -10625,11 +10625,11 @@ function printConsignmentSuratJalan(transferId) {
     const outlet = res.outlet || {};
     const items = res.items || [];
     const settings = APP_SETTINGS || window.APP_SETTINGS || {};
-    const storeTitle = settings.store_name || 'KIOS IDEP';
+    const storeTitle = settings.store_name || 'Toko Kasir';
     const storeLogo = settings.store_logo || settings.store_logo_light || '';
     const storeAddress = settings.store_address || 'Br. Batulumbung, Desa Tegal Cangkring, Mendoyo, Jembrana - Bali';
     const storePhone = settings.store_phone || '0812-3456-7890';
-    const storeEmail = settings.store_email || 'kios@idepfoundation.org';
+    const storeEmail = settings.store_email || 'admin@pos.local';
 
     let totalQty = 0;
     let totalValue = 0;
@@ -10732,8 +10732,8 @@ function printConsignmentSuratJalan(transferId) {
       '<div style="margin-bottom:14px;padding:8px 12px;background:#FAF7F2;border:1px dashed #D6C7BA;border-radius:4px;font-size:9.5px;color:#5c381e;">' +
       '<strong>Ketentuan Konsinyasi:</strong>' +
       '<ul style="margin:4px 0 0 16px;padding:0;">' +
-      '<li>Seluruh barang di atas dititipkan untuk dipajang dan dijual di outlet mitra Kios IDEP.</li>' +
-      '<li>Kepemilikan barang tetap berada pada Kios IDEP sampai barang dinyatakan terjual pada saat opname bersama.</li>' +
+      '<li>Seluruh barang di atas dititipkan untuk dipajang dan dijual di outlet mitra.</li>' +
+      '<li>Kepemilikan barang tetap berada pada pihak pengirim sampai barang dinyatakan terjual pada saat opname bersama.</li>' +
       '<li>Pemeriksaan stok fisik dan penagihan hasil penjualan dilakukan secara periodik melalui Berita Acara Rekonsiliasi resmi.</li>' +
       '</ul>' +
       '</div>' +
@@ -10743,9 +10743,9 @@ function printConsignmentSuratJalan(transferId) {
       '<table style="width:100%;border:1px solid #cbd5e1;border-radius:6px;background:#ffffff;">' +
       '<tr>' +
       '<td style="width:50%;text-align:center;padding:14px;border-right:1px solid #cbd5e1;vertical-align:bottom;">' +
-      '<div style="font-size:10px;font-weight:bold;color:#475569;margin-bottom:50px;">Pihak Pengirim (Kios IDEP)</div>' +
+      '<div style="font-size:10px;font-weight:bold;color:#475569;margin-bottom:50px;">Pihak Pengirim</div>' +
       '<div style="border-top:1px solid #94a3b8;padding-top:4px;display:inline-block;width:80%;">' +
-      '<strong style="font-size:11px;">Petugas Pengantar IDEP</strong>' +
+      '<strong style="font-size:11px;">Petugas Pengantar</strong>' +
       '<div style="font-size:9px;color:#64748b;">Tanggal: ' + (transfer.sent_at ? transfer.sent_at.split(' ')[0] : '-') + '</div>' +
       '</div>' +
       '</td>' +
@@ -10768,7 +10768,7 @@ function printConsignmentSuratJalan(transferId) {
       '</div>' +
 
       '<div style="margin-top:18px;text-align:center;font-size:8px;color:#94a3b8;">' +
-      'Surat Jalan digital ini diterbitkan secara sah oleh Sistem E-Kasir Kios IDEP pada ' + escapeHtml(transfer.sent_at || '-') + '.' +
+      'Surat Jalan digital ini diterbitkan secara sah oleh Sistem POS pada ' + escapeHtml(transfer.sent_at || '-') + '.' +
       '</div>' +
       '<script>' +
       'window.onload = function() { window.print(); };' +
@@ -11650,7 +11650,7 @@ function openConsignmentAuditModal(outletId) {
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
-    const auditorDefault = (typeof USER_NAME !== 'undefined' && USER_NAME) ? USER_NAME : ((typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.name) ? CURRENT_USER.name : 'Petugas IDEP');
+    const auditorDefault = (typeof USER_NAME !== 'undefined' && USER_NAME) ? USER_NAME : ((typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.name) ? CURRENT_USER.name : 'Petugas Pemeriksa');
 
     window._currentAuditData = {
       outlet_id: outletId,
@@ -11699,7 +11699,7 @@ function openConsignmentAuditModal(outletId) {
         '<td>' +
         '<select id="audit-chargeable-' + idx + '" onchange="recalcAuditRow(' + idx + ')" style="width:100%;min-width:140px;padding:4px 6px;font-size:10.5px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;font-weight:600;">' +
         '<option value="true"' + (it.missing_chargeable ? ' selected' : '') + '>Ditagihkan ke Mitra (Kelalaian Toko)</option>' +
-        '<option value="false"' + (!it.missing_chargeable ? ' selected' : '') + '>Write-off IDEP (Beban Kios)</option>' +
+        '<option value="false"' + (!it.missing_chargeable ? ' selected' : '') + '>Write-off Toko (Beban Toko)</option>' +
         '</select>' +
         '</td>' +
         '<td style="text-align:center;">' +
@@ -11732,7 +11732,7 @@ function openConsignmentAuditModal(outletId) {
       '<div class="input-wrapper"><input type="date" id="audit-date" value="' + todayStr + '" style="padding-left:12px;"></div>' +
       '</div>' +
       '<div>' +
-      '<label class="field-label">Petugas Pemeriksa Kios IDEP</label>' +
+      '<label class="field-label">Petugas Pemeriksa Toko</label>' +
       '<div class="input-wrapper"><input type="text" id="audit-auditor" value="' + escapeHtml(auditorDefault) + '" style="padding-left:12px;"></div>' +
       '</div>' +
       '<div>' +
@@ -11800,7 +11800,7 @@ function openConsignmentAuditModal(outletId) {
       '<div class="sig-grid">' +
       '<div class="sig-card">' +
       '<div class="sig-card-header">' +
-      '<span class="sig-title">Tanda Tangan Petugas IDEP</span>' +
+      '<span class="sig-title">Tanda Tangan Petugas Pemeriksa</span>' +
       '<button type="button" class="sig-clear-btn" onclick="clearSignaturePad(\'idep\')">Bersihkan</button>' +
       '</div>' +
       '<div class="sig-canvas-wrap">' +
@@ -12066,7 +12066,7 @@ function submitConsignmentAuditUI(outletId) {
   }
 
   if (!window._sigPads['idep'] || !window._sigPads['idep'].isDrawn()) {
-    showToast('Tanda tangan Petugas IDEP belum dibubuhkan!', true);
+    showToast('Tanda tangan Petugas Pemeriksa belum dibubuhkan!', true);
     return;
   }
 
@@ -12131,21 +12131,21 @@ function openAuditSuccessModal(res, payload, outletId) {
   const picPhone = (payload.outlet_phone || res.outlet_phone || '').trim();
 
   const missingWaLine = Number(res.total_missing || 0) > 0 ?
-    ('• Barang Hilang/Selisih: ' + res.total_missing + ' pcs (Ditagihkan ke Mitra: ' + (res.total_chargeable_missing || 0) + ' pcs, Beban IDEP: ' + (res.total_writeoff_missing || 0) + ' pcs)\n') : '';
+    ('• Barang Hilang/Selisih: ' + res.total_missing + ' pcs (Ditagihkan ke Mitra: ' + (res.total_chargeable_missing || 0) + ' pcs, Beban Toko: ' + (res.total_writeoff_missing || 0) + ' pcs)\n') : '';
 
   const waText = encodeURIComponent(
     'Halo Bapak/Ibu ' + picName + ' (' + storeName + '),\n\n' +
-    'Terima kasih atas kerja samanya. Berikut terlampir dokumen digital *Berita Acara Stok Opname Konsinyasi Kios IDEP*:\n' +
+    'Terima kasih atas kerja samanya. Berikut terlampir dokumen digital *Berita Acara Stok Opname Konsinyasi*:\n' +
     '• No. Dokumen: #' + res.audit_id + '\n' +
     '• Tanggal Opname: ' + formatDate(res.audit_date) + '\n' +
-    '• Petugas IDEP: ' + payload.auditor_name + '\n' +
+    '• Petugas Pemeriksa: ' + payload.auditor_name + '\n' +
     '• Terjual: ' + (res.total_sold || 0) + ' pcs\n' +
     '• Retur Rusak/Exp: ' + (res.total_returned || 0) + ' pcs\n' +
     missingWaLine +
     '• Restock Baru di Rak: ' + (res.total_restock || 0) + ' pcs\n' +
     (payload.notes ? ('• Catatan: ' + payload.notes + '\n') : '') +
     (res.pdf_url ? ('\nDokumen resmi PDF dapat diakses/diunduh melalui Google Drive:\n' + res.pdf_url + '\n\n') : '\n') +
-    'Salam hangat,\n*Kios IDEP — POS & Pusat Benih*'
+    'Salam hangat,\n*Manajemen POS & Inventaris*'
   );
 
   let waActionHtml = '';
@@ -12164,7 +12164,7 @@ function openAuditSuccessModal(res, payload, outletId) {
     '</button>' : '';
 
   const missingSummaryHtml = Number(res.total_missing || 0) > 0 ?
-    (' &bull; Hilang: <strong style="color:var(--danger);">' + res.total_missing + ' pcs</strong> (' + (res.total_chargeable_missing || 0) + ' tagih mitra, ' + (res.total_writeoff_missing || 0) + ' beban IDEP)') : '';
+    (' &bull; Hilang: <strong style="color:var(--danger);">' + res.total_missing + ' pcs</strong> (' + (res.total_chargeable_missing || 0) + ' tagih mitra, ' + (res.total_writeoff_missing || 0) + ' beban Toko)') : '';
 
   const bodyHtml =
     '<div style="text-align:center;padding:16px 0;">' +
@@ -13930,7 +13930,7 @@ function openWhatsAppFollowUpChat(followUpId, isRechat) {
   let message = '';
   if (fu.touchpoint_type === 'H7_GERMINATION') {
     message =
-      "Halo Kak/Bli " + custName + ", salam lestari dari Kios IDEP 🙏\n\n" +
+      "Halo Kak/Bli " + custName + ", terima kasih telah berbelanja di toko kami 🙏\n\n" +
       "Seminggu lalu sempat belanja benih " + products + " di toko kami. Mau tanya kabar kebunnya, apakah benihnya sudah mulai disemai dan ada tanda-tanda berkecambah?\n\n" +
       "Jika ada kendala terkait media semai atau daya tumbuh, kabari kami ya kak agar bisa kami bantu arahkan. Selamat berkebun!";
   } else {
@@ -14099,7 +14099,7 @@ function openConsultationModal() {
     return '<option value="' + escapeHtml(c.name) + '" data-phone="' + escapeHtml(c.phone || '') + '">' + escapeHtml(c.name) + (c.phone ? ' (' + c.phone + ')' : '') + '</option>';
   }).join('');
 
-  const currentUser = (window._currentUser && window._currentUser.name) ? window._currentUser.name : 'Staf Kios IDEP';
+  const currentUser = (window._currentUser && window._currentUser.name) ? window._currentUser.name : 'Staf Toko';
 
   const bodyHtml =
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
@@ -14852,7 +14852,7 @@ function exportReportToCSV() {
     grossMarginPct: d.grossMarginPct || 0,
     totalTransactions: d.totalTransactions || 0
   };
-  const storeName = (APP_SETTINGS && APP_SETTINGS['store_name']) ? APP_SETTINGS['store_name'] : 'Kios Benih Komunitas IDEP';
+  const storeName = (APP_SETTINGS && APP_SETTINGS['store_name']) ? APP_SETTINGS['store_name'] : 'Toko Kasir & Inventaris';
   const lines = [];
 
   function escapeCsv(val) {
@@ -14952,7 +14952,7 @@ function exportReportToCSV() {
 
   const csvContent = '\uFEFF' + lines.join('\r\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const filename = 'Laporan_Penjualan_Kios_IDEP_' + (d.startDate || 'start') + '_' + (d.endDate || 'end') + '.csv';
+  const filename = 'Laporan_Penjualan_' + (d.startDate || 'start') + '_' + (d.endDate || 'end') + '.csv';
 
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -14978,7 +14978,7 @@ function printReportSummary() {
     grossMarginPct: d.grossMarginPct || 0,
     totalTransactions: d.totalTransactions || 0
   };
-  const storeName = (APP_SETTINGS && APP_SETTINGS['store_name']) ? APP_SETTINGS['store_name'] : 'Kios Benih Komunitas IDEP';
+  const storeName = (APP_SETTINGS && APP_SETTINGS['store_name']) ? APP_SETTINGS['store_name'] : 'Toko Kasir & Inventaris';
   const storeAddress = (APP_SETTINGS && APP_SETTINGS['store_address']) ? APP_SETTINGS['store_address'] : 'Banjar Baturinggit, Desa Belayu, Kec. Marga, Tabanan - Bali';
   const storePhone = (APP_SETTINGS && APP_SETTINGS['store_phone']) ? APP_SETTINGS['store_phone'] : '';
   const storeLogo = (APP_SETTINGS && APP_SETTINGS['store_logo']) ? APP_SETTINGS['store_logo'] : '';
@@ -15084,7 +15084,7 @@ function printReportSummary() {
     '</div>' +
     '<div style="text-align:center;width:200px;">' +
     '<div>Diverifikasi &amp; Disetujui,</div>' +
-    '<div style="font-weight:700;margin-top:2px;">Manajer / Keuangan Kios IDEP</div>' +
+    '<div style="font-weight:700;margin-top:2px;">Manajer / Keuangan</div>' +
     '<div style="height:55px;"></div>' +
     '<div style="border-bottom:1px solid #333;width:160px;margin:0 auto;"></div>' +
     '<div style="font-size:10px;color:#666;margin-top:3px;">Tanggal: ________________</div>' +
@@ -15390,7 +15390,7 @@ function printStockValuationA4() {
   }
 
   const s = APP_SETTINGS || {};
-  const storeName = s.store_name || 'Kios Benih Komunitas IDEP';
+  const storeName = s.store_name || 'Toko Kasir & Inventaris';
   const storeAddress = s.store_address || 'Banjar Baturinggit, Desa Belayu, Kec. Marga, Tabanan - Bali';
   const storePhone = s.store_phone || '';
   const storeLogo = s.store_logo || s.store_logo_light || '';
@@ -15494,7 +15494,7 @@ function printStockValuationA4() {
     '</div>' +
     '<div style="text-align:center;width:220px;">' +
     '<div>Diketahui Oleh,</div>' +
-    '<div style="font-weight:700;margin-top:2px;">Manajer Toko / Yayasan IDEP</div>' +
+    '<div style="font-weight:700;margin-top:2px;">Manajer Toko</div>' +
     '<div style="height:55px;"></div>' +
     '<div style="border-bottom:1px solid #333;width:170px;margin:0 auto;"></div>' +
     '<div style="font-size:10px;color:#666;margin-top:3px;">Tanggal: ________________</div>' +
@@ -15534,7 +15534,7 @@ function printStockOpnameSheetA4() {
   }
 
   const s = APP_SETTINGS || {};
-  const storeName = s.store_name || 'Kios Benih Komunitas IDEP';
+  const storeName = s.store_name || 'Toko Kasir & Inventaris';
   const storeAddress = s.store_address || 'Banjar Baturinggit, Desa Belayu, Kec. Marga, Tabanan - Bali';
   const storePhone = s.store_phone || '';
   const storeLogo = s.store_logo || s.store_logo_light || '';
@@ -15574,7 +15574,7 @@ function printStockOpnameSheetA4() {
     'LEMBAR STOCK OPNAME FISIK PERSEDIAAN BENIH' +
     '</div>' +
     '<div style="font-size:10.5px;color:#666;margin-top:4px;">' +
-    'Tanggal Audit: ___________________ &bull; Lokasi Gudang: Gudang Utama Kios IDEP &bull; Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) +
+    'Tanggal Audit: ___________________ &bull; Lokasi Gudang: Gudang Utama &bull; Dicetak: ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) +
     '</div>' +
     '</div>' +
 
@@ -15709,7 +15709,7 @@ function drawPeriodClosingUI() {
       '<td style="text-align:right;font-family:monospace;color:var(--text-secondary);">' + hppDisplay + '</td>' +
       '<td style="text-align:center;font-weight:600;color:var(--success);">' + marginDisplay + '</td>' +
       '<td style="text-align:right;font-weight:700;font-family:monospace;color:var(--primary);">' + valuasiDisplay + '</td>' +
-      '<td style="font-size:12px;">' + escapeHtml(p.closed_by || 'Admin IDEP') + '</td>' +
+      '<td style="font-size:12px;">' + escapeHtml(p.closed_by || 'Admin Toko') + '</td>' +
       '<td style="text-align:center;">' + statusBadge + '</td>' +
       '<td style="text-align:right;">' +
       '  <div style="display:flex;justify-content:flex-end;gap:5px;flex-wrap:wrap;">' +
@@ -15851,7 +15851,7 @@ function openPeriodClosingWizard() {
     '  <div>' +
     '    <label class="field-label">Nama Petugas / Penanggung Jawab <span style="color:#ef4444;">*</span></label>' +
     '    <div class="input-wrapper">' +
-    '      <input type="text" id="closing-admin-name" value="Admin Kios IDEP" placeholder="Nama Admin" style="padding-left:14px;">' +
+    '      <input type="text" id="closing-admin-name" value="Admin Toko" placeholder="Nama Admin" style="padding-left:14px;">' +
     '    </div>' +
     '  </div>' +
     '</div>' +
@@ -16039,7 +16039,7 @@ function submitPeriodClosing() {
     period_name: periodName,
     start_date: startDate,
     cut_off_date: new Date(cutoffDateTime).toISOString(),
-    closed_by: adminName || 'Admin IDEP',
+    closed_by: adminName || 'Admin Toko',
     total_revenue: wiz.revenue,
     total_cogs: wiz.cogs,
     gross_profit: wiz.grossProfit,
@@ -16105,14 +16105,14 @@ function downloadPeriodJSON(periodId) {
 
   const exportObj = {
     metadata: {
-      aplikasi: 'KIOS IDEP System',
+      aplikasi: 'Sistem POS Terpadu',
       jenis_arsip: 'PERIOD_CUT_OFF_SNAPSHOT',
       periode_id: p.id,
       nama_periode: p.period_name,
       rentang_mulai: p.start_date,
       tanggal_cutoff: p.cut_off_date,
       waktu_tutup_buku: p.closed_at,
-      eksekutor: p.closed_by || 'Admin IDEP',
+      eksekutor: p.closed_by || 'Admin Toko',
       status: p.status || 'CLOSED',
       diekspor_pada: new Date().toISOString()
     },
@@ -16164,7 +16164,7 @@ function downloadPeriodExcel(periodId) {
       ['Tanggal Awal Periode', formatDate(p.start_date)],
       ['Tanggal & Waktu Cut-Off', formatDateIndo(p.cut_off_date)],
       ['Waktu Penutupan Buku', formatDateIndo(p.closed_at)],
-      ['Penanggung Jawab / Admin', p.closed_by || 'Admin IDEP'],
+      ['Penanggung Jawab / Admin', p.closed_by || 'Admin Toko'],
       ['Status Dokumen', p.status || 'CLOSED'],
       ['Total Omzet Penjualan (Rp)', Number(p.total_revenue || 0)],
       ['Total HPP Modal FIFO (Rp)', Number(p.total_cogs || 0)],
@@ -16246,7 +16246,7 @@ function printPeriodMinutes(periodId) {
     return;
   }
 
-  const storeName = (APP_SETTINGS && APP_SETTINGS['store_name']) ? APP_SETTINGS['store_name'] : 'Kios Benih Komunitas IDEP';
+  const storeName = (APP_SETTINGS && APP_SETTINGS['store_name']) ? APP_SETTINGS['store_name'] : 'Toko Kasir & Inventaris';
   const items = p.inventory_snapshot || [];
 
   const printContainer = document.createElement('div');
@@ -16287,7 +16287,7 @@ function printPeriodMinutes(periodId) {
     '  <div>' +
     '    <div>Petugas Penutup Buku,</div>' +
     '    <div style="height:60px;"></div>' +
-    '    <div style="font-weight:800;text-decoration:underline;">' + escapeHtml(p.closed_by || 'Admin IDEP') + '</div>' +
+    '    <div style="font-weight:800;text-decoration:underline;">' + escapeHtml(p.closed_by || 'Admin Toko') + '</div>' +
     '    <div style="font-size:10px;color:#666;">Staff Administrasi / Toko</div>' +
     '  </div>' +
     '  <div>' +
@@ -16603,7 +16603,7 @@ function drawPengaturanUI(settings) {
     '<label class="field-label">Cap / Stempel Resmi Toko (Stempel Digital Faktur Formal)</label>' +
     '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-bottom:6px;">' +
     '<div class="logo-preview-box" id="setting-stamp-preview" style="background:#fff;border:1px dashed var(--border);width:80px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-xs);overflow:hidden;padding:4px;">' +
-    (currentStamp ? '<img src="' + escapeHtml(currentStamp) + '" alt="Cap Toko" style="max-width:100%;max-height:100%;object-fit:contain;transform:rotate(-10deg);">' : '<span style="font-size:10px;color:var(--text-muted);text-align:center;">Stempel Bawaan IDEP</span>') +
+    (currentStamp ? '<img src="' + escapeHtml(currentStamp) + '" alt="Cap Toko" style="max-width:100%;max-height:100%;object-fit:contain;transform:rotate(-10deg);">' : '<span style="font-size:10px;color:var(--text-muted);text-align:center;">Stempel Digital Resmi</span>') +
     '</div>' +
     '<div style="flex:1;min-width:180px;">' +
     '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">' +
@@ -16611,7 +16611,7 @@ function drawPengaturanUI(settings) {
     '<button type="button" class="btn btn-secondary btn-sm" onclick="clearLogoSetting(\'set-store-stamp\', \'set-stamp-file\', \'setting-stamp-preview\')">Gunakan Default</button>' +
     '</div>' +
     '<div class="input-wrapper"><input type="text" id="set-store-stamp" placeholder="Atau paste link URL cap stempel..." value="' + escapeHtml(currentStamp) + '" oninput="updateLogoPreview(this.value, \'setting-stamp-preview\')" style="padding-left:14px;font-size:12px;"></div>' +
-    '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Gunakan file PNG dengan background transparan. Jika dikosongkan, faktur otomatis memakai Stempel Resmi Digital Yayasan IDEP.</small>' +
+    '<small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Gunakan file PNG dengan background transparan. Jika dikosongkan, faktur otomatis memakai Stempel Resmi Digital Manajemen Keuangan.</small>' +
     '</div>' +
     '</div>' +
     '</div>' +
@@ -16625,7 +16625,7 @@ function drawPengaturanUI(settings) {
     '</div>' +
     '<div class="field-group" style="margin-bottom:10px;"><label class="field-label">Nama Bank</label><div class="input-wrapper"><input type="text" id="set-bank-name" value="' + escapeHtml(settings['bank_name'] || 'BNI') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
     '<div class="field-group" style="margin-bottom:10px;"><label class="field-label">Nomor Rekening</label><div class="input-wrapper"><input type="text" id="set-bank-account" value="' + escapeHtml(settings['bank_account'] || '0178 849 203') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
-    '<div class="field-group" style="margin-bottom:0;"><label class="field-label">Atas Nama</label><div class="input-wrapper"><input type="text" id="set-bank-account-name" value="' + escapeHtml(settings['bank_account_name'] || 'Yayasan IDEP Selaras Alam') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
+    '<div class="field-group" style="margin-bottom:0;"><label class="field-label">Atas Nama</label><div class="input-wrapper"><input type="text" id="set-bank-account-name" value="' + escapeHtml(settings['bank_account_name'] || 'Rekening Toko') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
     '</div>' +
     '<div class="field-group"><label class="field-label">Tarif Pajak (PPN %)</label><div class="input-wrapper"><input type="number" id="set-tax-rate" value="' + escapeHtml(settings['tax_rate'] !== undefined ? settings['tax_rate'] : '0') + '" min="0" max="100" step="0.1" style="padding-left:14px;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Persentase pajak yang dikenakan pada transaksi (misal: 0 untuk bebas pajak atau 11 untuk PPN 11%).</small></div>' +
     '<div class="field-group"><label class="field-label">Catatan Kaki Faktur</label><div class="input-wrapper"><input type="text" id="set-invoice-footer" value="' + escapeHtml(settings['invoice_footer'] || 'Terima kasih atas kunjungan Anda!') + '" style="padding-left:14px;"></div></div>' +
@@ -16695,7 +16695,7 @@ function drawPengaturanUI(settings) {
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">' +
     '<div>' +
     '<h3 style="margin:0 0 4px 0;color:#2C1810;font-size:18px;font-weight:700;">🤖 Integrasi Bot Telegram</h3>' +
-    '<p class="text-muted" style="margin:0;font-size:13px;color:#6B7280;">Hubungkan sistem Kios IDEP dengan Bot Telegram untuk notifikasi otomatis instan ke pengelola.</p>' +
+    '<p class="text-muted" style="margin:0;font-size:13px;color:#6B7280;">Hubungkan sistem dengan Bot Telegram untuk notifikasi otomatis instan ke pengelola.</p>' +
     '</div>' +
     '<div id="telegram-status-badge">' +
     '<span style="background: #E8F5E9; color: #2E7D32; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">🟢 Aktif Terhubung</span>' +
@@ -17716,12 +17716,12 @@ function saveStoreSettings() {
 
   const newBankName = (document.getElementById('set-bank-name') ? document.getElementById('set-bank-name').value.trim() : '') || 'BNI';
   const newBankAccount = (document.getElementById('set-bank-account') ? document.getElementById('set-bank-account').value.trim() : '') || '0178 849 203';
-  const newBankAccountName = (document.getElementById('set-bank-account-name') ? document.getElementById('set-bank-account-name').value.trim() : '') || 'Yayasan IDEP Selaras Alam';
+  const newBankAccountName = (document.getElementById('set-bank-account-name') ? document.getElementById('set-bank-account-name').value.trim() : '') || 'Rekening Toko';
 
   const previousBankSettings = APP_SETTINGS || {};
   const previousBankName = String(previousBankSettings.bank_name || 'BNI');
   const previousBankAccount = String(previousBankSettings.bank_account || '0178 849 203');
-  const previousBankAccountName = String(previousBankSettings.bank_account_name || 'Yayasan IDEP Selaras Alam');
+  const previousBankAccountName = String(previousBankSettings.bank_account_name || 'Rekening Toko');
   const hasBankChanged = (
     previousBankName !== newBankName ||
     previousBankAccount !== newBankAccount ||
@@ -17771,7 +17771,7 @@ function saveStoreSettings() {
     const userName = (CURRENT_USER && CURRENT_USER.name) || (CURRENT_USER && CURRENT_USER.username) || USER_NAME || 'Pemilik Toko';
     sendTelegramSecurityAlert(
       '🚨 *PERINGATAN KEAMANAN:*\n' +
-      'Data Rekening Bank Kios IDEP baru saja diubah oleh *' + userName + '*.\n\n' +
+      'Data Rekening Bank Toko baru saja diubah oleh *' + userName + '*.\n\n' +
       '*Data Rekening Baru:*\n' +
       'Bank: ' + newBankName + '\n' +
       'No. Rek: ' + newBankAccount + '\n' +
@@ -18601,7 +18601,7 @@ function handleCheckoutQrisFeeChange(method, baseTotal) {
       '<strong style="color:#d97706;font-size:13px;">' + formatRupiah(mdrFee) + '</strong>' +
       '</div>' +
       '<div style="font-size:11px;color:var(--text-muted);">' +
-      'Biaya MDR ditanggung toko (Kios IDEP). Estimasi penerimaan bersih kasir: <strong>' + formatRupiah(netReceived) + '</strong> (Total pelanggan tetap ' + formatRupiah(baseTotal) + ').' +
+      'Biaya MDR ditanggung toko. Estimasi penerimaan bersih kasir: <strong>' + formatRupiah(netReceived) + '</strong> (Total pelanggan tetap ' + formatRupiah(baseTotal) + ').' +
       '</div>';
     if (titleTotalEl) titleTotalEl.textContent = formatRupiah(baseTotal);
   }
@@ -18835,7 +18835,7 @@ function renderExpensesEntryTabHtml(filteredList, categories, totalMonth, totalC
     '<div class="card" style="padding:18px;border-left:4px solid #2563eb;">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;">' +
     '<div>' +
-    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Transfer Bank IDEP</div>' +
+    '<div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Transfer Bank Toko</div>' +
     '<div style="font-size:24px;font-weight:800;color:#1d4ed8;margin-top:4px;">' + formatRupiah(totalTransfer) + '</div>' +
     '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Pengeluaran Melalui Rekening</div>' +
     '</div>' +
@@ -18883,7 +18883,7 @@ function renderExpensesEntryTabHtml(filteredList, categories, totalMonth, totalC
     '<div class="input-wrapper">' +
     '<select id="exp-fund-source" required style="padding-left:14px;">' +
     '<option value="Kas Kecil / Tunai Kios">Kas Kecil / Tunai Kios</option>' +
-    '<option value="Transfer Bank IDEP">Transfer Bank IDEP</option>' +
+    '<option value="Transfer Bank Toko">Transfer Bank Toko</option>' +
     '</select>' +
     '</div>' +
     '</div>' +
@@ -19107,10 +19107,10 @@ function renderExpensesCategoriesTabHtml(categories, expenses) {
 
     '<div style="text-align:center;">' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="resetDefaultExpenseCategories()">' +
-    '<i class="fas fa-undo"></i> Pulihkan Kategori Standar IDEP' +
+    '<i class="fas fa-undo"></i> Pulihkan Kategori Standar Toko' +
     '</button>' +
     '<small style="display:block;color:var(--text-muted);font-size:11px;margin-top:6px;">' +
-    'Memuat ulang 7 kategori bawaan standar yayasan IDEP.' +
+    'Memuat ulang 7 kategori bawaan standar.' +
     '</small>' +
     '</div>' +
     '</div>' +
@@ -19465,11 +19465,11 @@ function resetDefaultExpenseCategories() {
   }
   showConfirmDialog(
     'Pulihkan Kategori Standar?',
-    'Daftar kategori pengeluaran akan diatur ulang ke 7 kategori standar IDEP. Lanjutkan?',
+    'Daftar kategori pengeluaran akan diatur ulang ke 7 kategori standar. Lanjutkan?',
     function () {
       EXPENSE_CATEGORIES_CACHE_DATA = [...DEFAULT_EXPENSE_CATEGORIES];
       localStorage.setItem('idep_expense_categories_backup', JSON.stringify(EXPENSE_CATEGORIES_CACHE_DATA));
-      showToast('Kategori standar IDEP dipulihkan.');
+      showToast('Kategori standar toko dipulihkan.');
       drawExpensesUI(EXPENSES_CACHE_DATA || [], EXPENSE_CATEGORIES_CACHE_DATA);
     }
   );
@@ -19764,7 +19764,7 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('./sw.js?v=6.1', { updateViaCache: 'none' })
       .then(function (reg) {
-        console.log('[PWA] Service Worker Kios IDEP berhasil terdaftar:', reg.scope);
+        console.log('[PWA] Service Worker berhasil terdaftar:', reg.scope);
         try { if (reg.update) reg.update(); } catch (e) {}
       })
       .catch(function (err) {
@@ -19785,13 +19785,13 @@ window.addEventListener('beforeinstallprompt', function (e) {
 
 // 3. Sembunyikan banner saat aplikasi berhasil diinstal
 window.addEventListener('appinstalled', function () {
-  console.log('[PWA] Kios IDEP berhasil diinstal.');
+  console.log('[PWA] Aplikasi POS berhasil diinstal.');
   deferredInstallPrompt = null;
   const banner = document.getElementById('pwa-install-banner');
   if (banner) {
     banner.style.display = 'none';
   }
-  showToast('Aplikasi Kios IDEP berhasil ditambahkan ke Layar Utama!');
+  showToast('Aplikasi POS berhasil ditambahkan ke Layar Utama!');
 });
 
 // 4. Inisialisasi tombol instalasi dan dukungan iOS Safari
@@ -20021,7 +20021,7 @@ function triggerNativePhoneNotification(notif, forceShow) {
     : '#dashboard';
 
   const options = {
-    body: notif.body || 'Pembaruan operasional Kios IDEP.',
+    body: notif.body || 'Pembaruan operasional toko.',
     icon: './icon-192.png',
     badge: './icon-192.png',
     tag: notifId,
@@ -20030,7 +20030,7 @@ function triggerNativePhoneNotification(notif, forceShow) {
     vibrate: notif.urgent ? [240, 100, 240, 100, 320] : [150, 70, 150],
     data: {
       id: notifId,
-      title: notif.title || '🔔 Kios IDEP',
+      title: notif.title || '🔔 Notifikasi Toko',
       body: notif.body || '',
       category: cat,
       route: cleanRoute,
@@ -20042,12 +20042,12 @@ function triggerNativePhoneNotification(notif, forceShow) {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.ready.then(function (reg) {
       if (reg && typeof reg.showNotification === 'function') {
-        return reg.showNotification(notif.title || '🔔 Kios IDEP', options);
+        return reg.showNotification(notif.title || '🔔 Notifikasi Toko', options);
       }
       if (reg && reg.active) {
         reg.active.postMessage({
           type: 'SHOW_LOCAL_NOTIFICATION',
-          payload: Object.assign({ title: notif.title || '🔔 Kios IDEP' }, options.data)
+          payload: Object.assign({ title: notif.title || '🔔 Notifikasi Toko' }, options.data)
         });
       }
     }).catch(function () {});
@@ -20061,7 +20061,7 @@ function ingestIncomingNotification(rawNotif, opts) {
 
   const normalized = {
     id: id,
-    title: String(rawNotif.title || '🔔 Kios IDEP'),
+    title: String(rawNotif.title || '🔔 Notifikasi Toko'),
     body: String(rawNotif.body || ''),
     category: String(rawNotif.category || 'general').toLowerCase(),
     route: String(rawNotif.route || '#dashboard').startsWith('#')
@@ -20396,7 +20396,7 @@ async function syncExistingPushSubscription(silent) {
           p256dh: keys.p256dh || '',
           auth: keys.auth || '',
           categories: getEnabledNotifCategoriesArray(),
-          device_label: navigator.userAgent || 'Perangkat Kios IDEP'
+          device_label: navigator.userAgent || 'Perangkat POS'
         });
       }
       return sub;
@@ -20452,7 +20452,7 @@ async function enableDevicePushNotifications() {
             p256dh: keys.p256dh || '',
             auth: keys.auth || '',
             categories: getEnabledNotifCategoriesArray(),
-            device_label: navigator.userAgent || 'Handphone Kios IDEP'
+            device_label: navigator.userAgent || 'Handphone POS'
           });
           if (saveRes && saveRes.mode === 'full_web_push') {
             pushMode = 'full_web_push';
@@ -20468,10 +20468,10 @@ async function enableDevicePushNotifications() {
 
     triggerNativePhoneNotification({
       id: 'welcome-notif-' + Date.now(),
-      title: '🎉 Notifikasi Kios IDEP Aktif!',
+      title: '🎉 Notifikasi POS Aktif!',
       body: pushMode === 'full_web_push'
         ? 'Handphone ini sudah terhubung penuh (Realtime + Background Web Push).'
-        : 'Handphone ini siap menerima notifikasi operasional Kios IDEP secara langsung!',
+        : 'Handphone ini siap menerima notifikasi operasional secara langsung!',
       category: 'general',
       route: '#dashboard',
       urgent: false
@@ -20514,8 +20514,8 @@ async function sendTestDeviceNotification() {
 
   const testItem = {
     id: 'test-notif-' + Date.now(),
-    title: '🔔 Tes Notifikasi Kios IDEP Berhasil!',
-    body: 'Mantap! Sinyal notifikasi Kios IDEP mendarat mulus di layar handphone Anda.',
+    title: '🔔 Tes Notifikasi Berhasil!',
+    body: 'Mantap! Sinyal notifikasi mendarat mulus di layar handphone Anda.',
     category: 'general',
     route: '#dashboard',
     urgent: false,
@@ -20528,7 +20528,7 @@ async function sendTestDeviceNotification() {
   if (window.__CURRENT_PUSH_ENDPOINT && TOKEN) {
     api('sendTestWebPush', TOKEN, {
       id: 'push-' + testItem.id,
-      title: '📲 Tes Background Web Push Kios IDEP',
+      title: '📲 Tes Background Web Push',
       body: 'Server Web Push berhasil menghubungi handphone Anda!',
       category: 'general',
       route: '#dashboard',
@@ -20579,7 +20579,7 @@ function buildNotifSettingsPaneHTML(settings) {
       '<div class="notif-settings-status-banner is-active" id="notif-pane-status-box">' +
       '<div>' +
       '<div style="font-size:15px;font-weight:700;color:#166534;margin-bottom:4px;">🟢 Notifikasi Langsung Aktif di Perangkat Ini</div>' +
-      '<div style="font-size:12.5px;color:#15803D;">Handphone/perangkat ini akan otomatis menampilkan pop-up dan getaran saat terjadi peristiwa penting di Kios IDEP.</div>' +
+      '<div style="font-size:12.5px;color:#15803D;">Handphone/perangkat ini akan otomatis menampilkan pop-up dan getaran saat terjadi peristiwa operasional penting.</div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
       '<button type="button" class="btn btn-primary btn-sm" onclick="sendTestDeviceNotification()">🔔 Kirim Tes ke HP Ini</button>' +
@@ -20630,7 +20630,7 @@ function buildNotifSettingsPaneHTML(settings) {
     ? (
       '<div class="card" style="margin-top:16px;">' +
       '<h3 style="margin-bottom:6px;">🔐 Konfigurasi Web Push Latar Belakang (VAPID Public Key)</h3>' +
-      '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Digunakan agar notifikasi tetap berbunyi di layar kunci HP meskipun aplikasi Kios IDEP sedang ditutup rapat (bekerja bersama Supabase Edge Function <code>send-push</code>).</p>' +
+      '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">Digunakan agar notifikasi tetap berbunyi di layar kunci HP meskipun aplikasi sedang ditutup rapat (bekerja bersama Supabase Edge Function <code>send-push</code>).</p>' +
       '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">' +
       '<div class="field-group" style="flex:1;min-width:240px;margin-bottom:0;">' +
       '<label class="field-label" for="set-vapid-public-key">VAPID Public Key (ECDSA P-256 Base64URL)</label>' +

@@ -511,19 +511,56 @@ async function consumeStockFIFOClient(productId, qtyNeeded, refId, refNo, mutati
 
     // Catat ke stock_mutations
     try {
+      let itemUnit = 'pcs';
+      try {
+        if (typeof PRODUCTS_CACHE !== 'undefined' && Array.isArray(PRODUCTS_CACHE)) {
+          const foundP = PRODUCTS_CACHE.find(p => p && p.id === productId);
+          if (foundP && foundP.unit) itemUnit = foundP.unit;
+        }
+      } catch (e) {}
+
+      const nowIso = new Date().toISOString();
+      const bCode = batch.batch_code || batch.batch_no || batch.id;
+      const refCode = refNo || refId || 'POS';
+      const notesDesc = mutationType === 'KELUAR_KONSINYASI'
+        ? `Kirim Konsinyasi #${refCode} (Batch: ${bCode})`
+        : `Penjualan Kasir #${refCode} (Batch: ${bCode})`;
+
       const mutRecord = {
         id: crypto.randomUUID(),
         product_id: productId,
         batch_id: batch.id,
+        reference_no: refCode,
         mutation_type: mutationType || 'KELUAR_PENJUALAN',
+        qty: -deduct,
         qty_change: -deduct,
         qty_after: newQty,
-        reference_no: refNo || refId || '',
-        notes: `FIFO Out: ${refNo || refId}`
+        unit: itemUnit,
+        notes: notesDesc,
+        created_at: nowIso
       };
-      await supabase.from('stock_mutations').insert(mutRecord);
+
+      // Simpan ke backup lokal terlebih dahulu agar aman dan langsung tampil
       if (typeof saveMutationToLocalBackup === 'function') {
         saveMutationToLocalBackup(mutRecord);
+      }
+
+      // Insert ke Supabase dengan field standar tabel
+      const { error: insErr } = await supabase.from('stock_mutations').insert({
+        id: mutRecord.id,
+        product_id: mutRecord.product_id,
+        batch_id: mutRecord.batch_id,
+        reference_no: mutRecord.reference_no,
+        mutation_type: mutRecord.mutation_type,
+        qty: mutRecord.qty,
+        unit: mutRecord.unit,
+        notes: mutRecord.notes,
+        created_at: mutRecord.created_at
+      });
+
+      if (insErr) {
+        console.warn('[FIFO] Insert stock_mutations standar gagal, coba fallback mutRecord penuh:', insErr);
+        await supabase.from('stock_mutations').insert(mutRecord);
       }
     } catch (e) {
       console.warn('[FIFO] Gagal catat stock_mutations:', e);
@@ -3038,34 +3075,72 @@ async function dispatchApiCall(fnName, args) {
       let totalAssetValue = 0;
       const uniqueVarieties = new Set();
 
+      const today = new Date();
       const items = (batchesRes.data || []).map(b => {
         const prod = prodMap[b.product_id] || {};
         const qty = Number(b.qty_remaining || 0);
         const buyPrice = Number(b.cost_per_unit || b.buy_price || 0);
         const assetVal = qty * buyPrice;
+        const isBulk = prod.unit === 'gram' || prod.product_type === 'raw_seed';
 
         totalAssetValue += assetVal;
         uniqueVarieties.add(prod.name || b.product_id);
 
-        if (prod.unit === 'gram' || prod.product_type === 'raw_seed') {
+        if (isBulk) {
           totalBulkGrams += qty;
         } else {
           totalPackedPcs += qty;
         }
 
+        let ageDays = 0;
+        if (b.production_date || b.created_at) {
+          const prodD = new Date(b.production_date || b.created_at);
+          if (!isNaN(prodD.getTime())) {
+            ageDays = Math.max(0, Math.floor((today - prodD) / (1000 * 60 * 60 * 24)));
+          }
+        }
+
+        let status = 'AMAN';
+        if (b.expiry_date) {
+          const expD = new Date(b.expiry_date);
+          if (!isNaN(expD.getTime())) {
+            const daysLeft = Math.ceil((expD - today) / (1000 * 60 * 60 * 24));
+            if (daysLeft <= 0) {
+              status = 'KEDALUWARSA';
+            } else if (daysLeft <= 60) {
+              status = 'UJI_ULANG';
+            } else if (qty <= 5) {
+              status = 'MENIPIS';
+            }
+          }
+        } else if (qty <= 5) {
+          status = 'MENIPIS';
+        }
+
+        const batchDisplay = b.batch_code || b.id || 'BATCH-UNKNOWN';
+
         return {
           id: b.id,
-          batch_code: b.batch_code,
+          batch_id: batchDisplay,
+          batch_code: batchDisplay,
+          product_id: b.product_id,
           product_name: prod.name || 'Produk',
           category: prod.category || 'Benih',
-          product_type: prod.product_type || 'raw_seed',
+          type: isBulk ? 'bulk' : 'packed',
+          product_type: prod.product_type || (isBulk ? 'raw_seed' : 'seed_packet'),
           unit: prod.unit || 'pcs',
           qty_remaining: qty,
+          current_stock: qty,
           buy_price: buyPrice,
+          hpp_unit: buyPrice,
           asset_value: assetVal,
+          total_value: assetVal,
+          production_date: b.production_date,
           expiry_date: b.expiry_date,
-          quality_status: b.quality_status,
-          qc_status: b.qc_status
+          age_days: ageDays,
+          status: status,
+          quality_status: b.quality_status || 'NORMAL',
+          qc_status: b.qc_status || 'APPROVED'
         };
       });
 
@@ -3259,7 +3334,12 @@ async function dispatchApiCall(fnName, args) {
             }
           }
         });
-        const combined = Array.from(map.values());
+        const combined = Array.from(map.values()).map(item => {
+          if (item && (item.qty === undefined || item.qty === null) && item.qty_change !== undefined) {
+            item.qty = item.qty_change;
+          }
+          return item;
+        });
         combined.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
         return combined;
       } catch (e) {
@@ -3293,12 +3373,71 @@ async function dispatchApiCall(fnName, args) {
 
     case 'adjustStockBatch': {
       const [, payload] = args;
-      const batchId = payload && payload.batch_id;
+      let batchId = payload && payload.batch_id;
       const productId = payload && payload.product_id;
-      const adjType = (payload && payload.adjustment_type === 'PLUS') ? 'PLUS' : 'MINUS';
+      const isNewBatch = (batchId === '__NEW_BATCH__' || (payload && payload.is_new_batch));
+      const adjType = isNewBatch ? 'PLUS' : ((payload && payload.adjustment_type === 'PLUS') ? 'PLUS' : 'MINUS');
       const qtyNum = Math.abs(Number((payload && payload.qty) || 0));
-      if (!batchId || !productId || qtyNum <= 0) {
-        throw new Error('Data batch, produk, dan kuantitas koreksi tidak valid.');
+      if (!productId || qtyNum <= 0 || (!batchId && !isNewBatch)) {
+        throw new Error('Data varietas benih dan kuantitas koreksi tidak valid.');
+      }
+
+      // Jika inisiasi batch baru (Stok Awal)
+      if (isNewBatch) {
+        batchId = crypto.randomUUID();
+        const batchCode = String(payload.batch_code || `BATCH-INIT-${Date.now().toString().slice(-6)}`).trim();
+        const hppCost = Number(payload.cost_per_unit || payload.buy_price || 0);
+        const prodDate = payload.production_date || new Date().toISOString().split('T')[0];
+        const expDate = payload.expiry_date || null;
+
+        await supabase.from('stock_batches').insert({
+          id: batchId,
+          batch_code: batchCode,
+          product_id: productId,
+          qty_in: qtyNum,
+          qty_remaining: qtyNum,
+          buy_price: hppCost,
+          cost_per_unit: hppCost,
+          production_date: prodDate,
+          expiry_date: expDate,
+          quality_status: 'NORMAL',
+          qc_status: 'APPROVED'
+        });
+
+        // Update total stok di tabel products
+        try {
+          const { data: allB } = await supabase.from('stock_batches').select('qty_remaining').eq('product_id', productId);
+          if (allB && Array.isArray(allB)) {
+            const totalRemaining = allB.reduce((sum, item) => sum + Number(item.qty_remaining || 0), 0);
+            await supabase.from('products').update({
+              stock: totalRemaining,
+              updated_at: new Date().toISOString()
+            }).eq('id', productId);
+          }
+        } catch (e) {}
+
+        // Catat mutasi masuk
+        const initMut = {
+          id: crypto.randomUUID(),
+          product_id: productId,
+          batch_id: batchId,
+          reference_no: 'INIT-' + Date.now().toString().slice(-6),
+          mutation_type: 'MASUK_STOK_AWAL',
+          qty: qtyNum,
+          unit: payload.unit || 'pcs',
+          notes: `[SALDO_AWAL] ${payload.notes || 'Inisiasi stok awal lot batch'} (Petugas: ${payload.user_name || 'Admin'})`,
+          created_at: new Date().toISOString()
+        };
+        saveMutationToLocalBackup(initMut);
+        try { await supabase.from('stock_mutations').insert(initMut); } catch (e) {}
+
+        return {
+          success: true,
+          batch_id: batchId,
+          batch_code: batchCode,
+          new_stock: qtyNum,
+          message: 'Stok awal lot batch baru berhasil diinisiasi.'
+        };
       }
 
       // 1. Ambil data batch terkini
@@ -3657,16 +3796,37 @@ async function dispatchApiCall(fnName, args) {
             }
             // Catat rollback ke mutasi
             try {
-              await supabase.from('stock_mutations').insert({
+              const nowIso = new Date().toISOString();
+              const rollbackMut = {
                 id: crypto.randomUUID(),
                 product_id: item.product_id,
                 batch_id: item.batch_id || null,
+                reference_no: payload?.invoice_no || transactionId,
                 mutation_type: 'MASUK_KOREKSI_NOTA',
+                qty: qtyToReturn,
                 qty_change: qtyToReturn,
                 qty_after: 0,
-                reference_no: payload?.invoice_no || transactionId,
-                notes: `Rollback Koreksi Nota #${transactionId}`
+                unit: item.unit || 'pcs',
+                notes: `Rollback Koreksi Nota #${transactionId}`,
+                created_at: nowIso
+              };
+              if (typeof saveMutationToLocalBackup === 'function') {
+                saveMutationToLocalBackup(rollbackMut);
+              }
+              const { error: rbErr } = await supabase.from('stock_mutations').insert({
+                id: rollbackMut.id,
+                product_id: rollbackMut.product_id,
+                batch_id: rollbackMut.batch_id,
+                reference_no: rollbackMut.reference_no,
+                mutation_type: rollbackMut.mutation_type,
+                qty: rollbackMut.qty,
+                unit: rollbackMut.unit,
+                notes: rollbackMut.notes,
+                created_at: rollbackMut.created_at
               });
+              if (rbErr) {
+                await supabase.from('stock_mutations').insert(rollbackMut);
+              }
             } catch (e) {}
 
             // Sinkronkan total stock pada products

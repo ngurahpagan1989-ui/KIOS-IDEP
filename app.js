@@ -3859,6 +3859,12 @@ function renderMutationTypeBadge(type) {
   if (t === 'CONSIGNMENT_RETURN' || t === 'RETUR_KONSINYASI') {
     return '<span class="badge" style="background:#fdf4ff;color:#a21caf;border:1px solid #f0abfc;font-weight:600;"><i class="fas fa-undo" style="font-size:10px;margin-right:4px;"></i> Retur Konsinyasi</span>';
   }
+  if (t === 'MASUK_STOK_AWAL' || t === 'INIT_STOCK') {
+    return '<span class="badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;font-weight:600;"><i class="fas fa-sparkles" style="font-size:10px;margin-right:4px;"></i> Saldo Awal</span>';
+  }
+  if (t === 'MASUK_KOREKSI_NOTA' || t === 'ROLLBACK_SALE') {
+    return '<span class="badge" style="background:#fefce8;color:#a16207;border:1px solid #fef08a;font-weight:600;"><i class="fas fa-rotate-left" style="font-size:10px;margin-right:4px;"></i> Batal Nota</span>';
+  }
   return '<span class="badge badge-neutral" style="font-weight:600;">' + escapeHtml(type || 'Mutasi') + '</span>';
 }
 window.renderMutationTypeBadge = renderMutationTypeBadge;
@@ -3978,7 +3984,9 @@ function drawStokUI(products, batches, mutations) {
     '</div>' +
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="openModuleGuide(\'stok\')" title="Buka Panduan Manajemen Stok &amp; Opname">📖 Panduan Stok</button>' +
-    '<button type="button" class="btn btn-primary btn-sm" onclick="openStockAdjustmentModal()"><i class="fas fa-scale-balanced" style="margin-right:6px;"></i> + Penyesuaian Stok (Koreksi)</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="printStockOpnameSheetA4()" title="Cetak Lembar Kerja Formulir Stock Opname Fisik A4 untuk Auditor Gudang">📋 Cetak Form Opname (A4)</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="openGlobalAuditModal()" title="Buka Jurnal Audit Mutasi Keseluruhan Gudang"><i class="fas fa-history" style="margin-right:4px;"></i> Jurnal Mutasi Global</button>' +
+    '<button type="button" class="btn btn-primary btn-sm" onclick="openStockAdjustmentModal()"><i class="fas fa-scale-balanced" style="margin-right:6px;"></i> + Penyesuaian Stok / Saldo Awal</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="renderStok(true)"><i class="fas fa-sync-alt" style="margin-right:6px;"></i> Segarkan Data</button>' +
     '</div>' +
     '</div>' +
@@ -4052,61 +4060,12 @@ function drawStokUI(products, batches, mutations) {
     '</div>' +
     '</div>' +
 
-    '<div id="batch-detail" style="display:none;"></div>' +
-
-    '<!-- TABEL RIWAYAT MUTASI STOK FISIK -->' +
-    '<div class="card">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
-    '<div>' +
-    '<h3 style="margin:0;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;"><i class="fas fa-history" style="color:var(--primary);"></i> Riwayat Mutasi Stok Fisik</h3>' +
-    '<p style="margin:3px 0 0;font-size:12px;color:var(--text-secondary);">Log audit lengkap mutasi persediaan benih curah &amp; kemasan (Pembelian, Kemas Mandiri, Penjualan POS, dan Penyesuaian).</p>' +
-    '</div>' +
-    '</div>' +
-
-    '<div class="stok-filter-toolbar">' +
-    '<div class="stok-filter-group">' +
-    '<input type="text" id="mutation-search-input" placeholder="🔍 Cari produk, no. batch, atau keterangan..." oninput="filterMutationTable()" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:280px;background:#fff;">' +
-    '<select id="mutation-type-filter" onchange="filterMutationTable()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;">' +
-    '<option value="all">Semua Tipe Mutasi</option>' +
-    '<option value="MASUK_PEMBELIAN">🛒 Masuk Pembelian</option>' +
-    '<option value="MASUK_PRODUKSI">📦 Masuk Produksi (Kemas)</option>' +
-    '<option value="KELUAR_PRODUKSI">🌱 Keluar Produksi (Curah)</option>' +
-    '<option value="KELUAR_PENJUALAN">🧾 Keluar Penjualan (POS)</option>' +
-    '<option value="CONSIGNMENT_OUT">🚚 Kirim Konsinyasi</option>' +
-    '<option value="ADJUSTMENT">⚖️ Koreksi / Penyesuaian</option>' +
-    '</select>' +
-    '</div>' +
-    '<div><span id="mutation-filter-count" style="font-size:12px;color:var(--text-secondary);font-weight:600;"></span></div>' +
-    '</div>' +
-
-    '<div class="table-container" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">' +
-    '<table id="stok-mutation-table">' +
-    '<thead>' +
-    '<tr>' +
-    '<th style="width:160px;">Tanggal / Waktu</th>' +
-    '<th>Nama Produk</th>' +
-    '<th style="width:160px;">Tipe Mutasi</th>' +
-    '<th style="width:150px;text-align:right;">Perubahan Qty (+/-)</th>' +
-    '<th style="width:170px;">No. Batch / Ref</th>' +
-    '<th>Keterangan &amp; Petugas</th>' +
-    '</tr>' +
-    '</thead>' +
-    '<tbody id="stok-mutation-tbody"></tbody>' +
-    '</table>' +
-    '</div>' +
-
-    '<div class="stok-pagination-container">' +
-    '<span id="mutation-page-info">Memuat data...</span>' +
-    '<div style="display:flex;align-items:center;gap:6px;">' +
-    '<button type="button" class="btn btn-secondary btn-sm" id="btn-prev-mutation" onclick="changeMutationPage(-1)">&laquo; Sebelumnya</button>' +
-    '<span id="mutation-page-indicator" style="font-weight:600;padding:0 8px;">1 / 1</span>' +
-    '<button type="button" class="btn btn-secondary btn-sm" id="btn-next-mutation" onclick="changeMutationPage(1)">Selanjutnya &raquo;</button>' +
-    '</div>' +
-    '</div>' +
-    '</div>';
+    '<div id="batch-detail" style="display:none;"></div>';
 
   filterStokTable();
-  filterMutationTable();
+  if (document.getElementById('stok-mutation-tbody')) {
+    filterMutationTable();
+  }
 }
 
 function filterStokTable() {
@@ -4375,6 +4334,207 @@ function renderMutationTable() {
 }
 window.renderMutationTable = renderMutationTable;
 
+
+// ==============================================================================
+// MODAL JURNAL AUDIT MUTASI GLOBAL (SEMUA BENIH)
+// ==============================================================================
+let _MODAL_AUDIT_MUTATIONS = [];
+let _MODAL_AUDIT_FILTERED = [];
+let _MODAL_AUDIT_PAGE = 1;
+const _MODAL_AUDIT_PAGE_SIZE = 15;
+
+function openGlobalAuditModal() {
+  openModal(
+    '📜 Buku Jurnal Audit Mutasi Gudang (Semua Benih)',
+    '<div class="empty-state" style="padding:28px;"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Memuat catatan jurnal mutasi seluruh gudang...</div>',
+    '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>',
+    true
+  );
+
+  api('getStockMutations', TOKEN).then(function (mutations) {
+    _MODAL_AUDIT_MUTATIONS = Array.isArray(mutations) ? mutations : [];
+    _MODAL_AUDIT_FILTERED = _MODAL_AUDIT_MUTATIONS;
+    _MODAL_AUDIT_PAGE = 1;
+
+    const modalBody =
+      '<div style="margin-bottom:14px;">' +
+      '<div class="stok-filter-toolbar" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">' +
+      '<div class="stok-filter-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
+      '<input type="text" id="modal-audit-search" placeholder="🔍 Cari benih, no. nota/batch, atau keterangan..." oninput="filterModalAuditTable()" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:280px;background:#fff;">' +
+      '<select id="modal-audit-type" onchange="filterModalAuditTable()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;">' +
+      '<option value="all">Semua Tipe Mutasi</option>' +
+      '<option value="KELUAR_PENJUALAN">🧾 Keluar Penjualan (POS)</option>' +
+      '<option value="MASUK_PEMBELIAN">🛒 Masuk Pembelian</option>' +
+      '<option value="MASUK_PRODUKSI">📦 Masuk Produksi (Kemas)</option>' +
+      '<option value="KELUAR_PRODUKSI">🌱 Keluar Produksi (Curah)</option>' +
+      '<option value="MASUK_STOK_AWAL">✨ Saldo Awal</option>' +
+      '<option value="ADJUSTMENT">⚖️ Koreksi / Opname</option>' +
+      '<option value="CONSIGNMENT_OUT">🚚 Kirim Konsinyasi</option>' +
+      '</select>' +
+      '</div>' +
+      '<div><span id="modal-audit-count" style="font-size:12px;color:var(--text-secondary);font-weight:600;"></span></div>' +
+      '</div>' +
+      '<div class="table-container" style="max-height:420px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
+      '<table style="width:100%;">' +
+      '<thead>' +
+      '<tr>' +
+      '<th style="width:140px;">Waktu</th>' +
+      '<th>Nama Varietas Benih</th>' +
+      '<th style="width:140px;">Tipe Mutasi</th>' +
+      '<th style="width:130px;text-align:right;">Perubahan Qty</th>' +
+      '<th style="width:150px;">No. Batch / Ref</th>' +
+      '<th>Keterangan &amp; Petugas</th>' +
+      '</tr>' +
+      '</thead>' +
+      '<tbody id="modal-audit-tbody"></tbody>' +
+      '</table>' +
+      '</div>' +
+      '<div class="stok-pagination-container" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">' +
+      '<span id="modal-audit-page-info" style="font-size:12px;color:var(--text-secondary);"></span>' +
+      '<div style="display:flex;align-items:center;gap:6px;">' +
+      '<button type="button" class="btn btn-secondary btn-sm" id="modal-audit-prev" onclick="changeModalAuditPage(-1)">&laquo; Sebelumnya</button>' +
+      '<span id="modal-audit-indicator" style="font-weight:600;padding:0 8px;font-size:12px;">1 / 1</span>' +
+      '<button type="button" class="btn btn-secondary btn-sm" id="modal-audit-next" onclick="changeModalAuditPage(1)">Selanjutnya &raquo;</button>' +
+      '</div>' +
+      '</div>' +
+      '</div>';
+
+    const modalBodyEl = document.getElementById('modal-body');
+    if (modalBodyEl) {
+      modalBodyEl.innerHTML = modalBody;
+      filterModalAuditTable();
+    }
+  }).catch(function (err) {
+    const modalBodyEl = document.getElementById('modal-body');
+    if (modalBodyEl) {
+      modalBodyEl.innerHTML = '<div class="alert alert-danger">Gagal memuat mutasi global: ' + escapeHtml(err.message || err) + '</div>';
+    }
+  });
+}
+window.openGlobalAuditModal = openGlobalAuditModal;
+
+function filterModalAuditTable() {
+  const searchEl = document.getElementById('modal-audit-search');
+  const typeEl = document.getElementById('modal-audit-type');
+  const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+  const typeFilter = typeEl ? typeEl.value : 'all';
+
+  const prodMap = {};
+  (_STOK_PRODUCTS || []).forEach(function (p) { if (p && p.id) prodMap[p.id] = p; });
+
+  _MODAL_AUDIT_FILTERED = _MODAL_AUDIT_MUTATIONS.filter(function (m) {
+    if (typeFilter !== 'all') {
+      const mt = String(m.mutation_type || m.type || '').toUpperCase();
+      if (typeFilter === 'ADJUSTMENT') {
+        if (!mt.includes('ADJUSTMENT') && !mt.includes('KOREKSI')) return false;
+      } else {
+        if (!mt.includes(typeFilter)) return false;
+      }
+    }
+    if (q) {
+      const p = prodMap[m.product_id] || (m.product ? m.product : null);
+      const prodName = String((p && p.name) || m.product_name || m.product_id || '').toLowerCase();
+      const refNo = String(m.reference_no || m.batch_code || m.ref_id || '').toLowerCase();
+      const notes = String(m.notes || '').toLowerCase();
+      if (!prodName.includes(q) && !refNo.includes(q) && !notes.includes(q)) return false;
+    }
+    return true;
+  });
+
+  _MODAL_AUDIT_PAGE = 1;
+  renderModalAuditTable();
+}
+window.filterModalAuditTable = filterModalAuditTable;
+
+function changeModalAuditPage(delta) {
+  const totalPages = Math.max(1, Math.ceil(_MODAL_AUDIT_FILTERED.length / _MODAL_AUDIT_PAGE_SIZE));
+  const newPage = _MODAL_AUDIT_PAGE + delta;
+  if (newPage >= 1 && newPage <= totalPages) {
+    _MODAL_AUDIT_PAGE = newPage;
+    renderModalAuditTable();
+  }
+}
+window.changeModalAuditPage = changeModalAuditPage;
+
+function renderModalAuditTable() {
+  const tbody = document.getElementById('modal-audit-tbody');
+  const countEl = document.getElementById('modal-audit-count');
+  const pageInfoEl = document.getElementById('modal-audit-page-info');
+  const indicatorEl = document.getElementById('modal-audit-indicator');
+  const prevBtn = document.getElementById('modal-audit-prev');
+  const nextBtn = document.getElementById('modal-audit-next');
+  if (!tbody) return;
+
+  const total = _MODAL_AUDIT_FILTERED.length;
+  const totalPages = Math.max(1, Math.ceil(total / _MODAL_AUDIT_PAGE_SIZE));
+  if (_MODAL_AUDIT_PAGE > totalPages) _MODAL_AUDIT_PAGE = totalPages;
+
+  if (countEl) countEl.textContent = 'Menampilkan ' + total + ' dari ' + _MODAL_AUDIT_MUTATIONS.length + ' mutasi';
+  const start = (_MODAL_AUDIT_PAGE - 1) * _MODAL_AUDIT_PAGE_SIZE;
+  const end = Math.min(start + _MODAL_AUDIT_PAGE_SIZE, total);
+
+  if (pageInfoEl) {
+    pageInfoEl.textContent = total === 0 ? '0 mutasi' : 'Data ' + (start + 1) + ' – ' + end + ' dari total ' + total + ' mutasi';
+  }
+  if (indicatorEl) indicatorEl.textContent = _MODAL_AUDIT_PAGE + ' / ' + totalPages;
+  if (prevBtn) prevBtn.disabled = (_MODAL_AUDIT_PAGE <= 1);
+  if (nextBtn) nextBtn.disabled = (_MODAL_AUDIT_PAGE >= totalPages);
+
+  if (total === 0) {
+    tbody.innerHTML = '<tr><td colspan="6"><div style="text-align:center;padding:24px;color:var(--text-secondary);"><i class="fas fa-box-open" style="font-size:20px;margin-bottom:6px;opacity:0.5;display:block;"></i>Tidak ada log mutasi yang sesuai filter.</div></td></tr>';
+    return;
+  }
+
+  const paged = _MODAL_AUDIT_FILTERED.slice(start, end);
+  const prodMap = {};
+  (_STOK_PRODUCTS || []).forEach(function (p) { if (p && p.id) prodMap[p.id] = p; });
+
+  tbody.innerHTML = paged.map(function (m) {
+    const p = prodMap[m.product_id] || (m.product ? m.product : null);
+    const prodName = (p && p.name) || m.product_name || (m.product_id ? ('ID: ' + m.product_id) : '-');
+    const isRaw = p ? isRawProduct(p.unit) : (m.unit === 'gr');
+    const unitText = m.unit || (isRaw ? 'gr' : 'pcs');
+    const tglText = m.created_at ? formatDateIndo(m.created_at) : 'Hari Ini';
+    let timeText = '';
+    if (m.created_at) {
+      try {
+        const dt = new Date(m.created_at);
+        if (!isNaN(dt.getTime())) {
+          timeText = dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        }
+      } catch (e) {}
+    }
+    const dateTimeHTML = '<div><strong style="color:var(--text-primary);">' + tglText + '</strong>' +
+      (timeText ? '<br><span style="font-size:10.5px;color:var(--text-muted);">' + timeText + ' WITA</span>' : '') + '</div>';
+
+    const prodBadge = isRaw
+      ? '<span class="badge badge-warning" style="font-size:10px;padding:1px 5px;margin-left:4px;">Curah</span>'
+      : '<span class="badge badge-success" style="font-size:10px;padding:1px 5px;margin-left:4px;">Kemasan</span>';
+    const prodHTML = '<div><strong style="color:var(--text-primary);">' + escapeHtml(prodName) + '</strong> ' + prodBadge + '</div>';
+
+    const mutType = m.mutation_type || m.type || '';
+    const badgeHTML = renderMutationTypeBadge(mutType);
+
+    const qtyNum = Number(m.qty !== undefined && m.qty !== null ? m.qty : (m.qty_change || 0));
+    const qtySign = qtyNum > 0 ? '+' : '';
+    const qtyCol = qtyNum > 0 ? '#10b981' : (qtyNum < 0 ? '#ef4444' : 'var(--text-secondary)');
+    const qtyHTML = '<strong style="color:' + qtyCol + ';font-size:12.5px;font-family:\'JetBrains Mono\',monospace;">' + qtySign + qtyNum.toLocaleString('id-ID') + ' ' + unitText + '</strong>';
+
+    const refNo = m.reference_no || m.batch_code || m.batch_no || m.ref_id || '-';
+    const refHTML = '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;background:var(--surface-muted);padding:3px 7px;border-radius:4px;border:1px solid var(--border);color:var(--text-primary);">' + escapeHtml(refNo) + '</span>';
+
+    return '<tr>' +
+      '<td>' + dateTimeHTML + '</td>' +
+      '<td>' + prodHTML + '</td>' +
+      '<td>' + badgeHTML + '</td>' +
+      '<td style="text-align:right;">' + qtyHTML + '</td>' +
+      '<td>' + refHTML + '</td>' +
+      '<td><span style="font-size:11.5px;color:var(--text-secondary);">' + escapeHtml(m.notes || '-') + '</span></td>' +
+      '</tr>';
+  }).join('');
+}
+window.renderModalAuditTable = renderModalAuditTable;
+
 function openBatchDetailModal(productId, productName) {
   openModal('📋 Rincian Antrean Batch FIFO: ' + escapeHtml(productName), '<div class="empty-state" style="padding:28px;"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Mengaudit antrean lot batch FIFO...</div>', '', true);
 
@@ -4478,20 +4638,31 @@ function openBatchDetailModal(productId, productName) {
         '</tr>';
     }).join('');
 
-    const mutRows = mutations.slice(0, 10).map(function (m) {
-      const qVal = Number(m.qty || 0);
+    const mutRows = mutations.slice(0, 30).map(function (m) {
+      const qVal = Number(m.qty !== undefined && m.qty !== null ? m.qty : (m.qty_change || 0));
       const sign = qVal > 0 ? '+' : '';
-      const color = qVal > 0 ? '#10b981' : '#ef4444';
+      const color = qVal > 0 ? '#10b981' : (qVal < 0 ? '#ef4444' : 'var(--text-secondary)');
       const mType = m.mutation_type || m.type || '';
       const badge = renderMutationTypeBadge(mType);
-      const tglStr = formatDateIndo(m.created_at);
+      const tglStr = m.created_at ? formatDateIndo(m.created_at) : 'Hari Ini';
+      let timeStr = '';
+      if (m.created_at) {
+        try {
+          const dt = new Date(m.created_at);
+          if (!isNaN(dt.getTime())) {
+            timeStr = dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+          }
+        } catch (e) {}
+      }
+      const dateDisplay = '<div><strong>' + tglStr + '</strong>' + (timeStr ? '<br><span style="font-size:10.5px;color:var(--text-muted);">' + timeStr + ' WITA</span>' : '') + '</div>';
       const refCode = m.reference_no || m.batch_code || m.ref_id || '-';
+      const uText = m.unit || unitText;
 
       return '<tr>' +
-        '<td style="font-size:12px;"><strong>' + tglStr + '</strong></td>' +
+        '<td style="font-size:12px;">' + dateDisplay + '</td>' +
         '<td>' + badge + '</td>' +
-        '<td style="text-align:right;"><strong style="color:' + color + ';font-family:\'JetBrains Mono\',monospace;font-size:12px;">' + sign + qVal.toLocaleString('id-ID') + ' ' + unitText + '</strong></td>' +
-        '<td><span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;background:var(--surface-muted);padding:2px 6px;border-radius:4px;border:1px solid var(--border);">' + escapeHtml(refCode) + '</span></td>' +
+        '<td style="text-align:right;"><strong style="color:' + color + ';font-family:\'JetBrains Mono\',monospace;font-size:12.5px;">' + sign + qVal.toLocaleString('id-ID') + ' ' + uText + '</strong></td>' +
+        '<td><span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;background:var(--surface-muted);padding:3px 7px;border-radius:4px;border:1px solid var(--border);color:var(--text-primary);">' + escapeHtml(refCode) + '</span></td>' +
         '<td><span style="font-size:11.5px;color:var(--text-secondary);">' + escapeHtml(m.notes || '-') + '</span></td>' +
         '</tr>';
     }).join('');
@@ -4522,20 +4693,23 @@ function openBatchDetailModal(productId, productName) {
       '</div>' +
 
       '<div>' +
-      '<h4 style="margin:0 0 10px;font-size:14px;font-weight:700;"><i class="fas fa-history" style="color:var(--primary);margin-right:6px;"></i> 10 Log Mutasi Terakhir Varietas Ini</h4>' +
-      '<div class="table-container" style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">' +
+      '<h4 style="margin:0;font-size:14px;font-weight:700;"><i class="fas fa-history" style="color:var(--primary);margin-right:6px;"></i> Kartu Mutasi Fisik Varietas Ini (' + Math.min(mutations.length, 30) + ' Log Terakhir)</h4>' +
+      '<span style="font-size:11.5px;color:var(--text-secondary);">Mencakup Penjualan Kasir, Produksi Kemas, Pembelian &amp; Opname</span>' +
+      '</div>' +
+      '<div class="table-container" style="max-height:360px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
       '<table>' +
       '<thead>' +
       '<tr>' +
-      '<th style="width:130px;">Tanggal</th>' +
+      '<th style="width:140px;">Tanggal &amp; Waktu</th>' +
       '<th style="width:140px;">Tipe Mutasi</th>' +
-      '<th style="width:120px;text-align:right;">Perubahan Qty</th>' +
-      '<th style="width:140px;">No. Batch / Ref</th>' +
-      '<th>Keterangan</th>' +
+      '<th style="width:130px;text-align:right;">Perubahan Qty</th>' +
+      '<th style="width:150px;">No. Batch / Ref</th>' +
+      '<th>Keterangan Transaksi</th>' +
       '</tr>' +
       '</thead>' +
       '<tbody>' +
-      (mutRows || '<tr><td colspan="5"><div style="text-align:center;padding:24px 16px;color:var(--text-secondary);"><i class="fas fa-boxes-stacked" style="font-size:24px;color:var(--text-muted);margin-bottom:8px;display:block;"></i><strong style="color:var(--text-primary);display:block;margin-bottom:4px;font-size:13px;">Belum Ada Transaksi Mutasi untuk Varietas Ini</strong><p style="font-size:12px;margin:0 0 12px;color:var(--text-secondary);max-width:440px;margin-left:auto;margin-right:auto;">Stok batch di atas saat ini adalah saldo awal master. Riwayat akan otomatis tercatat di sini saat terjadi <strong>Penjualan Kasir</strong>, <strong>Kemas Mandiri</strong>, <strong>Transfer Outlet</strong>, atau <strong>Koreksi Stok</strong>.</p><button type="button" class="btn btn-secondary btn-sm" onclick="openStockAdjustmentModal(\'' + productId + '\', \'\')" style="font-size:11px;"><i class="fas fa-scale-balanced" style="margin-right:4px;"></i> Coba Koreksi Stok Sekarang</button></div></td></tr>') +
+      (mutRows || '<tr><td colspan="5"><div style="text-align:center;padding:24px 16px;color:var(--text-secondary);"><i class="fas fa-boxes-stacked" style="font-size:24px;color:var(--text-muted);margin-bottom:8px;display:block;"></i><strong style="color:var(--text-primary);display:block;margin-bottom:4px;font-size:13px;">Belum Ada Transaksi Mutasi untuk Varietas Ini</strong><p style="font-size:12px;margin:0 0 12px;color:var(--text-secondary);max-width:440px;margin-left:auto;margin-right:auto;">Riwayat akan otomatis tercatat di sini saat terjadi <strong>Penjualan Kasir</strong>, <strong>Kemas Mandiri</strong>, <strong>Faktur Pembelian</strong>, atau <strong>Koreksi Stok</strong>.</p><button type="button" class="btn btn-secondary btn-sm" onclick="openStockAdjustmentModal(\'' + productId + '\', \'\')" style="font-size:11px;"><i class="fas fa-scale-balanced" style="margin-right:4px;"></i> Coba Koreksi Stok Sekarang</button></div></td></tr>') +
       '</tbody>' +
       '</table>' +
       '</div>' +
@@ -4571,10 +4745,39 @@ function openStockAdjustmentModal(defaultProductId, defaultBatchId) {
 
     '<div class="field-group" style="margin-bottom:14px;">' +
     '<label class="field-label" style="font-weight:700;">2. Pilih Lot Batch yang Disesuaikan</label>' +
-    '<select id="adj-batch-id" class="input" onchange="updateAdjustmentPreview()" style="width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);" required>' +
+    '<select id="adj-batch-id" class="input" onchange="onAdjustmentBatchChange()" style="width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);" required>' +
     '<option value="">-- Pilih Batch / Lot --</option>' +
     '</select>' +
-    '<small style="color:var(--text-secondary);margin-top:4px;display:block;">Sisa stok lot akan otomatis terpotong atau bertambah sesuai koreksi.</small>' +
+    '<small style="color:var(--text-secondary);margin-top:4px;display:block;">Pilih lot yang ada, atau pilih opsi <strong>+ Buat Lot / Batch Baru</strong> untuk memasukkan saldo awal.</small>' +
+    '</div>' +
+
+    '<!-- FIELD TAMBAHAN JIKA MEMBUAT LOT BATCH BARU (SALDO AWAL) -->' +
+    '<div id="adj-new-batch-fields" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">' +
+    '<div style="font-weight:700;color:#166534;margin-bottom:8px;font-size:13px;display:flex;align-items:center;gap:6px;">' +
+    '<span>📦</span> Spesifikasi Lot Batch Baru (Saldo Awal)' +
+    '</div>' +
+    '<div class="field-group" style="margin-bottom:10px;">' +
+    '<label class="field-label" style="font-size:12px;font-weight:600;">Nomor / Kode Batch Baru</label>' +
+    '<div style="display:flex;gap:6px;">' +
+    '<input type="text" id="adj-new-batch-code" placeholder="Misal: BATCH-INIT-001" style="flex:1;padding:6px 10px;font-size:12.5px;font-family:\'JetBrains Mono\',monospace;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="generateAdjustmentBatchCode()" style="padding:4px 8px;font-size:11px;">⚡ Auto</button>' +
+    '</div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">' +
+    '<div>' +
+    '<label class="field-label" style="font-size:12px;font-weight:600;">Tanggal Kedaluwarsa</label>' +
+    '<input type="date" id="adj-new-exp-date" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '</div>' +
+    '<div>' +
+    '<label class="field-label" style="font-size:12px;font-weight:600;">Tanggal Produksi / Masuk</label>' +
+    '<input type="date" id="adj-new-prod-date" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '</div>' +
+    '</div>' +
+    '<div class="field-group" style="margin-bottom:0;">' +
+    '<label class="field-label" style="font-size:12px;font-weight:600;">Biaya Modal / HPP Satuan (Rp)</label>' +
+    '<input type="number" id="adj-new-cost" min="0" placeholder="0" style="width:100%;padding:6px 10px;font-size:12.5px;font-family:\'JetBrains Mono\',monospace;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '<small style="color:#166534;font-size:10.5px;margin-top:2px;display:block;">Nilai modal HPP untuk perhitungan valuasi aset persediaan FIFO.</small>' +
+    '</div>' +
     '</div>' +
 
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">' +
@@ -4589,6 +4792,7 @@ function openStockAdjustmentModal(defaultProductId, defaultBatchId) {
     '<div class="field-group">' +
     '<label class="field-label" style="font-weight:700;">4. Kategori Alasan</label>' +
     '<select id="adj-reason" class="input" style="width:100%;padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
+    '<option value="SALDO_AWAL">🔰 Saldo Awal / Inisiasi Stok Gudang</option>' +
     '<option value="BENIH_RUSAK">📦 Kemasan Rusak / Bocor / Cacat Fisik</option>' +
     '<option value="KEDALUWARSA">⏳ Melewati Batas Kadaluarsa (Expired)</option>' +
     '<option value="HAMA_JAMUR">🐛 Serangan Hama Kutu / Jamur Gudang</option>' +
@@ -4657,21 +4861,26 @@ function onAdjustmentProductChange(preselectedBatchId) {
   }
 
   const pBatches = _STOK_BATCHES.filter(function (b) { return b.product_id === prodId; });
-  if (pBatches.length === 0) {
-    bSelect.innerHTML = '<option value="">(Tidak ada lot batch untuk varietas ini)</option>';
-    updateAdjustmentPreview();
-    return;
-  }
+  let optionsHtml = '<option value="">-- Pilih Lot Batch (' + pBatches.length + ' Lot Tersedia) --</option>';
+  optionsHtml += '<option value="__NEW_BATCH__" data-qty="0" style="color:#15803d;font-weight:700;">✨ + Buat Lot / Batch Baru (Saldo Awal / Inisiasi)</option>';
 
-  bSelect.innerHTML = '<option value="">-- Pilih Lot Batch (' + pBatches.length + ' Lot) --</option>' +
-    pBatches.map(function (b) {
+  if (pBatches.length > 0) {
+    optionsHtml += pBatches.map(function (b) {
       const sel = (b.id === preselectedBatchId) ? ' selected' : '';
       const expStr = b.expiry_date ? formatDateIndo(b.expiry_date) : '-';
       const rem = Number(b.qty_remaining || 0);
       return '<option value="' + b.id + '" data-qty="' + rem + '"' + sel + '>' + escapeHtml(b.batch_code || b.id) + ' (Sisa: ' + rem.toLocaleString('id-ID') + ' ' + unit + ' | Exp: ' + expStr + ')</option>';
     }).join('');
+  }
 
-  updateAdjustmentPreview();
+  bSelect.innerHTML = optionsHtml;
+  if (pBatches.length === 0) {
+    bSelect.value = '__NEW_BATCH__';
+  } else if (preselectedBatchId) {
+    bSelect.value = preselectedBatchId;
+  }
+
+  onAdjustmentBatchChange();
 }
 window.onAdjustmentProductChange = onAdjustmentProductChange;
 
@@ -4713,6 +4922,66 @@ function updateAdjustmentPreview() {
     '</div>' + warnText;
 }
 window.updateAdjustmentPreview = updateAdjustmentPreview;
+
+
+function onAdjustmentBatchChange() {
+  const bSelect = document.getElementById('adj-batch-id');
+  const typeSelect = document.getElementById('adj-type');
+  const reasonSelect = document.getElementById('adj-reason');
+  const newFields = document.getElementById('adj-new-batch-fields');
+  const isNew = bSelect && bSelect.value === '__NEW_BATCH__';
+
+  if (newFields) {
+    newFields.style.display = isNew ? 'block' : 'none';
+  }
+
+  if (isNew) {
+    if (typeSelect) {
+      typeSelect.value = 'PLUS';
+      typeSelect.disabled = true;
+    }
+    if (reasonSelect) {
+      reasonSelect.value = 'SALDO_AWAL';
+    }
+    generateAdjustmentBatchCode();
+    const prodDateInput = document.getElementById('adj-new-prod-date');
+    if (prodDateInput && !prodDateInput.value) {
+      prodDateInput.value = new Date().toISOString().split('T')[0];
+    }
+    const expDateInput = document.getElementById('adj-new-exp-date');
+    if (expDateInput && !expDateInput.value) {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() + 2);
+      expDateInput.value = d.toISOString().split('T')[0];
+    }
+  } else {
+    if (typeSelect) {
+      typeSelect.disabled = false;
+    }
+  }
+
+  updateAdjustmentPreview();
+}
+window.onAdjustmentBatchChange = onAdjustmentBatchChange;
+
+function generateAdjustmentBatchCode() {
+  const pSelect = document.getElementById('adj-product-id');
+  const codeInput = document.getElementById('adj-new-batch-code');
+  if (!codeInput) return;
+
+  let prodNameSlug = 'BENIH';
+  if (pSelect && pSelect.selectedIndex >= 0) {
+    const rawName = pSelect.options[pSelect.selectedIndex].text || '';
+    const clean = rawName.replace(/^[^w]+/, '').split('(')[0].trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (clean) prodNameSlug = clean.slice(0, 6);
+  }
+
+  const d = new Date();
+  const yymm = String(d.getFullYear()).slice(-2) + String(d.getMonth() + 1).padStart(2, '0');
+  const rand4 = Math.floor(1000 + Math.random() * 9000);
+  codeInput.value = 'BATCH-' + prodNameSlug + '-' + yymm + '-' + rand4;
+}
+window.generateAdjustmentBatchCode = generateAdjustmentBatchCode;
 
 function submitStockAdjustment() {
   const pSelect = document.getElementById('adj-product-id');
@@ -4758,12 +5027,35 @@ function submitStockAdjustment() {
   if (submitBtn) submitBtn.disabled = true;
   if (spinner) spinner.style.display = 'inline-block';
 
+  const isNewBatch = (batchId === '__NEW_BATCH__');
+  let newBatchCode = '';
+  let newExpDate = '';
+  let newProdDate = '';
+  let newCost = 0;
+
+  if (isNewBatch) {
+    const codeEl = document.getElementById('adj-new-batch-code');
+    const expEl = document.getElementById('adj-new-exp-date');
+    const prodEl = document.getElementById('adj-new-prod-date');
+    const costEl = document.getElementById('adj-new-cost');
+    newBatchCode = (codeEl ? codeEl.value.trim() : '') || ('BATCH-INIT-' + Date.now().toString().slice(-6));
+    newExpDate = expEl ? expEl.value : '';
+    newProdDate = prodEl ? prodEl.value : '';
+    newCost = Number(costEl ? costEl.value : 0);
+  }
+
   const payload = {
     product_id: productId,
     batch_id: batchId,
-    adjustment_type: adjType,
+    is_new_batch: isNewBatch,
+    batch_code: newBatchCode,
+    expiry_date: newExpDate || null,
+    production_date: newProdDate || null,
+    cost_per_unit: newCost,
+    buy_price: newCost,
+    adjustment_type: isNewBatch ? 'PLUS' : adjType,
     qty: qty,
-    reason: reason,
+    reason: isNewBatch ? 'SALDO_AWAL' : reason,
     unit: unit,
     notes: notes,
     user_name: (CURRENT_USER && CURRENT_USER.name) || USER_NAME || 'Admin'
@@ -8113,6 +8405,9 @@ function submitCheckout() {
 
   apiCall.then(function (res) {
     invalidateCache('products');
+    invalidateCache('batches');
+    invalidateCache('mutations');
+    invalidateCache('stock_mutations');
     invalidateCache('dashboard');
     invalidateCache('receivables');
     invalidateCache('recentInvoices');
@@ -8895,6 +9190,9 @@ function executeVoidTransaction(txId) {
 
     invalidateCache('recentInvoices');
     invalidateCache('products');
+    invalidateCache('batches');
+    invalidateCache('mutations');
+    invalidateCache('stock_mutations');
     invalidateCache('dashboard');
     invalidateCache('receivables');
 
@@ -15220,8 +15518,18 @@ function printStockValuationA4() {
 }
 
 function printStockOpnameSheetA4() {
-  if (!STOCK_VALUATION_DATA || !Array.isArray(STOCK_VALUATION_DATA.items)) {
-    showToast('Data lembar opname stok belum siap untuk dicetak.', true);
+  if (!STOCK_VALUATION_DATA || !Array.isArray(STOCK_VALUATION_DATA.items) || STOCK_VALUATION_DATA.items.length === 0) {
+    showToast('Menyiapkan lembar kerja stock opname fisik persediaan...');
+    api('getStockValuationReport', TOKEN).then(function (res) {
+      if (res && res.success && Array.isArray(res.items)) {
+        STOCK_VALUATION_DATA = res;
+        printStockOpnameSheetA4();
+      } else {
+        showToast('Gagal memuat persediaan untuk lembar opname.', true);
+      }
+    }).catch(function (err) {
+      showToast('Gagal memuat persediaan: ' + (err.message || err), true);
+    });
     return;
   }
 

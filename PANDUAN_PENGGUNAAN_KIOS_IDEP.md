@@ -371,15 +371,26 @@ flowchart TD
    - 🔬 **Butuh Uji Semai Ulang:** Batch benih telah tersimpan lebih dari 3 atau 6 bulan di gudang, disarankan uji semai Tahap 5 di lab QC.
    - ⛔ **Kedaluwarsa:** Melewati tanggal batas aman tanam.
 
+3. **Kartu Stok Per Varietas (Item Stock Ledger):**
+   - Klik tombol **`📋 Rincian Lot`** pada baris varietas benih yang ingin ditelusuri.
+   - Modal akan menampilkan:
+     - **Saldo Fisik Aktif & Valuasi HPP**: Rangkuman sisa stok dan nilai modal lot saat ini.
+     - **Antrean Lot Batch FIFO**: Prioritas lot mana yang akan keluar terlebih dahulu saat ada penjualan kasir atau pengemasan.
+     - **Kartu Mutasi Fisik Varietas Ini**: Menampilkan hingga 30 log pergerakan stok terakhir (Penjualan Kasir, Kemas Mandiri, Faktur Pembelian, dan Koreksi Opname) lengkap dengan nomor nota/batch, perubahan kuantitas (`+` / `-`), jam transaksi, serta catatan petugas.
+
+4. **Buku Jurnal Audit Mutasi Global (Semua Varietas):**
+   - Untuk memantau pergerakan stok seluruh toko/gudang secara menyeluruh tanpa memenuhi halaman utama, klik tombol **`📜 Jurnal Mutasi Global`** di bagian atas menu Stok.
+   - Tersedia pencarian bebas, filter tipe transaksi, dan paginasi untuk kebutuhan audit manajerial.
+
 #### Prosedur Stock Opname Fisik Toko:
-1. Masuk ke menu **`📊 Laporan & Valuasi Stok`** ➔ tab **`📦 Posisi Stok & Valuasi Aset`**.
-2. Klik tombol **`📋 Cetak Lembar Opname Fisik (A4)`**.
+1. Masuk ke menu **`📦 Stok & Batch FIFO`** atau **`📊 Laporan`**.
+2. Klik tombol **`📋 Cetak Form Opname (A4)`** langsung di bilah atas.
 3. Cetak formulir tersebut ke kertas A4 (atau simpan PDF). Formulir ini sengaja **menyembunyikan harga dan nilai uang** agar petugas pemeriksa (*checker*) menghitung kondisi fisik secara objektif.
 4. Checker menghitung fisik toples dan sachet di rak toko, lalu menuliskan hasil hitungan pada kolom **Hitungan Fisik Nyata** serta mencatat selisih (+/-).
 5. Setelah opname selesai dihitung dan ditandatangani checker:
    - Kembali ke menu **`📦 Stok & Batch FIFO`**.
-   - Klik tombol **`⚖️ Penyesuaian Stok`**.
-   - Pilih varietas dan batch terkait.
+   - Klik tombol **`⚖️ + Penyesuaian Stok / Saldo Awal`**.
+   - Pilih varietas dan batch terkait (atau pilih *+ Buat Lot / Batch Baru* jika inisiasi saldo awal).
    - Pilih arah koreksi (`🔻 Pengurangan` jika hilang/rusak, atau `🔺 Penambahan` jika ada temuan lebih).
    - Pada alasan, pilih **`📋 Selisih Hasil Stock Opname Fisik`**.
    - Masukkan kuantitas selisih dan klik **`Simpan Penyesuaian`**.

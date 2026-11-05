@@ -1802,7 +1802,7 @@ tbody tr:hover {
 
 .invoice-format-tab-btn.active {
   background: #ffffff;
-  color: #1e4d3f;
+  color: var(--primary, #2563EB);
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
   font-weight: 700;
 }
@@ -2540,7 +2540,7 @@ tbody tr:hover {
   position: relative;
   width: 100%;
   height: 140px;
-  background: #FAF7F2;
+  background: #F8FAFC;
   border: 1px solid var(--border);
   border-radius: var(--radius-xs);
   overflow: hidden;
@@ -2678,8 +2678,8 @@ tbody tr:hover {
 
 /* Modal Faktur Tagihan Konsinyasi */
 .invoice-summary-box {
-  background: #FAF7F2;
-  border: 1px solid #E4D8CE;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
   border-radius: var(--radius-sm);
   padding: 14px 16px;
   margin-bottom: 14px;
@@ -2824,7 +2824,7 @@ tbody tr:hover {
 
 /* ===================== OUTLET MITRA 360° MODAL & TABS ===================== */
 .outlet-profile-card {
-  background: linear-gradient(135deg, #FAF7F2 0%, #F5EFEB 100%);
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
   border: 1px solid var(--border);
   border-left: 4px solid var(--primary);
   border-radius: var(--radius-sm);
@@ -3041,11 +3041,11 @@ tbody tr:hover {
 }
 
 /* ==========================================================================
-   MASTER TARIF KEMASAN & PANEL KALKULASI HPP TERKUNCI (KIOS IDEP)
+   MASTER TARIF KEMASAN & PANEL KALKULASI HPP TERKUNCI (SISTEM POS)
    ========================================================================== */
 .hpp-locked-panel {
-  background: linear-gradient(135deg, #FAF7F2 0%, #F4EED9 100%);
-  border: 1.5px solid #D1C5B4;
+  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+  border: 1.5px solid #BFDBFE;
   border-radius: var(--radius-md);
   padding: 16px 18px;
   margin-top: 14px;
@@ -3130,7 +3130,7 @@ tbody tr:hover {
 }
 
 .hpp-item-value.locked-val {
-  color: #4D2E17;
+  color: #1E40AF;
 }
 
 .hpp-total-box {
@@ -3276,8 +3276,8 @@ tbody tr:hover {
 
 /* Ringkasan Pengiriman & Outlet */
 .pod-summary-card {
-  background: #FAF7F2;
-  border: 1px solid #E4D8CE;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
   border-radius: var(--radius-sm);
   padding: 14px 16px;
   margin-bottom: 16px;
@@ -3378,7 +3378,7 @@ tbody tr:hover {
 }
 
 .pod-items-table tfoot td {
-  background: #FAF7F2;
+  background: #F8FAFC;
   font-weight: 700;
   border-top: 1px solid var(--border);
 }
@@ -3702,8 +3702,8 @@ tbody tr:hover {
 
 /* Kartu Ringkasan Batch Recall */
 .pj-recall-summary {
-  background: #FAF7F2;
-  border: 1px solid #E8DFD8;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
   border-radius: var(--radius-md);
   padding: 18px;
   margin-bottom: 20px;
@@ -3765,7 +3765,7 @@ tbody tr:hover {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #FAF7F2;
+  background: #F8FAFC;
   position: relative;
   margin-top: 8px;
 }
@@ -3940,23 +3940,23 @@ tbody tr:hover {
   align-items: center;
   gap: 3px;
   font-size: 10.5px;
-  background: #FAF7F2;
-  border: 1px solid #E8DFD8;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
   padding: 2px 7px;
   border-radius: 4px;
   color: #5B4331;
 }
 
 .clm-seed-pill strong {
-  color: #1E4D3F;
+  color: var(--primary, #2563EB);
 }
 
 .clm-selected-tx-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #EBF3EF;
-  border: 1.5px solid #1E4D3F;
+  background: #EFF6FF;
+  border: 1.5px solid var(--primary, #2563EB);
   border-radius: var(--radius-sm);
   padding: 8px 12px;
   margin-top: 6px;
@@ -3972,7 +3972,7 @@ tbody tr:hover {
   cursor: pointer;
   color: var(--text-main);
   user-select: none;
-  background: #FAF7F2;
+  background: #F8FAFC;
   border: 1px solid var(--border);
   padding: 4px 10px;
   border-radius: 20px;
@@ -3980,7 +3980,7 @@ tbody tr:hover {
 }
 
 .clm-mode-toggle:hover {
-  background: #F3ECE4;
+  background: #F1F5F9;
   border-color: var(--accent);
 }
 
@@ -4122,7 +4122,7 @@ tbody tr:hover {
 }
 
 .fu-product-box {
-  background: #FAF7F2;
+  background: #F8FAFC;
   border-left: 3px solid var(--accent);
   padding: 6px 12px;
   border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
@@ -4178,9 +4178,9 @@ tbody tr:hover {
 }
 
 .btn-fu-done {
-  background: #EBF3EF !important;
-  color: #1E4D3F !important;
-  border: 1px solid #1E4D3F !important;
+  background: #EFF6FF !important;
+  color: #2563EB !important;
+  border: 1px solid #2563EB !important;
   font-size: 11.5px !important;
   font-weight: 600 !important;
   padding: 5px 10px !important;
@@ -4190,7 +4190,7 @@ tbody tr:hover {
 }
 
 .btn-fu-done:hover {
-  background: #1E4D3F !important;
+  background: #2563EB !important;
   color: #FFFFFF !important;
 }
 
@@ -5347,7 +5347,7 @@ table.purchase-items-table tr.pur-item-row:hover td {
 }
 
 /* ==========================================================================
-   MODUL STOK & BATCH FIFO ENHANCED (KIOS IDEP)
+   MODUL STOK & BATCH FIFO ENHANCED (SISTEM POS)
    ========================================================================== */
 .fifo-badge-priority-1 {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
@@ -5466,7 +5466,7 @@ table.purchase-items-table tr.pur-item-row:hover td {
 }
 
 .lang-switch-pill .lang-btn.active {
-  background: var(--primary, #1E4D3F);
+  background: var(--primary, #2563EB);
   color: #ffffff !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
@@ -5484,7 +5484,7 @@ table.purchase-items-table tr.pur-item-row:hover td {
 }
 
 .login-lang-switch .lang-switch-pill .lang-btn.active {
-  background: var(--brand-brown, #7A5031);
+  background: var(--primary, #2563EB);
 }
 
 .sidebar-lang-switch {
@@ -6008,11 +6008,11 @@ body.perm-no-delete #modal-container .btn-void {
     left: 10px;
     right: 10px;
     bottom: calc(66px + env(safe-area-inset-bottom, 0px));
-    background: #3F2310;
+    background: #0F172A;
     color: #FFFFFF;
     padding: 10px 14px;
     border-radius: var(--radius-md);
-    box-shadow: 0 10px 28px rgba(36, 20, 9, 0.35);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.35);
     align-items: center;
     justify-content: space-between;
     gap: 10px;
@@ -6028,7 +6028,7 @@ body.perm-no-delete #modal-container .btn-void {
 
   .pos-sticky-qty {
     font-size: 11px;
-    color: #DECFC2;
+    color: #94A3B8;
     font-weight: 600;
   }
 
@@ -6208,10 +6208,10 @@ body.perm-no-delete #modal-container .btn-void {
 }
 
 .topbar-notif-btn.bell-ringing .icon-bell {
-  animation: idepBellSwing 0.75s ease-in-out 2;
+  animation: posBellSwing 0.75s ease-in-out 2;
 }
 
-@keyframes idepBellSwing {
+@keyframes posBellSwing {
   0%, 100% { transform: rotate(0deg); }
   20% { transform: rotate(16deg); }
   40% { transform: rotate(-14deg); }
@@ -6313,9 +6313,9 @@ body.perm-no-delete #modal-container .btn-void {
 }
 
 .notif-link-btn {
-  background: var(--surface-muted, #F7F4EF);
-  border: 1px solid var(--border, #E5E0D8);
-  color: var(--primary, #7A5031);
+  background: var(--surface-muted, #F8FAFC);
+  border: 1px solid var(--border, #E2E8F0);
+  color: var(--primary, #2563EB);
   border-radius: 8px;
   padding: 5px 9px;
   font-size: 11.5px;
@@ -6407,8 +6407,8 @@ body.perm-no-delete #modal-container .btn-void {
 }
 
 .notif-filter-pill {
-  border: 1px solid var(--border, #E5E0D8);
-  background: var(--surface-muted, #F7F4EF);
+  border: 1px solid var(--border, #E2E8F0);
+  background: var(--surface-muted, #F8FAFC);
   color: var(--text-secondary, #4B5563);
   border-radius: 999px;
   padding: 5px 11px;
@@ -6421,8 +6421,8 @@ body.perm-no-delete #modal-container .btn-void {
 }
 
 .notif-filter-pill.active {
-  background: var(--primary, #7A5031);
-  border-color: var(--primary, #7A5031);
+  background: var(--primary, #2563EB);
+  border-color: var(--primary, #2563EB);
   color: #FFFFFF;
 }
 
@@ -6445,7 +6445,7 @@ body.perm-no-delete #modal-container .btn-void {
 }
 
 .notif-item-card:hover {
-  background: #FAF7F2;
+  background: #F8FAFC;
 }
 
 .notif-item-card.unread {
@@ -6550,14 +6550,14 @@ body.perm-no-delete #modal-container .btn-void {
   justify-content: space-between;
   gap: 8px;
   padding: 10px 14px;
-  border-top: 1px solid var(--border, #E5E0D8);
-  background: #FAF8F5;
+  border-top: 1px solid var(--border, #E2E8F0);
+  background: #F8FAFC;
 }
 
 .notif-footer-btn {
-  border: 1px solid var(--border, #E5E0D8);
+  border: 1px solid var(--border, #E2E8F0);
   background: #FFFFFF;
-  color: var(--primary, #7A5031);
+  color: var(--primary, #2563EB);
   border-radius: 8px;
   padding: 6px 12px;
   font-size: 12px;
@@ -6567,7 +6567,7 @@ body.perm-no-delete #modal-container .btn-void {
 }
 
 .notif-footer-btn:hover {
-  background: #F3ECE2;
+  background: #F1F5F9;
 }
 
 .notif-footer-btn-muted {
@@ -6613,15 +6613,15 @@ body.perm-no-delete #modal-container .btn-void {
 }
 
 .notif-pref-card:hover {
-  border-color: var(--primary, #7A5031);
-  background: #FFFCF8;
+  border-color: var(--primary, #2563EB);
+  background: #F8FAFC;
 }
 
 .notif-pref-card input[type="checkbox"] {
   width: 18px;
   height: 18px;
   margin-top: 2px;
-  accent-color: var(--primary, #7A5031);
+  accent-color: var(--primary, #2563EB);
   flex-shrink: 0;
 }
 

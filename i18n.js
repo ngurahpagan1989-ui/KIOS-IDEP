@@ -872,7 +872,7 @@
     'Menunggu Verifikasi': 'Pending Verification',
     'Menyimpan catatan dan mengunggah foto ke Drive...': 'Saving record and uploading photo to Drive...',
     'Menyimpan...': 'Saving...',
-    'Menyinkronkan ke Spreadsheet...': 'Syncing to Spreadsheet...',
+    'Menyinkronkan data...': 'Syncing data...',
     'Merchandise & Kaos': 'Merchandise & Shirts',
     'METODE & KANAL:': 'METHOD & CHANNEL:',
     'Metode Bayar': 'Payment Method',

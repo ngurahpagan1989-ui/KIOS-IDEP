@@ -828,7 +828,7 @@ const KIOS_SOP_GUIDES = {
       { num: '1', title: 'Pendaftaran Produk Baru (Formulir Cerdas 2-in-1)', desc: 'Klik "+ Tambah Produk Baru". Jika memilih bahan mentah curah, centang opsi "✨ Sekaligus buatkan versi kemasan sachet siap jual" agar sistem membuatkan master sachet pasangannya dalam sekali simpan!' },
       { num: '2', title: 'Tentukan Gramatur & Multi-Tier Harga', desc: 'Masukkan berat bersih netto per kemasan (misal: 20 gr). Masukkan harga bertingkat: Harga Reguler (konsumen umum), Harga Outlet (mitra toko), dan Harga Bali Buda.' },
       { num: '3', title: 'Impor Massal via Excel (.xlsx / .csv)', desc: 'Klik "📤 Impor Excel / CSV", klik "Unduh Templat Excel (.xlsx)" untuk format baku. Isi data SKU, nama, kategori, gramatur, dan harga, lalu seret file ke kotak impor untuk simpan massal.' },
-      { num: '4', title: 'Ekspor Data Katalog', desc: 'Klik "📊 Ekspor ke Excel" untuk mengunduh seluruh katalog produk aktif beserta informasi stok terkini ke format spreadsheet.' }
+      { num: '4', title: 'Ekspor Data Katalog', desc: 'Klik "📊 Ekspor ke Excel" untuk mengunduh seluruh katalog produk aktif beserta informasi stok terkini ke format Excel / CSV.' }
     ],
     tips: [
       'Gunakan SKU yang sistematis dan mudah dibaca (contoh: BNH-KGL-01 untuk Benih Kangkung Lombok Sachet).',
@@ -3343,22 +3343,22 @@ function openProductModal(productId) {
   const isSeedType = defaultProductType.toLowerCase() === 'benih';
 
   const bundledSectionHtml = isCreateNew ?
-    '<div id="pf-bundled-toggle-wrap" style="display:' + (isDefaultRaw && !isMedia ? 'block' : 'none') + ';margin-bottom:14px;background:#FAF7F2;border:1px dashed #7A5031;padding:10px 14px;border-radius:var(--radius-sm);">' +
-    '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;font-weight:700;color:#7A5031;font-size:13px;">' +
-    '<input type="checkbox" id="pf-bundled-check"' + (defaultBundledCheck ? ' checked' : '') + ' style="width:18px;height:18px;accent-color:#7A5031;cursor:pointer;" onchange="toggleBundledPacks(this.checked)">' +
+    '<div id="pf-bundled-toggle-wrap" style="display:' + (isDefaultRaw && !isMedia ? 'block' : 'none') + ';margin-bottom:14px;background:#F8FAFC;border:1px dashed #2563EB;padding:10px 14px;border-radius:var(--radius-sm);">' +
+    '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;font-weight:700;color:#2563EB;font-size:13px;">' +
+    '<input type="checkbox" id="pf-bundled-check"' + (defaultBundledCheck ? ' checked' : '') + ' style="width:18px;height:18px;accent-color:#2563EB;cursor:pointer;" onchange="toggleBundledPacks(this.checked)">' +
     '<span>✨ Sekaligus buatkan versi kemasan sachet siap jual (2-in-1)</span>' +
     '</label>' +
     '<div style="font-size:11px;color:var(--text-secondary);margin-top:3px;margin-left:28px;">' +
     'Otomatis membuat variasi sachet siap jual dan mendaftarkan harga bertingkatnya dalam 1 kali simpan.' +
     '</div>' +
     '</div>' +
-    '<div id="bundled-packs-container" style="display:' + (defaultBundledCheck ? 'block' : 'none') + ';background:#FAF7F2;border:1.5px solid #E4D8CE;border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #E4D8CE;padding-bottom:8px;">' +
+    '<div id="bundled-packs-container" style="display:' + (defaultBundledCheck ? 'block' : 'none') + ';background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #E2E8F0;padding-bottom:8px;">' +
     '<div>' +
-    '<div style="font-size:13px;font-weight:700;color:#7A5031;">📦 Versi Kemasan Siap Jual (Sachet / Pack)</div>' +
+    '<div style="font-size:13px;font-weight:700;color:#2563EB;">📦 Versi Kemasan Siap Jual (Sachet / Pack)</div>' +
     '<div style="font-size:11px;color:var(--text-secondary);margin-top:1px;">Nama kemasan otomatis tersinkronisasi mengikuti nama bahan curah + gramatur.</div>' +
     '</div>' +
-    '<button type="button" class="btn btn-secondary btn-sm" onclick="addBundledPackRow()" style="font-size:11.5px;border-color:#7A5031;color:#7A5031;font-weight:600;">+ Ukuran Sachet Lain</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="addBundledPackRow()" style="font-size:11.5px;border-color:#2563EB;color:#2563EB;font-weight:600;">+ Ukuran Sachet Lain</button>' +
     '</div>' +
     '<div id="bundled-pack-list"></div>' +
     '</div>' : '';
@@ -3569,11 +3569,11 @@ function addBundledPackRow(defaultGram) {
 
   const card = document.createElement('div');
   card.className = 'bundled-pack-card';
-  card.style.cssText = 'background:#ffffff;border:1px solid #E4D8CE;border-radius:var(--radius-xs);padding:10px 12px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04);';
+  card.style.cssText = 'background:#ffffff;border:1px solid #E2E8F0;border-radius:var(--radius-xs);padding:10px 12px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04);';
 
   card.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-    '<span style="font-size:11.5px;font-weight:700;color:#7A5031;display:flex;align-items:center;gap:6px;">' +
+    '<span style="font-size:11.5px;font-weight:700;color:#2563EB;display:flex;align-items:center;gap:6px;">' +
     '<span>🌱 Kemasan Variasi #' + (rowIndex + 1) + '</span>' +
     '</span>' +
     (rowIndex > 0 ?
@@ -6529,7 +6529,7 @@ function submitQCForm() {
   };
 
   if (statusBox) statusBox.style.display = 'block';
-  if (statusText) statusText.textContent = currentQCPhotoBase64 ? 'Menyimpan catatan dan mengunggah foto ke Drive...' : 'Menyimpan catatan uji QC ke Spreadsheet...';
+  if (statusText) statusText.textContent = currentQCPhotoBase64 ? 'Menyimpan catatan dan mengunggah foto ke Drive...' : 'Menyimpan catatan uji QC...';
   if (btnSave) btnSave.disabled = true;
 
   api('saveQCStageWithPhoto', TOKEN, payload).then(function (res) {
@@ -6788,16 +6788,16 @@ function openPurchaseModal() {
     '<div class="w-full overflow-x-auto border border-stone-200 rounded-xl purchase-items-wrapper" style="border:1px solid #e7e5e4;border-radius:12px;overflow-x:auto;background:var(--surface,#fff);margin-bottom:10px;">' +
     '<table class="w-full min-w-[1050px] purchase-items-table border-collapse" style="width:100%;min-width:1050px;border-collapse:collapse;">' +
     '<thead>' +
-    '<tr class="purchase-grid-header" style="background-color:#FAF7E8;">' +
-    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left pl-4" style="background-color:#FAF7E8;color:#44403c;padding:10px 12px 10px 16px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Nama Produk</th>' +
-    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left min-w-[210px]" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;min-width:210px;white-space:nowrap;">No. Batch / Lot</th>' +
-    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-center" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:center;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Qty</th>' +
-    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Harga Beli (Rp)</th>' +
-    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Biaya Ekstra/Pcs (Rp)</th>' +
-    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">HPP Final/Pcs (Rp)</th>' +
-    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Tgl Produksi</th>' +
-    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left pr-4" style="background-color:#FAF7E8;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Tgl Kadaluarsa</th>' +
-    '<th class="bg-[#FAF7E8] text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-center" style="background-color:#FAF7E8;color:#44403c;padding:10px 16px 10px 8px;text-align:center;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Aksi</th>' +
+    '<tr class="purchase-grid-header" style="background-color:#F8FAFC;">' +
+    '<th class="bg-slate-50 text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left pl-4" style="background-color:#F8FAFC;color:#44403c;padding:10px 12px 10px 16px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Nama Produk</th>' +
+    '<th class="bg-slate-50 text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left min-w-[210px]" style="background-color:#F8FAFC;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;min-width:210px;white-space:nowrap;">No. Batch / Lot</th>' +
+    '<th class="bg-slate-50 text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-center" style="background-color:#F8FAFC;color:#44403c;padding:10px 8px;text-align:center;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Qty</th>' +
+    '<th class="bg-slate-50 text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left" style="background-color:#F8FAFC;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Harga Beli (Rp)</th>' +
+    '<th class="bg-slate-50 text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left" style="background-color:#F8FAFC;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Biaya Ekstra/Pcs (Rp)</th>' +
+    '<th class="bg-slate-50 text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left" style="background-color:#F8FAFC;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">HPP Final/Pcs (Rp)</th>' +
+    '<th class="bg-slate-50 text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left" style="background-color:#F8FAFC;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Tgl Produksi</th>' +
+    '<th class="bg-slate-50 text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-left pr-4" style="background-color:#F8FAFC;color:#44403c;padding:10px 8px;text-align:left;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Tgl Kadaluarsa</th>' +
+    '<th class="bg-slate-50 text-stone-700 font-bold text-xs uppercase px-3 py-2.5 text-center" style="background-color:#F8FAFC;color:#44403c;padding:10px 16px 10px 8px;text-align:center;border-bottom:1px solid #e7e5e4;white-space:nowrap;">Aksi</th>' +
     '</tr>' +
     '</thead>' +
     '<tbody id="pur-items"></tbody>' +
@@ -7088,7 +7088,7 @@ function flashInputHighlight(inputEl) {
   inputEl.style.backgroundColor = 'var(--success-bg, #edf7ed)';
   setTimeout(function () {
     inputEl.style.transition = 'all 0.5s ease';
-    inputEl.style.borderColor = 'var(--border, #e8e0c9)';
+    inputEl.style.borderColor = 'var(--border, #E2E8F0)';
     inputEl.style.backgroundColor = '';
   }, 350);
 }
@@ -8691,13 +8691,13 @@ function renderFinanceSignatureBlock(tx, s, isPrint) {
 
     return (
       '<div style="width:220px;text-align:center;">' +
-      '<div style="font-weight:600;color:' + (isPrint ? '#4B5563' : '#6B5749') + ';">Hormat Kami,</div>' +
+      '<div style="font-weight:600;color:' + ('#475569') + ';">Hormat Kami,</div>' +
       '<div style="font-weight:700;color:var(--primary);margin-top:1px;">PENGESAHAN DOKUMEN RESMI</div>' +
       '<div style="position:relative;height:65px;width:100%;margin:2px auto 4px auto;display:flex;align-items:center;justify-content:center;">' +
       '<img src="' + escapeHtml(sigData.signature) + '" alt="Tanda Tangan Finance" style="max-height:60px;max-width:160px;object-fit:contain;z-index:2;position:relative;">' +
       stampHtml +
       '</div>' +
-      '<div style="font-weight:700;color:#362417;border-bottom:1px solid #362417;display:inline-block;min-width:160px;padding-bottom:2px;">( ' + escapeHtml(signerName) + ' )</div>' +
+      '<div style="font-weight:700;color:#0F172A;border-bottom:1px solid #0F172A;display:inline-block;min-width:160px;padding-bottom:2px;">( ' + escapeHtml(signerName) + ' )</div>' +
       '<div style="font-size:9.5px;color:#059669;font-weight:700;margin-top:2px;">✅ Disahkan Finance &bull; ' + signedDateStr + ' ' + timeStr + '</div>' +
       '</div>'
     );
@@ -8709,10 +8709,10 @@ function renderFinanceSignatureBlock(tx, s, isPrint) {
 
   return (
     '<div style="width:200px;text-align:center;">' +
-    '<div style="font-weight:600;color:' + (isPrint ? '#4B5563' : '#6B5749') + ';">Hormat Kami,</div>' +
+    '<div style="font-weight:600;color:' + ('#475569') + ';">Hormat Kami,</div>' +
     '<div style="font-weight:700;color:var(--primary);margin-top:1px;">PENGESAHAN DOKUMEN RESMI</div>' +
     '<div style="height:44px;display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:10px;font-style:italic;">(Menunggu TTD Finance)</div>' +
-    '<div style="font-weight:700;color:#362417;border-bottom:1px solid #362417;display:inline-block;min-width:160px;padding-bottom:2px;">( Bagian Keuangan )</div>' +
+    '<div style="font-weight:700;color:#0F172A;border-bottom:1px solid #0F172A;display:inline-block;min-width:160px;padding-bottom:2px;">( Bagian Keuangan )</div>' +
     '<div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">Petugas Keuangan</div>' +
     actionBtn +
     '</div>'
@@ -9005,14 +9005,14 @@ function printInvoiceA4(invoiceData) {
     '@page { size: A4 portrait; margin: 12mm 15mm; }' +
     'body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 10pt; color: #1F2937; margin: 0; padding: 0; position: relative; line-height: 1.4; }' +
     'table { width: 100%; border-collapse: collapse; }' +
-    'th { background: #1E4D3F; color: #ffffff; padding: 9px 10px; font-weight: 700; text-align: left; border: 1px solid #1E4D3F; font-size: 9.5pt; }' +
+    'th { background: #2563EB; color: #ffffff; padding: 9px 10px; font-weight: 700; text-align: left; border: 1px solid #2563EB; font-size: 9.5pt; }' +
     'td { border: 1px solid #D1D5DB; }' +
     '.invoice-void-watermark { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 55px; font-weight: 900; color: rgba(220,38,38,0.22); border: 6px dashed rgba(220,38,38,0.35); padding: 14px 36px; border-radius: 16px; letter-spacing: 4px; pointer-events: none; text-align: center; }' +
     'tr { page-break-inside: avoid; }' +
     '</style>' +
     '</head><body>' +
     watermarkHtml +
-    '<div class="invoice-header letterhead" style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:2.5px solid #1E4D3F;margin-bottom:14px;">' +
+    '<div class="invoice-header letterhead" style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:2.5px solid #2563EB;margin-bottom:14px;">' +
     '<div style="max-width:58%;">' +
     logoHtml +
     '<div style="font-size:9.5pt;color:#4B5563;line-height:1.45;margin-top:4px;">' +
@@ -9021,9 +9021,9 @@ function printInvoiceA4(invoiceData) {
     '</div>' +
     '</div>' +
     '<div style="text-align:right;min-width:220px;">' +
-    '<div style="font-size:20pt;font-weight:800;color:#1E4D3F;letter-spacing:1px;line-height:1.1;">FAKTUR PENJUALAN</div>' +
+    '<div style="font-size:20pt;font-weight:800;color:#2563EB;letter-spacing:1px;line-height:1.1;">FAKTUR PENJUALAN</div>' +
     '<table style="margin-top:6px;margin-left:auto;border-collapse:collapse;font-size:9.5pt;width:auto;">' +
-    '<tr><td style="padding:1.5px 6px;text-align:right;color:#4B5563;border:none;">No. Faktur:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;font-weight:700;font-family:monospace;color:#1E4D3F;border:none;">#' + escapeHtml(tx.id) + '</td></tr>' +
+    '<tr><td style="padding:1.5px 6px;text-align:right;color:#4B5563;border:none;">No. Faktur:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;font-weight:700;font-family:monospace;color:#2563EB;border:none;">#' + escapeHtml(tx.id) + '</td></tr>' +
     '<tr><td style="padding:1.5px 6px;text-align:right;color:#4B5563;border:none;">Tanggal:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;color:#111827;border:none;">' + formatDate(tx.created_at) + '</td></tr>' +
     '<tr><td style="padding:1.5px 6px;text-align:right;color:#4B5563;border:none;">Status:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;font-weight:700;color:' + statusColor + ';border:none;">' + statusLabel + '</td></tr>' +
     '</table>' +
@@ -9056,7 +9056,7 @@ function printInvoiceA4(invoiceData) {
     '<tfoot>' +
     '<tr><td colspan="4" style="text-align:right;padding:8px 12px;font-weight:600;">Subtotal:</td><td style="text-align:right;padding:8px 12px;font-weight:600;">' + formatRupiah(tx.subtotal) + '</td></tr>' +
     (Number(tx.tax) > 0 ? '<tr><td colspan="4" style="text-align:right;padding:6px 12px;font-weight:600;">Pajak:</td><td style="text-align:right;padding:6px 12px;font-weight:600;">' + formatRupiah(tx.tax) + '</td></tr>' : '') +
-    '<tr style="font-size:15px;font-weight:800;background:#F3F4F6;"><td colspan="4" style="text-align:right;padding:10px 12px;">TOTAL PEMBAYARAN:</td><td style="text-align:right;padding:10px 12px;color:#1E4D3F;">' + formatRupiah(tx.total) + '</td></tr>' +
+    '<tr style="font-size:15px;font-weight:800;background:#F3F4F6;"><td colspan="4" style="text-align:right;padding:10px 12px;">TOTAL PEMBAYARAN:</td><td style="text-align:right;padding:10px 12px;color:#2563EB;">' + formatRupiah(tx.total) + '</td></tr>' +
     '</tfoot>' +
     '</table>' +
 
@@ -9630,7 +9630,7 @@ function renderMinimalistInvoiceHTML(data, isActive) {
     '</div>' +
     '</div>' +
     '<div style="text-align:right;">' +
-    '<div style="font-size:18px;font-weight:800;letter-spacing:0.5px;color:#1E4D3F;">FAKTUR PENJUALAN</div>' +
+    '<div style="font-size:18px;font-weight:800;letter-spacing:0.5px;color:#2563EB;">FAKTUR PENJUALAN</div>' +
     '<div style="font-size:12px;font-family:monospace;font-weight:700;color:#334155;margin-top:2px;">#' + escapeHtml(tx.id) + '</div>' +
     '<div style="font-size:11.5px;color:#64748B;margin-top:2px;">' + formatDate(tx.created_at) + '</div>' +
     '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10.5px;font-weight:700;background:' + (isVoid ? '#FEE2E2' : (tx.status === 'paid' ? '#DCFCE7' : '#FEF3C7')) + ';color:' + statusColor + ';">' + statusLabel + '</span></div>' +
@@ -9663,7 +9663,7 @@ function renderMinimalistInvoiceHTML(data, isActive) {
     '<div style="width:260px;">' +
     '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#64748B;"><span>Subtotal:</span><span>' + formatRupiah(tx.subtotal !== undefined ? tx.subtotal : tx.total) + '</span></div>' +
     (Number(tx.tax) > 0 ? '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#64748B;"><span>Pajak:</span><span>' + formatRupiah(tx.tax) + '</span></div>' : '') +
-    '<div style="display:flex;justify-content:space-between;padding:8px 0 4px 0;border-top:2px solid #E2E8F0;margin-top:4px;font-size:15px;font-weight:800;color:#1E4D3F;">' +
+    '<div style="display:flex;justify-content:space-between;padding:8px 0 4px 0;border-top:2px solid #E2E8F0;margin-top:4px;font-size:15px;font-weight:800;color:#2563EB;">' +
     '<span>Total:</span><span>' + formatRupiah(tx.total) + '</span>' +
     '</div>' +
     (rec && !isVoid ? '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:12px;color:#DC2626;font-weight:700;"><span>Sisa Piutang:</span><span>' + formatRupiah(rec.remaining) + '</span></div>' : '') +
@@ -9688,14 +9688,14 @@ function renderFormalInvoiceHTML(data, isActive) {
   const watermarkHtml = isVoid ? '<div class="invoice-void-watermark">DIBATALKAN (VOID)</div>' : '';
 
   const rowsFormal = items.map(function (i, idx) {
-    const expInfo = (i.expiry_date ? ('<br><span style="font-size:10px;color:#6B5749;">Exp: ' + formatDate(i.expiry_date) + '</span>') : '') +
+    const expInfo = (i.expiry_date ? ('<br><span style="font-size:10px;color:#475569;">Exp: ' + formatDate(i.expiry_date) + '</span>') : '') +
       (i.batch_id ? ('<br><span style="display:inline-block;margin-top:2px;font-size:9.5px;color:#4B382A;background:#EFE9D9;padding:1px 6px;border-radius:3px;font-family:monospace;word-break:break-all;">Lot/Batch: ' + escapeHtml(i.batch_id) + '</span>') : '');
-    return '<tr style="border-bottom:1px solid #E8E0C9;">' +
-      '<td style="padding:8px 6px;border:1px solid #E8E0C9;text-align:center;vertical-align:top;font-size:11.5px;">' + (idx + 1) + '</td>' +
-      '<td style="padding:8px 10px;border:1px solid #E8E0C9;vertical-align:top;font-size:12px;"><strong>' + escapeHtml(i.product_name) + '</strong>' + expInfo + '</td>' +
-      '<td style="padding:8px 8px;border:1px solid #E8E0C9;text-align:center;vertical-align:top;font-size:12px;">' + i.qty + ' sachet</td>' +
-      '<td style="padding:8px 10px;border:1px solid #E8E0C9;text-align:right;vertical-align:top;font-size:12px;">' + formatRupiah(i.price) + '</td>' +
-      '<td style="padding:8px 10px;border:1px solid #E8E0C9;text-align:right;font-weight:700;vertical-align:top;font-size:12px;">' + formatRupiah(i.subtotal) + '</td>' +
+    return '<tr style="border-bottom:1px solid #E2E8F0;">' +
+      '<td style="padding:8px 6px;border:1px solid #E2E8F0;text-align:center;vertical-align:top;font-size:11.5px;">' + (idx + 1) + '</td>' +
+      '<td style="padding:8px 10px;border:1px solid #E2E8F0;vertical-align:top;font-size:12px;"><strong>' + escapeHtml(i.product_name) + '</strong>' + expInfo + '</td>' +
+      '<td style="padding:8px 8px;border:1px solid #E2E8F0;text-align:center;vertical-align:top;font-size:12px;">' + i.qty + ' sachet</td>' +
+      '<td style="padding:8px 10px;border:1px solid #E2E8F0;text-align:right;vertical-align:top;font-size:12px;">' + formatRupiah(i.price) + '</td>' +
+      '<td style="padding:8px 10px;border:1px solid #E2E8F0;text-align:right;font-weight:700;vertical-align:top;font-size:12px;">' + formatRupiah(i.subtotal) + '</td>' +
       '</tr>';
   }).join('');
 
@@ -9718,7 +9718,7 @@ function renderFormalInvoiceHTML(data, isActive) {
 
   return '<div id="view-formal" class="paper-canvas formal-mode ' + (isActive ? 'active-doc' : '') + '">' +
     watermarkHtml +
-    '<div class="letterhead" style="background:#7A5031 !important;color:#ffffff !important;margin:-15mm -20mm 18px -20mm;padding:16mm 20mm 14mm 20mm;display:flex;justify-content:space-between;align-items:flex-start;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;">' +
+    '<div class="letterhead" style="background:#2563EB !important;color:#ffffff !important;margin:-15mm -20mm 18px -20mm;padding:16mm 20mm 14mm 20mm;display:flex;justify-content:space-between;align-items:flex-start;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;">' +
     '<div style="max-width:58%;">' +
     logoImgHTMLFormal +
     '<div style="font-size:9.5pt;opacity:0.95;margin-top:4px;line-height:1.4;">' +
@@ -9736,58 +9736,58 @@ function renderFormalInvoiceHTML(data, isActive) {
     '</table>' +
     '</div>' +
     '</div>' +
-    '<div style="display:flex;justify-content:space-between;gap:16px;margin-bottom:16px;background:#FAF7E8 !important;padding:12px 16px;border-radius:4px;border:1px solid #E8E0C9;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;">' +
+    '<div style="display:flex;justify-content:space-between;gap:16px;margin-bottom:16px;background:#F8FAFC !important;padding:12px 16px;border-radius:4px;border:1px solid #E2E8F0;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;">' +
     '<div style="flex:1;">' +
-    '<div style="font-size:10px;font-weight:700;color:#6B5749;text-transform:uppercase;letter-spacing:0.5px;">DITAGIHKAN KEPADA:</div>' +
-    '<div style="font-size:14px;font-weight:700;color:#362417;margin-top:2px;">' + escapeHtml(c ? c.name : (tx.customer_name || 'Umum')) + '</div>' +
-    (c && c.phone ? '<div style="font-size:11.5px;color:#6B5749;margin-top:1px;">WA/Telp: ' + escapeHtml(c.phone) + '</div>' : '') +
-    (c && c.address ? '<div style="font-size:11px;color:#6B5749;margin-top:1px;">Alamat: ' + escapeHtml(c.address) + '</div>' : '') +
+    '<div style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;">DITAGIHKAN KEPADA:</div>' +
+    '<div style="font-size:14px;font-weight:700;color:#0F172A;margin-top:2px;">' + escapeHtml(c ? c.name : (tx.customer_name || 'Umum')) + '</div>' +
+    (c && c.phone ? '<div style="font-size:11.5px;color:#475569;margin-top:1px;">WA/Telp: ' + escapeHtml(c.phone) + '</div>' : '') +
+    (c && c.address ? '<div style="font-size:11px;color:#475569;margin-top:1px;">Alamat: ' + escapeHtml(c.address) + '</div>' : '') +
     '</div>' +
     '<div style="text-align:right;flex:1;">' +
-    '<div style="font-size:10px;font-weight:700;color:#6B5749;text-transform:uppercase;letter-spacing:0.5px;">METODE &amp; KANAL:</div>' +
-    '<div style="font-weight:700;color:#362417;margin-top:2px;">' + escapeHtml(tx.payment_method || 'Tunai') + ' (' + escapeHtml(tx.source || 'Offline') + ')</div>' +
+    '<div style="font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;">METODE &amp; KANAL:</div>' +
+    '<div style="font-weight:700;color:#0F172A;margin-top:2px;">' + escapeHtml(tx.payment_method || 'Tunai') + ' (' + escapeHtml(tx.source || 'Offline') + ')</div>' +
     '<div style="font-size:12px;font-weight:600;margin-top:1px;color:' + (isVoid ? '#DC2626' : (tx.status === 'paid' ? '#2E7D32' : '#D97706')) + ';">' + (isVoid ? 'Status: DIBATALKAN (VOID)' : (tx.status === 'paid' ? 'Status: LUNAS' : 'Status: CICILAN / TEMPO')) + '</div>' +
     '</div>' +
     '</div>' +
-    '<table style="width:100%;border-collapse:collapse;margin-bottom:14px;border:1px solid #E8E0C9;">' +
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:14px;border:1px solid #E2E8F0;">' +
     '<thead>' +
-    '<tr style="background:#7A5031 !important;color:#ffffff !important;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;">' +
-    '<th style="padding:9px 6px;text-align:center;border:1px solid #7A5031;width:35px;">No</th>' +
-    '<th style="padding:9px 10px;text-align:left;border:1px solid #7A5031;">Item Benih &amp; Batch</th>' +
-    '<th style="padding:9px 8px;text-align:center;border:1px solid #7A5031;width:80px;">Kuantitas</th>' +
-    '<th style="padding:9px 10px;text-align:right;border:1px solid #7A5031;width:120px;">Harga Satuan</th>' +
-    '<th style="padding:9px 10px;text-align:right;border:1px solid #7A5031;width:130px;">Subtotal</th>' +
+    '<tr style="background:#2563EB !important;color:#ffffff !important;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;">' +
+    '<th style="padding:9px 6px;text-align:center;border:1px solid #2563EB;width:35px;">No</th>' +
+    '<th style="padding:9px 10px;text-align:left;border:1px solid #2563EB;">Item Benih &amp; Batch</th>' +
+    '<th style="padding:9px 8px;text-align:center;border:1px solid #2563EB;width:80px;">Kuantitas</th>' +
+    '<th style="padding:9px 10px;text-align:right;border:1px solid #2563EB;width:120px;">Harga Satuan</th>' +
+    '<th style="padding:9px 10px;text-align:right;border:1px solid #2563EB;width:130px;">Subtotal</th>' +
     '</tr>' +
     '</thead>' +
     '<tbody>' + rowsFormal + '</tbody>' +
     '<tfoot>' +
-    '<tr><td colspan="4" style="text-align:right;padding:6px 12px;color:#6B5749;font-weight:500;border:1px solid #E8E0C9;">Subtotal:</td><td style="text-align:right;padding:6px 12px;font-weight:600;border:1px solid #E8E0C9;">' + formatRupiah(tx.subtotal !== undefined ? tx.subtotal : tx.total) + '</td></tr>' +
-    (Number(tx.tax) > 0 ? '<tr><td colspan="4" style="text-align:right;padding:4px 12px;color:#6B5749;font-weight:500;border:1px solid #E8E0C9;">Pajak:</td><td style="text-align:right;padding:4px 12px;font-weight:600;border:1px solid #E8E0C9;">' + formatRupiah(tx.tax) + '</td></tr>' : '') +
-    '<tr style="font-size:15px;font-weight:800;color:#7A5031;background:#FAF7E8 !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;"><td colspan="4" style="text-align:right;padding:8px 12px;border:1px solid #E8E0C9;">TOTAL FAKTUR:</td><td style="text-align:right;padding:8px 12px;border:1px solid #E8E0C9;">' + formatRupiah(tx.total) + '</td></tr>' +
-    (rec && !isVoid ? '<tr style="color:#B91C1C;font-weight:700;"><td colspan="4" style="text-align:right;padding:6px 12px;border:1px solid #E8E0C9;">Sisa Piutang:</td><td style="text-align:right;padding:6px 12px;border:1px solid #E8E0C9;">' + formatRupiah(rec.remaining) + '</td></tr>' : '') +
+    '<tr><td colspan="4" style="text-align:right;padding:6px 12px;color:#475569;font-weight:500;border:1px solid #E2E8F0;">Subtotal:</td><td style="text-align:right;padding:6px 12px;font-weight:600;border:1px solid #E2E8F0;">' + formatRupiah(tx.subtotal !== undefined ? tx.subtotal : tx.total) + '</td></tr>' +
+    (Number(tx.tax) > 0 ? '<tr><td colspan="4" style="text-align:right;padding:4px 12px;color:#475569;font-weight:500;border:1px solid #E2E8F0;">Pajak:</td><td style="text-align:right;padding:4px 12px;font-weight:600;border:1px solid #E2E8F0;">' + formatRupiah(tx.tax) + '</td></tr>' : '') +
+    '<tr style="font-size:15px;font-weight:800;color:#2563EB;background:#EFF6FF !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;"><td colspan="4" style="text-align:right;padding:8px 12px;border:1px solid #E2E8F0;">TOTAL FAKTUR:</td><td style="text-align:right;padding:8px 12px;border:1px solid #E2E8F0;">' + formatRupiah(tx.total) + '</td></tr>' +
+    (rec && !isVoid ? '<tr style="color:#B91C1C;font-weight:700;"><td colspan="4" style="text-align:right;padding:6px 12px;border:1px solid #E2E8F0;">Sisa Piutang:</td><td style="text-align:right;padding:6px 12px;border:1px solid #E2E8F0;">' + formatRupiah(rec.remaining) + '</td></tr>' : '') +
     '</tfoot>' +
     '</table>' +
-    '<div style="margin-top:10px;padding:9px 12px;background:#FAF7E8;border:1px dashed #7A5031;border-radius:4px;font-size:11.5px;color:#362417;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;">' +
-    '<strong>Terbilang:</strong> <em style="font-weight:700;color:#7A5031;"># ' + terbilangText + ' #</em>' +
+    '<div style="margin-top:10px;padding:9px 12px;background:#EFF6FF;border:1px dashed #2563EB;border-radius:4px;font-size:11.5px;color:#0F172A;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;">' +
+    '<strong>Terbilang:</strong> <em style="font-weight:700;color:#2563EB;"># ' + terbilangText + ' #</em>' +
     '</div>' +
-    '<div style="margin-top:12px;padding:10px 14px;background:#FAF7E8;border:1px solid #E8E0C9;border-radius:4px;font-size:11px;color:#362417;display:flex;align-items:center;gap:12px;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;">' +
+    '<div style="margin-top:12px;padding:10px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:4px;font-size:11px;color:#0F172A;display:flex;align-items:center;gap:12px;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;">' +
     '<div style="font-size:24px;line-height:1;">🏦</div>' +
     '<div style="line-height:1.4;">' +
-    '<div style="font-weight:700;color:#7A5031;font-size:11.5px;">INFORMASI PEMBAYARAN TRANSFER BANK RESMI:</div>' +
+    '<div style="font-weight:700;color:#2563EB;font-size:11.5px;">INFORMASI PEMBAYARAN TRANSFER BANK RESMI:</div>' +
     '<div>Bank: <strong>' + escapeHtml(s.bank_name || 'BNI (Bank Negara Indonesia)') + '</strong> &bull; No. Rekening: <strong style="font-family:monospace;font-size:12px;letter-spacing:0.5px;">' + escapeHtml(s.bank_account || '0178 849 203') + '</strong></div>' +
-    '<div>Atas Nama: <strong>' + escapeHtml(s.bank_account_name || 'Rekening Toko') + '</strong> &bull; <span style="font-size:10px;color:#6B5749;">Mohon cantumkan No. Faktur pada berita transfer</span></div>' +
+    '<div>Atas Nama: <strong>' + escapeHtml(s.bank_account_name || 'Rekening Toko') + '</strong> &bull; <span style="font-size:10px;color:#475569;">Mohon cantumkan No. Faktur pada berita transfer</span></div>' +
     '</div>' +
     '</div>' +
     '<div style="display:flex;justify-content:space-between;gap:30px;margin-top:24px;padding-top:10px;font-size:11.5px;text-align:center;">' +
     '<div style="width:200px;">' +
-    '<div style="font-weight:600;color:#6B5749;">Tanda Terima Pelanggan / Penerima,</div>' +
+    '<div style="font-weight:600;color:#475569;">Tanda Terima Pelanggan / Penerima,</div>' +
     '<div style="height:50px;"></div>' +
-    '<div style="font-weight:700;color:#362417;border-bottom:1px solid #362417;display:inline-block;min-width:160px;padding-bottom:2px;">( ' + escapeHtml(c ? c.name : (tx.customer_name || '_____________________')) + ' )</div>' +
-    '<div style="font-size:10px;color:#6B5749;margin-top:2px;">Nama Terang &amp; Cap</div>' +
+    '<div style="font-weight:700;color:#0F172A;border-bottom:1px solid #0F172A;display:inline-block;min-width:160px;padding-bottom:2px;">( ' + escapeHtml(c ? c.name : (tx.customer_name || '_____________________')) + ' )</div>' +
+    '<div style="font-size:10px;color:#475569;margin-top:2px;">Nama Terang &amp; Cap</div>' +
     '</div>' +
     renderFinanceSignatureBlock(tx, s, false) +
     '</div>' +
-    '<div style="text-align:center;color:#6B5749;font-size:10.5px;margin-top:20px;border-top:1px dashed #E8E0C9;padding-top:8px;">' +
+    '<div style="text-align:center;color:#475569;font-size:10.5px;margin-top:20px;border-top:1px dashed #E2E8F0;padding-top:8px;">' +
     escapeHtml(s.invoice_footer || 'Terima kasih atas kunjungan Anda!') +
     '</div>' +
     '</div>';
@@ -10499,7 +10499,7 @@ function openTransferStockModal(outletId) {
   }
 
   const bodyHtml =
-    '<div style="background:#FAF7F2;border:1px solid #E4D8CE;padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">' +
+    '<div style="background:#F8FAFC;border:1px solid #E2E8F0;padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">' +
     '<div style="font-size:13px;font-weight:700;color:var(--primary);">Drop / Pengiriman Stok ke ' + escapeHtml(outletName) + '</div>' +
     '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Stok benih kemasan jadi akan dipotong otomatis dari gudang pusat secara FIFO dan ditambahkan ke saldo rak outlet. Dokumen Surat Jalan Delivery Order otomatis diterbitkan ke Google Drive.</div>' +
     '</div>' +
@@ -10645,7 +10645,7 @@ function printConsignmentSuratJalan(transferId) {
         '<td style="text-align:center;padding:7px 8px;border:1px solid #cbd5e1;font-size:11px;">' + (idx + 1) + '</td>' +
         '<td style="padding:7px 8px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;color:#1e293b;">' + escapeHtml(typeof formatCleanProductName === 'function' ? formatCleanProductName(it.product_name || it.product_id) : (it.product_name || it.product_id)) + '</td>' +
         '<td style="text-align:center;padding:7px 8px;border:1px solid #cbd5e1;font-size:10px;color:#475569;font-family:monospace;">' + batchDisplay + '</td>' +
-        '<td style="text-align:center;padding:7px 8px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;color:#7A5031;">' + qty + ' ' + escapeHtml(it.unit || 'pcs') + '</td>' +
+        '<td style="text-align:center;padding:7px 8px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;color:#2563EB;">' + qty + ' ' + escapeHtml(it.unit || 'pcs') + '</td>' +
         '<td style="text-align:right;padding:7px 8px;border:1px solid #cbd5e1;font-size:11px;">Rp ' + price.toLocaleString('id-ID') + '</td>' +
         '<td style="text-align:right;padding:7px 8px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;color:#1e293b;">Rp ' + lineVal.toLocaleString('id-ID') + '</td>' +
         '</tr>';
@@ -10653,7 +10653,7 @@ function printConsignmentSuratJalan(transferId) {
 
     const logoHtml = storeLogo
       ? '<img src="' + escapeHtml(storeLogo) + '" style="max-height:55px;max-width:180px;object-fit:contain;display:block;margin-bottom:5px;" alt="Logo" />'
-      : '<div style="font-size:15pt;font-weight:800;color:#7A5031;letter-spacing:0.5px;margin-bottom:3px;">' + escapeHtml(storeTitle).toUpperCase() + '</div>';
+      : '<div style="font-size:15pt;font-weight:800;color:#2563EB;letter-spacing:0.5px;margin-bottom:3px;">' + escapeHtml(storeTitle).toUpperCase() + '</div>';
 
     const printHtml =
       '<!DOCTYPE html>' +
@@ -10666,7 +10666,7 @@ function printConsignmentSuratJalan(transferId) {
       '@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } tr { page-break-inside: avoid; } }' +
       '</style>' +
       '</head><body>' +
-      '<div style="border-bottom: 2px solid #7A5031; padding-bottom: 12px; margin-bottom: 16px;">' +
+      '<div style="border-bottom: 2px solid #2563EB; padding-bottom: 12px; margin-bottom: 16px;">' +
       '<table style="width:100%;border-collapse:collapse;"><tr>' +
       '<td style="vertical-align:top;width:58%;padding-right:15px;">' +
       logoHtml +
@@ -10674,7 +10674,7 @@ function printConsignmentSuratJalan(transferId) {
       '<div style="font-size:9.5pt;color:#475569;margin-top:2px;">Kontak/WA: ' + escapeHtml(storePhone) + (storeEmail ? (' | Email: ' + escapeHtml(storeEmail)) : '') + '</div>' +
       '</td>' +
       '<td style="text-align:right;vertical-align:top;width:42%;">' +
-      '<div style="font-size:16pt;font-weight:800;color:#7A5031;letter-spacing:1px;line-height:1.2;">SURAT JALAN</div>' +
+      '<div style="font-size:16pt;font-weight:800;color:#2563EB;letter-spacing:1px;line-height:1.2;">SURAT JALAN</div>' +
       '<div style="font-size:9pt;color:#64748b;font-weight:600;text-transform:uppercase;margin-bottom:8px;">PENGIRIMAN STOK KONSINYASI</div>' +
       '<table style="display:inline-table;width:auto;text-align:left;font-size:9.5pt;border-collapse:collapse;">' +
       '<tr><td style="color:#64748b;padding:2px 8px 2px 0;font-weight:600;">No. SJ</td><td style="color:#1e293b;font-weight:bold;">: #' + escapeHtml(transfer.invoice_no || transfer.id) + '</td></tr>' +
@@ -10689,7 +10689,7 @@ function printConsignmentSuratJalan(transferId) {
       '<tr>' +
       '<td style="padding:8px 12px;width:50%;vertical-align:top;border-right:1px solid #e2e8f0;">' +
       '<div style="font-size:9px;color:#64748b;text-transform:uppercase;font-weight:bold;">Tujuan Toko Cabang / Mitra</div>' +
-      '<div style="font-size:13px;font-weight:bold;color:#7A5031;margin-top:2px;">' + escapeHtml(outlet.name || '-') + '</div>' +
+      '<div style="font-size:13px;font-weight:bold;color:#2563EB;margin-top:2px;">' + escapeHtml(outlet.name || '-') + '</div>' +
       '<div style="font-size:10px;color:#334155;margin-top:3px;">PIC Toko: <strong>' + escapeHtml(outlet.pic_name || '-') + '</strong> (' + escapeHtml(outlet.phone || '-') + ')</div>' +
       '<div style="font-size:10px;color:#475569;margin-top:2px;">Alamat: ' + escapeHtml(outlet.address || '-') + '</div>' +
       '<div style="font-size:10px;color:#0f766e;margin-top:2px;">Tingkat Harga: <strong>' + escapeHtml(outlet.price_tier || 'Mitra') + '</strong></div>' +
@@ -10709,7 +10709,7 @@ function printConsignmentSuratJalan(transferId) {
       '<div style="margin-bottom:6px;font-size:10px;font-weight:bold;color:#334155;text-transform:uppercase;">Daftar Benih / Produk Titip Pajang di Rak Mitra:</div>' +
       '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;">' +
       '<thead>' +
-      '<tr style="background:#7A5031;color:#ffffff;">' +
+      '<tr style="background:#2563EB;color:#ffffff;">' +
       '<th style="padding:7px 8px;border:1px solid #5C381E;font-size:10px;width:28px;">No</th>' +
       '<th style="padding:7px 8px;border:1px solid #5C381E;font-size:10px;text-align:left;">Nama Produk</th>' +
       '<th style="padding:7px 8px;border:1px solid #5C381E;font-size:10px;text-align:center;width:120px;">No. Batch / Lot</th>' +
@@ -10722,14 +10722,14 @@ function printConsignmentSuratJalan(transferId) {
       itemsRows +
       '<tr style="background:#f1f5f9;font-weight:bold;">' +
       '<td colspan="3" style="padding:7px 8px;border:1px solid #cbd5e1;text-align:right;">TOTAL KESELURUHAN:</td>' +
-      '<td style="padding:7px 8px;border:1px solid #cbd5e1;text-align:center;color:#7A5031;">' + totalQty + ' pcs</td>' +
+      '<td style="padding:7px 8px;border:1px solid #cbd5e1;text-align:center;color:#2563EB;">' + totalQty + ' pcs</td>' +
       '<td style="padding:7px 8px;border:1px solid #cbd5e1;"></td>' +
       '<td style="padding:7px 8px;border:1px solid #cbd5e1;text-align:right;color:#0f766e;">Rp ' + totalValue.toLocaleString('id-ID') + '</td>' +
       '</tr>' +
       '</tbody>' +
       '</table>' +
 
-      '<div style="margin-bottom:14px;padding:8px 12px;background:#FAF7F2;border:1px dashed #D6C7BA;border-radius:4px;font-size:9.5px;color:#5c381e;">' +
+      '<div style="margin-bottom:14px;padding:8px 12px;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:4px;font-size:9.5px;color:#475569;">' +
       '<strong>Ketentuan Konsinyasi:</strong>' +
       '<ul style="margin:4px 0 0 16px;padding:0;">' +
       '<li>Seluruh barang di atas dititipkan untuk dipajang dan dijual di outlet mitra.</li>' +
@@ -11415,7 +11415,7 @@ function viewDeliveryReceiptModal(deliveryId, parentOutletId) {
       '<div style="background:#FFFFFF;border:1px solid var(--border);border-radius:var(--radius-xs);padding:12px;text-align:center;">' +
       '<div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:bold;margin-bottom:6px;">Tanda Tangan Digital Penerima</div>' +
       (t.recipient_signature ?
-        ('<img src="' + t.recipient_signature + '" style="max-height:85px;max-width:100%;object-fit:contain;border:1px dashed #cbd5e1;border-radius:4px;padding:4px;background:#FAF7F2;" alt="Tanda Tangan" />') :
+        ('<img src="' + t.recipient_signature + '" style="max-height:85px;max-width:100%;object-fit:contain;border:1px dashed #cbd5e1;border-radius:4px;padding:4px;background:#F8FAFC;" alt="Tanda Tangan" />') :
         '<div style="color:var(--text-muted);font-size:12px;padding:20px;">(Tanda tangan tidak tersedia)</div>'
       ) +
       '</div>' +
@@ -11718,7 +11718,7 @@ function openConsignmentAuditModal(outletId) {
     }).join('');
 
     const bodyHtml =
-      '<div style="margin-bottom:14px;background:#FAF7F2;border:1px solid #E4D8CE;padding:12px 14px;border-radius:var(--radius-sm);">' +
+      '<div style="margin-bottom:14px;background:#F8FAFC;border:1px solid #E2E8F0;padding:12px 14px;border-radius:var(--radius-sm);">' +
       '<div style="font-size:14px;font-weight:700;color:var(--primary);">' + escapeHtml(o.name) + '</div>' +
       '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Audit Opname Lapangan, Penanganan Selisih Fisik, Mutasi Retur, Restock Baru di Rak &amp; Rekonsiliasi Berita Acara MOV Resmi</div>' +
       '</div>' +
@@ -12968,7 +12968,7 @@ function openClaimModal(prefillData) {
   }).join('');
 
   const bodyHtml =
-    '<div style="background:#FAF7F2;border:1.5px solid #E8DFD8;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">' +
+    '<div style="background:#F8FAFC;border:1.5px solid #E2E8F0;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">' +
     '<label class="field-label" style="margin-bottom:0;font-weight:700;color:var(--text-main);display:flex;align-items:center;gap:6px;">' +
     '<span>🔍 Cari Nota / Nama Pelanggan / No. HP / Kode Batch</span>' +
@@ -13828,7 +13828,7 @@ function renderPJHarvestSubtab() {
     '<div>' +
     '<strong>' + tabTitle + ':</strong> ' + tabDesc +
     '</div>' +
-    '<button type="button" class="btn btn-secondary btn-xs" onclick="reloadFollowUpData()" title="Sinkronkan ulang data sapaan pelanggan dari spreadsheet">' +
+    '<button type="button" class="btn btn-secondary btn-xs" onclick="reloadFollowUpData()" title="Sinkronkan ulang data sapaan pelanggan">' +
     '🔄 Refresh Antrean' +
     '</button>' +
     '</div>' +
@@ -13958,7 +13958,7 @@ function showFollowUpAntiSpamModal(fu) {
 
   const bodyHtml =
     '<div style="text-align:left;line-height:1.5;">' +
-    '<div style="background:#FAF7F2;border:1px solid #E8DFD8;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">' +
+    '<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">' +
     '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">Tujuan Sapaan (' + typeLabel + '):</div>' +
     '<div style="font-size:15px;font-weight:700;color:var(--text-main);">' + escapeHtml(fu.customer_name) + ' (' + escapeHtml(fu.customer_phone) + ')</div>' +
     '<div style="font-size:12px;color:var(--primary);margin-top:2px;">🌱 ' + escapeHtml(fu.products_summary) + '</div>' +
@@ -14743,7 +14743,7 @@ function drawLaporanUI(data, filter) {
     '<button type="button" class="btn btn-primary btn-sm" onclick="applyCustomReportFilter()">🔎 Terapkan</button>' +
     '</div>' +
     '<div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;">' +
-    '<button type="button" class="btn btn-primary btn-sm" onclick="openPeriodClosingWizard()" style="background:#7A5031;border-color:#7A5031;font-weight:700;" title="Tutup buku dan bekukan saldo akhir periode ini">⚡ Tutup Buku Periode</button>' +
+    '<button type="button" class="btn btn-primary btn-sm" onclick="openPeriodClosingWizard()" style="background:#2563EB;border-color:#2563EB;font-weight:700;" title="Tutup buku dan bekukan saldo akhir periode ini">⚡ Tutup Buku Periode</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="exportReportToCSV()" title="Unduh data laporan lengkap ke format CSV / Excel">📥 Ekspor CSV/Excel</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="printReportSummary()" title="Cetak rekapitulasi laporan resmi (format A4/PDF)">🖨️ Cetak Rekap Laporan (A4/PDF)</button>' +
     '</div>' +
@@ -15240,7 +15240,7 @@ function drawStockValuationUI(data) {
     '<button type="button" class="btn btn-secondary btn-sm" onclick="loadStockValuationReport(true)" title="Segarkan Data">&#8635; Segarkan</button>' +
     '</div>' +
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
-    '<button type="button" class="btn btn-primary btn-sm" onclick="openPeriodClosingWizard()" style="background:#7A5031;border-color:#7A5031;font-weight:700;" title="Tutup buku dan bekukan saldo akhir periode ini">⚡ Tutup Buku Periode</button>' +
+    '<button type="button" class="btn btn-primary btn-sm" onclick="openPeriodClosingWizard()" style="background:#2563EB;border-color:#2563EB;font-weight:700;" title="Tutup buku dan bekukan saldo akhir periode ini">⚡ Tutup Buku Periode</button>' +
     '<button type="button" class="btn btn-primary btn-sm" onclick="printStockValuationA4()" title="Cetak Laporan Valuasi Aset Modal format A4 Resmi">🖨️ Cetak Valuasi Aset (A4)</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="printStockOpnameSheetA4()" title="Cetak Lembar Kerja Stock Opname Fisik format A4 (Harga disembunyikan)">📋 Cetak Lembar Opname Fisik (A4)</button>' +
     '</div>' +
@@ -15726,7 +15726,7 @@ function drawPeriodClosingUI() {
     '  <div style="font-size:32px;margin-bottom:8px;">🔒</div>' +
     '  <div style="font-weight:700;font-size:14px;color:var(--text-main);margin-bottom:4px;">Belum Ada Periode yang Ditutup Buku</div>' +
     '  <div style="font-size:12px;max-width:480px;margin:0 auto 14px auto;">Lakukan penutupan buku akhir bulan untuk membekukan saldo awal persediaan, mencegah pengeditan data mundur, dan mengunduh berkas arsip .JSON serta Excel resmi.</div>' +
-    '  <button type="button" class="btn btn-primary" onclick="openPeriodClosingWizard()" style="background:#7A5031;border-color:#7A5031;font-weight:700;">⚡ Tutup Buku Periode Pertama Sekarang</button>' +
+    '  <button type="button" class="btn btn-primary" onclick="openPeriodClosingWizard()" style="background:#2563EB;border-color:#2563EB;font-weight:700;">⚡ Tutup Buku Periode Pertama Sekarang</button>' +
     '</div></td></tr>';
 
   content.innerHTML =
@@ -15763,7 +15763,7 @@ function drawPeriodClosingUI() {
     '</div>' +
     '<div class="stat-card">' +
     '<div class="stat-header"><span class="stat-label">Format Cadangan Digital</span><span class="stat-icon">💾</span></div>' +
-    '<div class="stat-value" style="font-size:18px;color:#7A5031;font-weight:700;">.JSON &amp; Excel</div>' +
+    '<div class="stat-value" style="font-size:18px;color:#2563EB;font-weight:700;">.JSON &amp; Excel</div>' +
     '<div class="stat-meta">Tersedia unduh offline kapan saja</div>' +
     '</div>' +
     '</div>' +
@@ -15779,7 +15779,7 @@ function drawPeriodClosingUI() {
     '  </div>' +
     '  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
     '    <button type="button" class="btn btn-secondary btn-sm" onclick="loadPeriodClosingReport(true)">&#8635; Segarkan</button>' +
-    '    <button type="button" class="btn btn-primary btn-sm" onclick="openPeriodClosingWizard()" style="background:#7A5031;border-color:#7A5031;font-weight:700;">⚡ Tutup Buku Periode Ini</button>' +
+    '    <button type="button" class="btn btn-primary btn-sm" onclick="openPeriodClosingWizard()" style="background:#2563EB;border-color:#2563EB;font-weight:700;">⚡ Tutup Buku Periode Ini</button>' +
     '  </div>' +
     '</div>' +
 
@@ -15831,8 +15831,8 @@ function openPeriodClosingWizard() {
   const cutoffDateTimeDefault = endStr + 'T23:59';
 
   const bodyHtml =
-    '<div style="margin-bottom:14px;background:#FAF7F2;border:1px solid #E4D8CE;padding:12px 16px;border-radius:var(--radius-sm);">' +
-    '  <div style="font-weight:700;color:#7A5031;font-size:13px;margin-bottom:4px;display:flex;align-items:center;gap:6px;">' +
+    '<div style="margin-bottom:14px;background:#F8FAFC;border:1px solid #E2E8F0;padding:12px 16px;border-radius:var(--radius-sm);">' +
+    '  <div style="font-weight:700;color:#2563EB;font-size:13px;margin-bottom:4px;display:flex;align-items:center;gap:6px;">' +
     '    <span>🔒</span> Panduan Penutupan Buku Periode' +
     '  </div>' +
     '  <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;">' +
@@ -15899,7 +15899,7 @@ function openPeriodClosingWizard() {
 
   const footerHtml =
     '<button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
-    '<button type="button" class="btn btn-primary" id="btn-submit-closing" onclick="submitPeriodClosing()" style="background:#7A5031;border-color:#7A5031;font-weight:700;">🔒 Kunci &amp; Terbitkan Saldo Awal</button>';
+    '<button type="button" class="btn btn-primary" id="btn-submit-closing" onclick="submitPeriodClosing()" style="background:#2563EB;border-color:#2563EB;font-weight:700;">🔒 Kunci &amp; Terbitkan Saldo Awal</button>';
 
   openModal('Wizard Tutup Buku &amp; Cut-Off Periode', bodyHtml, footerHtml);
   calculateWizardClosingPreview();
@@ -16255,24 +16255,24 @@ function printPeriodMinutes(periodId) {
 
   printContainer.innerHTML =
     '<div style="text-align:center;border-bottom:2px solid #333;padding-bottom:12px;margin-bottom:16px;">' +
-    '  <div style="font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#1e4d3f;">' + escapeHtml(storeName) + '</div>' +
+    '  <div style="font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#2563EB;">' + escapeHtml(storeName) + '</div>' +
     '  <div style="font-size:15px;font-weight:800;margin-top:4px;">BERITA ACARA TUTUP BUKU &amp; CUT-OFF PERIODE</div>' +
     '  <div style="font-size:12px;color:#555;margin-top:2px;">Ref. ID: ' + escapeHtml(p.id) + ' &bull; Tanggal Cetak: ' + formatDateIndo(new Date()) + '</div>' +
     '</div>' +
 
     '<div style="font-size:12px;line-height:1.6;margin-bottom:16px;">' +
     '  Pada hari ini telah dilaksanakan penutupan siklus buku dan pembekuan saldo inventaris fisik untuk periode:' +
-    '  <div style="font-weight:800;font-size:14px;color:#1e4d3f;margin-top:4px;">' + escapeHtml(p.period_name) + '</div>' +
+    '  <div style="font-weight:800;font-size:14px;color:#2563EB;margin-top:4px;">' + escapeHtml(p.period_name) + '</div>' +
     '  <div style="color:#555;">Rentang Periode: ' + formatDate(p.start_date) + ' s/d ' + formatDateIndo(p.cut_off_date) + '</div>' +
     '</div>' +
 
-    '<div style="font-weight:700;font-size:12.5px;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;color:#1e4d3f;">A. Rekapitulasi Finansial &amp; Operasional</div>' +
+    '<div style="font-weight:700;font-size:12.5px;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;color:#2563EB;">A. Rekapitulasi Finansial &amp; Operasional</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:16px;border:1px solid #999;">' +
     '  <tbody>' +
     '    <tr style="background:#f4f6f8;"><td style="padding:6px 10px;font-weight:700;width:40%;border:1px solid #ccc;">Total Omzet Penjualan (POS &amp; Konsinyasi)</td><td style="padding:6px 10px;font-weight:800;border:1px solid #ccc;font-family:monospace;">' + formatRupiah(p.total_revenue) + '</td></tr>' +
     '    <tr><td style="padding:6px 10px;font-weight:700;border:1px solid #ccc;">Total HPP Modal FIFO Barang Terjual</td><td style="padding:6px 10px;border:1px solid #ccc;font-family:monospace;">' + formatRupiah(p.total_cogs) + '</td></tr>' +
     '    <tr style="background:#f4f6f8;"><td style="padding:6px 10px;font-weight:700;border:1px solid #ccc;">Laba Kotor Periode (Margin ' + (p.gross_margin_pct || 0) + '%)</td><td style="padding:6px 10px;font-weight:800;color:#16a34a;border:1px solid #ccc;font-family:monospace;">' + formatRupiah(p.gross_profit) + '</td></tr>' +
-    '    <tr><td style="padding:6px 10px;font-weight:700;border:1px solid #ccc;">Total Valuasi Aset Stok Akhir (Saldo Awal Baru)</td><td style="padding:6px 10px;font-weight:800;color:#1e4d3f;border:1px solid #ccc;font-family:monospace;">' + formatRupiah(p.total_inventory_valuation) + '</td></tr>' +
+    '    <tr><td style="padding:6px 10px;font-weight:700;border:1px solid #ccc;">Total Valuasi Aset Stok Akhir (Saldo Awal Baru)</td><td style="padding:6px 10px;font-weight:800;color:#2563EB;border:1px solid #ccc;font-family:monospace;">' + formatRupiah(p.total_inventory_valuation) + '</td></tr>' +
     '    <tr style="background:#f4f6f8;"><td style="padding:6px 10px;font-weight:700;border:1px solid #ccc;">Jumlah Batch/Lot Inventaris Fisik Terkunci</td><td style="padding:6px 10px;border:1px solid #ccc;">' + items.length + ' Lot / Batch Benih</td></tr>' +
     '  </tbody>' +
     '</table>' +
@@ -16338,9 +16338,9 @@ function viewPeriodSnapshotDetail(periodId) {
   }).join('') : '<tr><td colspan="9" style="text-align:center;padding:16px;">Tidak ada rincian snapshot inventaris pada periode ini.</td></tr>';
 
   const bodyHtml =
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;background:#FAF7F2;padding:10px 14px;border-radius:var(--radius-sm);border:1px solid #E4D8CE;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;background:#F8FAFC;padding:10px 14px;border-radius:var(--radius-sm);border:1px solid #E2E8F0;">' +
     '  <div>' +
-    '    <div style="font-size:13px;font-weight:700;color:#7A5031;">' + escapeHtml(p.period_name) + '</div>' +
+    '    <div style="font-size:13px;font-weight:700;color:#2563EB;">' + escapeHtml(p.period_name) + '</div>' +
     '    <div style="font-size:11px;color:var(--text-secondary);">Cut-Off: ' + formatDateIndo(p.cut_off_date) + ' &bull; Total Valuasi: <strong>' + formatRupiah(p.total_inventory_valuation) + '</strong></div>' +
     '  </div>' +
     '  <div style="display:flex;gap:6px;">' +

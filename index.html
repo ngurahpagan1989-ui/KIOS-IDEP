@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=6.2">
+  <link rel="stylesheet" href="style.css?v=6.3">
   <!-- Session Restore Anti-Flash & Idle Timeout Pre-Check -->
   <script>
     (function() {
@@ -57,7 +57,16 @@
   <!-- ===================== LOGIN SCREEN OVERLAY ===================== -->
   <div id="login-screen" class="login-screen" aria-modal="true" role="dialog">
     <div class="login-backdrop"></div>
-    <div class="login-card">
+    <div class="login-card vault-door">
+      <!-- Ornamen Engsel Pintu Brankas -->
+      <div class="vault-hinge vault-hinge-top" aria-hidden="true"></div>
+      <div class="vault-hinge vault-hinge-bottom" aria-hidden="true"></div>
+      <!-- Baut Sudut Baja (Heavy Rivets) -->
+      <div class="vault-rivet vault-rivet-tl" aria-hidden="true"></div>
+      <div class="vault-rivet vault-rivet-tr" aria-hidden="true"></div>
+      <div class="vault-rivet vault-rivet-bl" aria-hidden="true"></div>
+      <div class="vault-rivet vault-rivet-br" aria-hidden="true"></div>
+
       <div class="login-lang-switch">
         <div class="lang-switch-pill" role="group" aria-label="Language Selector">
           <button type="button" class="lang-btn active" data-lang="id" onclick="window.i18n && window.i18n.setLanguage('id')">🇮🇩 ID</button>
@@ -65,8 +74,18 @@
         </div>
       </div>
       <div class="login-brand">
+        <div class="vault-status-bar">
+          <span class="vault-led-dot"></span>
+          <span class="vault-led-text">BRANKAS KASIR • TERKUNCI</span>
+        </div>
         <div id="login-brand-logo-wrap" class="brand-logo-wrap">
-          <div class="brand-logo" aria-hidden="true">🏪</div>
+          <div class="vault-wheel" title="Putaran Roda Brankas Baja">
+            <div class="vault-wheel-inner">
+              <div class="vault-dial-hub">
+                <i class="fas fa-vault" aria-hidden="true"></i>
+              </div>
+            </div>
+          </div>
         </div>
         <h1 class="brand-title">POS Kasir &amp; Stok</h1>
         <p class="brand-tagline">Sistem Kasir &amp; Inventaris Terpadu</p>
@@ -100,7 +119,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary btn-block btn-lg" id="login-submit">
-          <span class="btn-text">Masuk ke Sistem</span>
+          <span class="btn-text"><i class="fas fa-lock-open" style="margin-right:6px;"></i> Buka Brankas Kasir</span>
           <span class="spinner" id="login-spinner" style="display:none;" aria-hidden="true"></span>
         </button>
       </form>

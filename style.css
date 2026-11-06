@@ -6703,3 +6703,276 @@ body.perm-no-delete #modal-container .btn-void {
     justify-content: center;
   }
 }
+
+
+/* ==============================================================================
+   TEMA BRANKAS KASIR (CASHIER SECURITY VAULT DOOR)
+   ============================================================================== */
+.login-screen {
+  background:
+    radial-gradient(circle at 50% 20%, rgba(37, 99, 235, 0.18) 0%, transparent 60%),
+    radial-gradient(circle at 10% 80%, rgba(15, 23, 42, 0.8) 0%, transparent 50%),
+    linear-gradient(135deg, #090E17 0%, #0F172A 50%, #030712 100%) !important;
+}
+
+.login-backdrop {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px) !important;
+  background-size: 32px 32px !important;
+}
+
+.login-card.vault-door {
+  position: relative;
+  margin: auto;
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(160deg, #1E293B 0%, #172133 45%, #0F172A 100%) !important;
+  border-radius: 24px !important;
+  padding: 38px 32px 28px !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 25px 60px -10px rgba(0, 0, 0, 0.85),
+    0 0 0 7px #0B1120,
+    0 0 0 9px #334155,
+    inset 0 2px 4px rgba(255, 255, 255, 0.2),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.8) !important;
+  border: 2px solid #475569 !important;
+  animation: scaleUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Ornamen Engsel Baja Sisi Kiri */
+.vault-hinge {
+  position: absolute;
+  left: -20px;
+  width: 15px;
+  height: 42px;
+  background: linear-gradient(90deg, #94A3B8 0%, #475569 50%, #1E293B 100%);
+  border: 1.5px solid #334155;
+  border-radius: 4px;
+  box-shadow: -3px 4px 8px rgba(0,0,0,0.7), inset 0 1px 2px rgba(255,255,255,0.4);
+  z-index: 5;
+}
+.vault-hinge-top { top: 48px; }
+.vault-hinge-bottom { bottom: 48px; }
+.vault-hinge::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  right: 2px;
+  height: 3px;
+  background: #0F172A;
+  transform: translateY(-50%);
+  border-radius: 1px;
+}
+
+/* Baut Sudut Baja (Heavy Rivets) */
+.vault-rivet {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  background: radial-gradient(circle at 35% 35%, #CBD5E1 0%, #64748B 50%, #1E293B 100%);
+  border-radius: 50%;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.7), 0 2px 5px rgba(0,0,0,0.8);
+  border: 1px solid #475569;
+  z-index: 4;
+}
+.vault-rivet-tl { top: 12px; left: 12px; }
+.vault-rivet-tr { top: 12px; right: 12px; }
+.vault-rivet-bl { bottom: 12px; left: 12px; }
+.vault-rivet-br { bottom: 12px; right: 12px; }
+
+/* Status Bar LED Brankas */
+.vault-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 5px 14px;
+  background: rgba(11, 19, 43, 0.9);
+  border: 1px solid #334155;
+  border-radius: 20px;
+  margin: 0 auto 16px auto;
+  width: fit-content;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+}
+.vault-led-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #EF4444;
+  box-shadow: 0 0 8px #EF4444, 0 0 16px #DC2626;
+  animation: vaultLedBlink 2.2s infinite ease-in-out;
+}
+@keyframes vaultLedBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
+.vault-led-text {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: #94A3B8;
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Roda Putaran Kombinasi Brankas */
+.vault-wheel {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  margin: 0 auto 12px auto;
+  background: conic-gradient(
+    #475569 0deg, #1E293B 45deg, #64748B 90deg, #1E293B 135deg,
+    #475569 180deg, #1E293B 225deg, #64748B 270deg, #1E293B 315deg, #475569 360deg
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 0 0 3px #0F172A,
+    0 0 0 6px #334155,
+    0 0 0 7px rgba(255,255,255,0.1),
+    0 10px 24px rgba(0,0,0,0.85),
+    inset 0 2px 5px rgba(255,255,255,0.4),
+    inset 0 -2px 6px rgba(0,0,0,0.8);
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+}
+.vault-wheel:hover {
+  transform: rotate(60deg);
+}
+.vault-wheel-inner {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #334155 0%, #0F172A 75%);
+  border: 1.5px dashed #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.9);
+}
+.vault-dial-hub {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-size: 16px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.6);
+  border: 1.5px solid #60A5FA;
+}
+
+/* Judul & Teks Brankas */
+.login-card.vault-door .brand-title {
+  font-size: 21px !important;
+  font-weight: 900 !important;
+  color: #F8FAFC !important;
+  letter-spacing: 0.5px !important;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+}
+.login-card.vault-door .brand-tagline {
+  font-size: 12.5px !important;
+  color: #94A3B8 !important;
+  margin-top: 3px !important;
+}
+
+/* Panel Input Keypad Digital */
+.login-card.vault-door .field-label {
+  color: #94A3B8 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.8px !important;
+  margin-bottom: 6px !important;
+}
+.login-card.vault-door .input-wrapper {
+  background: #0B132B !important;
+  border: 1.5px solid #334155 !important;
+  border-radius: 8px !important;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.6) !important;
+  transition: all 0.2s ease;
+}
+.login-card.vault-door .input-wrapper:focus-within {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25), inset 0 2px 5px rgba(0,0,0,0.6) !important;
+}
+.login-card.vault-door input[type="text"],
+.login-card.vault-door input[type="password"] {
+  background: transparent !important;
+  color: #F8FAFC !important;
+  font-size: 13.5px !important;
+}
+.login-card.vault-door input::placeholder {
+  color: #475569 !important;
+}
+.login-card.vault-door .input-icon {
+  color: #64748B !important;
+}
+.login-card.vault-door .input-action-btn {
+  color: #64748B !important;
+}
+.login-card.vault-door .input-action-btn:hover {
+  color: #94A3B8 !important;
+}
+
+/* Tombol Tuas / Handle Pembuka Brankas */
+.login-card.vault-door #login-submit {
+  height: 48px !important;
+  background: linear-gradient(180deg, #3B82F6 0%, #2563EB 50%, #1D4ED8 100%) !important;
+  border: 1px solid #60A5FA !important;
+  border-radius: 8px !important;
+  color: #FFFFFF !important;
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.6px !important;
+  text-transform: uppercase !important;
+  box-shadow:
+    0 4px 0 #1E3A8A,
+    0 8px 18px rgba(37, 99, 235, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.45) !important;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  margin-top: 6px !important;
+}
+.login-card.vault-door #login-submit:hover {
+  background: linear-gradient(180deg, #60A5FA 0%, #3B82F6 50%, #2563EB 100%) !important;
+  box-shadow:
+    0 4px 0 #1E3A8A,
+    0 10px 22px rgba(37, 99, 235, 0.5),
+    inset 0 1px 1px rgba(255, 255, 255, 0.5) !important;
+}
+.login-card.vault-door #login-submit:active {
+  transform: translateY(3px) !important;
+  box-shadow:
+    0 1px 0 #1E3A8A,
+    0 3px 8px rgba(37, 99, 235, 0.35),
+    inset 0 1px 1px rgba(0, 0, 0, 0.3) !important;
+}
+
+.login-card.vault-door .login-footer {
+  color: #64748B !important;
+}
+.login-card.vault-door .lang-switch-pill {
+  background: #0B132B !important;
+  border: 1px solid #334155 !important;
+}
+.login-card.vault-door .lang-btn {
+  color: #94A3B8 !important;
+}
+.login-card.vault-door .lang-btn.active {
+  background: #3B82F6 !important;
+  color: #FFFFFF !important;
+}
+
+@media screen and (max-width: 768px) {
+  .vault-hinge {
+    display: none;
+  }
+}

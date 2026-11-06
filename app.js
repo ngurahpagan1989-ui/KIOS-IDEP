@@ -3341,6 +3341,7 @@ function openProductModal(productId) {
     ? product.product_type
     : (isMedia ? 'Buku' : (CURRENT_PRODUCT_TAB === 'media' ? 'Media Tanam' : 'Benih'));
   const isSeedType = defaultProductType.toLowerCase() === 'benih';
+  const currentPhoto = (product && product.photo_url) ? product.photo_url : '';
 
   const bundledSectionHtml = isCreateNew ?
     '<div id="pf-bundled-toggle-wrap" style="display:' + (isDefaultRaw && !isMedia ? 'block' : 'none') + ';margin-bottom:14px;background:#F8FAFC;border:1px dashed #2563EB;padding:10px 14px;border-radius:var(--radius-sm);">' +
@@ -3363,7 +3364,26 @@ function openProductModal(productId) {
     '<div id="bundled-pack-list"></div>' +
     '</div>' : '';
 
+  const photoSectionHtml =
+    '<div class="field-group" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">' +
+    '<label class="field-label" style="font-size:12.5px;font-weight:700;color:var(--text-main);margin-bottom:6px;"><i class="fas fa-camera" style="color:var(--primary);margin-right:5px;"></i> Foto Produk (Katalog Online &amp; Kasir)</label>' +
+    '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">' +
+    '<div id="pf-photo-preview" style="width:72px;height:72px;border:1.5px dashed #CBD5E1;border-radius:var(--radius-sm);overflow:hidden;background:#ffffff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+    (currentPhoto ? '<img src="' + escapeHtml(currentPhoto) + '" alt="Foto Produk" style="width:100%;height:100%;object-fit:cover;">' : '<span style="font-size:10px;color:var(--text-muted);text-align:center;"><i class="fas fa-image" style="font-size:22px;display:block;margin-bottom:2px;color:#CBD5E1;"></i>Belum Ada</span>') +
+    '</div>' +
+    '<div style="flex:1;min-width:180px;">' +
+    '<div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">' +
+    '<label class="btn btn-primary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;"><i class="fas fa-upload"></i> Upload Foto<input type="file" id="pf-photo-file" accept="image/*" style="display:none;" onchange="handleProductPhotoUpload(this, \'pf-photo-url\', \'pf-photo-preview\')"></label>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="clearProductPhoto(\'pf-photo-url\', \'pf-photo-file\', \'pf-photo-preview\')" style="font-size:11.5px;">Hapus</button>' +
+    '</div>' +
+    '<input type="hidden" id="pf-photo-url" value="' + escapeHtml(currentPhoto) + '">' +
+    '<div style="font-size:11px;color:var(--text-secondary);">Mendukung JPG, PNG, WebP. Gambar dikompres otomatis agar katalog terbuka instan di HP pelanggan.</div>' +
+    '</div>' +
+    '</div>' +
+    '</div>';
+
   const bodyHtml =
+    photoSectionHtml +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">' +
     '<div>' +
     '<label class="field-label">Nama Produk ' + (isCreateNew ? '<span id="pf-name-type-hint" style="font-weight:normal;color:var(--text-muted);font-size:11px;">(Bahan Baku Curah)</span>' : '') + '</label>' +
@@ -3687,6 +3707,7 @@ function submitProduct(productId) {
 
   if (!name) { showToast('Nama produk wajib diisi.', true); return; }
 
+  const photoUrl = document.getElementById('pf-photo-url') ? document.getElementById('pf-photo-url').value.trim() : '';
   const isBundled = !productId && document.getElementById('pf-bundled-check') && document.getElementById('pf-bundled-check').checked;
 
   if (isBundled) {
@@ -3742,6 +3763,7 @@ function submitProduct(productId) {
         variant: packGram > 0 ? (packGram + 'g') : '',
         weight_grams: packGram,
         unit: packUnit,
+        photo_url: photoUrl,
         priceTiers: packTiers
       });
     }
@@ -3766,7 +3788,7 @@ function submitProduct(productId) {
         category: category,
         variant: variant,
         unit: unit,
-        photo_url: '',
+        photo_url: photoUrl,
         priceTiers: rawTiers
       },
       packProducts: packProducts
@@ -3816,6 +3838,7 @@ function submitProduct(productId) {
     variant: finalVariant,
     weight_grams: weightGrams,
     unit: unit,
+    photo_url: photoUrl,
     harvest_days: harvestDays,
     priceTiers: tiers
   }).then(function () {
@@ -16562,6 +16585,7 @@ function drawPengaturanUI(settings) {
     '<button type="button" id="tab-set-btn-users" class="settings-tab-btn' + (activeTab === 'users' ? ' active' : '') + '" data-tab="users" onclick="switchSettingTab(\'users\')">👥 Akun Pengguna</button>' +
     '<button type="button" id="tab-set-btn-notif" class="settings-tab-btn' + (activeTab === 'notif' ? ' active' : '') + '" data-tab="notif" onclick="switchSettingTab(\'notif\')">📲 Notifikasi HP</button>' +
     '<button type="button" id="tab-set-btn-telegram" class="settings-tab-btn' + (activeTab === 'telegram' ? ' active' : '') + '" data-tab="telegram" onclick="switchSettingTab(\'telegram\')">🤖 Bot Telegram</button>' +
+    '<button type="button" id="tab-set-btn-katalog" class="settings-tab-btn' + (activeTab === 'katalog' ? ' active' : '') + '" data-tab="katalog" onclick="switchSettingTab(\'katalog\')">🌐 Katalog Online</button>' +
     '</div>' +
 
     '<div id="pane-profile" class="setting-pane" style="display:' + (activeTab === 'profile' ? 'block' : 'none') + ';">' +
@@ -16689,6 +16713,41 @@ function drawPengaturanUI(settings) {
 
     '<div id="pane-notif" class="setting-pane" style="display:' + (activeTab === 'notif' ? 'block' : 'none') + ';">' +
     (typeof buildNotifSettingsPaneHTML === 'function' ? buildNotifSettingsPaneHTML(settings) : '') +
+    '</div>' +
+
+    '<!-- PANE KATALOG ONLINE -->' +
+    '<div id="pane-katalog" class="setting-pane" style="display:' + (activeTab === 'katalog' ? 'block' : 'none') + ';">' +
+    '<div class="settings-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;">' +
+    '  <div class="card">' +
+    '    <h3 style="margin-bottom:14px;display:flex;align-items:center;gap:8px;"><i class="fas fa-sliders-h" style="color:var(--primary);"></i> Konfigurasi Katalog Online</h3>' +
+    '    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Atur informasi yang akan dibaca oleh pelanggan umum pada halaman katalog publik:</p>' +
+    '    <div class="field-group"><label class="field-label">Nama / Judul Toko di Katalog</label><div class="input-wrapper"><input type="text" id="set-cat-title" value="' + escapeHtml(settings['catalog_title'] || settings['store_name'] || '') + '" placeholder="Contoh: Kios Pertanian Lestari" style="padding-left:14px;"></div></div>' +
+    '    <div class="field-group"><label class="field-label">Tagline / Slogan Toko</label><div class="input-wrapper"><input type="text" id="set-cat-tagline" value="' + escapeHtml(settings['store_tagline'] || '') + '" placeholder="Contoh: Pusat Benih Tanaman Lokal &amp; Edukasi Permakultur" style="padding-left:14px;"></div></div>' +
+    '    <div class="field-group"><label class="field-label">Nomor WhatsApp Pemesanan</label><div class="input-wrapper"><input type="tel" id="set-cat-phone" value="' + escapeHtml(settings['store_phone'] || '') + '" placeholder="Contoh: 081945468237" style="padding-left:14px;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Pesan otomatis dari tombol WhatsApp Checkout pelanggan akan dikirim ke nomor ini.</small></div>' +
+    '    <div class="field-group"><label class="field-label">Alamat Toko (Untuk Pengambilan Mandiri)</label><div class="input-wrapper"><input type="text" id="set-cat-address" value="' + escapeHtml(settings['store_address'] || '') + '" placeholder="Contoh: Jln. Plawa No. 10, Denpasar" style="padding-left:14px;"></div></div>' +
+    '    <div class="field-group"><label class="field-label">Catatan Operasional / Pengiriman</label><div class="input-wrapper"><textarea id="set-cat-notes" class="form-textarea" placeholder="Contoh: Jam operasional toko fisik 08.00 - 17.00. Pengiriman ekspedisi dilakukan setiap sore." style="width:100%;min-height:70px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);font-size:12.5px;">' + escapeHtml(settings['catalog_notes'] || '') + '</textarea></div></div>' +
+    '    <button type="button" class="btn btn-primary" onclick="saveCatalogSettings()" style="margin-top:6px;"><i class="fas fa-save" style="margin-right:6px;"></i> Simpan Pengaturan Katalog</button>' +
+    '  </div>' +
+
+    '  <div class="card">' +
+    '    <h3 style="margin-bottom:14px;display:flex;align-items:center;gap:8px;"><i class="fas fa-qrcode" style="color:var(--primary);"></i> Standee Meja &amp; Tautan Cepat</h3>' +
+    '    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Bagikan katalog atau cetak QR Code untuk dipajang di kasir/etalase toko:</p>' +
+    '    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">' +
+    '      <div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:6px;">Tautan Langsung:</div>' +
+    '      <div style="display:flex;gap:8px;align-items:center;">' +
+    '        <input type="text" id="set-cat-url-preview" value="' + escapeHtml(getCatalogPublicUrl()) + '" readonly style="flex:1;padding:8px 10px;font-size:12px;background:#fff;border:1px solid #CBD5E1;border-radius:4px;font-family:monospace;" onclick="this.select()">' +
+    '        <button type="button" class="btn btn-primary btn-sm" onclick="copyCatalogPublicUrl()"><i class="fas fa-copy"></i> Salin</button>' +
+    '        <a href="' + escapeHtml(getCatalogPublicUrl()) + '" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;"><i class="fas fa-external-link-alt"></i> Buka</a>' +
+    '      </div>' +
+    '    </div>' +
+    '    <div style="text-align:center;padding:16px;border:1.5px dashed #CBD5E1;border-radius:var(--radius-sm);background:#fff;margin-bottom:14px;">' +
+    '      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=' + encodeURIComponent(getCatalogPublicUrl()) + '" alt="QR Code" style="width:140px;height:140px;display:inline-block;border:1px solid #E2E8F0;border-radius:8px;padding:6px;background:#fff;">' +
+    '      <div style="font-size:12px;font-weight:700;color:#0F172A;margin-top:8px;">Standee Akrilik Meja Kasir</div>' +
+    '      <div style="font-size:11px;color:#64748B;">Siap cetak dalam format A5/A6 untuk dipajang di toko</div>' +
+    '    </div>' +
+    '    <button type="button" class="btn btn-primary" onclick="printCatalogStandee()" style="width:100%;font-weight:700;"><i class="fas fa-print" style="margin-right:6px;"></i> Cetak Standee Meja Kasir</button>' +
+    '  </div>' +
+    '</div>' +
     '</div>' +
 
     '<div id="pane-telegram" class="setting-pane" style="display:' + (activeTab === 'telegram' ? 'block' : 'none') + ';">' +
@@ -21191,3 +21250,95 @@ function printCatalogStandee() {
 window.openPublicCatalogManager = openPublicCatalogManager;
 window.copyCatalogPublicUrl = copyCatalogPublicUrl;
 window.printCatalogStandee = printCatalogStandee;
+
+function handleProductPhotoUpload(input, targetInputId, previewBoxId) {
+  if (!input || !input.files || !input.files[0]) return;
+  const file = input.files[0];
+  if (!file.type.startsWith('image/')) {
+    showToast('Harap pilih file gambar (JPG, PNG, atau WebP).', true);
+    return;
+  }
+
+  showToast('Memproses dan mengompres foto produk...');
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      const maxDim = 600;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        }
+      } else {
+        if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+      const targetInput = document.getElementById(targetInputId);
+      if (targetInput) targetInput.value = compressedDataUrl;
+
+      const previewBox = document.getElementById(previewBoxId);
+      if (previewBox) {
+        previewBox.innerHTML = '<img src="' + compressedDataUrl + '" alt="Foto Produk" style="width:100%;height:100%;object-fit:cover;">';
+      }
+      showToast('Foto produk berhasil dipilih! Klik "Simpan Produk" untuk menyimpan.');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearProductPhoto(targetInputId, fileInputId, previewBoxId) {
+  const targetInput = document.getElementById(targetInputId);
+  if (targetInput) targetInput.value = '';
+  const fileInput = document.getElementById(fileInputId);
+  if (fileInput) fileInput.value = '';
+  const previewBox = document.getElementById(previewBoxId);
+  if (previewBox) {
+    previewBox.innerHTML = '<span style="font-size:10px;color:var(--text-muted);text-align:center;"><i class="fas fa-image" style="font-size:22px;display:block;margin-bottom:2px;color:#CBD5E1;"></i>Belum Ada</span>';
+  }
+}
+
+function saveCatalogSettings() {
+  const catTitle = document.getElementById('set-cat-title') ? document.getElementById('set-cat-title').value.trim() : '';
+  const catTagline = document.getElementById('set-cat-tagline') ? document.getElementById('set-cat-tagline').value.trim() : '';
+  const catPhone = document.getElementById('set-cat-phone') ? document.getElementById('set-cat-phone').value.trim() : '';
+  const catAddress = document.getElementById('set-cat-address') ? document.getElementById('set-cat-address').value.trim() : '';
+  const catNotes = document.getElementById('set-cat-notes') ? document.getElementById('set-cat-notes').value.trim() : '';
+
+  const payload = {
+    catalog_title: catTitle,
+    store_name: catTitle || (APP_SETTINGS ? APP_SETTINGS.store_name : ''),
+    store_tagline: catTagline,
+    store_phone: catPhone,
+    store_address: catAddress,
+    catalog_notes: catNotes
+  };
+
+  showToast('Menyimpan konfigurasi katalog online...');
+  api('saveSettings', TOKEN, payload).then(function () {
+    invalidateCache('settings');
+    Object.assign(APP_SETTINGS, payload);
+    showToast('Pengaturan katalog online berhasil diperbarui! ✅');
+  }).catch(function (err) {
+    showToast('Gagal menyimpan: ' + (err.message || err), true);
+  });
+}
+
+window.handleProductPhotoUpload = handleProductPhotoUpload;
+window.clearProductPhoto = clearProductPhoto;
+window.saveCatalogSettings = saveCatalogSettings;

@@ -62,11 +62,13 @@ async function fetchCatalogData() {
     const { data: settingsData } = await supabaseClient
       .from('settings')
       .select('key, value')
-      .in('key', ['store_name', 'store_phone', 'store_address', 'store_tagline']);
+      .in('key', ['store_name', 'store_phone', 'store_address', 'store_tagline', 'catalog_title', 'catalog_notes']);
 
     if (Array.isArray(settingsData)) {
       settingsData.forEach(s => {
         if (s.key === 'store_name' && s.value) storeConfig.name = s.value;
+        if (s.key === 'catalog_title' && s.value) storeConfig.name = s.value;
+        if (s.key === 'catalog_notes' && s.value) storeConfig.notes = s.value;
         if (s.key === 'store_phone' && s.value) storeConfig.phone = s.value;
         if (s.key === 'store_address' && s.value) storeConfig.address = s.value;
         if (s.key === 'store_tagline' && s.value) storeConfig.tagline = s.value;
@@ -158,7 +160,13 @@ function updateStoreHeaderUI() {
   const footerStoreEl = document.getElementById('footer-store-name');
 
   if (titleEl) titleEl.textContent = storeConfig.name;
-  if (taglineEl) taglineEl.textContent = storeConfig.tagline || 'Katalog Resmi Produk & Benih Berkualitas';
+  if (taglineEl) {
+    let text = storeConfig.tagline || 'Katalog Resmi Produk & Benih Berkualitas';
+    if (storeConfig.notes) {
+      text += ' • ' + storeConfig.notes;
+    }
+    taglineEl.textContent = text;
+  }
   if (addressEl) {
     if (storeConfig.address) {
       addressEl.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${escapeHtml(storeConfig.address)}`;

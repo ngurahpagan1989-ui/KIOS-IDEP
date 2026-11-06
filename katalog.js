@@ -15,6 +15,7 @@ let supabaseClient = null;
 let allProducts = [];
 let filteredProducts = [];
 let categories = ['Semua'];
+let filterOnlyReady = false;
 let activeCategory = 'Semua';
 let searchQuery = '';
 let cart = [];
@@ -97,8 +98,26 @@ async function fetchCatalogData() {
 
     if (prodsErr) throw prodsErr;
 
+    // B.2 Ambil Stok Fisik Riil dari Lot Batch Aktif (FIFO)
+    let batchStockMap = {};
+    try {
+      const { data: batchesData } = await supabaseClient
+        .from('stock_batches')
+        .select('product_id, qty_remaining')
+        .gt('qty_remaining', 0);
+
+      if (Array.isArray(batchesData)) {
+        batchesData.forEach(b => {
+          batchStockMap[b.product_id] = (batchStockMap[b.product_id] || 0) + Number(b.qty_remaining || 0);
+        });
+      }
+    } catch (e) {
+      console.warn('Gagal ambil stock_batches, menggunakan kolom stock:', e);
+    }
+
     // Normalisasi Produk
     allProducts = (prodsData || []).map(p => {
+      const finalStock = (batchStockMap[p.id] !== undefined) ? batchStockMap[p.id] : Number(p.stock || 0);
       // Cari harga reguler
       let price = 0;
       if (Array.isArray(p.price_tiers) && p.price_tiers.length > 0) {
@@ -119,7 +138,7 @@ async function fetchCatalogData() {
         variant: p.variant || '',
         unit: p.unit || 'pcs',
         photo_url: p.photo_url || '',
-        stock: Number(p.stock || 0),
+        stock: finalStock,
         price: price
       };
     });
@@ -211,7 +230,16 @@ function applyFilterAndRender() {
   filteredProducts = allProducts.filter(p => {
     const matchCat = (activeCategory === 'Semua') || (p.category === activeCategory);
     const matchSearch = !q || p.name.toLowerCase().includes(q) || (p.variant && p.variant.toLowerCase().includes(q));
-    return matchCat && matchSearch;
+    const matchReady = !filterOnlyReady || (p.stock > 0);
+    return matchCat && matchSearch && matchReady;
+  });
+
+  // SMART SORT: Produk ready stock selalu di urutan teratas
+  filteredProducts.sort((a, b) => {
+    const aReady = a.stock > 0 ? 1 : 0;
+    const bReady = b.stock > 0 ? 1 : 0;
+    if (aReady !== bReady) return bReady - aReady;
+    return a.name.localeCompare(b.name, 'id');
   });
 
   renderProductsGrid();
@@ -290,8 +318,17 @@ function addToCart(productId) {
   const product = allProducts.find(p => p.id === productId);
   if (!product) return;
 
+  if (product.stock <= 0) {
+    showToast(`Maaf, stok "${product.name}" sedang habis.`);
+    return;
+  }
+
   const existing = cart.find(i => i.id === productId);
   if (existing) {
+    if (existing.qty >= product.stock) {
+      showToast(`Maksimal pesanan "${product.name}" sesuai stok ready adalah ${product.stock} ${product.unit}.`);
+      return;
+    }
     existing.qty += 1;
   } else {
     cart.push({
@@ -485,7 +522,7 @@ function renderCartModalItems() {
 }
 
 // 8. PROSES CHECKOUT WHATSAPP
-function sendOrderToWhatsApp() {
+async function sendOrderToWhatsApp() {
   if (cart.length === 0) {
     alert('Keranjang belanja kosong!');
     return;
@@ -495,6 +532,7 @@ function sendOrderToWhatsApp() {
   const phoneInput = document.getElementById('cust-phone');
   const methodSelect = document.getElementById('cust-method');
   const notesInput = document.getElementById('cust-notes');
+  const submitBtn = document.querySelector('.btn-checkout');
 
   const customerName = nameInput ? nameInput.value.trim() : '';
   const customerPhone = phoneInput ? phoneInput.value.trim() : '';
@@ -520,12 +558,79 @@ function sendOrderToWhatsApp() {
     localStorage.setItem('catalog_last_cust_notes', notes);
   } catch (e) {}
 
-  // Format Teks Pesan WhatsApp
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan Pesanan ke Antrean POS...';
+  }
+
+  // Generate Nomor Pesanan Resmi (#KT-YYMMDD-XXX)
+  const now = new Date();
+  const dateStr = String(now.getFullYear()).slice(-2) + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+  const rndDigits = Math.floor(100 + Math.random() * 900);
+  const orderNo = `KT-${dateStr}-${rndDigits}`;
+  const orderId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('ord-' + Date.now());
+
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
-  let msg = `*HALO ${storeConfig.name.toUpperCase()}*\n`;
-  msg += `Saya ingin memesan produk melalui Katalog Online:\n\n`;
-  msg += `📦 *DAFTAR PESANAN:*\n`;
+  const orderPayload = {
+    id: orderId,
+    order_no: orderNo,
+    customer_name: customerName,
+    customer_phone: customerPhone,
+    delivery_method: deliveryMethod,
+    customer_address: notes,
+    notes: notes,
+    items: cart.map(item => ({
+      id: item.id,
+      product_id: item.id,
+      name: item.name,
+      variant: item.variant || '',
+      unit: item.unit || 'pcs',
+      price: Number(item.price || 0),
+      qty: Number(item.qty || 1),
+      subtotal: Number(item.price || 0) * Number(item.qty || 1)
+    })),
+    subtotal: totalPrice,
+    total: totalPrice,
+    status: 'pending',
+    source: 'KATALOG_ONLINE',
+    created_at: now.toISOString()
+  };
+
+  // Simpan ke antrean Supabase (Prioritas: online_orders -> Fallback: settings)
+  let savedToCloud = false;
+  if (supabaseClient) {
+    try {
+      const { error: ordErr } = await supabaseClient.from('online_orders').insert(orderPayload);
+      if (!ordErr) savedToCloud = true;
+    } catch (err) {}
+
+    if (!savedToCloud) {
+      try {
+        const { error: setErr } = await supabaseClient.from('settings').insert({
+          key: `online_order_${orderId}`,
+          value: JSON.stringify(orderPayload)
+        });
+        if (!setErr) savedToCloud = true;
+      } catch (err) {
+        console.warn('Fallback save to settings:', err);
+      }
+    }
+  }
+
+  // Format Teks Pesan WhatsApp Resmi
+  let msg = `*PESANAN RESMI KATALOG ONLINE*\n`;
+  msg += `*${storeConfig.name.toUpperCase()}*\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `📋 *No. Pesanan:* *#${orderNo}*\n`;
+  msg += `📅 *Tanggal:* ${now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}\n`;
+  msg += `👤 *Pemesan:* *${customerName}* (${customerPhone})\n`;
+  msg += `🚚 *Metode:* ${deliveryMethod}\n`;
+  if (notes) {
+    msg += `📝 *Catatan / Alamat:* ${notes}\n`;
+  }
+  msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `📦 *RINCIAN BARANG:*\n`;
 
   cart.forEach((item, idx) => {
     const subtotal = item.price * item.qty;
@@ -534,24 +639,89 @@ function sendOrderToWhatsApp() {
     msg += `   └ ${item.qty} ${item.unit} x ${formatRupiah(item.price)} = ${formatRupiah(subtotal)}\n`;
   });
 
-  msg += `\n--------------------------------\n`;
-  msg += `💰 *TOTAL ESTIMASI: ${formatRupiah(totalPrice)}*\n\n`;
-
-  msg += `👤 *DATA PEMESAN:*\n`;
-  msg += `• Nama: *${customerName}*\n`;
-  msg += `• No. WA: *${customerPhone}*\n`;
-  msg += `• Metode: *${deliveryMethod}*\n`;
-  if (notes) {
-    msg += `• Alamat / Catatan: ${notes}\n`;
-  }
-
-  msg += `\nMohon informasi ketersediaan stok dan rekening pembayaran resmi toko. Terima kasih! 🙏`;
+  msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `💰 *TOTAL PESANAN: ${formatRupiah(totalPrice)}*\n\n`;
+  msg += `Halo Admin, pesanan saya di atas sudah terdaftar di sistem dengan nomor *#${orderNo}*. Mohon konfirmasi ketersediaan barang dan nomor rekening pembayaran toko. Terima kasih! 🙏`;
 
   const waTarget = formatWaNumber(storeConfig.phone);
   const waUrl = `https://wa.me/${waTarget}?text=${encodeURIComponent(msg)}`;
 
-  // Buka WhatsApp di tab / app baru
+  // Bersihkan keranjang belanja
+  cart = [];
+  saveCartToStorage();
+  updateCartBadge();
+  updateFloatingCartBar();
+  renderProductsGrid();
+  closeCartModal();
+
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fab fa-whatsapp"></i> Kirim Pesanan &amp; Hubungi WhatsApp';
+  }
+
+  // Tampilkan Modal Konfirmasi Sukses ke Pelanggan
+  showOrderSuccessModal(orderNo, customerName, totalPrice, waUrl);
+
+  // Buka WhatsApp di tab baru
   window.open(waUrl, '_blank');
+}
+
+function showOrderSuccessModal(orderNo, customerName, total, waUrl) {
+  let modal = document.getElementById('order-success-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'order-success-modal';
+    modal.className = 'cart-modal-backdrop';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div class="cart-modal" style="max-width:440px;text-align:center;padding:26px 22px;">
+      <div style="width:68px;height:68px;background:#DCFCE7;color:#16A34A;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 14px auto;">
+        <i class="fas fa-check"></i>
+      </div>
+      <h3 style="font-size:18px;font-weight:800;color:#0F172A;margin-bottom:6px;">Pesanan Berhasil Dikirim!</h3>
+      <p style="font-size:13px;color:#64748B;line-height:1.5;margin-bottom:16px;">
+        Terima kasih, <strong>${escapeHtml(customerName)}</strong>. Pesanan Anda telah tersambung langsung ke antrean kasir POS toko dengan nomor:
+      </p>
+      <div style="background:#F8FAFC;border:1.5px dashed #2563EB;border-radius:8px;padding:12px;margin-bottom:18px;">
+        <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Nomor Pesanan Resmi</div>
+        <div style="font-size:22px;font-weight:900;color:#2563EB;letter-spacing:1px;font-family:monospace;margin-top:2px;">#${orderNo}</div>
+        <div style="font-size:12.5px;font-weight:700;color:#0F172A;margin-top:4px;">Total Tagihan: ${formatRupiah(total)}</div>
+      </div>
+      <p style="font-size:12px;color:#64748B;margin-bottom:18px;">
+        Jika WhatsApp belum terbuka otomatis, klik tombol di bawah untuk melanjutkan chat konfirmasi ke kasir:
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="${waUrl}" target="_blank" class="btn-checkout" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;">
+          <i class="fab fa-whatsapp" style="font-size:18px;"></i> Buka Chat WhatsApp Kasir
+        </a>
+        <button type="button" class="btn-clear-cart" onclick="closeOrderSuccessModal()" style="background:#F1F5F9;color:#475569;border-color:#CBD5E1;width:100%;height:38px;">
+          Selesai &amp; Lanjut Lihat Produk
+        </button>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add('open');
+}
+
+function closeOrderSuccessModal() {
+  const modal = document.getElementById('order-success-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+function askStockViaWhatsApp(productId) {
+  const product = allProducts.find(p => p.id === productId);
+  if (!product) return;
+  const waTarget = formatWaNumber(storeConfig.phone);
+  const msg = `Halo ${storeConfig.name}, saya tertarik dengan produk *${product.name}* di katalog online, namun stoknya tertulis habis. Apakah produk ini akan segera tersedia kembali? Terima kasih!`;
+  window.open(`https://wa.me/${waTarget}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function toggleOnlyReadyFilter(isChecked) {
+  filterOnlyReady = !!isChecked;
+  applyFilterAndRender();
 }
 
 function loadSavedCustomerInfo() {

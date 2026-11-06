@@ -514,6 +514,41 @@ body {
   cursor: not-allowed;
 }
 
+.btn-ask-stock {
+  width: 100%;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: #F8FAFC;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-ask-stock:hover {
+  background: #25D366;
+  color: #FFFFFF;
+  border-color: #25D366;
+}
+
+.product-card.out-of-stock {
+  opacity: 0.92;
+  border-color: #E2E8F0;
+  background: #FAFAFA;
+}
+
+.product-card.out-of-stock .product-thumb {
+  filter: grayscale(35%);
+  opacity: 0.85;
+}
+
 /* Qty Counter inside Card */
 .card-qty-control {
   display: flex;

@@ -3366,91 +3366,18 @@ function openProductModal(productId) {
 
   const photoSectionHtml =
     '<div class="field-group" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">' +
-    '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">' +
-    '    <label class="field-label" style="font-size:12.5px;font-weight:700;color:var(--text-main);margin:0;"><i class="fas fa-camera" style="color:var(--primary);margin-right:5px;"></i> Foto Produk (Katalog Online &amp; Kasir)</label>' +
-    '    <button type="button" class="btn btn-sm" onclick="toggleAiPhotoGenerator()" style="background:#EFF6FF;color:#2563EB;border:1px solid rgba(37,99,235,0.3);font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--radius-full);cursor:pointer;" title="Buat foto produk profesional otomatis menggunakan AI">' +
-    '      <i class="fas fa-wand-magic-sparkles"></i> ✨ Buat Foto AI' +
-    '    </button>' +
-    '  </div>' +
+    '  <label class="field-label" style="font-size:12.5px;font-weight:700;color:var(--text-main);margin-bottom:8px;display:block;"><i class="fas fa-camera" style="color:var(--primary);margin-right:5px;"></i> Foto Produk (Katalog Online &amp; Kasir)</label>' +
     '  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">' +
     '    <div id="pf-photo-preview" style="width:72px;height:72px;border:1.5px dashed #CBD5E1;border-radius:var(--radius-sm);overflow:hidden;background:#ffffff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
     (currentPhoto ? '<img src="' + escapeHtml(currentPhoto) + '" alt="Foto Produk" style="width:100%;height:100%;object-fit:cover;">' : '<span style="font-size:10px;color:var(--text-muted);text-align:center;"><i class="fas fa-image" style="font-size:22px;display:block;margin-bottom:2px;color:#CBD5E1;"></i>Belum Ada</span>') +
     '    </div>' +
     '    <div style="flex:1;min-width:180px;">' +
     '      <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">' +
-    '        <label class="btn btn-primary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;"><i class="fas fa-upload"></i> Upload Manual<input type="file" id="pf-photo-file" accept="image/*" style="display:none;" onchange="handleProductPhotoUpload(this, \'pf-photo-url\', \'pf-photo-preview\')"></label>' +
+    '        <label class="btn btn-primary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;"><i class="fas fa-upload"></i> Upload Foto<input type="file" id="pf-photo-file" accept="image/*" style="display:none;" onchange="handleProductPhotoUpload(this, \'pf-photo-url\', \'pf-photo-preview\')"></label>' +
     '        <button type="button" class="btn btn-secondary btn-sm" onclick="clearProductPhoto(\'pf-photo-url\', \'pf-photo-file\', \'pf-photo-preview\')" style="font-size:11.5px;">Hapus</button>' +
     '      </div>' +
     '      <input type="hidden" id="pf-photo-url" value="' + escapeHtml(currentPhoto) + '">' +
-    '      <div style="font-size:11px;color:var(--text-secondary);">Upload file foto dari perangkat Anda atau klik tombol <strong>✨ Buat Foto AI</strong> di kanan atas.</div>' +
-    '    </div>' +
-    '  </div>' +
-
-    '  <!-- LACI KONTROL AI PHOTO GENERATOR -->' +
-    '  <div id="pf-ai-generator-drawer" style="display:none;margin-top:12px;padding:12px 14px;background:#ffffff;border:1.5px solid #BFDBFE;border-radius:var(--radius-sm);box-shadow:0 3px 10px rgba(37,99,235,0.08);">' +
-    '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
-    '      <div style="font-size:12px;font-weight:800;color:#1E40AF;display:flex;align-items:center;gap:6px;">' +
-    '        <i class="fas fa-wand-magic-sparkles"></i> AI Studio Foto Produk' +
-    '      </div>' +
-    '      <button type="button" onclick="toggleAiPhotoGenerator(false)" style="background:none;border:none;color:#94A3B8;cursor:pointer;font-size:16px;line-height:1;" title="Tutup">&times;</button>' +
-    '    </div>' +
-    '    <!-- Status Engine & Quick API Key Button -->' +
-    '    <div style="display:flex;justify-content:space-between;align-items:center;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:6px 10px;margin-bottom:10px;font-size:11px;">' +
-    '      <span id="ai-engine-status-text" style="color:#475569;font-weight:600;">Memeriksa status AI...</span>' +
-    '      <button type="button" onclick="toggleQuickAiKeyInput()" style="background:none;border:none;color:#2563EB;cursor:pointer;font-weight:700;font-size:11px;text-decoration:underline;">' +
-    '        🔑 Kunci API Pribadi' +
-    '      </button>' +
-    '    </div>' +
-    '    <div id="ai-quick-key-box" style="display:none;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:10px;margin-bottom:10px;">' +
-    '      <div style="font-size:11px;font-weight:700;color:#1E40AF;margin-bottom:4px;">Google Gemini / AI Studio API Key:</div>' +
-    '      <div style="display:flex;gap:6px;">' +
-    '        <input type="password" id="quick-gemini-key" placeholder="Paste API Key (AIzaSy...)" style="flex:1;padding:5px 8px;font-size:11.5px;border:1px solid #CBD5E1;border-radius:4px;font-family:monospace;">' +
-    '        <button type="button" class="btn btn-primary btn-sm" onclick="saveQuickGeminiKey()" style="padding:4px 10px;font-size:11px;font-weight:700;">Simpan</button>' +
-    '      </div>' +
-    '      <div style="font-size:10.5px;color:#334155;margin-top:5px;">' +
-    '        💡 Belum punya? <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#2563EB;font-weight:700;text-decoration:none;">Buat API Key Gratis di Google AI Studio &nearr;</a> (Gratis 1.500 foto/hari tanpa batas antrean publik).' +
-    '      </div>' +
-    '    </div>' +
-    '    <div style="display:grid;grid-template-columns:1fr 140px;gap:10px;margin-bottom:10px;">' +
-    '      <div>' +
-    '        <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">Nama Tanaman / Objek</label>' +
-    '        <input type="text" id="ai-photo-keyword" placeholder="Contoh: Bayam Merah / Cabai Rawit / Tomat" style="width:100%;padding:6px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:4px;">' +
-    '      </div>' +
-    '      <div>' +
-    '        <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">Gaya Foto</label>' +
-    '        <select id="ai-photo-style" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #CBD5E1;border-radius:4px;">' +
-    '          <option value="harvest">🌿 Panen Segar</option>' +
-    '          <option value="pouch">📦 Sachet Kemasan</option>' +
-    '          <option value="botanical">🎨 Ilustrasi Botani</option>' +
-    '        </select>' +
-    '      </div>' +
-    '    </div>' +
-
-    '    <!-- Area Hasil & Loading -->' +
-    '    <div id="ai-photo-result-area" style="display:none;margin-bottom:10px;text-align:center;">' +
-    '      <div id="ai-photo-loading" style="display:none;padding:16px;color:#2563EB;font-size:12px;font-weight:600;">' +
-    '        <i class="fas fa-spinner fa-spin" style="font-size:22px;margin-bottom:6px;display:block;"></i>' +
-    '        <span>Sedang melukis foto produk berkualitas studio dengan AI FLUX (3–5 detik)...</span>' +
-    '      </div>' +
-    '      <div id="ai-photo-preview-card" style="display:none;">' +
-    '        <div style="display:inline-block;padding:4px;border:1.5px solid #2563EB;border-radius:8px;background:#fff;margin-bottom:8px;box-shadow:0 4px 12px rgba(0,0,0,0.06);">' +
-    '          <img id="ai-photo-generated-img" src="" alt="Hasil AI" style="width:160px;height:160px;object-fit:cover;border-radius:6px;display:block;">' +
-    '        </div>' +
-    '        <div style="display:flex;justify-content:center;gap:8px;">' +
-    '          <button type="button" class="btn btn-primary btn-sm" onclick="applyAiPhotoToProduct()" style="font-size:11.5px;font-weight:700;">' +
-    '            <i class="fas fa-check"></i> Pasang Foto Ini' +
-    '          </button>' +
-    '          <button type="button" class="btn btn-secondary btn-sm" onclick="generateAiProductPhoto()" style="font-size:11.5px;">' +
-    '            <i class="fas fa-redo"></i> Buat Ulang' +
-    '          </button>' +
-    '        </div>' +
-    '      </div>' +
-    '    </div>' +
-
-    '    <div id="ai-photo-initial-btn-wrap">' +
-    '      <button type="button" class="btn btn-primary btn-sm" onclick="generateAiProductPhoto()" style="width:100%;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
-    '        <i class="fas fa-bolt"></i> Generate Foto AI Sekarang (Gratis)' +
-    '      </button>' +
+    '      <div style="font-size:11px;color:var(--text-secondary);">Pilih file foto dari perangkat Anda (PNG, JPG, WebP) untuk ditampilkan di katalog pelanggan dan kasir POS.</div>' +
     '    </div>' +
     '  </div>' +
     '</div>';
@@ -7704,6 +7631,7 @@ function renderPOS(forceRefresh) {
     '<div class="pos-catalog-panel">' +
     '<div class="pos-filter-bar">' +
     '<input type="text" id="pos-search" class="topbar-search" placeholder="Cari produk kemasan..." style="flex:1;">' +
+    '<button type="button" class="btn btn-warning btn-sm" onclick="openOnlineOrderQueueModal()" id="btn-pos-online-orders" style="font-weight:700;display:inline-flex;align-items:center;gap:6px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;" title="Buka Antrean Pesanan Masuk dari Katalog Online"><i class="fas fa-shopping-bag"></i> Pesanan Online <span id="pos-online-order-badge" style="background:#EF4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:10.5px;font-weight:800;display:none;">0</span></button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="openPublicCatalogManager()" title="Buka / Bagikan Katalog & QR Meja Kasir" style="color:var(--primary);font-weight:700;display:inline-flex;align-items:center;gap:5px;"><i class="fas fa-qrcode"></i> Katalog &amp; QR</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="openModuleGuide(\'pos\')" title="Buka Panduan Operasional Kasir (SOP)">📖 Panduan Kasir</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="openTransactionHistoryModal()">📜 Riwayat Transaksi</button>' +
@@ -7801,6 +7729,7 @@ function renderPOS(forceRefresh) {
       if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--danger);">Gagal memuat produk.<br><button type="button" class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="renderPOS(true)">Coba Lagi</button></div>';
     }
   });
+  startOnlineOrdersPolling();
 }
 
 function setupPOSData(allProducts) {
@@ -8530,6 +8459,10 @@ function submitCheckout() {
       })
     };
 
+    if (window.ACTIVE_ONLINE_ORDER_ID) {
+      updateOnlineOrderStatus(window.ACTIVE_ONLINE_ORDER_ID, 'completed');
+      window.ACTIVE_ONLINE_ORDER_ID = null;
+    }
     closeModal();
     openTxSuccessModal(res, payload);
     EDITING_TRANSACTION = null;
@@ -16801,11 +16734,6 @@ function drawPengaturanUI(settings) {
     '    <div class="field-group"><label class="field-label">Email Toko / Layanan Pelanggan</label><div class="input-wrapper"><input type="email" id="set-cat-email" value="' + escapeHtml(settings['store_email'] || '') + '" placeholder="Contoh: toko@domain.com" style="padding-left:14px;"></div></div>' +
     '    <div class="field-group"><label class="field-label">Alamat Toko (Untuk Pengambilan Mandiri)</label><div class="input-wrapper"><input type="text" id="set-cat-address" value="' + escapeHtml(settings['store_address'] || '') + '" placeholder="Contoh: Jln. Plawa No. 10, Denpasar" style="padding-left:14px;"></div></div>' +
     '    <div class="field-group"><label class="field-label">Catatan Operasional / Pengiriman</label><div class="input-wrapper"><textarea id="set-cat-notes" class="form-textarea" placeholder="Contoh: Jam operasional toko fisik 08.00 - 17.00. Pengiriman ekspedisi dilakukan setiap sore." style="width:100%;min-height:70px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);font-size:12.5px;">' + escapeHtml(settings['catalog_notes'] || '') + '</textarea></div></div>' +
-    '<div class="field-group" style="margin-top:14px;padding-top:12px;border-top:1px dashed #CBD5E1;">' +
-    '  <label class="field-label" style="font-weight:700;display:flex;align-items:center;gap:6px;"><i class="fas fa-key" style="color:var(--primary);"></i> Google Gemini API Key (Generator Foto Tanpa Limit)</label>' +
-    '  <div class="input-wrapper" style="position:relative;">' +
-    '    <input type="password" id="set-gemini-key" value="' + escapeHtml(settings['gemini_api_key'] || '') + '" placeholder="Contoh: AIzaSy..." style="padding-left:14px;padding-right:40px;font-family:monospace;font-size:12px;">' +
-    '  </div>' +
     '  <small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Dapatkan API Key gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#2563EB;font-weight:700;text-decoration:none;">Google AI Studio &nearr;</a> untuk generate foto produk pribadi tanpa batas dan tanpa antrean publik.</small>' +
     '</div>' +
     '    <button type="button" class="btn btn-primary" onclick="saveCatalogSettings()" style="margin-top:6px;"><i class="fas fa-save" style="margin-right:6px;"></i> Simpan Pengaturan Katalog</button>' +
@@ -21404,7 +21332,6 @@ function saveCatalogSettings() {
   const catAddress = document.getElementById('set-cat-address') ? document.getElementById('set-cat-address').value.trim() : '';
   const catEmail = document.getElementById('set-cat-email') ? document.getElementById('set-cat-email').value.trim() : '';
   const catNotes = document.getElementById('set-cat-notes') ? document.getElementById('set-cat-notes').value.trim() : '';
-  const geminiKey = document.getElementById('set-gemini-key') ? document.getElementById('set-gemini-key').value.trim() : '';
 
   const payload = {
     catalog_title: catTitle,
@@ -21413,8 +21340,7 @@ function saveCatalogSettings() {
     store_phone: catPhone,
     store_address: catAddress,
     store_email: catEmail || (APP_SETTINGS ? APP_SETTINGS.store_email : ''),
-    catalog_notes: catNotes,
-    gemini_api_key: geminiKey
+    catalog_notes: catNotes
   };
 
   showToast('Menyimpan konfigurasi katalog online...');
@@ -21431,246 +21357,385 @@ window.handleProductPhotoUpload = handleProductPhotoUpload;
 window.clearProductPhoto = clearProductPhoto;
 window.saveCatalogSettings = saveCatalogSettings;
 
-let currentGeneratedAiBase64 = '';
 
-function getStoredGeminiKey() {
-  return (APP_SETTINGS && APP_SETTINGS.gemini_api_key) ? APP_SETTINGS.gemini_api_key.trim() : (localStorage.getItem('gemini_api_key') || '').trim();
+// ==============================================================================
+// SISTEM ANTREAN PESANAN ONLINE (KATALOG WEB -> KASIR POS)
+// ==============================================================================
+window.ONLINE_ORDERS_CACHE = [];
+window.LAST_ONLINE_PENDING_COUNT = -1;
+window.ONLINE_ORDERS_POLL_TIMER = null;
+window.ACTIVE_ONLINE_ORDER_ID = null;
+
+function playOnlineOrderDing() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.45);
+  } catch (e) {}
 }
 
-function toggleQuickAiKeyInput() {
-  const box = document.getElementById('ai-quick-key-box');
-  const input = document.getElementById('quick-gemini-key');
-  if (!box) return;
-  const isHidden = (box.style.display === 'none' || !box.style.display);
-  box.style.display = isHidden ? 'block' : 'none';
-  if (isHidden && input) {
-    input.value = getStoredGeminiKey();
-    input.focus();
-  }
-}
+async function fetchOnlineOrdersList() {
+  if (typeof supabase === 'undefined' || !supabase) return [];
+  try {
+    // 1. Coba tabel online_orders
+    const { data, error } = await supabase
+      .from('online_orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
 
-function saveQuickGeminiKey() {
-  const input = document.getElementById('quick-gemini-key');
-  if (!input) return;
-  const key = input.value.trim();
-  localStorage.setItem('gemini_api_key', key);
-  if (!window.APP_SETTINGS) window.APP_SETTINGS = {};
-  window.APP_SETTINGS.gemini_api_key = key;
-
-  // Simpan juga ke database Supabase
-  if (typeof api === 'function' && typeof TOKEN !== 'undefined') {
-    api('saveSettings', TOKEN, { gemini_api_key: key }).then(function() {
-      invalidateCache('settings');
-    }).catch(function() {});
-  }
-
-  updateAiEngineStatusBadge();
-  const box = document.getElementById('ai-quick-key-box');
-  if (box) box.style.display = 'none';
-  showToast(key ? 'Google Gemini API Key berhasil disimpan! Kuota pribadi aktif. ✅' : 'Kunci API dihapus, kembali ke mode publik.');
-}
-
-function updateAiEngineStatusBadge() {
-  const badge = document.getElementById('ai-engine-status-text');
-  if (!badge) return;
-  const key = getStoredGeminiKey();
-  if (key) {
-    badge.innerHTML = '<span style="color:#16A34A;font-weight:700;"><i class="fas fa-check-circle"></i> Akun Pribadi (Google Imagen 3 Aktif)</span>';
-  } else {
-    badge.innerHTML = '<span style="color:#64748B;"><i class="fas fa-globe"></i> Mode Publik (Server Bersama)</span>';
-  }
-}
-
-function toggleAiPhotoGenerator(forceState) {
-  const drawer = document.getElementById('pf-ai-generator-drawer');
-  if (!drawer) return;
-
-  const isHidden = (drawer.style.display === 'none' || !drawer.style.display);
-  const show = (forceState !== undefined) ? forceState : isHidden;
-
-  if (show) {
-    drawer.style.display = 'block';
-    updateAiEngineStatusBadge();
-    const nameInput = document.getElementById('pf-name');
-    const keywordInput = document.getElementById('ai-photo-keyword');
-    if (keywordInput && nameInput && nameInput.value.trim() && !keywordInput.value.trim()) {
-      keywordInput.value = nameInput.value.trim();
+    if (!error && Array.isArray(data)) {
+      return data;
     }
-  } else {
-    drawer.style.display = 'none';
-  }
-}
+  } catch (e) {}
 
-function generateAiProductPhoto() {
-  const keywordInput = document.getElementById('ai-photo-keyword');
-  const styleSelect = document.getElementById('ai-photo-style');
-  const nameInput = document.getElementById('pf-name');
+  // 2. Fallback otomatis ke tabel settings
+  try {
+    const { data: setData, error: setErr } = await supabase
+      .from('settings')
+      .select('key, value, updated_at')
+      .like('key', 'online_order_%')
+      .order('updated_at', { ascending: false })
+      .limit(100);
 
-  let keyword = keywordInput ? keywordInput.value.trim() : '';
-  if (!keyword && nameInput) {
-    keyword = nameInput.value.trim();
-    if (keywordInput) keywordInput.value = keyword;
-  }
-
-  if (!keyword) {
-    showToast('Ketikkan nama tanaman atau produk terlebih dahulu.', true);
-    if (keywordInput) keywordInput.focus();
-    return;
-  }
-
-  const style = styleSelect ? styleSelect.value : 'harvest';
-
-  let promptText = '';
-  if (style === 'harvest') {
-    promptText = 'professional commercial studio product photography of fresh organic ' + keyword + ' vegetable harvest, placed on clean white seamless background, soft studio lighting, ultra sharp focus, vibrant natural colors, 4k';
-  } else if (style === 'pouch') {
-    promptText = 'commercial product photography mockup of modern organic seed paper sachet packet labeled with ' + keyword + ', placed on clean white minimalist studio background, soft natural shadows, commercial packaging photography, 8k';
-  } else {
-    promptText = 'fine art vintage botanical watercolor illustration of ' + keyword + ' plant with botanical leaves and seeds, isolated on pure white background, elegant detailed natural history scientific illustration';
-  }
-
-  const resultArea = document.getElementById('ai-photo-result-area');
-  const loadingEl = document.getElementById('ai-photo-loading');
-  const previewCard = document.getElementById('ai-photo-preview-card');
-  const initBtnWrap = document.getElementById('ai-photo-initial-btn-wrap');
-  const imgEl = document.getElementById('ai-photo-generated-img');
-
-  if (resultArea) resultArea.style.display = 'block';
-  if (loadingEl) {
-    loadingEl.style.display = 'block';
-    const statusTextSpan = loadingEl.querySelector('span');
-    const geminiKey = getStoredGeminiKey();
-    if (statusTextSpan) {
-      statusTextSpan.textContent = geminiKey
-        ? 'Sedang melukis foto studio dengan Google Imagen 3 (Akun Pribadi)...'
-        : 'Sedang melukis foto dengan AI FLUX publik (3–5 detik)...';
-    }
-  }
-  if (previewCard) previewCard.style.display = 'none';
-  if (initBtnWrap) initBtnWrap.style.display = 'none';
-
-  const geminiKey = getStoredGeminiKey();
-
-  // A. JIKA USER MEMASANG GOOGLE GEMINI API KEY (PRIBADI & BEBAS LIMIT)
-  if (geminiKey) {
-    const imagenEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=' + encodeURIComponent(geminiKey);
-    fetch(imagenEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        instances: [{ prompt: promptText }],
-        parameters: { sampleCount: 1, aspectRatio: '1:1', outputOptions: { mimeType: 'image/jpeg' } }
-      })
-    }).then(function(res) {
-      return res.json().then(function(data) {
-        if (!res.ok) {
-          throw new Error((data && data.error && data.error.message) ? data.error.message : ('Error ' + res.status));
-        }
-        return data;
+    if (!setErr && Array.isArray(setData)) {
+      const list = [];
+      setData.forEach(function (row) {
+        try {
+          const parsed = JSON.parse(row.value);
+          if (parsed && parsed.order_no) {
+            list.push(parsed);
+          }
+        } catch (err) {}
       });
-    }).then(function(data) {
-      if (data && data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) {
-        currentGeneratedAiBase64 = 'data:image/jpeg;base64,' + data.predictions[0].bytesBase64Encoded;
-        if (imgEl) imgEl.src = currentGeneratedAiBase64;
-        if (loadingEl) loadingEl.style.display = 'none';
-        if (previewCard) previewCard.style.display = 'block';
-        showToast('Foto studio berhasil dibuat dengan Google Imagen 3! ✅');
-      } else {
-        throw new Error('Respon gambar tidak ditemukan dari Google Imagen.');
-      }
-    }).catch(function(err) {
-      console.warn('[Imagen 3 Error]', err);
-      if (loadingEl) loadingEl.style.display = 'none';
-      if (initBtnWrap) initBtnWrap.style.display = 'block';
-      showToast('Gagal memproses Google Imagen: ' + err.message + '. Periksa API Key Anda.', true);
-    });
+      return list;
+    }
+  } catch (e) {}
+
+  return [];
+}
+
+async function checkOnlineOrdersBadge(silent) {
+  const orders = await fetchOnlineOrdersList();
+  window.ONLINE_ORDERS_CACHE = orders;
+  const pendingOrders = orders.filter(function (o) { return o.status === 'pending'; });
+  const count = pendingOrders.length;
+
+  const badge = document.getElementById('pos-online-order-badge');
+  if (badge) {
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  if (!silent && window.LAST_ONLINE_PENDING_COUNT !== undefined && window.LAST_ONLINE_PENDING_COUNT !== -1 && count > window.LAST_ONLINE_PENDING_COUNT) {
+    playOnlineOrderDing();
+    const latest = pendingOrders[0];
+    showToast('🛒 Pesanan baru masuk dari katalog online: #' + (latest ? latest.order_no : '') + ' (' + count + ' antrean)!');
+  }
+
+  window.LAST_ONLINE_PENDING_COUNT = count;
+  return orders;
+}
+
+function startOnlineOrdersPolling() {
+  checkOnlineOrdersBadge(true);
+  if (window.ONLINE_ORDERS_POLL_TIMER) clearInterval(window.ONLINE_ORDERS_POLL_TIMER);
+  window.ONLINE_ORDERS_POLL_TIMER = setInterval(function () {
+    const currentRoute = (typeof getCurrentRoute === 'function') ? getCurrentRoute() : '';
+    if (currentRoute === 'penjualan' || document.getElementById('btn-pos-online-orders')) {
+      checkOnlineOrdersBadge(false);
+    }
+  }, 25000);
+}
+
+function openOnlineOrderQueueModal(activeTab) {
+  if (!activeTab) activeTab = 'pending';
+  openModal(
+    '<i class="fas fa-shopping-bag" style="color:var(--primary);margin-right:6px;"></i> Antrean Pesanan Katalog Online',
+    '<div class="empty-state" style="padding:28px;"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Mengambil data antrean pesanan online...</div>',
+    '',
+    true
+  );
+
+  fetchOnlineOrdersList().then(function (orders) {
+    window.ONLINE_ORDERS_CACHE = orders;
+    renderOnlineOrderQueueModalContent(orders, activeTab);
+  }).catch(function (err) {
+    openModal(
+      'Antrean Pesanan Online',
+      '<div class="empty-state" style="padding:24px;color:var(--danger);"><i class="fas fa-exclamation-triangle" style="font-size:28px;margin-bottom:8px;"></i><br>Gagal memuat antrean pesanan: ' + escapeHtml(err.message || err) + '</div>',
+      '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>',
+      true
+    );
+  });
+}
+
+function renderOnlineOrderQueueModalContent(orders, activeTab) {
+  const pendingCount = orders.filter(function (o) { return o.status === 'pending'; }).length;
+  const completedCount = orders.filter(function (o) { return o.status === 'completed'; }).length;
+  const totalCount = orders.length;
+
+  let filtered = orders;
+  if (activeTab === 'pending') {
+    filtered = orders.filter(function (o) { return o.status === 'pending'; });
+  } else if (activeTab === 'completed') {
+    filtered = orders.filter(function (o) { return o.status === 'completed'; });
+  }
+
+  const tabNavHtml =
+    '<div style="display:flex;gap:8px;border-bottom:1px solid #E2E8F0;padding-bottom:10px;margin-bottom:14px;flex-wrap:wrap;">' +
+    '  <button type="button" class="btn btn-sm ' + (activeTab === 'pending' ? 'btn-primary' : 'btn-secondary') + '" onclick="renderOnlineOrderQueueModalContent(window.ONLINE_ORDERS_CACHE, \'pending\')">' +
+    '    🟡 Menunggu Diproses (' + pendingCount + ')' +
+    '  </button>' +
+    '  <button type="button" class="btn btn-sm ' + (activeTab === 'completed' ? 'btn-primary' : 'btn-secondary') + '" onclick="renderOnlineOrderQueueModalContent(window.ONLINE_ORDERS_CACHE, \'completed\')">' +
+    '    🟢 Selesai (' + completedCount + ')' +
+    '  </button>' +
+    '  <button type="button" class="btn btn-sm ' + (activeTab === 'all' ? 'btn-primary' : 'btn-secondary') + '" onclick="renderOnlineOrderQueueModalContent(window.ONLINE_ORDERS_CACHE, \'all\')">' +
+    '    Semua Pesanan (' + totalCount + ')' +
+    '  </button>' +
+    '  <button type="button" class="btn btn-secondary btn-sm" onclick="openOnlineOrderQueueModal(\'' + activeTab + '\')" style="margin-left:auto;"><i class="fas fa-sync-alt"></i> Refresh</button>' +
+    '</div>';
+
+  if (filtered.length === 0) {
+    const emptyMsg = activeTab === 'pending'
+      ? 'Tidak ada pesanan online yang sedang menunggu diproses.'
+      : 'Belum ada riwayat pesanan online.';
+    const bodyHtml =
+      tabNavHtml +
+      '<div class="empty-state" style="padding:32px 16px;text-align:center;">' +
+      '  <i class="fas fa-inbox" style="font-size:36px;color:#94A3B8;margin-bottom:8px;display:block;"></i>' +
+      '  <div style="font-weight:700;color:#334155;">' + emptyMsg + '</div>' +
+      '  <p style="font-size:12px;color:#64748B;margin-top:4px;">Pesanan pelanggan dari katalog online otomatis masuk ke layar ini secara langsung.</p>' +
+      '</div>';
+    openModal('<i class="fas fa-shopping-bag" style="color:var(--primary);margin-right:6px;"></i> Antrean Pesanan Katalog Online', bodyHtml, '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>', true);
     return;
   }
 
-  // B. JIKA BELUM ADA KEY: GUNAKAN MODE PUBLIK DENGAN FALLBACK TURBO
-  const seed = Math.floor(Math.random() * 9999999);
-  const aiUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(promptText) + '?width=600&height=600&nologo=true&model=flux&seed=' + seed;
+  let cardsHtml = '<div style="display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow-y:auto;padding-right:4px;">';
 
-  const tempImg = new Image();
-  tempImg.crossOrigin = 'anonymous';
+  filtered.forEach(function (order) {
+    const isPending = order.status === 'pending';
+    const isCompleted = order.status === 'completed';
+    const isCancelled = order.status === 'cancelled';
 
-  tempImg.onload = function () {
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = 600;
-      canvas.height = 600;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(tempImg, 0, 0, 600, 600);
-      currentGeneratedAiBase64 = canvas.toDataURL('image/jpeg', 0.82);
-
-      if (imgEl) imgEl.src = currentGeneratedAiBase64;
-      if (loadingEl) loadingEl.style.display = 'none';
-      if (previewCard) previewCard.style.display = 'block';
-      showToast('Foto AI berhasil dibuat! Silakan tinjau hasilnya.');
-    } catch (e) {
-      currentGeneratedAiBase64 = aiUrl;
-      if (imgEl) imgEl.src = aiUrl;
-      if (loadingEl) loadingEl.style.display = 'none';
-      if (previewCard) previewCard.style.display = 'block';
+    let statusBadge = '';
+    if (isPending) {
+      statusBadge = '<span style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:800;padding:3px 8px;border-radius:12px;border:1px solid #FCD34D;"><i class="fas fa-clock"></i> Menunggu Kasir</span>';
+    } else if (isCompleted) {
+      statusBadge = '<span style="background:#DCFCE7;color:#166534;font-size:11px;font-weight:800;padding:3px 8px;border-radius:12px;border:1px solid #86EFAC;"><i class="fas fa-check-circle"></i> Selesai Diproses</span>';
+    } else {
+      statusBadge = '<span style="background:#F1F5F9;color:#64748B;font-size:11px;font-weight:800;padding:3px 8px;border-radius:12px;">Dibatalkan</span>';
     }
-  };
 
-  tempImg.onerror = function () {
-    // Coba fallback otomatis ke engine turbo jika flux terkena limit
-    console.warn('[Pollinations Flux Busy] Mencoba fallback ke engine Turbo...');
-    const fallbackUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(promptText) + '?width=600&height=600&nologo=true&model=turbo&seed=' + seed;
-    const fallbackImg = new Image();
-    fallbackImg.crossOrigin = 'anonymous';
-    fallbackImg.onload = function() {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 600;
-        canvas.height = 600;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(fallbackImg, 0, 0, 600, 600);
-        currentGeneratedAiBase64 = canvas.toDataURL('image/jpeg', 0.82);
-        if (imgEl) imgEl.src = currentGeneratedAiBase64;
-        if (loadingEl) loadingEl.style.display = 'none';
-        if (previewCard) previewCard.style.display = 'block';
-        showToast('Foto AI berhasil dibuat (Mode Cepat Turbo)!');
-      } catch (err) {
-        currentGeneratedAiBase64 = fallbackUrl;
-        if (imgEl) imgEl.src = fallbackUrl;
-        if (loadingEl) loadingEl.style.display = 'none';
-        if (previewCard) previewCard.style.display = 'block';
-      }
-    };
-    fallbackImg.onerror = function() {
-      if (loadingEl) loadingEl.style.display = 'none';
-      if (initBtnWrap) initBtnWrap.style.display = 'block';
-      showToast('Server publik sedang sibuk / terkena limit antrean. Pasang Google Gemini API Key gratis di tombol atas agar bebas limit.', true);
-    };
-    fallbackImg.src = fallbackUrl;
-  };
+    const waNum = (order.customer_phone || '').replace(/[^0-9]/g, '');
+    const cleanWaTarget = waNum.startsWith('0') ? ('62' + waNum.slice(1)) : waNum;
+    const waReplyUrl = 'https://wa.me/' + cleanWaTarget + '?text=' + encodeURIComponent('Halo ' + (order.customer_name || 'Pelanggan') + ', kami dari Kios IDEP ingin mengonfirmasi pesanan katalog online #' + order.order_no + '.');
 
-  tempImg.src = aiUrl;
+    let itemsTable = '<table style="width:100%;font-size:11.5px;border-collapse:collapse;margin:8px 0;background:#fff;border-radius:6px;overflow:hidden;border:1px solid #E2E8F0;">' +
+      '<thead><tr style="background:#F8FAFC;color:#475569;text-align:left;border-bottom:1px solid #E2E8F0;"><th style="padding:6px 8px;">Produk</th><th style="padding:6px 8px;text-align:center;">Qty</th><th style="padding:6px 8px;text-align:right;">Harga</th><th style="padding:6px 8px;text-align:right;">Subtotal</th></tr></thead><tbody>';
+
+    (order.items || []).forEach(function (it) {
+      itemsTable += '<tr style="border-bottom:1px solid #F1F5F9;">' +
+        '<td style="padding:5px 8px;font-weight:600;color:#1E293B;">' + escapeHtml(it.name) + (it.variant ? ' <small style="color:#64748B;">(' + escapeHtml(it.variant) + ')</small>' : '') + '</td>' +
+        '<td style="padding:5px 8px;text-align:center;color:#334155;">' + it.qty + ' ' + escapeHtml(it.unit || 'pcs') + '</td>' +
+        '<td style="padding:5px 8px;text-align:right;color:#64748B;">Rp ' + Number(it.price || 0).toLocaleString('id-ID') + '</td>' +
+        '<td style="padding:5px 8px;text-align:right;font-weight:700;color:#0F172A;">Rp ' + Number(it.subtotal || 0).toLocaleString('id-ID') + '</td>' +
+        '</tr>';
+    });
+    itemsTable += '</tbody></table>';
+
+    let actionButtons = '';
+    if (isPending) {
+      actionButtons =
+        '<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;">' +
+        '  <button type="button" class="btn btn-primary btn-sm" onclick="loadOnlineOrderToPosCart(\' + escapeHtml(order.id) + \')" style="font-weight:800;display:inline-flex;align-items:center;gap:6px;background:#2563EB;">' +
+        '    <i class="fas fa-cart-arrow-down"></i> Muat ke Keranjang Kasir' +
+        '  </button>' +
+        '  <button type="button" class="btn btn-secondary btn-sm" onclick="updateOnlineOrderStatus(\' + escapeHtml(order.id) + \', \'completed\')" style="color:#16A34A;font-weight:700;">' +
+        '    <i class="fas fa-check"></i> Tandai Selesai' +
+        '  </button>' +
+        '  <button type="button" class="btn btn-secondary btn-sm" onclick="updateOnlineOrderStatus(\' + escapeHtml(order.id) + \', \'cancelled\')" style="color:#EF4444;">' +
+        '    <i class="fas fa-times"></i> Batalkan' +
+        '  </button>' +
+        '</div>';
+    }
+
+    cardsHtml +=
+      '<div style="border:1.5px solid ' + (isPending ? '#FCD34D' : '#E2E8F0') + ';border-radius:8px;padding:12px 14px;background:' + (isPending ? '#FFFBEB' : '#ffffff') + ';box-shadow:0 1px 4px rgba(0,0,0,0.04);">' +
+      '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">' +
+      '    <div>' +
+      '      <span style="font-family:monospace;font-weight:900;font-size:14px;color:#1E40AF;">#' + escapeHtml(order.order_no) + '</span>' +
+      '      <span style="font-size:11px;color:#64748B;margin-left:8px;">' + formatDate(order.created_at) + '</span>' +
+      '    </div>' +
+      '    <div>' + statusBadge + '</div>' +
+      '  </div>' +
+      '  <div style="font-size:12px;color:#334155;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+      '    <strong><i class="fas fa-user" style="color:var(--primary);margin-right:4px;"></i>' + escapeHtml(order.customer_name || 'Pelanggan') + '</strong>' +
+      '    <a href="' + waReplyUrl + '" target="_blank" style="color:#16A34A;text-decoration:none;font-weight:700;display:inline-flex;align-items:center;gap:4px;background:#DCFCE7;padding:2px 8px;border-radius:12px;border:1px solid #86EFAC;">' +
+      '      <i class="fab fa-whatsapp"></i> ' + escapeHtml(order.customer_phone || '-') +
+      '    </a>' +
+      '    <span style="color:#64748B;">• Metode: <strong>' + escapeHtml(order.delivery_method || 'Ambil di Toko') + '</strong></span>' +
+      '  </div>' +
+      (order.notes ? '<div style="font-size:11.5px;color:#475569;background:#fff;padding:6px 10px;border-radius:4px;border:1px dashed #CBD5E1;margin-bottom:6px;">📝 Catatan: ' + escapeHtml(order.notes) + '</div>' : '') +
+      itemsTable +
+      '  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">' +
+      '    <span style="font-size:11.5px;color:#64748B;">Total Tagihan:</span>' +
+      '    <strong style="font-size:14px;color:#1E293B;">Rp ' + Number(order.total || 0).toLocaleString('id-ID') + '</strong>' +
+      '  </div>' +
+      actionButtons +
+      '</div>';
+  });
+
+  cardsHtml += '</div>';
+
+  const bodyHtml = tabNavHtml + cardsHtml;
+  openModal(
+    '<i class="fas fa-shopping-bag" style="color:var(--primary);margin-right:6px;"></i> Antrean Pesanan Katalog Online',
+    bodyHtml,
+    '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>',
+    true
+  );
 }
 
-window.toggleQuickAiKeyInput = toggleQuickAiKeyInput;
-window.saveQuickGeminiKey = saveQuickGeminiKey;
-window.getStoredGeminiKey = getStoredGeminiKey;
-
-
-function applyAiPhotoToProduct() {
-  if (!currentGeneratedAiBase64) return;
-
-  const targetInput = document.getElementById('pf-photo-url');
-  const previewBox = document.getElementById('pf-photo-preview');
-
-  if (targetInput) targetInput.value = currentGeneratedAiBase64;
-  if (previewBox) {
-    previewBox.innerHTML = '<img src="' + currentGeneratedAiBase64 + '" alt="Foto Produk" style="width:100%;height:100%;object-fit:cover;">';
+function loadOnlineOrderToPosCart(orderId) {
+  const order = (window.ONLINE_ORDERS_CACHE || []).find(function (o) { return o.id === orderId || o.order_no === orderId; });
+  if (!order) {
+    showToast('Pesanan tidak ditemukan.', true);
+    return;
   }
 
-  toggleAiPhotoGenerator(false);
-  showToast('Foto AI berhasil dipasang! Klik "Simpan Produk" untuk menyimpan ke database. ✅');
+  if (!Array.isArray(order.items) || order.items.length === 0) {
+    showToast('Item pesanan kosong.', true);
+    return;
+  }
+
+  const prods = window.PRODUCTS_CACHE || [];
+
+  CART = [];
+  order.items.forEach(function (it) {
+    let matched = prods.find(function (p) { return p.id === it.product_id || p.id === it.id; });
+    if (!matched) {
+      matched = prods.find(function (p) { return p.name.toLowerCase().trim() === it.name.toLowerCase().trim(); });
+    }
+
+    if (matched) {
+      const price = Number(it.price || matched.price || 0);
+      CART.push({
+        id: matched.id,
+        product_id: matched.id,
+        name: matched.name,
+        unit: matched.unit || it.unit || 'pcs',
+        price: price,
+        qty: Number(it.qty || 1),
+        weight_grams: Number(matched.weight_grams || 0),
+        is_seed: !!matched.is_seed,
+        is_bundled: !!matched.is_bundled,
+        selected_batch_id: '',
+        selected_expiry: ''
+      });
+    } else {
+      CART.push({
+        id: it.product_id || it.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : ('item-' + Date.now())),
+        name: it.name,
+        unit: it.unit || 'pcs',
+        price: Number(it.price || 0),
+        qty: Number(it.qty || 1),
+        selected_batch_id: '',
+        selected_expiry: ''
+      });
+    }
+  });
+
+  const custInput = document.getElementById('pos-customer-input');
+  const phoneInput = document.getElementById('pos-customer-phone-input');
+  if (custInput) {
+    custInput.value = order.customer_name || '';
+  }
+  if (phoneInput && order.customer_phone) {
+    phoneInput.value = order.customer_phone;
+    const phoneWrap = document.getElementById('pos-member-phone-wrap');
+    const saveChk = document.getElementById('pos-save-member-chk');
+    if (phoneWrap) phoneWrap.style.display = 'block';
+    if (saveChk) saveChk.checked = true;
+  }
+
+  window.ACTIVE_ONLINE_ORDER_ID = order.id;
+
+  closeModal();
+  renderCart();
+  switchPOSMobilePane('cart');
+  showToast('Pesanan #' + order.order_no + ' berhasil dimuat ke kasir! Silakan pilih metode bayar dan selesaikan transaksi.');
 }
 
-window.toggleAiPhotoGenerator = toggleAiPhotoGenerator;
-window.generateAiProductPhoto = generateAiProductPhoto;
-window.applyAiPhotoToProduct = applyAiPhotoToProduct;
+async function updateOnlineOrderStatus(orderId, newStatus) {
+  if (typeof supabase === 'undefined' || !supabase) return;
+
+  showToast('Memperbarui status pesanan...');
+
+  let updated = false;
+
+  // 1. Coba tabel online_orders
+  try {
+    const { error } = await supabase
+      .from('online_orders')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', orderId);
+    if (!error) updated = true;
+  } catch (e) {}
+
+  // 2. Fallback tabel settings
+  if (!updated) {
+    try {
+      const { data: row } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'online_order_' + orderId)
+        .maybeSingle();
+
+      if (row && row.value) {
+        const parsed = JSON.parse(row.value);
+        parsed.status = newStatus;
+        parsed.updated_at = new Date().toISOString();
+        await supabase
+          .from('settings')
+          .update({ value: JSON.stringify(parsed) })
+          .eq('key', 'online_order_' + orderId);
+        updated = true;
+      }
+    } catch (e) {
+      console.warn('Update online order in settings failed:', e);
+    }
+  }
+
+  showToast(newStatus === 'completed' ? 'Pesanan berhasil diselesaikan! ✅' : 'Status pesanan diperbarui.');
+
+  // Perbarui antrean dan modal
+  checkOnlineOrdersBadge(true).then(function (orders) {
+    const modalTitle = document.querySelector('#modal-title');
+    if (modalTitle && modalTitle.textContent.includes('Pesanan Katalog Online')) {
+      renderOnlineOrderQueueModalContent(orders, 'pending');
+    }
+  });
+}
+
+window.openOnlineOrderQueueModal = openOnlineOrderQueueModal;
+window.renderOnlineOrderQueueModalContent = renderOnlineOrderQueueModalContent;
+window.loadOnlineOrderToPosCart = loadOnlineOrderToPosCart;
+window.updateOnlineOrderStatus = updateOnlineOrderStatus;
+window.checkOnlineOrdersBadge = checkOnlineOrdersBadge;
+window.startOnlineOrdersPolling = startOnlineOrdersPolling;

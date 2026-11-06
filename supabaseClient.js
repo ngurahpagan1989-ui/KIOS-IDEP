@@ -223,7 +223,7 @@ async function loginSupabaseUser(identifier, password) {
 
   let email = identifier.trim();
   if (!email.includes('@')) {
-    email = `${email.toLowerCase()}@idep.local`;
+    email = `${email.toLowerCase()}@pos.local`;
   }
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -409,7 +409,7 @@ async function checkSupabaseSession() {
         const { data: freshProfile } = await q.maybeSingle();
         const userProfile = freshProfile ? {
           id: freshProfile.id,
-          email: parsedUser.email || (freshProfile.username + '@idep.local'),
+          email: parsedUser.email || (freshProfile.username + '@pos.local'),
           username: freshProfile.username,
           name: freshProfile.full_name || freshProfile.name || freshProfile.username,
           role: freshProfile.role || 'Kasir',

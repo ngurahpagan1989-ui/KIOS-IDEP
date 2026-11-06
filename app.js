@@ -16643,6 +16643,7 @@ function drawPengaturanUI(settings) {
     '<div class="field-group"><label class="field-label">Nama Toko / Kios</label><div class="input-wrapper"><input type="text" id="set-store-name" value="' + escapeHtml(settings['store_name'] || '') + '" style="padding-left:14px;"></div></div>' +
     '<div class="field-group"><label class="field-label">Alamat Lengkap</label><div class="input-wrapper"><input type="text" id="set-store-address" value="' + escapeHtml(settings['store_address'] || '') + '" style="padding-left:14px;"></div></div>' +
     '<div class="field-group"><label class="field-label">Kontak WhatsApp</label><div class="input-wrapper"><input type="text" id="set-store-phone" value="' + escapeHtml(settings['store_phone'] || '') + '" style="padding-left:14px;"></div></div>' +
+    '<div class="field-group"><label class="field-label">Email Resmi Toko</label><div class="input-wrapper"><input type="email" id="set-store-email" placeholder="Contoh: toko@domain.com" value="' + escapeHtml(settings['store_email'] || '') + '" style="padding-left:14px;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Tampil pada kop faktur penjualan, kuitansi kasir, dan surat jalan.</small></div>' +
     '<div class="field-group" style="padding:12px 14px;background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-xs);margin-bottom:12px;">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">' +
     '<label class="field-label" style="margin:0;">Rekening Bank Kios</label>' +
@@ -16724,6 +16725,7 @@ function drawPengaturanUI(settings) {
     '    <div class="field-group"><label class="field-label">Nama / Judul Toko di Katalog</label><div class="input-wrapper"><input type="text" id="set-cat-title" value="' + escapeHtml(settings['catalog_title'] || settings['store_name'] || '') + '" placeholder="Contoh: Kios Pertanian Lestari" style="padding-left:14px;"></div></div>' +
     '    <div class="field-group"><label class="field-label">Tagline / Slogan Toko</label><div class="input-wrapper"><input type="text" id="set-cat-tagline" value="' + escapeHtml(settings['store_tagline'] || '') + '" placeholder="Contoh: Pusat Benih Tanaman Lokal &amp; Edukasi Permakultur" style="padding-left:14px;"></div></div>' +
     '    <div class="field-group"><label class="field-label">Nomor WhatsApp Pemesanan</label><div class="input-wrapper"><input type="tel" id="set-cat-phone" value="' + escapeHtml(settings['store_phone'] || '') + '" placeholder="Contoh: 081945468237" style="padding-left:14px;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Pesan otomatis dari tombol WhatsApp Checkout pelanggan akan dikirim ke nomor ini.</small></div>' +
+    '    <div class="field-group"><label class="field-label">Email Toko / Layanan Pelanggan</label><div class="input-wrapper"><input type="email" id="set-cat-email" value="' + escapeHtml(settings['store_email'] || '') + '" placeholder="Contoh: toko@domain.com" style="padding-left:14px;"></div></div>' +
     '    <div class="field-group"><label class="field-label">Alamat Toko (Untuk Pengambilan Mandiri)</label><div class="input-wrapper"><input type="text" id="set-cat-address" value="' + escapeHtml(settings['store_address'] || '') + '" placeholder="Contoh: Jln. Plawa No. 10, Denpasar" style="padding-left:14px;"></div></div>' +
     '    <div class="field-group"><label class="field-label">Catatan Operasional / Pengiriman</label><div class="input-wrapper"><textarea id="set-cat-notes" class="form-textarea" placeholder="Contoh: Jam operasional toko fisik 08.00 - 17.00. Pengiriman ekspedisi dilakukan setiap sore." style="width:100%;min-height:70px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);font-size:12.5px;">' + escapeHtml(settings['catalog_notes'] || '') + '</textarea></div></div>' +
     '    <button type="button" class="btn btn-primary" onclick="saveCatalogSettings()" style="margin-top:6px;"><i class="fas fa-save" style="margin-right:6px;"></i> Simpan Pengaturan Katalog</button>' +
@@ -17768,6 +17770,7 @@ function saveStoreSettingsUI() {
 
 function saveStoreSettings() {
   const storeLogo = (document.getElementById('set-store-logo') ? document.getElementById('set-store-logo').value.trim() : '');
+  const storeEmail = (document.getElementById('set-store-email') ? document.getElementById('set-store-email').value.trim() : (document.getElementById('set-cat-email') ? document.getElementById('set-cat-email').value.trim() : ''));
   const storeLogoLight = (document.getElementById('set-store-logo-light') ? document.getElementById('set-store-logo-light').value.trim() : '');
   const storeStamp = (document.getElementById('set-store-stamp') ? document.getElementById('set-store-stamp').value.trim() : '');
   const batchFormat = (document.getElementById('set-batch-format') ? document.getElementById('set-batch-format').value.trim() : '') || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}';
@@ -17814,6 +17817,7 @@ function saveStoreSettings() {
     store_name: document.getElementById('set-store-name') ? document.getElementById('set-store-name').value.trim() : '',
     store_address: document.getElementById('set-store-address') ? document.getElementById('set-store-address').value.trim() : '',
     store_phone: document.getElementById('set-store-phone') ? document.getElementById('set-store-phone').value.trim() : '',
+    store_email: storeEmail,
     bank_name: newBankName,
     bank_account: newBankAccount,
     bank_account_name: newBankAccountName,
@@ -21318,6 +21322,7 @@ function saveCatalogSettings() {
   const catTagline = document.getElementById('set-cat-tagline') ? document.getElementById('set-cat-tagline').value.trim() : '';
   const catPhone = document.getElementById('set-cat-phone') ? document.getElementById('set-cat-phone').value.trim() : '';
   const catAddress = document.getElementById('set-cat-address') ? document.getElementById('set-cat-address').value.trim() : '';
+  const catEmail = document.getElementById('set-cat-email') ? document.getElementById('set-cat-email').value.trim() : '';
   const catNotes = document.getElementById('set-cat-notes') ? document.getElementById('set-cat-notes').value.trim() : '';
 
   const payload = {
@@ -21326,6 +21331,7 @@ function saveCatalogSettings() {
     store_tagline: catTagline,
     store_phone: catPhone,
     store_address: catAddress,
+    store_email: catEmail || (APP_SETTINGS ? APP_SETTINGS.store_email : ''),
     catalog_notes: catNotes
   };
 

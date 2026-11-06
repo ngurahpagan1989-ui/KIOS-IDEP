@@ -3366,20 +3366,76 @@ function openProductModal(productId) {
 
   const photoSectionHtml =
     '<div class="field-group" style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;">' +
-    '<label class="field-label" style="font-size:12.5px;font-weight:700;color:var(--text-main);margin-bottom:6px;"><i class="fas fa-camera" style="color:var(--primary);margin-right:5px;"></i> Foto Produk (Katalog Online &amp; Kasir)</label>' +
-    '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">' +
-    '<div id="pf-photo-preview" style="width:72px;height:72px;border:1.5px dashed #CBD5E1;border-radius:var(--radius-sm);overflow:hidden;background:#ffffff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+    '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">' +
+    '    <label class="field-label" style="font-size:12.5px;font-weight:700;color:var(--text-main);margin:0;"><i class="fas fa-camera" style="color:var(--primary);margin-right:5px;"></i> Foto Produk (Katalog Online &amp; Kasir)</label>' +
+    '    <button type="button" class="btn btn-sm" onclick="toggleAiPhotoGenerator()" style="background:#EFF6FF;color:#2563EB;border:1px solid rgba(37,99,235,0.3);font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--radius-full);cursor:pointer;" title="Buat foto produk profesional otomatis menggunakan AI">' +
+    '      <i class="fas fa-wand-magic-sparkles"></i> ✨ Buat Foto AI' +
+    '    </button>' +
+    '  </div>' +
+    '  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">' +
+    '    <div id="pf-photo-preview" style="width:72px;height:72px;border:1.5px dashed #CBD5E1;border-radius:var(--radius-sm);overflow:hidden;background:#ffffff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
     (currentPhoto ? '<img src="' + escapeHtml(currentPhoto) + '" alt="Foto Produk" style="width:100%;height:100%;object-fit:cover;">' : '<span style="font-size:10px;color:var(--text-muted);text-align:center;"><i class="fas fa-image" style="font-size:22px;display:block;margin-bottom:2px;color:#CBD5E1;"></i>Belum Ada</span>') +
-    '</div>' +
-    '<div style="flex:1;min-width:180px;">' +
-    '<div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">' +
-    '<label class="btn btn-primary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;"><i class="fas fa-upload"></i> Upload Foto<input type="file" id="pf-photo-file" accept="image/*" style="display:none;" onchange="handleProductPhotoUpload(this, \'pf-photo-url\', \'pf-photo-preview\')"></label>' +
-    '<button type="button" class="btn btn-secondary btn-sm" onclick="clearProductPhoto(\'pf-photo-url\', \'pf-photo-file\', \'pf-photo-preview\')" style="font-size:11.5px;">Hapus</button>' +
-    '</div>' +
-    '<input type="hidden" id="pf-photo-url" value="' + escapeHtml(currentPhoto) + '">' +
-    '<div style="font-size:11px;color:var(--text-secondary);">Mendukung JPG, PNG, WebP. Gambar dikompres otomatis agar katalog terbuka instan di HP pelanggan.</div>' +
-    '</div>' +
-    '</div>' +
+    '    </div>' +
+    '    <div style="flex:1;min-width:180px;">' +
+    '      <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">' +
+    '        <label class="btn btn-primary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;"><i class="fas fa-upload"></i> Upload Manual<input type="file" id="pf-photo-file" accept="image/*" style="display:none;" onchange="handleProductPhotoUpload(this, \'pf-photo-url\', \'pf-photo-preview\')"></label>' +
+    '        <button type="button" class="btn btn-secondary btn-sm" onclick="clearProductPhoto(\'pf-photo-url\', \'pf-photo-file\', \'pf-photo-preview\')" style="font-size:11.5px;">Hapus</button>' +
+    '      </div>' +
+    '      <input type="hidden" id="pf-photo-url" value="' + escapeHtml(currentPhoto) + '">' +
+    '      <div style="font-size:11px;color:var(--text-secondary);">Upload file foto dari perangkat Anda atau klik tombol <strong>✨ Buat Foto AI</strong> di kanan atas.</div>' +
+    '    </div>' +
+    '  </div>' +
+
+    '  <!-- LACI KONTROL AI PHOTO GENERATOR -->' +
+    '  <div id="pf-ai-generator-drawer" style="display:none;margin-top:12px;padding:12px 14px;background:#ffffff;border:1.5px solid #BFDBFE;border-radius:var(--radius-sm);box-shadow:0 3px 10px rgba(37,99,235,0.08);">' +
+    '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+    '      <div style="font-size:12px;font-weight:800;color:#1E40AF;display:flex;align-items:center;gap:6px;">' +
+    '        <i class="fas fa-wand-magic-sparkles"></i> AI Studio Foto Produk (FLUX Engine)' +
+    '      </div>' +
+    '      <button type="button" onclick="toggleAiPhotoGenerator(false)" style="background:none;border:none;color:#94A3B8;cursor:pointer;font-size:16px;line-height:1;" title="Tutup">&times;</button>' +
+    '    </div>' +
+    '    <div style="display:grid;grid-template-columns:1fr 140px;gap:10px;margin-bottom:10px;">' +
+    '      <div>' +
+    '        <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">Nama Tanaman / Objek</label>' +
+    '        <input type="text" id="ai-photo-keyword" placeholder="Contoh: Bayam Merah / Cabai Rawit / Tomat" style="width:100%;padding:6px 10px;font-size:12px;border:1px solid #CBD5E1;border-radius:4px;">' +
+    '      </div>' +
+    '      <div>' +
+    '        <label style="font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:4px;">Gaya Foto</label>' +
+    '        <select id="ai-photo-style" style="width:100%;padding:6px 8px;font-size:12px;border:1px solid #CBD5E1;border-radius:4px;">' +
+    '          <option value="harvest">🌿 Panen Segar</option>' +
+    '          <option value="pouch">📦 Sachet Kemasan</option>' +
+    '          <option value="botanical">🎨 Ilustrasi Botani</option>' +
+    '        </select>' +
+    '      </div>' +
+    '    </div>' +
+
+    '    <!-- Area Hasil & Loading -->' +
+    '    <div id="ai-photo-result-area" style="display:none;margin-bottom:10px;text-align:center;">' +
+    '      <div id="ai-photo-loading" style="display:none;padding:16px;color:#2563EB;font-size:12px;font-weight:600;">' +
+    '        <i class="fas fa-spinner fa-spin" style="font-size:22px;margin-bottom:6px;display:block;"></i>' +
+    '        <span>Sedang melukis foto produk berkualitas studio dengan AI FLUX (3–5 detik)...</span>' +
+    '      </div>' +
+    '      <div id="ai-photo-preview-card" style="display:none;">' +
+    '        <div style="display:inline-block;padding:4px;border:1.5px solid #2563EB;border-radius:8px;background:#fff;margin-bottom:8px;box-shadow:0 4px 12px rgba(0,0,0,0.06);">' +
+    '          <img id="ai-photo-generated-img" src="" alt="Hasil AI" style="width:160px;height:160px;object-fit:cover;border-radius:6px;display:block;">' +
+    '        </div>' +
+    '        <div style="display:flex;justify-content:center;gap:8px;">' +
+    '          <button type="button" class="btn btn-primary btn-sm" onclick="applyAiPhotoToProduct()" style="font-size:11.5px;font-weight:700;">' +
+    '            <i class="fas fa-check"></i> Pasang Foto Ini' +
+    '          </button>' +
+    '          <button type="button" class="btn btn-secondary btn-sm" onclick="generateAiProductPhoto()" style="font-size:11.5px;">' +
+    '            <i class="fas fa-redo"></i> Buat Ulang' +
+    '          </button>' +
+    '        </div>' +
+    '      </div>' +
+    '    </div>' +
+
+    '    <div id="ai-photo-initial-btn-wrap">' +
+    '      <button type="button" class="btn btn-primary btn-sm" onclick="generateAiProductPhoto()" style="width:100%;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:6px;">' +
+    '        <i class="fas fa-bolt"></i> Generate Foto AI Sekarang (Gratis)' +
+    '      </button>' +
+    '    </div>' +
+    '  </div>' +
     '</div>';
 
   const bodyHtml =
@@ -21348,3 +21404,118 @@ function saveCatalogSettings() {
 window.handleProductPhotoUpload = handleProductPhotoUpload;
 window.clearProductPhoto = clearProductPhoto;
 window.saveCatalogSettings = saveCatalogSettings;
+
+let currentGeneratedAiBase64 = '';
+
+function toggleAiPhotoGenerator(forceState) {
+  const drawer = document.getElementById('pf-ai-generator-drawer');
+  if (!drawer) return;
+
+  const isHidden = (drawer.style.display === 'none' || !drawer.style.display);
+  const show = (forceState !== undefined) ? forceState : isHidden;
+
+  if (show) {
+    drawer.style.display = 'block';
+    const nameInput = document.getElementById('pf-name');
+    const keywordInput = document.getElementById('ai-photo-keyword');
+    if (keywordInput && nameInput && nameInput.value.trim() && !keywordInput.value.trim()) {
+      keywordInput.value = nameInput.value.trim();
+    }
+  } else {
+    drawer.style.display = 'none';
+  }
+}
+
+function generateAiProductPhoto() {
+  const keywordInput = document.getElementById('ai-photo-keyword');
+  const styleSelect = document.getElementById('ai-photo-style');
+  const nameInput = document.getElementById('pf-name');
+
+  let keyword = keywordInput ? keywordInput.value.trim() : '';
+  if (!keyword && nameInput) {
+    keyword = nameInput.value.trim();
+    if (keywordInput) keywordInput.value = keyword;
+  }
+
+  if (!keyword) {
+    showToast('Ketikkan nama tanaman atau produk terlebih dahulu.', true);
+    if (keywordInput) keywordInput.focus();
+    return;
+  }
+
+  const style = styleSelect ? styleSelect.value : 'harvest';
+
+  let promptText = '';
+  if (style === 'harvest') {
+    promptText = 'professional commercial studio product photography of fresh organic ' + keyword + ' vegetable harvest, placed on clean white seamless background, soft studio lighting, ultra sharp focus, vibrant natural colors, 4k';
+  } else if (style === 'pouch') {
+    promptText = 'commercial product photography mockup of modern organic seed paper sachet packet labeled with ' + keyword + ', placed on clean white minimalist studio background, soft natural shadows, commercial packaging photography, 8k';
+  } else {
+    promptText = 'fine art vintage botanical watercolor illustration of ' + keyword + ' plant with botanical leaves and seeds, isolated on pure white background, elegant detailed natural history scientific illustration';
+  }
+
+  const seed = Math.floor(Math.random() * 9999999);
+  const aiUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(promptText) + '?width=600&height=600&nologo=true&model=flux&seed=' + seed;
+
+  const resultArea = document.getElementById('ai-photo-result-area');
+  const loadingEl = document.getElementById('ai-photo-loading');
+  const previewCard = document.getElementById('ai-photo-preview-card');
+  const initBtnWrap = document.getElementById('ai-photo-initial-btn-wrap');
+  const imgEl = document.getElementById('ai-photo-generated-img');
+
+  if (resultArea) resultArea.style.display = 'block';
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (previewCard) previewCard.style.display = 'none';
+  if (initBtnWrap) initBtnWrap.style.display = 'none';
+
+  const tempImg = new Image();
+  tempImg.crossOrigin = 'anonymous';
+
+  tempImg.onload = function () {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 600;
+      canvas.height = 600;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(tempImg, 0, 0, 600, 600);
+      currentGeneratedAiBase64 = canvas.toDataURL('image/jpeg', 0.82);
+
+      if (imgEl) imgEl.src = currentGeneratedAiBase64;
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (previewCard) previewCard.style.display = 'block';
+      showToast('Foto AI berhasil dibuat! Silakan tinjau hasilnya.');
+    } catch (e) {
+      currentGeneratedAiBase64 = aiUrl;
+      if (imgEl) imgEl.src = aiUrl;
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (previewCard) previewCard.style.display = 'block';
+    }
+  };
+
+  tempImg.onerror = function () {
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (initBtnWrap) initBtnWrap.style.display = 'block';
+    showToast('Gagal memproses gambar AI. Silakan coba klik Buat Ulang.', true);
+  };
+
+  tempImg.src = aiUrl;
+}
+
+function applyAiPhotoToProduct() {
+  if (!currentGeneratedAiBase64) return;
+
+  const targetInput = document.getElementById('pf-photo-url');
+  const previewBox = document.getElementById('pf-photo-preview');
+
+  if (targetInput) targetInput.value = currentGeneratedAiBase64;
+  if (previewBox) {
+    previewBox.innerHTML = '<img src="' + currentGeneratedAiBase64 + '" alt="Foto Produk" style="width:100%;height:100%;object-fit:cover;">';
+  }
+
+  toggleAiPhotoGenerator(false);
+  showToast('Foto AI berhasil dipasang! Klik "Simpan Produk" untuk menyimpan ke database. ✅');
+}
+
+window.toggleAiPhotoGenerator = toggleAiPhotoGenerator;
+window.generateAiProductPhoto = generateAiProductPhoto;
+window.applyAiPhotoToProduct = applyAiPhotoToProduct;

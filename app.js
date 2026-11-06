@@ -7608,6 +7608,7 @@ function renderPOS(forceRefresh) {
     '<div class="pos-catalog-panel">' +
     '<div class="pos-filter-bar">' +
     '<input type="text" id="pos-search" class="topbar-search" placeholder="Cari produk kemasan..." style="flex:1;">' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="openPublicCatalogManager()" title="Buka / Bagikan Katalog & QR Meja Kasir" style="color:var(--primary);font-weight:700;display:inline-flex;align-items:center;gap:5px;"><i class="fas fa-qrcode"></i> Katalog &amp; QR</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="openModuleGuide(\'pos\')" title="Buka Panduan Operasional Kasir (SOP)">📖 Panduan Kasir</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="openTransactionHistoryModal()">📜 Riwayat Transaksi</button>' +
     '</div>' +
@@ -20972,3 +20973,221 @@ window.saveAdminVapidPublicKeyUI = saveAdminVapidPublicKeyUI;
 window.runSmartOperationalAlertScan = runSmartOperationalAlertScan;
 window.buildNotifSettingsPaneHTML = buildNotifSettingsPaneHTML;
 window.refreshNotifSettingsPaneUI = refreshNotifSettingsPaneUI;
+
+
+// ==============================================================================
+// MODAL KATALOG PUBLIK & STANDEE QR CODE UNTUK KASIR / ADMIN
+// ==============================================================================
+function getCatalogPublicUrl() {
+  const loc = window.location;
+  let url = loc.origin + loc.pathname;
+  if (url.endsWith('index.html')) {
+    url = url.replace(/index\.html$/, 'katalog.html');
+  } else if (url.endsWith('/')) {
+    url += 'katalog.html';
+  } else {
+    url = url.substring(0, url.lastIndexOf('/') + 1) + 'katalog.html';
+  }
+  return url;
+}
+
+function openPublicCatalogManager() {
+  const catalogUrl = getCatalogPublicUrl();
+  const s = window.SETTINGS || {};
+  const storeName = s.store_name || 'Katalog Resmi Toko';
+  const storePhone = s.store_phone || '';
+  const storeTagline = s.store_tagline || 'Pusat Benih Tanaman Lokal & Produk Berkualitas';
+  const qrImgUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=' + encodeURIComponent(catalogUrl);
+
+  const bodyHtml =
+    '<div style="display:flex;flex-direction:column;gap:18px;">' +
+    '  <!-- Kartu Tautan Cepat -->' +
+    '  <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:14px;">' +
+    '    <div style="font-size:12.5px;font-weight:700;color:var(--text-main);margin-bottom:6px;display:flex;align-items:center;gap:6px;">' +
+    '      <i class="fas fa-link" style="color:var(--primary);"></i> Tautan Publik Katalog Pelanggan:' +
+    '    </div>' +
+    '    <div style="display:flex;gap:8px;align-items:center;">' +
+    '      <input type="text" id="public-catalog-url-input" value="' + escapeHtml(catalogUrl) + '" readonly style="flex:1;padding:8px 12px;font-size:12.5px;background:#ffffff;border:1px solid #CBD5E1;border-radius:var(--radius-xs);color:var(--text-main);font-family:monospace;" onclick="this.select()">' +
+    '      <button type="button" class="btn btn-primary btn-sm" onclick="copyCatalogPublicUrl()" style="white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">' +
+    '        <i class="fas fa-copy"></i> Salin' +
+    '      </button>' +
+    '      <a href="' + escapeHtml(catalogUrl) + '" target="_blank" class="btn btn-secondary btn-sm" style="white-space:nowrap;display:inline-flex;align-items:center;gap:6px;text-decoration:none;">' +
+    '        <i class="fas fa-external-link-alt"></i> Buka' +
+    '      </a>' +
+    '    </div>' +
+    '    <div style="font-size:11px;color:var(--text-secondary);margin-top:6px;">' +
+    '      💡 <em>Bagikan tautan ini ke profil bio media sosial, status WhatsApp, atau chat calon pelanggan.</em>' +
+    '    </div>' +
+    '  </div>' +
+
+    '  <!-- Preview Standee QR Code Meja Kasir -->' +
+    '  <div style="border:1.5px dashed #CBD5E1;border-radius:var(--radius-md);padding:20px;text-align:center;background:#ffffff;box-shadow:0 4px 16px rgba(0,0,0,0.03);">' +
+    '    <div style="display:inline-block;padding:4px 12px;background:#EFF6FF;color:#2563EB;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">' +
+    '      Standee Meja Kasir / Etalase Toko' +
+    '    </div>' +
+    '    <h3 style="font-size:18px;font-weight:900;color:#0F172A;margin-bottom:2px;">' + escapeHtml(storeName) + '</h3>' +
+    '    <p style="font-size:11.5px;color:#64748B;margin-bottom:14px;max-width:340px;margin-left:auto;margin-right:auto;">' + escapeHtml(storeTagline) + '</p>' +
+    '    <div style="display:inline-block;padding:12px;background:#ffffff;border:2px solid #0F172A;border-radius:16px;box-shadow:0 8px 20px rgba(0,0,0,0.08);margin-bottom:14px;">' +
+    '      <img src="' + qrImgUrl + '" alt="QR Code Katalog" style="width:190px;height:190px;display:block;" onerror="this.alt=\'Gagal memuat QR Code\'">' +
+    '    </div>' +
+    '    <div style="font-size:13px;font-weight:800;color:#0F172A;margin-bottom:4px;">' +
+    '      📱 SCAN UNTUK LIHAT KATALOG &amp; PESAN' +
+    '    </div>' +
+    '    <div style="font-size:11.5px;color:#64748B;">' +
+    '      Arahkan kamera ponsel Anda untuk memesan langsung via WhatsApp' +
+    '    </div>' +
+    (storePhone ? '<div style="font-size:11px;font-weight:700;color:#2563EB;margin-top:6px;"><i class="fab fa-whatsapp"></i> WA: ' + escapeHtml(storePhone) + '</div>' : '') +
+    '  </div>' +
+    '</div>';
+
+  const footerHtml =
+    '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:10px;">' +
+    '  <button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>' +
+    '  <button type="button" class="btn btn-primary" onclick="printCatalogStandee()" style="display:inline-flex;align-items:center;gap:6px;font-weight:700;">' +
+    '    <i class="fas fa-print"></i> Cetak Standee Meja Kasir' +
+    '  </button>' +
+    '</div>';
+
+  openModal('🌐 Katalog Publik &amp; Standee QR Code', bodyHtml, footerHtml, true);
+}
+
+function copyCatalogPublicUrl() {
+  const input = document.getElementById('public-catalog-url-input');
+  if (!input) return;
+  const url = input.value;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function() {
+      showToast('Tautan katalog publik berhasil disalin ke clipboard! 📋');
+    }).catch(function() {
+      fallbackCopyCatalogText(input);
+    });
+  } else {
+    fallbackCopyCatalogText(input);
+  }
+}
+
+function fallbackCopyCatalogText(input) {
+  input.select();
+  input.setSelectionRange(0, 99999);
+  try {
+    document.execCommand('copy');
+    showToast('Tautan katalog publik berhasil disalin! 📋');
+  } catch (e) {
+    showToast('Gagal menyalin otomatis, silakan salin manual.', true);
+  }
+}
+
+function printCatalogStandee() {
+  const catalogUrl = getCatalogPublicUrl();
+  const s = window.SETTINGS || {};
+  const storeName = s.store_name || 'Katalog Resmi Toko';
+  const storePhone = s.store_phone || '';
+  const storeAddress = s.store_address || '';
+  const storeTagline = s.store_tagline || 'Pusat Benih Tanaman Lokal & Produk Berkualitas';
+  const qrImgUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=450x450&margin=15&data=' + encodeURIComponent(catalogUrl);
+
+  const printWin = window.open('', '_blank', 'width=700,height=900');
+  if (!printWin) {
+    alert('Pop-up terblokir oleh browser. Izinkan pop-up untuk mencetak standee.');
+    return;
+  }
+
+  const printHtml = '<!DOCTYPE html>' +
+    '<html lang="id">' +
+    '<head>' +
+    '  <meta charset="utf-8">' +
+    '  <title>Standee QR Code - ' + escapeHtml(storeName) + '</title>' +
+    '  <link rel="preconnect" href="https://fonts.googleapis.com">' +
+    '  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800;900&display=swap" rel="stylesheet">' +
+    '  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">' +
+    '  <style>' +
+    '    @page { size: A5 portrait; margin: 10mm; }' +
+    '    * { box-sizing: border-box; margin: 0; padding: 0; }' +
+    '    body {' +
+    '      font-family: "Figtree", sans-serif;' +
+    '      background: #FFFFFF;' +
+    '      color: #0F172A;' +
+    '      display: flex;' +
+    '      align-items: center;' +
+    '      justify-content: center;' +
+    '      min-height: 100vh;' +
+    '      padding: 20px;' +
+    '      -webkit-print-color-adjust: exact !important;' +
+    '      print-color-adjust: exact !important;' +
+    '    }' +
+    '    .standee-frame {' +
+    '      width: 100%;' +
+    '      max-width: 460px;' +
+    '      border: 4px solid #0F172A;' +
+    '      border-radius: 24px;' +
+    '      padding: 36px 28px;' +
+    '      text-align: center;' +
+    '      background: #FFFFFF;' +
+    '      box-shadow: 0 4px 20px rgba(0,0,0,0.06);' +
+    '    }' +
+    '    .badge-pill {' +
+    '      display: inline-block;' +
+    '      background: #2563EB;' +
+    '      color: #FFFFFF;' +
+    '      padding: 6px 18px;' +
+    '      border-radius: 999px;' +
+    '      font-size: 13px;' +
+    '      font-weight: 800;' +
+    '      letter-spacing: 0.5px;' +
+    '      text-transform: uppercase;' +
+    '      margin-bottom: 16px;' +
+    '    }' +
+    '    h1 { font-size: 26px; font-weight: 900; color: #0F172A; line-height: 1.2; margin-bottom: 6px; }' +
+    '    .tagline { font-size: 13px; color: #475569; margin-bottom: 22px; }' +
+    '    .qr-wrap {' +
+    '      display: inline-block;' +
+    '      padding: 16px;' +
+    '      background: #FFFFFF;' +
+    '      border: 3px solid #2563EB;' +
+    '      border-radius: 20px;' +
+    '      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.12);' +
+    '      margin-bottom: 22px;' +
+    '    }' +
+    '    .qr-wrap img { width: 250px; height: 250px; display: block; }' +
+    '    .instruction-box {' +
+    '      background: #EFF6FF;' +
+    '      border: 1.5px solid #BFDBFE;' +
+    '      border-radius: 14px;' +
+    '      padding: 12px 16px;' +
+    '      margin-bottom: 18px;' +
+    '    }' +
+    '    .instruction-title { font-size: 14px; font-weight: 800; color: #1E40AF; margin-bottom: 4px; }' +
+    '    .instruction-desc { font-size: 12px; color: #334155; line-height: 1.4; }' +
+    '    .footer-info { font-size: 11.5px; color: #64748B; border-top: 1px solid #E2E8F0; padding-top: 14px; }' +
+    '    @media print { body { padding: 0; } }' +
+    '  </style>' +
+    '</head>' +
+    '<body>' +
+    '  <div class="standee-frame">' +
+    '    <div class="badge-pill">KATALOG RESMI TOKO</div>' +
+    '    <h1>' + escapeHtml(storeName) + '</h1>' +
+    '    <div class="tagline">' + escapeHtml(storeTagline) + '</div>' +
+    '    <div class="qr-wrap"><img src="' + qrImgUrl + '" alt="QR Code Katalog"></div>' +
+    '    <div class="instruction-box">' +
+    '      <div class="instruction-title">📱 SCAN DENGAN KAMERA HP</div>' +
+    '      <div class="instruction-desc">Arahkan kamera ponsel Anda ke QR Code untuk melihat katalog lengkap &amp; memesan via WhatsApp</div>' +
+    '    </div>' +
+    '    <div class="footer-info">' +
+    (storeAddress ? '<div><i class="fas fa-map-marker-alt"></i> ' + escapeHtml(storeAddress) + '</div>' : '') +
+    (storePhone ? '<div style="margin-top:4px;font-weight:700;color:#2563EB;"><i class="fab fa-whatsapp"></i> Hubungi WA: ' + escapeHtml(storePhone) + '</div>' : '') +
+    '    </div>' +
+    '  </div>' +
+    '  <script>' +
+    '    window.onload = function() { setTimeout(function() { window.print(); }, 400); };' +
+    '  <\/script>' +
+    '</body>' +
+    '</html>';
+
+  printWin.document.write(printHtml);
+  printWin.document.close();
+}
+
+window.openPublicCatalogManager = openPublicCatalogManager;
+window.copyCatalogPublicUrl = copyCatalogPublicUrl;
+window.printCatalogStandee = printCatalogStandee;

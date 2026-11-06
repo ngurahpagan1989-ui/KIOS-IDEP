@@ -855,6 +855,25 @@ button, input, select, textarea {
   padding: 7px 16px;
 }
 
+.topbar-catalog-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  padding: 7px 14px;
+  background: var(--surface);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  color: var(--primary);
+  transition: all 0.15s ease;
+}
+
+.topbar-catalog-btn:hover {
+  background: var(--primary-light, #EFF6FF);
+  border-color: var(--primary);
+}
+
 .quick-pos-plus {
   font-size: 16px;
   font-weight: 800;
@@ -2170,8 +2189,13 @@ tbody tr:hover {
     flex-shrink: 0;
   }
 
-  .topbar-quick-pos .btn-label {
+  .topbar-quick-pos .btn-label,
+  .topbar-catalog-btn .btn-label {
     display: none;
+  }
+
+  .topbar-catalog-btn {
+    padding: 6px 10px;
   }
 
   .topbar-quick-pos {
@@ -5713,7 +5737,8 @@ body.perm-no-delete #modal-container .btn-void {
     height: 34px;
   }
 
-  .topbar-quick-pos {
+  .topbar-quick-pos,
+  .topbar-catalog-btn {
     display: none !important;
   }
 

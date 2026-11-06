@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#2563EB">
+  <title>Katalog Produk &amp; Pemesanan</title>
+
+  <!-- Tipografi Modern -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Stylesheet Mandiri Katalog (Terisolasi dari Admin) -->
+  <link rel="stylesheet" href="katalog.css?v=1.0">
+</head>
+<body>
+
+  <!-- 1. NAVBAR UTAMA -->
+  <header class="catalog-nav">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <div class="brand-icon">
+          <i class="fas fa-store"></i>
+        </div>
+        <div class="brand-details">
+          <h1 id="store-title">Katalog Resmi</h1>
+          <p>Pemesanan Online Terpercaya</p>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <button type="button" class="cart-icon-btn" onclick="openCartModal()" title="Keranjang Belanja" aria-label="Buka Keranjang">
+          <i class="fas fa-shopping-bag"></i>
+          <span id="cart-badge" class="cart-badge">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. HERO INFORMASI TOKO -->
+  <section class="store-hero">
+    <div class="hero-container">
+      <p id="store-tagline" class="hero-tagline">Pusat Benih Tanaman Lokal &amp; Produk Pilihan Berkualitas</p>
+      <div class="hero-meta-row">
+        <span id="store-address" class="meta-pill" style="display:none;">
+          <i class="fas fa-map-marker-alt"></i> Lokasi Toko
+        </span>
+        <a id="store-phone-btn" href="#" target="_blank" class="meta-pill wa" style="display:none;">
+          <i class="fab fa-whatsapp"></i> Chat WhatsApp
+        </a>
+        <span class="meta-pill">
+          <i class="fas fa-shield-alt" style="color:var(--primary);"></i> Transaksi Aman
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. STICKY PENCARIAN & FILTER KATEGORI -->
+  <section class="filter-section">
+    <div class="filter-container">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="search-input" class="search-input" placeholder="Cari nama benih atau produk..." autocomplete="off">
+        <button type="button" id="clear-search-btn" class="search-clear-btn" aria-label="Hapus Pencarian">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="category-chips" class="category-chips">
+        <!-- Render dinamis via katalog.js -->
+        <button type="button" class="category-chip active">Semua</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. GRID PRODUK -->
+  <main class="main-content">
+    <div class="section-status">
+      <span id="result-status">Memuat katalog...</span>
+      <span style="font-size:11px;color:var(--text-sub);"><i class="fas fa-info-circle"></i> Harga Resmi</span>
+    </div>
+    <div id="products-grid" class="products-grid">
+      <!-- Skeleton loader awal -->
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+      <div class="skeleton-card"></div>
+    </div>
+  </main>
+
+  <!-- 5. FLOATING BOTTOM CART BAR (Melayang saat ada item di keranjang) -->
+  <aside id="floating-cart-bar" class="floating-cart-bar">
+    <div class="float-info">
+      <div class="float-icon">
+        <i class="fas fa-shopping-cart"></i>
+      </div>
+      <div class="float-meta">
+        <span id="float-qty-text" class="float-qty">0 Barang</span>
+        <span id="float-total-text" class="float-total">Rp 0</span>
+      </div>
+    </div>
+    <button type="button" class="float-btn" onclick="openCartModal()">
+      <span>Lihat Pesanan</span>
+      <i class="fas fa-arrow-right"></i>
+    </button>
+  </aside>
+
+  <!-- 6. MODAL KERANJANG & CHECKOUT WHATSAPP -->
+  <div id="cart-modal-backdrop" class="cart-modal-backdrop" role="dialog" aria-modal="true">
+    <div class="cart-modal">
+      <div class="modal-header">
+        <h2><i class="fas fa-shopping-basket" style="color:var(--primary);"></i> Keranjang Pesanan</h2>
+        <button type="button" class="modal-close-btn" onclick="closeCartModal()" aria-label="Tutup">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Daftar Item Belanja -->
+        <div id="cart-items-list" class="cart-items-list">
+          <!-- Render dinamis dari katalog.js -->
+        </div>
+
+        <!-- Formulir Data Pemesan -->
+        <div class="customer-form">
+          <div class="customer-form-title">
+            <i class="fas fa-user-edit" style="color:var(--primary);"></i> Data Pemesan
+          </div>
+          
+          <div class="form-group">
+            <label for="cust-name">Nama Pemesan <span>*</span></label>
+            <input type="text" id="cust-name" class="form-input" placeholder="Contoh: Budi Santoso" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cust-phone">Nomor WhatsApp <span>*</span></label>
+            <input type="tel" id="cust-phone" class="form-input" placeholder="Contoh: 081234567890" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cust-method">Metode Pengambilan</label>
+            <select id="cust-method" class="form-select">
+              <option value="Ambil di Toko">Ambil Sendiri di Toko (Pick-up)</option>
+              <option value="Kirim Kurir / Ekspedisi">Kirim Ekspedisi / Kurir Lokal (Delivery)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cust-notes">Alamat Lengkap / Catatan Khusus</label>
+            <textarea id="cust-notes" class="form-textarea" placeholder="Tuliskan alamat pengiriman atau catatan untuk pesanan Anda..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div class="total-summary-row">
+          <span class="total-summary-label">Total Estimasi</span>
+          <span id="modal-total-price" class="total-summary-val">Rp 0</span>
+        </div>
+        <button type="button" class="btn-send-wa" onclick="sendOrderToWhatsApp()">
+          <i class="fab fa-whatsapp" style="font-size:18px;"></i> Kirim Pesanan via WhatsApp
+        </button>
+        <button type="button" class="btn-clear-cart" onclick="clearCart()">
+          <i class="fas fa-trash-alt"></i> Kosongkan Keranjang
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. TOAST NOTIFIKASI -->
+  <div id="catalog-toast" class="catalog-toast">
+    <i class="fas fa-check-circle" style="color:#10B981;"></i>
+    <span id="toast-text">Item berhasil ditambahkan.</span>
+  </div>
+
+  <!-- 8. FOOTER TOKO -->
+  <footer class="catalog-footer">
+    <p>&copy; 2026 <strong id="footer-store-name">Katalog Resmi</strong>. Hak Cipta Dilindungi.</p>
+    <p style="font-size:11px;color:var(--text-sub);margin-top:2px;">Katalog publik &bull; Terhubung langsung ke WhatsApp Toko</p>
+  </footer>
+
+  <!-- Supabase CDN Client Library (v2) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Skrip Mandiri Katalog Publik -->
+  <script src="katalog.js?v=1.0"></script>
+</body>
+</html>
+

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pos-app-v8.5';
+const CACHE_NAME = 'pos-app-v8.6';
 const STATIC_ASSETS = [
   './',
   './index.html',

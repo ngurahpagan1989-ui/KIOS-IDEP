@@ -3390,9 +3390,26 @@ function openProductModal(productId) {
     '  <div id="pf-ai-generator-drawer" style="display:none;margin-top:12px;padding:12px 14px;background:#ffffff;border:1.5px solid #BFDBFE;border-radius:var(--radius-sm);box-shadow:0 3px 10px rgba(37,99,235,0.08);">' +
     '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
     '      <div style="font-size:12px;font-weight:800;color:#1E40AF;display:flex;align-items:center;gap:6px;">' +
-    '        <i class="fas fa-wand-magic-sparkles"></i> AI Studio Foto Produk (FLUX Engine)' +
+    '        <i class="fas fa-wand-magic-sparkles"></i> AI Studio Foto Produk' +
     '      </div>' +
     '      <button type="button" onclick="toggleAiPhotoGenerator(false)" style="background:none;border:none;color:#94A3B8;cursor:pointer;font-size:16px;line-height:1;" title="Tutup">&times;</button>' +
+    '    </div>' +
+    '    <!-- Status Engine & Quick API Key Button -->' +
+    '    <div style="display:flex;justify-content:space-between;align-items:center;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:6px 10px;margin-bottom:10px;font-size:11px;">' +
+    '      <span id="ai-engine-status-text" style="color:#475569;font-weight:600;">Memeriksa status AI...</span>' +
+    '      <button type="button" onclick="toggleQuickAiKeyInput()" style="background:none;border:none;color:#2563EB;cursor:pointer;font-weight:700;font-size:11px;text-decoration:underline;">' +
+    '        🔑 Kunci API Pribadi' +
+    '      </button>' +
+    '    </div>' +
+    '    <div id="ai-quick-key-box" style="display:none;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:10px;margin-bottom:10px;">' +
+    '      <div style="font-size:11px;font-weight:700;color:#1E40AF;margin-bottom:4px;">Google Gemini / AI Studio API Key:</div>' +
+    '      <div style="display:flex;gap:6px;">' +
+    '        <input type="password" id="quick-gemini-key" placeholder="Paste API Key (AIzaSy...)" style="flex:1;padding:5px 8px;font-size:11.5px;border:1px solid #CBD5E1;border-radius:4px;font-family:monospace;">' +
+    '        <button type="button" class="btn btn-primary btn-sm" onclick="saveQuickGeminiKey()" style="padding:4px 10px;font-size:11px;font-weight:700;">Simpan</button>' +
+    '      </div>' +
+    '      <div style="font-size:10.5px;color:#334155;margin-top:5px;">' +
+    '        💡 Belum punya? <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#2563EB;font-weight:700;text-decoration:none;">Buat API Key Gratis di Google AI Studio &nearr;</a> (Gratis 1.500 foto/hari tanpa batas antrean publik).' +
+    '      </div>' +
     '    </div>' +
     '    <div style="display:grid;grid-template-columns:1fr 140px;gap:10px;margin-bottom:10px;">' +
     '      <div>' +
@@ -16784,6 +16801,13 @@ function drawPengaturanUI(settings) {
     '    <div class="field-group"><label class="field-label">Email Toko / Layanan Pelanggan</label><div class="input-wrapper"><input type="email" id="set-cat-email" value="' + escapeHtml(settings['store_email'] || '') + '" placeholder="Contoh: toko@domain.com" style="padding-left:14px;"></div></div>' +
     '    <div class="field-group"><label class="field-label">Alamat Toko (Untuk Pengambilan Mandiri)</label><div class="input-wrapper"><input type="text" id="set-cat-address" value="' + escapeHtml(settings['store_address'] || '') + '" placeholder="Contoh: Jln. Plawa No. 10, Denpasar" style="padding-left:14px;"></div></div>' +
     '    <div class="field-group"><label class="field-label">Catatan Operasional / Pengiriman</label><div class="input-wrapper"><textarea id="set-cat-notes" class="form-textarea" placeholder="Contoh: Jam operasional toko fisik 08.00 - 17.00. Pengiriman ekspedisi dilakukan setiap sore." style="width:100%;min-height:70px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);font-size:12.5px;">' + escapeHtml(settings['catalog_notes'] || '') + '</textarea></div></div>' +
+    '<div class="field-group" style="margin-top:14px;padding-top:12px;border-top:1px dashed #CBD5E1;">' +
+    '  <label class="field-label" style="font-weight:700;display:flex;align-items:center;gap:6px;"><i class="fas fa-key" style="color:var(--primary);"></i> Google Gemini API Key (Generator Foto Tanpa Limit)</label>' +
+    '  <div class="input-wrapper" style="position:relative;">' +
+    '    <input type="password" id="set-gemini-key" value="' + escapeHtml(settings['gemini_api_key'] || '') + '" placeholder="Contoh: AIzaSy..." style="padding-left:14px;padding-right:40px;font-family:monospace;font-size:12px;">' +
+    '  </div>' +
+    '  <small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Dapatkan API Key gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#2563EB;font-weight:700;text-decoration:none;">Google AI Studio &nearr;</a> untuk generate foto produk pribadi tanpa batas dan tanpa antrean publik.</small>' +
+    '</div>' +
     '    <button type="button" class="btn btn-primary" onclick="saveCatalogSettings()" style="margin-top:6px;"><i class="fas fa-save" style="margin-right:6px;"></i> Simpan Pengaturan Katalog</button>' +
     '  </div>' +
 
@@ -21380,6 +21404,7 @@ function saveCatalogSettings() {
   const catAddress = document.getElementById('set-cat-address') ? document.getElementById('set-cat-address').value.trim() : '';
   const catEmail = document.getElementById('set-cat-email') ? document.getElementById('set-cat-email').value.trim() : '';
   const catNotes = document.getElementById('set-cat-notes') ? document.getElementById('set-cat-notes').value.trim() : '';
+  const geminiKey = document.getElementById('set-gemini-key') ? document.getElementById('set-gemini-key').value.trim() : '';
 
   const payload = {
     catalog_title: catTitle,
@@ -21388,7 +21413,8 @@ function saveCatalogSettings() {
     store_phone: catPhone,
     store_address: catAddress,
     store_email: catEmail || (APP_SETTINGS ? APP_SETTINGS.store_email : ''),
-    catalog_notes: catNotes
+    catalog_notes: catNotes,
+    gemini_api_key: geminiKey
   };
 
   showToast('Menyimpan konfigurasi katalog online...');
@@ -21407,6 +21433,54 @@ window.saveCatalogSettings = saveCatalogSettings;
 
 let currentGeneratedAiBase64 = '';
 
+function getStoredGeminiKey() {
+  return (APP_SETTINGS && APP_SETTINGS.gemini_api_key) ? APP_SETTINGS.gemini_api_key.trim() : (localStorage.getItem('gemini_api_key') || '').trim();
+}
+
+function toggleQuickAiKeyInput() {
+  const box = document.getElementById('ai-quick-key-box');
+  const input = document.getElementById('quick-gemini-key');
+  if (!box) return;
+  const isHidden = (box.style.display === 'none' || !box.style.display);
+  box.style.display = isHidden ? 'block' : 'none';
+  if (isHidden && input) {
+    input.value = getStoredGeminiKey();
+    input.focus();
+  }
+}
+
+function saveQuickGeminiKey() {
+  const input = document.getElementById('quick-gemini-key');
+  if (!input) return;
+  const key = input.value.trim();
+  localStorage.setItem('gemini_api_key', key);
+  if (!window.APP_SETTINGS) window.APP_SETTINGS = {};
+  window.APP_SETTINGS.gemini_api_key = key;
+
+  // Simpan juga ke database Supabase
+  if (typeof api === 'function' && typeof TOKEN !== 'undefined') {
+    api('saveSettings', TOKEN, { gemini_api_key: key }).then(function() {
+      invalidateCache('settings');
+    }).catch(function() {});
+  }
+
+  updateAiEngineStatusBadge();
+  const box = document.getElementById('ai-quick-key-box');
+  if (box) box.style.display = 'none';
+  showToast(key ? 'Google Gemini API Key berhasil disimpan! Kuota pribadi aktif. ✅' : 'Kunci API dihapus, kembali ke mode publik.');
+}
+
+function updateAiEngineStatusBadge() {
+  const badge = document.getElementById('ai-engine-status-text');
+  if (!badge) return;
+  const key = getStoredGeminiKey();
+  if (key) {
+    badge.innerHTML = '<span style="color:#16A34A;font-weight:700;"><i class="fas fa-check-circle"></i> Akun Pribadi (Google Imagen 3 Aktif)</span>';
+  } else {
+    badge.innerHTML = '<span style="color:#64748B;"><i class="fas fa-globe"></i> Mode Publik (Server Bersama)</span>';
+  }
+}
+
 function toggleAiPhotoGenerator(forceState) {
   const drawer = document.getElementById('pf-ai-generator-drawer');
   if (!drawer) return;
@@ -21416,6 +21490,7 @@ function toggleAiPhotoGenerator(forceState) {
 
   if (show) {
     drawer.style.display = 'block';
+    updateAiEngineStatusBadge();
     const nameInput = document.getElementById('pf-name');
     const keywordInput = document.getElementById('ai-photo-keyword');
     if (keywordInput && nameInput && nameInput.value.trim() && !keywordInput.value.trim()) {
@@ -21454,9 +21529,6 @@ function generateAiProductPhoto() {
     promptText = 'fine art vintage botanical watercolor illustration of ' + keyword + ' plant with botanical leaves and seeds, isolated on pure white background, elegant detailed natural history scientific illustration';
   }
 
-  const seed = Math.floor(Math.random() * 9999999);
-  const aiUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(promptText) + '?width=600&height=600&nologo=true&model=flux&seed=' + seed;
-
   const resultArea = document.getElementById('ai-photo-result-area');
   const loadingEl = document.getElementById('ai-photo-loading');
   const previewCard = document.getElementById('ai-photo-preview-card');
@@ -21464,9 +21536,60 @@ function generateAiProductPhoto() {
   const imgEl = document.getElementById('ai-photo-generated-img');
 
   if (resultArea) resultArea.style.display = 'block';
-  if (loadingEl) loadingEl.style.display = 'block';
+  if (loadingEl) {
+    loadingEl.style.display = 'block';
+    const statusTextSpan = loadingEl.querySelector('span');
+    const geminiKey = getStoredGeminiKey();
+    if (statusTextSpan) {
+      statusTextSpan.textContent = geminiKey
+        ? 'Sedang melukis foto studio dengan Google Imagen 3 (Akun Pribadi)...'
+        : 'Sedang melukis foto dengan AI FLUX publik (3–5 detik)...';
+    }
+  }
   if (previewCard) previewCard.style.display = 'none';
   if (initBtnWrap) initBtnWrap.style.display = 'none';
+
+  const geminiKey = getStoredGeminiKey();
+
+  // A. JIKA USER MEMASANG GOOGLE GEMINI API KEY (PRIBADI & BEBAS LIMIT)
+  if (geminiKey) {
+    const imagenEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=' + encodeURIComponent(geminiKey);
+    fetch(imagenEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instances: [{ prompt: promptText }],
+        parameters: { sampleCount: 1, aspectRatio: '1:1', outputOptions: { mimeType: 'image/jpeg' } }
+      })
+    }).then(function(res) {
+      return res.json().then(function(data) {
+        if (!res.ok) {
+          throw new Error((data && data.error && data.error.message) ? data.error.message : ('Error ' + res.status));
+        }
+        return data;
+      });
+    }).then(function(data) {
+      if (data && data.predictions && data.predictions[0] && data.predictions[0].bytesBase64Encoded) {
+        currentGeneratedAiBase64 = 'data:image/jpeg;base64,' + data.predictions[0].bytesBase64Encoded;
+        if (imgEl) imgEl.src = currentGeneratedAiBase64;
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (previewCard) previewCard.style.display = 'block';
+        showToast('Foto studio berhasil dibuat dengan Google Imagen 3! ✅');
+      } else {
+        throw new Error('Respon gambar tidak ditemukan dari Google Imagen.');
+      }
+    }).catch(function(err) {
+      console.warn('[Imagen 3 Error]', err);
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (initBtnWrap) initBtnWrap.style.display = 'block';
+      showToast('Gagal memproses Google Imagen: ' + err.message + '. Periksa API Key Anda.', true);
+    });
+    return;
+  }
+
+  // B. JIKA BELUM ADA KEY: GUNAKAN MODE PUBLIK DENGAN FALLBACK TURBO
+  const seed = Math.floor(Math.random() * 9999999);
+  const aiUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(promptText) + '?width=600&height=600&nologo=true&model=flux&seed=' + seed;
 
   const tempImg = new Image();
   tempImg.crossOrigin = 'anonymous';
@@ -21493,13 +21616,45 @@ function generateAiProductPhoto() {
   };
 
   tempImg.onerror = function () {
-    if (loadingEl) loadingEl.style.display = 'none';
-    if (initBtnWrap) initBtnWrap.style.display = 'block';
-    showToast('Gagal memproses gambar AI. Silakan coba klik Buat Ulang.', true);
+    // Coba fallback otomatis ke engine turbo jika flux terkena limit
+    console.warn('[Pollinations Flux Busy] Mencoba fallback ke engine Turbo...');
+    const fallbackUrl = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(promptText) + '?width=600&height=600&nologo=true&model=turbo&seed=' + seed;
+    const fallbackImg = new Image();
+    fallbackImg.crossOrigin = 'anonymous';
+    fallbackImg.onload = function() {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 600;
+        canvas.height = 600;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(fallbackImg, 0, 0, 600, 600);
+        currentGeneratedAiBase64 = canvas.toDataURL('image/jpeg', 0.82);
+        if (imgEl) imgEl.src = currentGeneratedAiBase64;
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (previewCard) previewCard.style.display = 'block';
+        showToast('Foto AI berhasil dibuat (Mode Cepat Turbo)!');
+      } catch (err) {
+        currentGeneratedAiBase64 = fallbackUrl;
+        if (imgEl) imgEl.src = fallbackUrl;
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (previewCard) previewCard.style.display = 'block';
+      }
+    };
+    fallbackImg.onerror = function() {
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (initBtnWrap) initBtnWrap.style.display = 'block';
+      showToast('Server publik sedang sibuk / terkena limit antrean. Pasang Google Gemini API Key gratis di tombol atas agar bebas limit.', true);
+    };
+    fallbackImg.src = fallbackUrl;
   };
 
   tempImg.src = aiUrl;
 }
+
+window.toggleQuickAiKeyInput = toggleQuickAiKeyInput;
+window.saveQuickGeminiKey = saveQuickGeminiKey;
+window.getStoredGeminiKey = getStoredGeminiKey;
+
 
 function applyAiPhotoToProduct() {
   if (!currentGeneratedAiBase64) return;

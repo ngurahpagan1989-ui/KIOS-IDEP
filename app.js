@@ -21466,7 +21466,7 @@ function startOnlineOrdersPolling() {
 function openOnlineOrderQueueModal(activeTab) {
   if (!activeTab) activeTab = 'pending';
   openModal(
-    '<i class="fas fa-shopping-bag" style="color:var(--primary);margin-right:6px;"></i> Antrean Pesanan Katalog Online',
+    '📦 Antrean Pesanan Katalog Online',
     '<div class="empty-state" style="padding:28px;"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Mengambil data antrean pesanan online...</div>',
     '',
     true
@@ -21477,7 +21477,7 @@ function openOnlineOrderQueueModal(activeTab) {
     renderOnlineOrderQueueModalContent(orders, activeTab);
   }).catch(function (err) {
     openModal(
-      'Antrean Pesanan Online',
+      '📦 Antrean Pesanan Katalog Online',
       '<div class="empty-state" style="padding:24px;color:var(--danger);"><i class="fas fa-exclamation-triangle" style="font-size:28px;margin-bottom:8px;"></i><br>Gagal memuat antrean pesanan: ' + escapeHtml(err.message || err) + '</div>',
       '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>',
       true
@@ -21522,7 +21522,7 @@ function renderOnlineOrderQueueModalContent(orders, activeTab) {
       '  <div style="font-weight:700;color:#334155;">' + emptyMsg + '</div>' +
       '  <p style="font-size:12px;color:#64748B;margin-top:4px;">Pesanan pelanggan dari katalog online otomatis masuk ke layar ini secara langsung.</p>' +
       '</div>';
-    openModal('<i class="fas fa-shopping-bag" style="color:var(--primary);margin-right:6px;"></i> Antrean Pesanan Katalog Online', bodyHtml, '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>', true);
+    openModal('📦 Antrean Pesanan Katalog Online', bodyHtml, '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>', true);
     return;
   }
 
@@ -21563,13 +21563,13 @@ function renderOnlineOrderQueueModalContent(orders, activeTab) {
     if (isPending) {
       actionButtons =
         '<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;">' +
-        '  <button type="button" class="btn btn-primary btn-sm" onclick="loadOnlineOrderToPosCart(\' + escapeHtml(order.id) + \')" style="font-weight:800;display:inline-flex;align-items:center;gap:6px;background:#2563EB;">' +
+        '  <button type="button" class="btn btn-primary btn-sm" data-order-id="' + escapeHtml(order.id) + '" onclick="loadOnlineOrderToPosCart(this.dataset.orderId)" style="font-weight:800;display:inline-flex;align-items:center;gap:6px;background:#2563EB;">' +
         '    <i class="fas fa-cart-arrow-down"></i> Muat ke Keranjang Kasir' +
         '  </button>' +
-        '  <button type="button" class="btn btn-secondary btn-sm" onclick="updateOnlineOrderStatus(\' + escapeHtml(order.id) + \', \'completed\')" style="color:#16A34A;font-weight:700;">' +
+        '  <button type="button" class="btn btn-secondary btn-sm" data-order-id="' + escapeHtml(order.id) + '" onclick="updateOnlineOrderStatus(this.dataset.orderId, \'completed\')" style="color:#16A34A;font-weight:700;">' +
         '    <i class="fas fa-check"></i> Tandai Selesai' +
         '  </button>' +
-        '  <button type="button" class="btn btn-secondary btn-sm" onclick="updateOnlineOrderStatus(\' + escapeHtml(order.id) + \', \'cancelled\')" style="color:#EF4444;">' +
+        '  <button type="button" class="btn btn-secondary btn-sm" data-order-id="' + escapeHtml(order.id) + '" onclick="updateOnlineOrderStatus(this.dataset.orderId, \'cancelled\')" style="color:#EF4444;">' +
         '    <i class="fas fa-times"></i> Batalkan' +
         '  </button>' +
         '</div>';
@@ -21605,7 +21605,7 @@ function renderOnlineOrderQueueModalContent(orders, activeTab) {
 
   const bodyHtml = tabNavHtml + cardsHtml;
   openModal(
-    '<i class="fas fa-shopping-bag" style="color:var(--primary);margin-right:6px;"></i> Antrean Pesanan Katalog Online',
+    '📦 Antrean Pesanan Katalog Online',
     bodyHtml,
     '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>',
     true
@@ -21613,7 +21613,10 @@ function renderOnlineOrderQueueModalContent(orders, activeTab) {
 }
 
 function loadOnlineOrderToPosCart(orderId) {
-  const order = (window.ONLINE_ORDERS_CACHE || []).find(function (o) { return o.id === orderId || o.order_no === orderId; });
+  const targetId = String(orderId || '').trim();
+  const order = (window.ONLINE_ORDERS_CACHE || []).find(function (o) {
+    return String(o.id || '').trim() === targetId || String(o.order_no || '').trim() === targetId;
+  });
   if (!order) {
     showToast('Pesanan tidak ditemukan.', true);
     return;
@@ -21633,28 +21636,50 @@ function loadOnlineOrderToPosCart(orderId) {
       matched = prods.find(function (p) { return p.name.toLowerCase().trim() === it.name.toLowerCase().trim(); });
     }
 
+    const tierName = 'Reguler';
     if (matched) {
+      let defaultExpDate = '';
+      if (matched.batches && matched.batches.length > 0) {
+        const withExp = matched.batches.filter(function (b) { return b.expiry_date; });
+        if (withExp.length > 0) {
+          defaultExpDate = formatDate(withExp[0].expiry_date);
+        }
+      }
+
+      const cartKey = matched.id + '__' + tierName;
       const price = Number(it.price || matched.price || 0);
+
       CART.push({
+        cart_key: cartKey,
         id: matched.id,
         product_id: matched.id,
-        name: matched.name,
-        unit: matched.unit || it.unit || 'pcs',
+        name: matched.variant ? (matched.name + ' (' + matched.variant + ')') : matched.name,
+        tier_name: tierName,
         price: price,
         qty: Number(it.qty || 1),
+        unit: matched.unit || it.unit || 'pcs',
         weight_grams: Number(matched.weight_grams || 0),
         is_seed: !!matched.is_seed,
         is_bundled: !!matched.is_bundled,
         selected_batch_id: '',
-        selected_expiry: ''
+        selected_expiry: defaultExpDate
       });
     } else {
+      const fallbackId = it.product_id || it.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : ('item-' + Date.now()));
+      const cartKey = fallbackId + '__' + tierName;
+
       CART.push({
-        id: it.product_id || it.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : ('item-' + Date.now())),
+        cart_key: cartKey,
+        id: fallbackId,
+        product_id: fallbackId,
         name: it.name,
-        unit: it.unit || 'pcs',
+        tier_name: tierName,
         price: Number(it.price || 0),
         qty: Number(it.qty || 1),
+        unit: it.unit || 'pcs',
+        weight_grams: 0,
+        is_seed: false,
+        is_bundled: false,
         selected_batch_id: '',
         selected_expiry: ''
       });

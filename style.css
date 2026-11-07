@@ -6722,39 +6722,167 @@ body.perm-no-delete #modal-container .btn-void {
   background-size: 32px 32px !important;
 }
 
+/* ==============================================================================
+   VAULT LOCK SYSTEM v4.2 SECURE - SKEUOMORPHIC 3D BRANKAS KASIR
+   ============================================================================== */
 .login-card.vault-door {
   position: relative;
   margin: auto;
   width: 100%;
-  max-width: 420px;
-  background: linear-gradient(160deg, #1E293B 0%, #172133 45%, #0F172A 100%) !important;
-  border-radius: 24px !important;
-  padding: 38px 32px 28px !important;
+  max-width: 100% !important;
+  background: linear-gradient(160deg, #1E293B 0%, #151E2E 45%, #0B1120 100%) !important;
+  border-radius: 26px !important;
+  padding: 24px 32px 20px !important;
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.12),
-    0 25px 60px -10px rgba(0, 0, 0, 0.85),
-    0 0 0 7px #0B1120,
+    0 0 0 7px #070B14,
     0 0 0 9px #334155,
-    inset 0 2px 4px rgba(255, 255, 255, 0.2),
-    inset 0 -3px 6px rgba(0, 0, 0, 0.8) !important;
-  border: 2px solid #475569 !important;
+    0 35px 80px -10px rgba(0, 0, 0, 0.95),
+    inset 0 2px 4px rgba(255, 255, 255, 0.22),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.85) !important;
+  border: 3px solid #475569 !important;
   animation: scaleUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Ornamen Engsel Baja Sisi Kiri */
+.vault-wrapper {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 780px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* TOP CONTROL & STATUS BAR */
+.vault-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 10px 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.vault-system-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.vault-system-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-size: 16px;
+  box-shadow: 0 0 12px rgba(2, 132, 199, 0.5), inset 0 1px 1px rgba(255,255,255,0.4);
+  border: 1px solid #38BDF8;
+}
+.vault-system-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #F8FAFC;
+  letter-spacing: 0.8px;
+  font-family: 'JetBrains Mono', monospace;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.vault-version-tag {
+  color: #38BDF8;
+}
+.vault-badge-secure {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(2, 132, 199, 0.2);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  letter-spacing: 0.8px;
+}
+.vault-system-sub {
+  font-size: 10.5px;
+  color: #94A3B8;
+  margin-top: 1px;
+}
+.vault-top-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.vault-top-btn {
+  background: #0B132B;
+  border: 1px solid #334155;
+  color: #38BDF8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+  transition: all 0.15s ease;
+}
+.vault-top-btn:hover {
+  background: #1E293B;
+  border-color: #0284C7;
+  color: #FFFFFF;
+}
+.vault-theme-pills,
+.vault-lang-pills {
+  display: flex;
+  background: #0B132B;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+.vault-theme-btn,
+.vault-lang-btn {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.vault-theme-btn.active,
+.vault-lang-btn.active {
+  background: #0284C7;
+  color: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+/* HINGES ON LEFT EDGE */
 .vault-hinge {
   position: absolute;
-  left: -20px;
-  width: 15px;
-  height: 42px;
+  left: -22px;
+  width: 16px;
+  height: 48px;
   background: linear-gradient(90deg, #94A3B8 0%, #475569 50%, #1E293B 100%);
   border: 1.5px solid #334155;
-  border-radius: 4px;
-  box-shadow: -3px 4px 8px rgba(0,0,0,0.7), inset 0 1px 2px rgba(255,255,255,0.4);
+  border-radius: 4px 0 0 4px;
+  box-shadow: -3px 4px 10px rgba(0,0,0,0.8), inset 0 1px 2px rgba(255,255,255,0.4);
   z-index: 5;
 }
-.vault-hinge-top { top: 48px; }
-.vault-hinge-bottom { bottom: 48px; }
+.vault-hinge-top { top: 56px; }
+.vault-hinge-bottom { bottom: 56px; }
 .vault-hinge::after {
   content: '';
   position: absolute;
@@ -6767,64 +6895,115 @@ body.perm-no-delete #modal-container .btn-void {
   border-radius: 1px;
 }
 
-/* Baut Sudut Baja (Heavy Rivets) */
+/* PNEUMATIC LOCKING BOLTS ON RIGHT EDGE */
+.vault-bolt {
+  position: absolute;
+  right: -24px;
+  width: 26px;
+  height: 28px;
+  background: linear-gradient(180deg, #E2E8F0 0%, #94A3B8 45%, #475569 80%, #1E293B 100%);
+  border: 1.5px solid #475569;
+  border-radius: 0 6px 6px 0;
+  box-shadow: 4px 4px 12px rgba(0,0,0,0.8), inset 0 2px 2px rgba(255,255,255,0.8);
+  z-index: 5;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s ease;
+}
+.vault-bolt-top { top: 80px; }
+.vault-bolt-bottom { bottom: 90px; }
+.vault-door.vault-unlocked .vault-bolt {
+  transform: translateX(-30px);
+  opacity: 0.15;
+}
+
+/* BAUT SUDUT PERIMETER RIVETS */
 .vault-rivet {
   position: absolute;
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
   background: radial-gradient(circle at 35% 35%, #CBD5E1 0%, #64748B 50%, #1E293B 100%);
   border-radius: 50%;
   box-shadow: inset 0 1px 1px rgba(255,255,255,0.7), 0 2px 5px rgba(0,0,0,0.8);
   border: 1px solid #475569;
   z-index: 4;
 }
-.vault-rivet-tl { top: 12px; left: 12px; }
-.vault-rivet-tr { top: 12px; right: 12px; }
-.vault-rivet-bl { bottom: 12px; left: 12px; }
-.vault-rivet-br { bottom: 12px; right: 12px; }
+.vault-rivet-tl { top: 10px; left: 12px; }
+.vault-rivet-tc { top: 10px; left: 50%; transform: translateX(-50%); }
+.vault-rivet-tr { top: 10px; right: 12px; }
+.vault-rivet-ml { top: 50%; left: 12px; transform: translateY(-50%); }
+.vault-rivet-mr { top: 50%; right: 12px; transform: translateY(-50%); }
+.vault-rivet-bl { bottom: 10px; left: 12px; }
+.vault-rivet-bc { bottom: 10px; left: 50%; transform: translateX(-50%); }
+.vault-rivet-br { bottom: 10px; right: 12px; }
 
-/* Status Bar LED Brankas */
-.vault-status-bar {
+/* DOOR HEADER */
+.vault-door-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 5px 14px;
-  background: rgba(11, 19, 43, 0.9);
-  border: 1px solid #334155;
-  border-radius: 20px;
-  margin: 0 auto 16px auto;
-  width: fit-content;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+  padding-bottom: 10px;
+  margin-bottom: 16px;
 }
-.vault-led-dot {
+.vault-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vault-header-led {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #EF4444;
-  box-shadow: 0 0 8px #EF4444, 0 0 16px #DC2626;
-  animation: vaultLedBlink 2.2s infinite ease-in-out;
+  background: #06B6D4;
+  box-shadow: 0 0 8px #06B6D4, 0 0 14px #0891B2;
+  animation: vaultLedBlink 2s infinite ease-in-out;
 }
 @keyframes vaultLedBlink {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.35; transform: scale(0.85); }
 }
-.vault-led-text {
-  font-size: 10px;
+.vault-header-class {
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 1.2px;
   color: #94A3B8;
-  text-transform: uppercase;
+  letter-spacing: 1.2px;
   font-family: 'JetBrains Mono', monospace;
 }
+.vault-door-id {
+  font-size: 10.5px;
+  color: #64748B;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.8px;
+}
 
-/* Roda Putaran Kombinasi Brankas */
-.vault-wheel {
+/* DOOR GRID (CAM WHEEL + AUTH PANEL) */
+.vault-door-grid {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  justify-content: space-between;
+}
+.vault-cam-col {
+  flex: 0 0 210px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.vault-auth-col {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* MECHANICAL CAM WHEEL */
+.vault-wheel-container {
+  padding: 8px;
+}
+.vault-cam-wheel {
   position: relative;
-  width: 84px;
-  height: 84px;
+  width: 170px;
+  height: 170px;
   border-radius: 50%;
-  margin: 0 auto 12px auto;
+  margin: 0 auto;
   background: conic-gradient(
     #475569 0deg, #1E293B 45deg, #64748B 90deg, #1E293B 135deg,
     #475569 180deg, #1E293B 225deg, #64748B 270deg, #1E293B 315deg, #475569 360deg
@@ -6833,146 +7012,395 @@ body.perm-no-delete #modal-container .btn-void {
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 0 0 3px #0F172A,
-    0 0 0 6px #334155,
-    0 0 0 7px rgba(255,255,255,0.1),
-    0 10px 24px rgba(0,0,0,0.85),
-    inset 0 2px 5px rgba(255,255,255,0.4),
-    inset 0 -2px 6px rgba(0,0,0,0.8);
+    0 0 0 3px #070B14,
+    0 0 0 7px #334155,
+    0 0 0 8px rgba(255,255,255,0.1),
+    0 12px 28px rgba(0,0,0,0.9),
+    inset 0 2px 6px rgba(255,255,255,0.4),
+    inset 0 -2px 6px rgba(0,0,0,0.9);
   transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: pointer;
+  user-select: none;
 }
-.vault-wheel:hover {
-  transform: rotate(60deg);
+.vault-cam-wheel:hover {
+  transform: rotate(35deg);
 }
-.vault-wheel-inner {
-  width: 62px;
-  height: 62px;
+.vault-wheel-outer-rim {
+  width: 134px;
+  height: 134px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #334155 0%, #0F172A 75%);
-  border: 1.5px dashed #64748B;
+  border: 2px dashed #475569;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.9);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.95);
 }
-.vault-dial-hub {
-  width: 38px;
-  height: 38px;
+.vault-wheel-disc {
+  position: relative;
+  width: 112px;
+  height: 112px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+  background: radial-gradient(circle at 40% 40%, #1E293B 0%, #070B14 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #FFFFFF;
-  font-size: 16px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.6);
-  border: 1.5px solid #60A5FA;
 }
 
-/* Judul & Teks Brankas */
-.login-card.vault-door .brand-title {
-  font-size: 21px !important;
-  font-weight: 900 !important;
-  color: #F8FAFC !important;
-  letter-spacing: 0.5px !important;
-  text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+/* Spoke Bar dengan Knob Emas/Kuningan */
+.vault-spoke-bar {
+  position: absolute;
+  width: 10px;
+  height: 100px;
+  background: linear-gradient(90deg, #CBD5E1 0%, #64748B 50%, #334155 100%);
+  border-radius: 5px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.6);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
 }
-.login-card.vault-door .brand-tagline {
-  font-size: 12.5px !important;
-  color: #94A3B8 !important;
-  margin-top: 3px !important;
+.vault-spoke-knob {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #FDE047 0%, #D97706 65%, #78350F 100%);
+  border: 1px solid #B45309;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.85), inset 0 1px 2px rgba(255,255,255,0.8);
+}
+.vault-knob-top { margin-top: -6px; }
+.vault-knob-bottom { margin-bottom: -6px; }
+
+/* Hub As Tengah Berputar */
+.vault-spoke-center-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: conic-gradient(#CBD5E1, #64748B, #E2E8F0, #475569, #CBD5E1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.8), inset 0 1px 2px rgba(255,255,255,0.8);
+  border: 1px solid #94A3B8;
+}
+.vault-hub-ring {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #0B132B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #0284C7;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.9);
+}
+.vault-hub-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #38BDF8;
+  box-shadow: 0 0 8px #38BDF8;
+}
+.vault-wheel-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #64748B;
+  letter-spacing: 1.2px;
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 8px;
+  text-align: center;
 }
 
-/* Panel Input Keypad Digital */
-.login-card.vault-door .field-label {
-  color: #94A3B8 !important;
-  font-size: 11px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.8px !important;
-  margin-bottom: 6px !important;
+/* SCREEN LCD MONITOR TERMINAL */
+.vault-lcd-screen {
+  background: linear-gradient(180deg, #050B14 0%, #081220 100%);
+  border: 1.5px solid #1E293B;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.9), 0 0 12px rgba(2, 132, 199, 0.08);
 }
-.login-card.vault-door .input-wrapper {
-  background: #0B132B !important;
-  border: 1.5px solid #334155 !important;
+.vault-lcd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+}
+.vault-lcd-title {
+  font-size: 10.5px;
+  color: #64748B;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+.vault-lcd-status {
+  font-size: 11px;
+  font-weight: 800;
+  color: #38BDF8;
+  letter-spacing: 0.6px;
+}
+.vault-status-verifying { color: #F59E0B !important; }
+.vault-status-granted { color: #10B981 !important; text-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
+.vault-status-denied { color: #EF4444 !important; text-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+
+.vault-lcd-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  margin-top: 2px;
+}
+.vault-lcd-hint {
+  color: #475569;
+}
+.vault-lcd-lock {
+  color: #F59E0B;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+}
+.vault-lock-open {
+  color: #10B981 !important;
+}
+
+/* FORM INPUTS */
+.vault-input-group {
+  margin-bottom: 8px;
+}
+.vault-input-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #94A3B8;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.vault-input-box {
+  display: flex;
+  align-items: center;
+  background: #080D18 !important;
+  border: 1.5px solid #1E293B !important;
   border-radius: 8px !important;
-  box-shadow: inset 0 2px 5px rgba(0,0,0,0.6) !important;
+  padding: 0 10px;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.8) !important;
   transition: all 0.2s ease;
 }
-.login-card.vault-door .input-wrapper:focus-within {
-  border-color: #3B82F6 !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25), inset 0 2px 5px rgba(0,0,0,0.6) !important;
+.vault-input-box:focus-within {
+  border-color: #0284C7 !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.25), inset 0 2px 5px rgba(0,0,0,0.8) !important;
 }
-.login-card.vault-door input[type="text"],
-.login-card.vault-door input[type="password"] {
+.vault-input-icon {
+  color: #64748B;
+  font-size: 13px;
+  margin-right: 8px;
+}
+.vault-input-box input {
+  flex: 1;
   background: transparent !important;
+  border: none !important;
+  outline: none !important;
   color: #F8FAFC !important;
-  font-size: 13.5px !important;
+  font-size: 13px !important;
+  padding: 7px 0 !important;
+  font-family: 'JetBrains Mono', monospace !important;
 }
-.login-card.vault-door input::placeholder {
+.vault-input-box input::placeholder {
   color: #475569 !important;
+  font-size: 12px !important;
 }
-.login-card.vault-door .input-icon {
-  color: #64748B !important;
+.vault-pwd-toggle {
+  background: transparent;
+  border: none;
+  color: #64748B;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 13px;
 }
-.login-card.vault-door .input-action-btn {
-  color: #64748B !important;
-}
-.login-card.vault-door .input-action-btn:hover {
-  color: #94A3B8 !important;
+.vault-pwd-toggle:hover {
+  color: #94A3B8;
 }
 
-/* Tombol Tuas / Handle Pembuka Brankas */
-.login-card.vault-door #login-submit {
-  height: 48px !important;
-  background: linear-gradient(180deg, #3B82F6 0%, #2563EB 50%, #1D4ED8 100%) !important;
-  border: 1px solid #60A5FA !important;
-  border-radius: 8px !important;
+/* ALERT BANNER ERROR */
+.vault-alert-banner {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #FCA5A5;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.vault-alert-icon {
+  color: #EF4444;
+}
+
+/* TACTILE KEYPAD */
+.vault-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-top: 10px;
+}
+.vault-key {
+  height: 42px;
+  background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #F1F5F9;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  box-shadow:
+    0 3px 0 #050811,
+    0 5px 8px rgba(0,0,0,0.6),
+    inset 0 1px 1px rgba(255,255,255,0.22);
+  cursor: pointer;
+  transition: all 0.08s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+.vault-key:hover {
+  background: linear-gradient(180deg, #334155 0%, #1E293B 100%);
+  border-color: #475569;
+  color: #FFFFFF;
+}
+.vault-key:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 #050811,
+    0 2px 4px rgba(0,0,0,0.6),
+    inset 0 1px 2px rgba(0,0,0,0.6);
+}
+
+/* CLR KEY */
+.vault-key-clear {
+  color: #EF4444 !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.5px;
+}
+.vault-key-clear:hover {
+  color: #F87171 !important;
+}
+
+/* OPEN KEY */
+.vault-key-open {
+  background: linear-gradient(180deg, #0284C7 0%, #0369A1 60%, #075985 100%) !important;
+  border-color: #38BDF8 !important;
   color: #FFFFFF !important;
   font-size: 13.5px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.6px !important;
+  font-weight: 900 !important;
+  letter-spacing: 1px !important;
   text-transform: uppercase !important;
   box-shadow:
-    0 4px 0 #1E3A8A,
-    0 8px 18px rgba(37, 99, 235, 0.35),
-    inset 0 1px 1px rgba(255, 255, 255, 0.45) !important;
-  cursor: pointer;
-  transition: all 0.12s ease;
-  margin-top: 6px !important;
+    0 3px 0 #0C4A6E,
+    0 6px 14px rgba(2, 132, 199, 0.45),
+    inset 0 1px 1px rgba(255,255,255,0.45) !important;
 }
-.login-card.vault-door #login-submit:hover {
-  background: linear-gradient(180deg, #60A5FA 0%, #3B82F6 50%, #2563EB 100%) !important;
+.vault-key-open:hover {
+  background: linear-gradient(180deg, #38BDF8 0%, #0284C7 60%, #0369A1 100%) !important;
   box-shadow:
-    0 4px 0 #1E3A8A,
-    0 10px 22px rgba(37, 99, 235, 0.5),
-    inset 0 1px 1px rgba(255, 255, 255, 0.5) !important;
+    0 3px 0 #0C4A6E,
+    0 8px 18px rgba(2, 132, 199, 0.6),
+    inset 0 1px 1px rgba(255,255,255,0.5) !important;
 }
-.login-card.vault-door #login-submit:active {
-  transform: translateY(3px) !important;
+.vault-key-open:active {
+  transform: translateY(2px) !important;
   box-shadow:
-    0 1px 0 #1E3A8A,
-    0 3px 8px rgba(37, 99, 235, 0.35),
-    inset 0 1px 1px rgba(0, 0, 0, 0.3) !important;
+    0 1px 0 #0C4A6E,
+    0 2px 6px rgba(2, 132, 199, 0.4),
+    inset 0 1px 2px rgba(0,0,0,0.6) !important;
 }
 
-.login-card.vault-door .login-footer {
-  color: #64748B !important;
+/* SHAKE ANIMATION ON ERROR */
+.vault-door.vault-shake {
+  animation: vaultShake 0.45s ease-in-out !important;
 }
-.login-card.vault-door .lang-switch-pill {
-  background: #0B132B !important;
-  border: 1px solid #334155 !important;
-}
-.login-card.vault-door .lang-btn {
-  color: #94A3B8 !important;
-}
-.login-card.vault-door .lang-btn.active {
-  background: #3B82F6 !important;
-  color: #FFFFFF !important;
+@keyframes vaultShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
 }
 
+/* CYBERPUNK THEME OVERRIDE */
+.vault-wrapper[data-theme="cyberpunk"] .login-card.vault-door {
+  background: linear-gradient(160deg, #0B0F19 0%, #070913 100%) !important;
+  border-color: #06B6D4 !important;
+  box-shadow:
+    0 0 0 1px rgba(6, 182, 212, 0.3),
+    0 0 0 7px #020617,
+    0 0 0 9px #0891B2,
+    0 0 35px rgba(6, 182, 212, 0.3),
+    0 35px 80px -10px rgba(0, 0, 0, 0.95),
+    inset 0 0 15px rgba(6, 182, 212, 0.15) !important;
+}
+.vault-wrapper[data-theme="cyberpunk"] .vault-top-bar {
+  border-color: rgba(6, 182, 212, 0.5);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+}
+.vault-wrapper[data-theme="cyberpunk"] .vault-key-open {
+  background: linear-gradient(180deg, #EC4899 0%, #DB2777 60%, #9D174D 100%) !important;
+  border-color: #F472B6 !important;
+  box-shadow: 0 3px 0 #831843, 0 6px 14px rgba(236, 72, 153, 0.5) !important;
+}
+
+.vault-footer {
+  text-align: center;
+  color: #64748B;
+  font-size: 11px;
+  margin-top: 14px;
+}
+
+/* RESPONSIVE LAYOUT FOR MOBILE */
 @media screen and (max-width: 768px) {
-  .vault-hinge {
+  .vault-door-grid {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .vault-cam-col {
+    flex: 0 0 auto;
+  }
+  .vault-cam-wheel {
+    width: 125px;
+    height: 125px;
+  }
+  .vault-wheel-outer-rim {
+    width: 98px;
+    height: 98px;
+  }
+  .vault-wheel-disc {
+    width: 82px;
+    height: 82px;
+  }
+  .vault-spoke-bar {
+    height: 74px;
+  }
+  .vault-spoke-knob {
+    width: 16px;
+    height: 16px;
+  }
+  .vault-spoke-center-hub {
+    width: 34px;
+    height: 34px;
+  }
+  .vault-hub-ring {
+    width: 20px;
+    height: 20px;
+  }
+  .vault-hinge,
+  .vault-bolt {
     display: none;
+  }
+  .login-card.vault-door {
+    padding: 18px 16px 14px !important;
   }
 }

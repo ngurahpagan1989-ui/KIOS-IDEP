@@ -1491,6 +1491,186 @@ function stopIdleSessionMonitor() {
   closeIdleWarningModal();
 }
 
+// ========================= VAULT LOCK SYSTEM v4.2 (WEB AUDIO API & 3D MOTION) =========================
+const VaultAudio = {
+  ctx: null,
+  enabled: true,
+  init: function () {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) this.ctx = new AudioCtx();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  },
+  playClick: function () {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1400, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(350, this.ctx.currentTime + 0.04);
+      gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.04);
+    } catch (e) {}
+  },
+  playWheelRatchet: function () {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.06);
+      gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.06);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.06);
+    } catch (e) {}
+  },
+  playSuccess: function () {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      // Arpeggio nada akses brankas terbuka (C5 - E5 - G5 - C6)
+      const freqs = [523.25, 659.25, 783.99, 1046.50];
+      freqs.forEach(function (freq, i) {
+        const osc = VaultAudio.ctx.createOscillator();
+        const gain = VaultAudio.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, now + i * 0.08);
+        gain.gain.linearRampToValueAtTime(0.2, now + i * 0.08 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.45);
+        osc.connect(gain);
+        gain.connect(VaultAudio.ctx.destination);
+        osc.start(now + i * 0.08);
+        osc.stop(now + i * 0.08 + 0.45);
+      });
+    } catch (e) {}
+  },
+  playError: function () {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      [180, 175].forEach(function (freq) {
+        const osc = VaultAudio.ctx.createOscillator();
+        const gain = VaultAudio.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.connect(gain);
+        gain.connect(VaultAudio.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      });
+    } catch (e) {}
+  }
+};
+window.VaultAudio = VaultAudio;
+
+let vaultActiveInputId = 'login-password';
+window.setVaultActiveInput = function (id) {
+  vaultActiveInputId = id;
+};
+
+window.handleVaultKey = function (char) {
+  VaultAudio.playClick();
+  spinCamWheel(25);
+  const inputEl = document.getElementById(vaultActiveInputId) || document.getElementById('login-password');
+  if (inputEl) {
+    inputEl.value += char;
+    inputEl.focus();
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+};
+
+window.handleVaultClear = function () {
+  VaultAudio.playClick();
+  const inputEl = document.getElementById(vaultActiveInputId) || document.getElementById('login-password');
+  if (inputEl) {
+    inputEl.value = '';
+    inputEl.focus();
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  const errorEl = document.getElementById('login-error');
+  if (errorEl) errorEl.style.display = 'none';
+  const lcdStatus = document.getElementById('vault-lcd-status');
+  if (lcdStatus) {
+    lcdStatus.textContent = 'MASUKKAN KREDENSIAL';
+    lcdStatus.className = 'vault-lcd-status';
+  }
+};
+
+let vaultWheelAngle = 0;
+window.spinCamWheel = function (deg) {
+  vaultWheelAngle += (deg || 60);
+  const wheel = document.getElementById('vault-cam-wheel');
+  if (wheel) {
+    wheel.style.transform = 'rotate(' + vaultWheelAngle + 'deg)';
+  }
+};
+
+window.spinCamWheelClick = function () {
+  VaultAudio.playWheelRatchet();
+  spinCamWheel(60);
+};
+
+window.toggleVaultSFX = function () {
+  VaultAudio.enabled = !VaultAudio.enabled;
+  try {
+    localStorage.setItem('vault_sfx_enabled', VaultAudio.enabled ? '1' : '0');
+  } catch (e) {}
+  updateVaultSFXUI();
+};
+
+function updateVaultSFXUI() {
+  const isEnabled = VaultAudio.enabled;
+  const icon = document.getElementById('vault-sfx-icon');
+  const txt = document.getElementById('vault-sfx-text');
+  if (icon) icon.className = isEnabled ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+  if (txt) txt.textContent = isEnabled ? 'SFX ON' : 'SFX OFF';
+}
+
+window.setVaultTheme = function (theme) {
+  const wrapper = document.querySelector('.vault-wrapper');
+  if (wrapper) {
+    wrapper.setAttribute('data-theme', theme);
+  }
+  const btnSteel = document.getElementById('btn-theme-steel');
+  const btnCyber = document.getElementById('btn-theme-cyber');
+  if (btnSteel && btnCyber) {
+    if (theme === 'cyberpunk') {
+      btnSteel.classList.remove('active');
+      btnCyber.classList.add('active');
+    } else {
+      btnCyber.classList.remove('active');
+      btnSteel.classList.add('active');
+    }
+  }
+  try {
+    localStorage.setItem('vault_theme', theme);
+  } catch (e) {}
+  VaultAudio.playClick();
+};
+
 // ========================= AUTENTIKASI & INITIALIZER =========================
 function handleLogin(e) {
   if (e && e.preventDefault) e.preventDefault();
@@ -1500,10 +1680,21 @@ function handleLogin(e) {
   const errorText = document.getElementById('login-error-text');
   const submitBtn = document.getElementById('login-submit');
   const spinner = document.getElementById('login-spinner');
+  const lcdStatus = document.getElementById('vault-lcd-status');
+  const lcdLock = document.getElementById('vault-lcd-lock');
+  const doorCard = document.getElementById('vault-door-card');
 
   if (!userEl || !passEl) return false;
   const username = userEl.value.trim();
   const password = passEl.value;
+
+  VaultAudio.playClick();
+  spinCamWheel(120);
+
+  if (lcdStatus) {
+    lcdStatus.textContent = 'MEMVERIFIKASI...';
+    lcdStatus.className = 'vault-lcd-status vault-status-verifying';
+  }
 
   clearLoginBannerStyle();
   if (errorEl) errorEl.style.display = 'none';
@@ -1515,10 +1706,33 @@ function handleLogin(e) {
     if (submitBtn) submitBtn.disabled = false;
 
     if (!res.success) {
+      VaultAudio.playError();
+      if (doorCard) {
+        doorCard.classList.remove('vault-shake');
+        void doorCard.offsetWidth; // force reflow
+        doorCard.classList.add('vault-shake');
+      }
+      if (lcdStatus) {
+        lcdStatus.textContent = 'AKSES DITOLAK';
+        lcdStatus.className = 'vault-lcd-status vault-status-denied';
+      }
       clearLoginBannerStyle();
       if (errorText) errorText.textContent = res.message;
       if (errorEl) errorEl.style.display = 'flex';
       return;
+    }
+
+    // Login Sukses: Efek Buka Pintu Brankas
+    VaultAudio.playSuccess();
+    spinCamWheel(720);
+    if (doorCard) doorCard.classList.add('vault-unlocked');
+    if (lcdStatus) {
+      lcdStatus.textContent = 'AKSES DIIZINKAN';
+      lcdStatus.className = 'vault-lcd-status vault-status-granted';
+    }
+    if (lcdLock) {
+      lcdLock.textContent = 'TERBUKA';
+      lcdLock.className = 'vault-lcd-lock vault-lock-open';
     }
 
     window.__IDLE_EXPIRED_ON_LOAD = false;
@@ -1539,10 +1753,23 @@ function handleLogin(e) {
     if (CURRENT_USER_PERMISSIONS) setSafeSession('ekasir_permissions', JSON.stringify(CURRENT_USER_PERMISSIONS));
     if (AVAILABLE_ROLES) setSafeSession('ekasir_available_roles', JSON.stringify(AVAILABLE_ROLES));
     recordUserActivity(true);
-    enterApp();
+
+    setTimeout(function () {
+      enterApp();
+    }, 600);
   }).catch(function (err) {
     if (spinner) spinner.style.display = 'none';
     if (submitBtn) submitBtn.disabled = false;
+    VaultAudio.playError();
+    if (doorCard) {
+      doorCard.classList.remove('vault-shake');
+      void doorCard.offsetWidth;
+      doorCard.classList.add('vault-shake');
+    }
+    if (lcdStatus) {
+      lcdStatus.textContent = 'ERROR SISTEM';
+      lcdStatus.className = 'vault-lcd-status vault-status-denied';
+    }
     clearLoginBannerStyle();
     if (errorText) errorText.textContent = 'Gagal terhubung: ' + (err.message || err);
     if (errorEl) errorEl.style.display = 'flex';

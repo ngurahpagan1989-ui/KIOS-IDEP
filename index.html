@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=6.3">
+  <link rel="stylesheet" href="style.css?v=7.0">
   <!-- Session Restore Anti-Flash & Idle Timeout Pre-Check -->
   <script>
     (function() {
@@ -54,78 +54,162 @@
   <!-- Top Progress Bar (Loading State Indicator) -->
   <div id="top-progress-bar" class="top-progress-bar" style="display:none;"></div>
 
-  <!-- ===================== LOGIN SCREEN OVERLAY ===================== -->
+  <!-- ===================== LOGIN SCREEN OVERLAY (VAULT LOCK SYSTEM) ===================== -->
   <div id="login-screen" class="login-screen" aria-modal="true" role="dialog">
     <div class="login-backdrop"></div>
-    <div class="login-card vault-door">
-      <!-- Ornamen Engsel Pintu Brankas -->
-      <div class="vault-hinge vault-hinge-top" aria-hidden="true"></div>
-      <div class="vault-hinge vault-hinge-bottom" aria-hidden="true"></div>
-      <!-- Baut Sudut Baja (Heavy Rivets) -->
-      <div class="vault-rivet vault-rivet-tl" aria-hidden="true"></div>
-      <div class="vault-rivet vault-rivet-tr" aria-hidden="true"></div>
-      <div class="vault-rivet vault-rivet-bl" aria-hidden="true"></div>
-      <div class="vault-rivet vault-rivet-br" aria-hidden="true"></div>
 
-      <div class="login-lang-switch">
-        <div class="lang-switch-pill" role="group" aria-label="Language Selector">
-          <button type="button" class="lang-btn active" data-lang="id" onclick="window.i18n && window.i18n.setLanguage('id')">🇮🇩 ID</button>
-          <button type="button" class="lang-btn" data-lang="en" onclick="window.i18n && window.i18n.setLanguage('en')">🇬🇧 EN</button>
-        </div>
-      </div>
-      <div class="login-brand">
-        <div class="vault-status-bar">
-          <span class="vault-led-dot"></span>
-          <span class="vault-led-text">BRANKAS KASIR • TERKUNCI</span>
-        </div>
-        <div id="login-brand-logo-wrap" class="brand-logo-wrap">
-          <div class="vault-wheel" title="Putaran Roda Brankas Baja">
-            <div class="vault-wheel-inner">
-              <div class="vault-dial-hub">
-                <i class="fas fa-vault" aria-hidden="true"></i>
-              </div>
+    <div class="vault-wrapper" data-theme="steel">
+      <!-- TOP CONTROL & STATUS BAR -->
+      <div class="vault-top-bar">
+        <div class="vault-system-title">
+          <div class="vault-system-icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <div class="vault-system-info">
+            <div class="vault-system-name">
+              VAULT LOCK SYSTEM <span class="vault-version-tag">v4.2</span> <span class="vault-badge-secure">SECURE</span>
             </div>
+            <div class="vault-system-sub">Baja Pneumatik &bull; Web Audio API &bull; 3D Motion &bull; Kios IDEP</div>
           </div>
         </div>
-        <h1 class="brand-title">POS Kasir &amp; Stok</h1>
-        <p class="brand-tagline">Sistem Kasir &amp; Inventaris Terpadu</p>
+
+        <div class="vault-top-controls">
+          <button type="button" id="vault-sfx-toggle" class="vault-top-btn" title="Toggle Sound FX" onclick="toggleVaultSFX()">
+            <i class="fas fa-volume-up" id="vault-sfx-icon"></i> <span id="vault-sfx-text">SFX ON</span>
+          </button>
+          <div class="vault-theme-pills">
+            <button type="button" class="vault-theme-btn active" id="btn-theme-steel" onclick="setVaultTheme('steel')">Steel</button>
+            <button type="button" class="vault-theme-btn" id="btn-theme-cyber" onclick="setVaultTheme('cyberpunk')">Cyberpunk</button>
+          </div>
+          <div class="vault-lang-pills">
+            <button type="button" class="vault-lang-btn active" data-lang="id" onclick="window.i18n && window.i18n.setLanguage('id')">🇮🇩 ID</button>
+            <button type="button" class="vault-lang-btn" data-lang="en" onclick="window.i18n && window.i18n.setLanguage('en')">🇬🇧 EN</button>
+          </div>
+        </div>
       </div>
 
-      <form id="login-form" novalidate>
-        <div class="field-group">
-          <label class="field" for="login-username">
-            <span class="field-label">Username</span>
-            <div class="input-wrapper">
-              <span class="input-icon" aria-hidden="true">&#128100;</span>
-              <input type="text" id="login-username" name="username" placeholder="Masukkan username" required autocomplete="username" autofocus>
+      <!-- MAIN HEAVY VAULT DOOR -->
+      <div class="login-card vault-door" id="vault-door-card">
+        <!-- Engsel Pintu Baja (Hinges on Left Edge) -->
+        <div class="vault-hinge vault-hinge-top" aria-hidden="true"></div>
+        <div class="vault-hinge vault-hinge-bottom" aria-hidden="true"></div>
+
+        <!-- Baut Pneumatik Baja (Pneumatic Locking Bolts on Right Edge) -->
+        <div class="vault-bolt vault-bolt-top" id="vault-bolt-top" aria-hidden="true"></div>
+        <div class="vault-bolt vault-bolt-bottom" id="vault-bolt-bottom" aria-hidden="true"></div>
+
+        <!-- Baut Perimeter Baja (Perimeter Rivets) -->
+        <div class="vault-rivet vault-rivet-tl" aria-hidden="true"></div>
+        <div class="vault-rivet vault-rivet-tc" aria-hidden="true"></div>
+        <div class="vault-rivet vault-rivet-tr" aria-hidden="true"></div>
+        <div class="vault-rivet vault-rivet-ml" aria-hidden="true"></div>
+        <div class="vault-rivet vault-rivet-mr" aria-hidden="true"></div>
+        <div class="vault-rivet vault-rivet-bl" aria-hidden="true"></div>
+        <div class="vault-rivet vault-rivet-bc" aria-hidden="true"></div>
+        <div class="vault-rivet vault-rivet-br" aria-hidden="true"></div>
+
+        <!-- Header Panel Pintu Brankas -->
+        <div class="vault-door-header">
+          <div class="vault-header-left">
+            <span class="vault-header-led"></span>
+            <span class="vault-header-class">HEAVY SECURITY CLASS VII</span>
+          </div>
+          <div class="vault-header-right">
+            <span class="vault-door-id">DOOR ID: 88-T &bull; TERMINAL KASIR</span>
+          </div>
+        </div>
+
+        <!-- Konten Pintu Brankas (2 Kolom: Cam Wheel & Auth Panel) -->
+        <div class="vault-door-grid">
+          <!-- KOLOM KIRI: MECHANICAL CAM WHEEL -->
+          <div class="vault-cam-col">
+            <div class="vault-wheel-container">
+              <div class="vault-cam-wheel" id="vault-cam-wheel" title="Putar Roda Brankas Baja" onclick="spinCamWheelClick()">
+                <div class="vault-wheel-outer-rim">
+                  <div class="vault-wheel-disc">
+                    <!-- Spoke Bar dengan 2 Knob Kuningan/Emas (Sesuai Desain Brankas) -->
+                    <div class="vault-spoke-bar">
+                      <div class="vault-spoke-knob vault-knob-top"></div>
+                      <div class="vault-spoke-center-hub">
+                        <div class="vault-hub-ring">
+                          <span class="vault-hub-led"></span>
+                        </div>
+                      </div>
+                      <div class="vault-spoke-knob vault-knob-bottom"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </label>
-        </div>
+            <div class="vault-wheel-label">MECHANICAL CAM WHEEL</div>
+          </div>
 
-        <div class="field-group">
-          <label class="field" for="login-password">
-            <span class="field-label">Password</span>
-            <div class="input-wrapper">
-              <span class="input-icon" aria-hidden="true">&#128274;</span>
-              <input type="password" id="login-password" name="password" placeholder="Masukkan password" required autocomplete="current-password">
-              <button type="button" id="toggle-password-visibility" class="input-action-btn" title="Lihat password" aria-label="Lihat password">&#128065;</button>
+          <!-- KOLOM KANAN: AUTHENTICATION & TACTILE KEYPAD -->
+          <div class="vault-auth-col">
+            <!-- Screen LCD Terminal -->
+            <div class="vault-lcd-screen">
+              <div class="vault-lcd-header">
+                <span class="vault-lcd-title">AUTHENTICATION:</span>
+                <span class="vault-lcd-status" id="vault-lcd-status">MASUKKAN KREDENSIAL</span>
+              </div>
+              <div class="vault-lcd-sub">
+                <span class="vault-lcd-hint" id="vault-lcd-hint">STATUS:</span>
+                <span class="vault-lcd-lock" id="vault-lcd-lock">TERKUNCI</span>
+              </div>
             </div>
-          </label>
+
+            <!-- Form Username & Password -->
+            <form id="login-form" novalidate onsubmit="return handleLogin(event);">
+              <div class="vault-input-group">
+                <label class="vault-input-label" for="login-username">USERNAME</label>
+                <div class="vault-input-box">
+                  <span class="vault-input-icon">&#128100;</span>
+                  <input type="text" id="login-username" name="username" placeholder="Masukkan username" required autocomplete="username" autofocus onfocus="setVaultActiveInput('login-username')">
+                </div>
+              </div>
+
+              <div class="vault-input-group">
+                <label class="vault-input-label" for="login-password">PASSWORD / PIN</label>
+                <div class="vault-input-box">
+                  <span class="vault-input-icon">&#128274;</span>
+                  <input type="password" id="login-password" name="password" placeholder="Masukkan password" required autocomplete="current-password" onfocus="setVaultActiveInput('login-password')">
+                  <button type="button" id="toggle-password-visibility" class="vault-pwd-toggle" title="Lihat password" aria-label="Lihat password">&#128065;</button>
+                </div>
+              </div>
+
+              <div id="login-error" class="vault-alert-banner alert-danger" style="display:none;" role="alert">
+                <span class="vault-alert-icon">&#9888;</span>
+                <span id="login-error-text"></span>
+              </div>
+
+              <!-- TACTILE KEYPAD (1-9, CLR, 0, OPEN) -->
+              <div class="vault-keypad">
+                <button type="button" class="vault-key" onclick="handleVaultKey('1')">1</button>
+                <button type="button" class="vault-key" onclick="handleVaultKey('2')">2</button>
+                <button type="button" class="vault-key" onclick="handleVaultKey('3')">3</button>
+
+                <button type="button" class="vault-key" onclick="handleVaultKey('4')">4</button>
+                <button type="button" class="vault-key" onclick="handleVaultKey('5')">5</button>
+                <button type="button" class="vault-key" onclick="handleVaultKey('6')">6</button>
+
+                <button type="button" class="vault-key" onclick="handleVaultKey('7')">7</button>
+                <button type="button" class="vault-key" onclick="handleVaultKey('8')">8</button>
+                <button type="button" class="vault-key" onclick="handleVaultKey('9')">9</button>
+
+                <button type="button" class="vault-key vault-key-clear" onclick="handleVaultClear()">CLR</button>
+                <button type="button" class="vault-key" onclick="handleVaultKey('0')">0</button>
+                <button type="submit" class="vault-key vault-key-open" id="login-submit">
+                  <span class="btn-text" id="login-submit-text">OPEN</span>
+                  <span class="spinner" id="login-spinner" style="display:none;" aria-hidden="true"></span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
 
-        <div id="login-error" class="alert-banner alert-danger" style="display:none;" role="alert">
-          <span class="alert-icon">&#9888;</span>
-          <span id="login-error-text" class="alert-msg"></span>
+        <div class="vault-footer">
+          <small>&copy; Sistem POS Kasir &amp; Manajemen Stok IDEP Foundation</small>
         </div>
-
-        <button type="submit" class="btn btn-primary btn-block btn-lg" id="login-submit">
-          <span class="btn-text"><i class="fas fa-lock-open" style="margin-right:6px;"></i> Buka Brankas Kasir</span>
-          <span class="spinner" id="login-spinner" style="display:none;" aria-hidden="true"></span>
-        </button>
-      </form>
-
-      <div class="login-footer">
-        <small>&copy; Sistem POS Kasir &amp; Manajemen Stok</small>
       </div>
     </div>
   </div>
@@ -891,6 +975,6 @@
   <!-- Multi-Language i18n Engine -->
   <script src="i18n.js?v=2.9"></script>
   <!-- Core Application Logic -->
-  <script src="app.js?v=8.2"></script>
+  <script src="app.js?v=9.0"></script>
 </body>
 </html>

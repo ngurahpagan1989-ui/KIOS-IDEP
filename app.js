@@ -8686,9 +8686,11 @@ function submitCheckout() {
       })
     };
 
-    if (window.ACTIVE_ONLINE_ORDER_ID) {
-      updateOnlineOrderStatus(window.ACTIVE_ONLINE_ORDER_ID, 'completed');
+    if (window.ACTIVE_ONLINE_ORDER_ID || window.ACTIVE_ONLINE_ORDER_NO) {
+      const orderTarget = window.ACTIVE_ONLINE_ORDER_ID || window.ACTIVE_ONLINE_ORDER_NO;
+      updateOnlineOrderStatus(orderTarget, 'completed');
       window.ACTIVE_ONLINE_ORDER_ID = null;
+      window.ACTIVE_ONLINE_ORDER_NO = null;
     }
     closeModal();
     openTxSuccessModal(res, payload);
@@ -16985,6 +16987,7 @@ function drawPengaturanUI(settings) {
     '    <button type="button" class="btn btn-primary" onclick="printCatalogStandee()" style="width:100%;font-weight:700;"><i class="fas fa-print" style="margin-right:6px;"></i> Cetak Standee Meja Kasir</button>' +
     '  </div>' +
     '</div>' +
+    (typeof buildCatalogPromoSettingsHTML === 'function' ? buildCatalogPromoSettingsHTML(settings) : '') +
     '</div>' +
 
     '<div id="pane-telegram" class="setting-pane" style="display:' + (activeTab === 'telegram' ? 'block' : 'none') + ';">' +
@@ -21552,6 +21555,207 @@ function clearProductPhoto(targetInputId, fileInputId, previewBoxId) {
   }
 }
 
+function buildCatalogPromoSettingsHTML(settings) {
+  let promoConf = {
+    announcement_enabled: true,
+    announcement_text: '🌱 Panen Benih Lokal Baru Tiba! • Pesan Online Mudah & Cepat • Gratis Konsultasi Menanam via WhatsApp IDEP Foundation',
+    banner_enabled: true,
+    banners: [
+      {
+        image_url: 'https://images.unsplash.com/photo-1592417817098-8f3d69109853?auto=format&fit=crop&w=1200&q=80',
+        badge: 'KOLEKSI SPESIAL',
+        title: 'Benih Sayuran & Buah Lokal Pusaka',
+        desc: '100% Organik, Alami, dan Non-GMO dari Kebun Pelestarian IDEP Foundation',
+        category: 'Sayuran'
+      },
+      {
+        image_url: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=1200&q=80',
+        badge: 'PAKET BERKEBUN',
+        title: 'Mulai Kebun Pangan di Halaman Rumah',
+        desc: 'Varietas unggul mudah tumbuh & tahan hama dengan daya kecambah teruji',
+        category: 'Semua'
+      },
+      {
+        image_url: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=1200&q=80',
+        badge: 'WARISAN NUSANTARA',
+        title: 'Konservasi Benih Tanaman Tradisional',
+        desc: 'Rawat keberagaman pangan nusantara dengan menanam benih lokal lestari',
+        category: 'Semua'
+      }
+    ],
+    featured_enabled: true,
+    featured_title: 'Pilihan Pekan Ini & Paling Laris'
+  };
+
+  if (settings && settings['catalog_promo_config']) {
+    try {
+      const parsed = JSON.parse(settings['catalog_promo_config']);
+      promoConf = Object.assign({}, promoConf, parsed);
+      if (Array.isArray(parsed.banners)) promoConf.banners = parsed.banners;
+    } catch (e) {
+      console.warn('Parse promo config err:', e);
+    }
+  }
+
+  const banners = promoConf.banners || [];
+  while (banners.length < 3) {
+    banners.push({ image_url: '', badge: '', title: '', desc: '', category: 'Semua' });
+  }
+
+  let bannersHtml = '';
+  banners.slice(0, 3).forEach(function (b, idx) {
+    bannersHtml +=
+      '<div style="background:#FFFFFF;border:1px solid #CBD5E1;border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">' +
+      '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+      '    <strong style="font-size:12.5px;color:var(--text-main);display:flex;align-items:center;gap:6px;">' +
+      '      <span style="background:var(--primary);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;">' + (idx + 1) + '</span> ' +
+      '      Slide Banner #' + (idx + 1) +
+      '    </strong>' +
+      '    <span style="font-size:11px;color:var(--text-muted);">' + (idx === 0 ? 'Utama / Slide Awal' : 'Slide Bergantian') + '</span>' +
+      '  </div>' +
+      '  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">' +
+      '    <div>' +
+      '      <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">URL Gambar Banner</label>' +
+      '      <input type="text" id="set-banner-img-' + idx + '" value="' + escapeHtml(b.image_url || '') + '" placeholder="https://..." style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;">' +
+      '    </div>' +
+      '    <div>' +
+      '      <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Teks Badge / Label Kecil</label>' +
+      '      <input type="text" id="set-banner-badge-' + idx + '" value="' + escapeHtml(b.badge || '') + '" placeholder="Contoh: KOLEKSI SPESIAL" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;">' +
+      '    </div>' +
+      '  </div>' +
+      '  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">' +
+      '    <div>' +
+      '      <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Judul Utama Banner</label>' +
+      '      <input type="text" id="set-banner-title-' + idx + '" value="' + escapeHtml(b.title || '') + '" placeholder="Contoh: Benih Sayuran Lokal" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;">' +
+      '    </div>' +
+      '    <div>' +
+      '      <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Kategori Target Klik</label>' +
+      '      <input type="text" id="set-banner-cat-' + idx + '" value="' + escapeHtml(b.category || 'Semua') + '" placeholder="Contoh: Sayuran atau Semua" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;">' +
+      '    </div>' +
+      '  </div>' +
+      '  <div>' +
+      '    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Deskripsi Singkat Banner</label>' +
+      '    <input type="text" id="set-banner-desc-' + idx + '" value="' + escapeHtml(b.desc || '') + '" placeholder="Contoh: 100% Organik & Non-GMO" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;">' +
+      '  </div>' +
+      '</div>';
+  });
+
+  return (
+    '<div class="card" style="margin-top:20px;border-top:3px solid var(--primary);">' +
+    '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
+    '    <div>' +
+    '      <h3 style="margin-bottom:4px;display:flex;align-items:center;gap:8px;"><i class="fas fa-bullhorn" style="color:var(--primary);"></i> Manajemen Media Promosi &amp; Banner Katalog</h3>' +
+    '      <p style="font-size:12px;color:var(--text-secondary);margin:0;">Atur pita pengumuman berjalan, carousel banner promo, dan daftar produk unggulan di katalog online:</p>' +
+    '    </div>' +
+    '    <span class="badge" style="background:#EFF6FF;color:#1D4ED8;font-weight:700;padding:6px 12px;border-radius:20px;font-size:12px;">✨ Tampilan Realtime</span>' +
+    '  </div>' +
+
+    '  <!-- 1. Pita Pengumuman Berjalan -->' +
+    '  <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
+    '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+    '      <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--text-main);cursor:pointer;margin:0;">' +
+    '        <input type="checkbox" id="set-promo-ann-enable" ' + (promoConf.announcement_enabled ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--primary);">' +
+    '        <span>Tampilkan Pita Pengumuman Berjalan (Announcement Bar)</span>' +
+    '      </label>' +
+    '      <span style="font-size:11px;color:var(--text-muted);">Muncul di bagian paling atas katalog</span>' +
+    '    </div>' +
+    '    <div class="field-group" style="margin-bottom:0;">' +
+    '      <label class="field-label" style="font-size:12px;">Teks Pesan Berjalan</label>' +
+    '      <div class="input-wrapper">' +
+    '        <input type="text" id="set-promo-ann-text" value="' + escapeHtml(promoConf.announcement_text || '') + '" placeholder="Contoh: 🌱 Panen Benih Baru Tiba! Diskon 10% Pembelian Grosir..." style="padding-left:14px;">' +
+    '      </div>' +
+    '    </div>' +
+    '  </div>' +
+
+    '  <!-- 2. Hero Banner Slider (3 Banner) -->' +
+    '  <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
+    '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+    '      <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--text-main);cursor:pointer;margin:0;">' +
+    '        <input type="checkbox" id="set-promo-banner-enable" ' + (promoConf.banner_enabled ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--primary);">' +
+    '        <span>Tampilkan Hero Banner Promo Slider (Carousel)</span>' +
+    '      </label>' +
+    '      <span style="font-size:11px;color:var(--text-muted);">Maks. 3 Slide Banner</span>' +
+    '    </div>' +
+         bannersHtml +
+    '  </div>' +
+
+    '  <!-- 3. Produk Pilihan / Paling Laris -->' +
+    '  <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
+    '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+    '      <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--text-main);cursor:pointer;margin:0;">' +
+    '        <input type="checkbox" id="set-promo-feat-enable" ' + (promoConf.featured_enabled ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--primary);">' +
+    '        <span>Tampilkan Bagian Produk Pilihan / Paling Laris</span>' +
+    '      </label>' +
+    '    </div>' +
+    '    <div class="field-group" style="margin-bottom:0;">' +
+    '      <label class="field-label" style="font-size:12px;">Judul Bagian</label>' +
+    '      <div class="input-wrapper">' +
+    '        <input type="text" id="set-promo-feat-title" value="' + escapeHtml(promoConf.featured_title || 'Pilihan Pekan Ini & Paling Laris') + '" style="padding-left:14px;">' +
+    '      </div>' +
+    '    </div>' +
+    '  </div>' +
+
+    '  <div style="display:flex;justify-content:flex-end;gap:10px;">' +
+    '    <button type="button" class="btn btn-primary" onclick="saveCatalogPromoSettings()"><i class="fas fa-save" style="margin-right:6px;"></i> Simpan Pengaturan Media Promosi</button>' +
+    '  </div>' +
+    '</div>'
+  );
+}
+
+function saveCatalogPromoSettings() {
+  const annEnabled = document.getElementById('set-promo-ann-enable') ? document.getElementById('set-promo-ann-enable').checked : true;
+  const annText = document.getElementById('set-promo-ann-text') ? document.getElementById('set-promo-ann-text').value.trim() : '';
+  const bannerEnabled = document.getElementById('set-promo-banner-enable') ? document.getElementById('set-promo-banner-enable').checked : true;
+  const featEnabled = document.getElementById('set-promo-feat-enable') ? document.getElementById('set-promo-feat-enable').checked : true;
+  const featTitle = document.getElementById('set-promo-feat-title') ? document.getElementById('set-promo-feat-title').value.trim() : 'Pilihan Pekan Ini & Paling Laris';
+
+  const banners = [];
+  for (let i = 0; i < 3; i++) {
+    const imgEl = document.getElementById('set-banner-img-' + i);
+    const badgeEl = document.getElementById('set-banner-badge-' + i);
+    const titleEl = document.getElementById('set-banner-title-' + i);
+    const descEl = document.getElementById('set-banner-desc-' + i);
+    const catEl = document.getElementById('set-banner-cat-' + i);
+
+    const imgVal = imgEl ? imgEl.value.trim() : '';
+    const titleVal = titleEl ? titleEl.value.trim() : '';
+    if (imgVal || titleVal) {
+      banners.push({
+        image_url: imgVal || 'https://images.unsplash.com/photo-1592417817098-8f3d69109853?auto=format&fit=crop&w=1200&q=80',
+        badge: badgeEl ? badgeEl.value.trim() : '',
+        title: titleVal,
+        desc: descEl ? descEl.value.trim() : '',
+        btn_text: 'Lihat Produk',
+        category: catEl ? catEl.value.trim() : 'Semua'
+      });
+    }
+  }
+
+  const promoConfig = {
+    announcement_enabled: annEnabled,
+    announcement_text: annText,
+    banner_enabled: bannerEnabled,
+    banners: banners.length > 0 ? banners : undefined,
+    featured_enabled: featEnabled,
+    featured_title: featTitle
+  };
+
+  const payload = {
+    catalog_promo_config: JSON.stringify(promoConfig)
+  };
+
+  showToast('Menyimpan konfigurasi media promosi katalog...');
+  api('saveSettings', TOKEN, payload).then(function () {
+    invalidateCache('settings');
+    if (APP_SETTINGS) {
+      APP_SETTINGS.catalog_promo_config = payload.catalog_promo_config;
+    }
+    showToast('Media promosi katalog berhasil diperbarui! ✅');
+  }).catch(function (err) {
+    showToast('Gagal menyimpan media promosi: ' + (err.message || err), true);
+  });
+}
+
 function saveCatalogSettings() {
   const catTitle = document.getElementById('set-cat-title') ? document.getElementById('set-cat-title').value.trim() : '';
   const catTagline = document.getElementById('set-cat-tagline') ? document.getElementById('set-cat-tagline').value.trim() : '';
@@ -21583,6 +21787,7 @@ function saveCatalogSettings() {
 window.handleProductPhotoUpload = handleProductPhotoUpload;
 window.clearProductPhoto = clearProductPhoto;
 window.saveCatalogSettings = saveCatalogSettings;
+window.saveCatalogPromoSettings = saveCatalogPromoSettings;
 
 
 // ==============================================================================
@@ -21623,6 +21828,9 @@ async function fetchOnlineOrdersList() {
       .limit(100);
 
     if (!error && Array.isArray(data)) {
+      data.forEach(function (o) {
+        if (!o.id && o.order_no) o.id = o.order_no;
+      });
       return data;
     }
   } catch (e) {}
@@ -21642,6 +21850,9 @@ async function fetchOnlineOrdersList() {
         try {
           const parsed = JSON.parse(row.value);
           if (parsed && parsed.order_no) {
+            if (!parsed.id) {
+              parsed.id = row.key.replace('online_order_', '') || parsed.order_no;
+            }
             list.push(parsed);
           }
         } catch (err) {}
@@ -21787,16 +21998,17 @@ function renderOnlineOrderQueueModalContent(orders, activeTab) {
     itemsTable += '</tbody></table>';
 
     let actionButtons = '';
+    const orderKey = String(order.id || order.order_no || '').trim();
     if (isPending) {
       actionButtons =
         '<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;">' +
-        '  <button type="button" class="btn btn-primary btn-sm" data-order-id="' + escapeHtml(order.id) + '" onclick="loadOnlineOrderToPosCart(this.dataset.orderId)" style="font-weight:800;display:inline-flex;align-items:center;gap:6px;background:#2563EB;">' +
+        '  <button type="button" class="btn btn-primary btn-sm" data-order-id="' + escapeHtml(orderKey) + '" onclick="loadOnlineOrderToPosCart(\'' + escapeHtml(orderKey) + '\')" style="font-weight:800;display:inline-flex;align-items:center;gap:6px;background:#2563EB;">' +
         '    <i class="fas fa-cart-arrow-down"></i> Muat ke Keranjang Kasir' +
         '  </button>' +
-        '  <button type="button" class="btn btn-secondary btn-sm" data-order-id="' + escapeHtml(order.id) + '" onclick="updateOnlineOrderStatus(this.dataset.orderId, \'completed\')" style="color:#16A34A;font-weight:700;">' +
+        '  <button type="button" class="btn btn-secondary btn-sm" data-order-id="' + escapeHtml(orderKey) + '" onclick="updateOnlineOrderStatus(\'' + escapeHtml(orderKey) + '\', \'completed\')" style="color:#16A34A;font-weight:700;">' +
         '    <i class="fas fa-check"></i> Tandai Selesai' +
         '  </button>' +
-        '  <button type="button" class="btn btn-secondary btn-sm" data-order-id="' + escapeHtml(order.id) + '" onclick="updateOnlineOrderStatus(this.dataset.orderId, \'cancelled\')" style="color:#EF4444;">' +
+        '  <button type="button" class="btn btn-secondary btn-sm" data-order-id="' + escapeHtml(orderKey) + '" onclick="updateOnlineOrderStatus(\'' + escapeHtml(orderKey) + '\', \'cancelled\')" style="color:#EF4444;">' +
         '    <i class="fas fa-times"></i> Batalkan' +
         '  </button>' +
         '</div>';
@@ -21840,10 +22052,15 @@ function renderOnlineOrderQueueModalContent(orders, activeTab) {
 }
 
 function loadOnlineOrderToPosCart(orderId) {
-  const targetId = String(orderId || '').trim();
-  const order = (window.ONLINE_ORDERS_CACHE || []).find(function (o) {
-    return String(o.id || '').trim() === targetId || String(o.order_no || '').trim() === targetId;
+  let targetId = String(orderId || '').trim();
+  let order = (window.ONLINE_ORDERS_CACHE || []).find(function (o) {
+    return (o.id && String(o.id).trim() === targetId) || (o.order_no && String(o.order_no).trim() === targetId);
   });
+
+  if (!order && window.ONLINE_ORDERS_CACHE && window.ONLINE_ORDERS_CACHE.length === 1) {
+    order = window.ONLINE_ORDERS_CACHE[0];
+  }
+
   if (!order) {
     showToast('Pesanan tidak ditemukan.', true);
     return;
@@ -21926,7 +22143,8 @@ function loadOnlineOrderToPosCart(orderId) {
     if (saveChk) saveChk.checked = true;
   }
 
-  window.ACTIVE_ONLINE_ORDER_ID = order.id;
+  window.ACTIVE_ONLINE_ORDER_ID = order.id || order.order_no;
+  window.ACTIVE_ONLINE_ORDER_NO = order.order_no || '';
 
   closeModal();
   renderCart();
@@ -21939,15 +22157,23 @@ async function updateOnlineOrderStatus(orderId, newStatus) {
   if (!sb) return;
 
   const targetId = String(orderId || '').trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(targetId);
+
+  let targetOrderNo = isUuid ? '' : targetId;
+  let targetUuid = isUuid ? targetId : '';
 
   // 1. Segera update cache memori lokal agar UI antrean langsung sinkron seketika
   if (Array.isArray(window.ONLINE_ORDERS_CACHE)) {
     const cachedOrder = window.ONLINE_ORDERS_CACHE.find(function (o) {
-      return String(o.id || '').trim() === targetId || String(o.order_no || '').trim() === targetId;
+      return (o.id && String(o.id).trim() === targetId) || (o.order_no && String(o.order_no).trim() === targetId);
     });
     if (cachedOrder) {
       cachedOrder.status = newStatus;
       cachedOrder.updated_at = new Date().toISOString();
+      if (cachedOrder.order_no) targetOrderNo = cachedOrder.order_no;
+      if (cachedOrder.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(cachedOrder.id)) {
+        targetUuid = cachedOrder.id;
+      }
     }
   }
 
@@ -21960,31 +22186,37 @@ async function updateOnlineOrderStatus(orderId, newStatus) {
     badgeEl.style.display = pendingCount > 0 ? 'inline-block' : 'none';
   }
   const modalTitle = document.querySelector('#modal-title');
-  if (modalTitle && modalTitle.textContent.includes('Pesanan Katalog Online')) {
+  if (modalTitle && modalTitle.textContent.includes('Pesanan')) {
     renderOnlineOrderQueueModalContent(activeOrders, 'pending');
   }
 
   let updated = false;
 
-  // 2. Coba via RPC Security Definer (bebas hambatan RLS / sesi)
-  try {
-    const { data: rpcData, error: rpcErr } = await sb.rpc('update_online_order_status', {
-      p_order_id: targetId,
-      p_status: newStatus
-    });
-    if (!rpcErr && rpcData && rpcData.success) {
-      updated = true;
-    }
-  } catch (e) {}
+  // 2. Coba via RPC Security Definer jika targetUuid valid
+  if (targetUuid) {
+    try {
+      const { data: rpcData, error: rpcErr } = await sb.rpc('update_online_order_status', {
+        p_order_id: targetUuid,
+        p_status: newStatus
+      });
+      if (!rpcErr && rpcData && rpcData.success) {
+        updated = true;
+      }
+    } catch (e) {}
+  }
 
-  // 3. Coba direct update ke tabel online_orders
+  // 3. Coba direct update ke tabel online_orders (aman tanpa UUID casting crash)
   if (!updated) {
     try {
-      const { data, error } = await sb
-        .from('online_orders')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .or('id.eq.' + targetId + ',order_no.eq.' + targetId)
-        .select();
+      let query = sb.from('online_orders').update({ status: newStatus, updated_at: new Date().toISOString() });
+      if (targetUuid) {
+        query = query.eq('id', targetUuid);
+      } else if (targetOrderNo) {
+        query = query.eq('order_no', targetOrderNo);
+      } else {
+        query = query.eq('id', targetId);
+      }
+      const { data, error } = await query.select();
       if (!error && Array.isArray(data) && data.length > 0) {
         updated = true;
       }
@@ -21996,21 +22228,30 @@ async function updateOnlineOrderStatus(orderId, newStatus) {
   // 4. Fallback tabel settings jika masih menggunakan key-value
   if (!updated) {
     try {
-      const { data: row } = await sb
+      const { data: setRows } = await sb
         .from('settings')
-        .select('value')
-        .eq('key', 'online_order_' + targetId)
-        .maybeSingle();
+        .select('key, value')
+        .like('key', 'online_order_%');
 
-      if (row && row.value) {
-        const parsed = JSON.parse(row.value);
-        parsed.status = newStatus;
-        parsed.updated_at = new Date().toISOString();
-        await sb
-          .from('settings')
-          .update({ value: JSON.stringify(parsed) })
-          .eq('key', 'online_order_' + targetId);
-        updated = true;
+      if (Array.isArray(setRows)) {
+        for (let i = 0; i < setRows.length; i++) {
+          const row = setRows[i];
+          try {
+            const parsed = JSON.parse(row.value);
+            if (
+              String(parsed.id) === targetId ||
+              String(parsed.order_no) === targetId ||
+              (targetOrderNo && String(parsed.order_no) === targetOrderNo) ||
+              row.key === ('online_order_' + targetId)
+            ) {
+              parsed.status = newStatus;
+              parsed.updated_at = new Date().toISOString();
+              await sb.from('settings').update({ value: JSON.stringify(parsed) }).eq('key', row.key);
+              updated = true;
+              break;
+            }
+          } catch (e) {}
+        }
       }
     } catch (e) {
       console.warn('Update online order in settings failed:', e);
@@ -22022,7 +22263,7 @@ async function updateOnlineOrderStatus(orderId, newStatus) {
   // Sinkronisasi ulang dengan database di background
   checkOnlineOrdersBadge(true).then(function (freshOrders) {
     const title = document.querySelector('#modal-title');
-    if (title && title.textContent.includes('Pesanan Katalog Online')) {
+    if (title && title.textContent.includes('Pesanan')) {
       renderOnlineOrderQueueModalContent(freshOrders, 'pending');
     }
   });

@@ -15,20 +15,30 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <!-- Stylesheet Mandiri Katalog (Terisolasi dari Admin) -->
-  <link rel="stylesheet" href="katalog.css?v=1.0">
+  <link rel="stylesheet" href="katalog.css?v=2.0">
 </head>
 <body>
+
+  <!-- 0. ANNOUNCEMENT RUNNING BAR (PITA PROMO BERJALAN) -->
+  <aside id="catalog-announcement-bar" class="catalog-announcement-bar" style="display:none;" aria-label="Pengumuman Promosi">
+    <div class="announcement-track">
+      <span class="announcement-pill"><i class="fas fa-bullhorn"></i> PROMO</span>
+      <div class="announcement-marquee">
+        <span id="announcement-text" class="announcement-text"></span>
+      </div>
+    </div>
+  </aside>
 
   <!-- 1. NAVBAR UTAMA -->
   <header class="catalog-nav">
     <div class="nav-container">
       <div class="nav-brand">
         <div class="brand-icon">
-          <i class="fas fa-store"></i>
+          <i class="fas fa-seedling"></i>
         </div>
         <div class="brand-details">
-          <h1 id="store-title">Katalog Resmi</h1>
-          <p>Pemesanan Online Terpercaya</p>
+          <h1 id="store-title">Kebun Benih IDEP</h1>
+          <p id="store-subhead">Benih Alami, Lokal &amp; Berkelanjutan</p>
         </div>
       </div>
       <div class="nav-actions">
@@ -40,7 +50,66 @@
     </div>
   </header>
 
-  <!-- 2. HERO INFORMASI TOKO -->
+  <!-- 2. HERO PROMO BANNER SLIDER / CAROUSEL -->
+  <section id="hero-slider-section" class="hero-slider-section" style="display:none;" aria-label="Banner Promosi">
+    <div class="slider-wrapper">
+      <div id="slider-track" class="slider-track">
+        <!-- Render dinamis dari katalog.js -->
+      </div>
+      <button type="button" class="slider-nav-btn prev" onclick="prevSlide()" aria-label="Slide Sebelumnya">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <button type="button" class="slider-nav-btn next" onclick="nextSlide()" aria-label="Slide Selanjutnya">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+      <div id="slider-dots" class="slider-dots"></div>
+    </div>
+  </section>
+
+  <!-- 2B. TRUST & VALUE STRIP -->
+  <section class="trust-strip">
+    <div class="trust-container">
+      <div class="trust-card">
+        <div class="trust-icon"><i class="fas fa-leaf"></i></div>
+        <div class="trust-info">
+          <h4>100% Benih Lokal &amp; Alami</h4>
+          <p>Non-GMO, lestari &amp; bisa dibenihkan ulang</p>
+        </div>
+      </div>
+      <div class="trust-card">
+        <div class="trust-icon"><i class="fas fa-certificate"></i></div>
+        <div class="trust-info">
+          <h4>Daya Berkecambah Teruji</h4>
+          <p>Standar uji mutu QC berkala dari IDEP</p>
+        </div>
+      </div>
+      <div class="trust-card">
+        <div class="trust-icon"><i class="fab fa-whatsapp"></i></div>
+        <div class="trust-info">
+          <h4>Konsultasi Menanam Gratis</h4>
+          <p>Panduan langsung via WhatsApp toko</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2C. SECTION PRODUK UNGGULAN & PALING LARIS -->
+  <section id="featured-section" class="featured-section" style="display:none;" aria-label="Produk Paling Laris">
+    <div class="featured-container">
+      <div class="featured-header">
+        <div class="featured-title-wrap">
+          <span class="featured-badge"><i class="fas fa-fire"></i> TERLARIS</span>
+          <h2 id="featured-title">Pilihan Pekan Ini</h2>
+        </div>
+        <span class="featured-hint"><i class="fas fa-arrows-alt-h"></i> Geser samping</span>
+      </div>
+      <div id="featured-track" class="featured-track">
+        <!-- Render dinamis kartu produk unggulan via katalog.js -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. INFORMASI TOKO & METADATA -->
   <section class="store-hero">
     <div class="hero-container">
       <p id="store-tagline" class="hero-tagline">Pusat Benih Tanaman Lokal &amp; Produk Pilihan Berkualitas</p>
@@ -190,7 +259,7 @@
   <!-- Supabase CDN Client Library (v2) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Skrip Mandiri Katalog Publik -->
-  <script src="katalog.js?v=2.0"></script>
+  <script src="katalog.js?v=3.0"></script>
 </body>
 </html>
 

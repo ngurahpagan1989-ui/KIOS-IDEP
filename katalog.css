@@ -1059,3 +1059,420 @@ body {
   color: var(--text-main);
 }
 
+/* ==============================================================================
+   PROMOTIONAL MEDIA SUITE: ANNOUNCEMENT, HERO CAROUSEL, TRUST & FEATURED
+   ============================================================================== */
+
+/* 1. RUNNING PROMO ANNOUNCEMENT BAR */
+.catalog-announcement-bar {
+  background: linear-gradient(90deg, #1E3A8A 0%, #2563EB 50%, #1D4ED8 100%);
+  color: #FFFFFF;
+  padding: 7px 14px;
+  overflow: hidden;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+.announcement-track {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.announcement-pill {
+  flex-shrink: 0;
+  background: #FEF08A;
+  color: #854D0E;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.announcement-marquee {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.announcement-text {
+  display: inline-block;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  animation: marqueePromo 25s linear infinite;
+}
+@keyframes marqueePromo {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* 2. HERO PROMO BANNER SLIDER / CAROUSEL */
+.hero-slider-section {
+  max-width: 1040px;
+  margin: 14px auto 0 auto;
+  padding: 0 16px;
+}
+.slider-wrapper {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+  background: #0F172A;
+}
+.slider-track {
+  display: flex;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+.slider-slide {
+  min-width: 100%;
+  position: relative;
+  height: 270px;
+  display: flex;
+  align-items: flex-end;
+  color: #FFFFFF;
+  background-size: cover;
+  background-position: center;
+  user-select: none;
+}
+.slide-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.15) 0%, rgba(15, 23, 42, 0.88) 100%);
+}
+.slide-content {
+  position: relative;
+  z-index: 2;
+  padding: 24px 28px;
+  max-width: 680px;
+}
+.slide-badge {
+  display: inline-block;
+  background: #2563EB;
+  color: #FFFFFF;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+}
+.slide-title {
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #F8FAFC;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+}
+.slide-desc {
+  font-size: 13px;
+  color: #CBD5E1;
+  margin-top: 5px;
+  line-height: 1.4;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+.slide-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #10B981;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  margin-top: 12px;
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35);
+  transition: all 0.15s ease;
+}
+.slide-cta-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.slider-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #0F172A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  z-index: 5;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+.slider-nav-btn:hover {
+  background: #FFFFFF;
+  color: #2563EB;
+}
+.slider-nav-btn.prev { left: 12px; }
+.slider-nav-btn.next { right: 12px; }
+
+.slider-dots {
+  position: absolute;
+  bottom: 12px;
+  right: 20px;
+  display: flex;
+  gap: 6px;
+  z-index: 5;
+}
+.slider-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.slider-dot.active {
+  width: 22px;
+  border-radius: 10px;
+  background: #38BDF8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+}
+
+/* 3. TRUST & VALUE STRIP */
+.trust-strip {
+  max-width: 1040px;
+  margin: 14px auto 0 auto;
+  padding: 0 16px;
+}
+.trust-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.trust-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+.trust-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #EFF6FF;
+  color: #2563EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.trust-info h4 {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #1E293B;
+  line-height: 1.25;
+}
+.trust-info p {
+  font-size: 11px;
+  color: #64748B;
+  margin-top: 1px;
+}
+
+/* 4. FEATURED PRODUCTS (HORIZONTAL SCROLL) */
+.featured-section {
+  max-width: 1040px;
+  margin: 20px auto 0 auto;
+  padding: 0 16px;
+}
+.featured-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.featured-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.featured-badge {
+  background: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.featured-header h2 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0F172A;
+}
+.featured-hint {
+  font-size: 11px;
+  color: #94A3B8;
+  font-weight: 600;
+}
+.featured-track {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.featured-track::-webkit-scrollbar {
+  display: none;
+}
+.featured-card {
+  flex: 0 0 185px;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.featured-card:hover {
+  border-color: #93C5FD;
+  transform: translateY(-2px);
+}
+.featured-thumb-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #F1F5F9;
+}
+.featured-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.featured-body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.featured-cat {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #2563EB;
+  text-transform: uppercase;
+}
+.featured-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 2px 0 6px 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.featured-price {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0F172A;
+  margin-top: auto;
+  margin-bottom: 8px;
+}
+.featured-btn-add {
+  width: 100%;
+  padding: 6px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #2563EB;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.12s ease;
+}
+.featured-btn-add:hover {
+  background: #2563EB;
+  color: #FFFFFF;
+}
+
+/* 5. BADGE / STIKER PROMO PADA FOTO PRODUK GRID UTAMA */
+.badge-promo-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  z-index: 2;
+  letter-spacing: 0.3px;
+}
+.badge-promo-hot {
+  background: #EF4444;
+  color: #FFFFFF;
+}
+.badge-promo-local {
+  background: #059669;
+  color: #FFFFFF;
+}
+.badge-promo-best {
+  background: #D97706;
+  color: #FFFFFF;
+}
+
+/* RESPONSIVE BREAKPOINTS */
+@media (max-width: 768px) {
+  .trust-container {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .slider-slide {
+    height: 200px;
+  }
+  .slide-content {
+    padding: 16px 18px;
+  }
+  .slide-title {
+    font-size: 17px;
+  }
+  .slide-desc {
+    font-size: 11.5px;
+  }
+  .slide-cta-btn {
+    padding: 5px 12px;
+    font-size: 11px;
+    margin-top: 8px;
+  }
+  .featured-card {
+    flex: 0 0 155px;
+  }
+  .slider-nav-btn {
+    display: none;
+  }
+}
+

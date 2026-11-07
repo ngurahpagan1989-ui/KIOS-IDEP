@@ -21708,38 +21708,81 @@ function loadOnlineOrderToPosCart(orderId) {
 }
 
 async function updateOnlineOrderStatus(orderId, newStatus) {
-  if (typeof supabase === 'undefined' || !supabase) return;
+  const sb = (typeof window !== 'undefined' && window.supabase) ? window.supabase : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!sb) return;
 
-  showToast('Memperbarui status pesanan...');
+  const targetId = String(orderId || '').trim();
+
+  // 1. Segera update cache memori lokal agar UI antrean langsung sinkron seketika
+  if (Array.isArray(window.ONLINE_ORDERS_CACHE)) {
+    const cachedOrder = window.ONLINE_ORDERS_CACHE.find(function (o) {
+      return String(o.id || '').trim() === targetId || String(o.order_no || '').trim() === targetId;
+    });
+    if (cachedOrder) {
+      cachedOrder.status = newStatus;
+      cachedOrder.updated_at = new Date().toISOString();
+    }
+  }
+
+  // Perbarui tampilan badge dan modal seketika
+  const activeOrders = window.ONLINE_ORDERS_CACHE || [];
+  const pendingCount = activeOrders.filter(function (o) { return o.status === 'pending'; }).length;
+  const badgeEl = document.getElementById('pos-online-order-badge');
+  if (badgeEl) {
+    badgeEl.textContent = pendingCount;
+    badgeEl.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+  }
+  const modalTitle = document.querySelector('#modal-title');
+  if (modalTitle && modalTitle.textContent.includes('Pesanan Katalog Online')) {
+    renderOnlineOrderQueueModalContent(activeOrders, 'pending');
+  }
 
   let updated = false;
 
-  // 1. Coba tabel online_orders
+  // 2. Coba via RPC Security Definer (bebas hambatan RLS / sesi)
   try {
-    const { error } = await supabase
-      .from('online_orders')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq('id', orderId);
-    if (!error) updated = true;
+    const { data: rpcData, error: rpcErr } = await sb.rpc('update_online_order_status', {
+      p_order_id: targetId,
+      p_status: newStatus
+    });
+    if (!rpcErr && rpcData && rpcData.success) {
+      updated = true;
+    }
   } catch (e) {}
 
-  // 2. Fallback tabel settings
+  // 3. Coba direct update ke tabel online_orders
   if (!updated) {
     try {
-      const { data: row } = await supabase
+      const { data, error } = await sb
+        .from('online_orders')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .or('id.eq.' + targetId + ',order_no.eq.' + targetId)
+        .select();
+      if (!error && Array.isArray(data) && data.length > 0) {
+        updated = true;
+      }
+    } catch (e) {
+      console.warn('Direct update online_orders failed:', e);
+    }
+  }
+
+  // 4. Fallback tabel settings jika masih menggunakan key-value
+  if (!updated) {
+    try {
+      const { data: row } = await sb
         .from('settings')
         .select('value')
-        .eq('key', 'online_order_' + orderId)
+        .eq('key', 'online_order_' + targetId)
         .maybeSingle();
 
       if (row && row.value) {
         const parsed = JSON.parse(row.value);
         parsed.status = newStatus;
         parsed.updated_at = new Date().toISOString();
-        await supabase
+        await sb
           .from('settings')
           .update({ value: JSON.stringify(parsed) })
-          .eq('key', 'online_order_' + orderId);
+          .eq('key', 'online_order_' + targetId);
         updated = true;
       }
     } catch (e) {
@@ -21747,13 +21790,13 @@ async function updateOnlineOrderStatus(orderId, newStatus) {
     }
   }
 
-  showToast(newStatus === 'completed' ? 'Pesanan berhasil diselesaikan! ✅' : 'Status pesanan diperbarui.');
+  showToast(newStatus === 'completed' ? 'Pesanan berhasil diselesaikan! ✅' : (newStatus === 'cancelled' ? 'Pesanan dibatalkan.' : 'Status pesanan diperbarui.'));
 
-  // Perbarui antrean dan modal
-  checkOnlineOrdersBadge(true).then(function (orders) {
-    const modalTitle = document.querySelector('#modal-title');
-    if (modalTitle && modalTitle.textContent.includes('Pesanan Katalog Online')) {
-      renderOnlineOrderQueueModalContent(orders, 'pending');
+  // Sinkronisasi ulang dengan database di background
+  checkOnlineOrdersBadge(true).then(function (freshOrders) {
+    const title = document.querySelector('#modal-title');
+    if (title && title.textContent.includes('Pesanan Katalog Online')) {
+      renderOnlineOrderQueueModalContent(freshOrders, 'pending');
     }
   });
 }

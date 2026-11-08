@@ -2698,25 +2698,24 @@ function drawDashboardUI(data) {
   const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const dateFormatted = dayNames[now.getDay()] + ', ' + now.getDate() + ' ' + monthNames[now.getMonth()] + ' ' + now.getFullYear();
 
-  // Target Omzet Harian (default 5.000.000 atau dari data)
-  const targetOmzet = Number(data.dailyTarget || 5000000);
-  const targetPercent = Math.min(100, Math.round((todaySales / targetOmzet) * 100));
+  // Target Omzet Harian (default 5.000.000 atau dari pengaturan)
+  const targetOmzet = Number(data.dailyTarget || (APP_SETTINGS && APP_SETTINGS.daily_target) || 5000000);
+  const targetPercent = targetOmzet > 0 ? Math.min(100, Math.round((todaySales / targetOmzet) * 100)) : 0;
   const circleRadius = 46;
   const circumference = 2 * Math.PI * circleRadius; // ~289.02
   const strokeOffset = circumference - (circumference * (targetPercent / 100));
 
-  // Spline Data Points 7 Hari Terakhir
-  const trendDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-  const splineValues = [
-    Math.max(150000, Math.round(todaySales * 0.45)),
-    Math.max(250000, Math.round(todaySales * 0.70)),
-    Math.max(300000, Math.round(todaySales * 0.60)),
-    Math.max(450000, Math.round(todaySales * 0.85)),
-    Math.max(400000, Math.round(todaySales * 0.75)),
-    Math.max(600000, Math.round(todaySales * 0.95)),
-    todaySales || 750000
-  ];
-  const maxVal = Math.max(...splineValues, 500000);
+  // Spline Data Points 7 Hari Terakhir (Data Riwayat Asli)
+  const trendDays = (Array.isArray(data.splineDays) && data.splineDays.length === 7)
+    ? data.splineDays
+    : ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+  const splineValues = (Array.isArray(data.splineValues) && data.splineValues.length === 7)
+    ? data.splineValues
+    : [0, 0, 0, 0, 0, 0, todaySales];
+
+  const maxVal = Math.max(...splineValues, 100000);
+  const isAllZeroSpline = splineValues.every(function (v) { return Number(v) === 0; });
   const svgWidth = 600;
   const svgHeight = 180;
   const paddingLeft = 35;
@@ -2728,7 +2727,9 @@ function drawDashboardUI(data) {
 
   const points = splineValues.map(function (val, idx) {
     const x = paddingLeft + (idx / (splineValues.length - 1)) * chartW;
-    const y = paddingTop + chartH - (val / maxVal) * chartH;
+    const y = isAllZeroSpline
+      ? (paddingTop + chartH)
+      : (paddingTop + chartH - (val / maxVal) * chartH);
     return { x: Math.round(x), y: Math.round(y), val: val };
   });
 
@@ -2753,30 +2754,31 @@ function drawDashboardUI(data) {
       '<text x="' + pt.x + '" y="' + (svgHeight - 10) + '" text-anchor="middle" fill="#64748B" font-size="11" font-weight="600">' + trendDays[idx] + '</text>';
   });
 
-  // Top Products Widget
-  const topProducts = Array.isArray(data.topProducts) && data.topProducts.length > 0
-    ? data.topProducts
-    : [
-        { name: 'Bayam Hijau Super (4g)', qty: 48, percent: 85 },
-        { name: 'Kangkung Daun Lebar (10g)', qty: 36, percent: 65 },
-        { name: 'Cabai Rawit Merah (1g)', qty: 29, percent: 52 },
-        { name: 'Tomat Buah Segar (2g)', qty: 22, percent: 40 },
-        { name: 'Sawi Manis Unggul (5g)', qty: 18, percent: 32 }
-      ];
-
+  // Top Products Widget (100% Data Riil Transaksi)
+  const topProducts = Array.isArray(data.topProducts) ? data.topProducts : [];
   let topProductsHtml = '';
-  topProducts.slice(0, 5).forEach(function (prod) {
-    topProductsHtml +=
-      '<div style="margin-bottom:12px;">' +
-      '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:12px;">' +
-      '    <span style="font-weight:600;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">' + escapeHtml(prod.name) + '</span>' +
-      '    <strong style="color:#22D3EE;font-family:monospace;">' + (prod.qty || 0) + ' terjual</strong>' +
-      '  </div>' +
-      '  <div style="background:rgba(255,255,255,0.06);border-radius:10px;height:7px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);">' +
-      '    <div style="width:' + (prod.percent || 40) + '%;height:100%;background:linear-gradient(90deg, #06B6D4, #3B82F6);border-radius:10px;box-shadow:0 0 10px rgba(6,182,212,0.5);"></div>' +
-      '  </div>' +
+
+  if (topProducts.length === 0) {
+    topProductsHtml =
+      '<div style="text-align:center;padding:26px 12px;color:var(--text-secondary);font-size:12.5px;">' +
+      '  <div style="font-size:26px;margin-bottom:8px;opacity:0.6;">📦</div>' +
+      '  <div style="font-weight:700;color:var(--text-main);margin-bottom:4px;">Belum Ada Produk Terjual Hari Ini</div>' +
+      '  <div style="font-size:11px;color:var(--text-muted);line-height:1.4;">Daftar produk terlaris akan otomatis terisi dan diperbarui secara seketika saat kasir mencatat transaksi nota.</div>' +
       '</div>';
-  });
+  } else {
+    topProducts.slice(0, 5).forEach(function (prod) {
+      topProductsHtml +=
+        '<div style="margin-bottom:12px;">' +
+        '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:12px;">' +
+        '    <span style="font-weight:600;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">' + escapeHtml(prod.name) + '</span>' +
+        '    <strong style="color:#22D3EE;font-family:monospace;">' + (prod.qty || 0) + ' terjual</strong>' +
+        '  </div>' +
+        '  <div style="background:rgba(255,255,255,0.06);border-radius:10px;height:7px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);">' +
+        '    <div style="width:' + Math.max(10, prod.percent || 10) + '%;height:100%;background:linear-gradient(90deg, #06B6D4, #3B82F6);border-radius:10px;box-shadow:0 0 10px rgba(6,182,212,0.5);"></div>' +
+        '  </div>' +
+        '</div>';
+    });
+  }
 
   content.innerHTML =
     '<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:20px;">' +
@@ -17161,6 +17163,7 @@ function drawPengaturanUI(settings) {
     '<div class="field-group" style="margin-bottom:0;"><label class="field-label">Atas Nama</label><div class="input-wrapper"><input type="text" id="set-bank-account-name" value="' + escapeHtml(settings['bank_account_name'] || 'Rekening Toko') + '" disabled="true" style="padding-left:14px;opacity:0.7;cursor:not-allowed;"></div></div>' +
     '</div>' +
     '<div class="field-group"><label class="field-label">Tarif Pajak (PPN %)</label><div class="input-wrapper"><input type="number" id="set-tax-rate" value="' + escapeHtml(settings['tax_rate'] !== undefined ? settings['tax_rate'] : '0') + '" min="0" max="100" step="0.1" style="padding-left:14px;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Persentase pajak yang dikenakan pada transaksi (misal: 0 untuk bebas pajak atau 11 untuk PPN 11%).</small></div>' +
+    '<div class="field-group"><label class="field-label">Target Omzet Harian (Rp)</label><div class="input-wrapper"><input type="number" id="set-daily-target" value="' + escapeHtml(settings['daily_target'] || '5000000') + '" min="0" step="100000" style="padding-left:14px;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Target penjualan harian yang menjadi acuan persentase lingkaran (KPI Gauge) di Dashboard.</small></div>' +
     '<div class="field-group"><label class="field-label">Catatan Kaki Faktur</label><div class="input-wrapper"><input type="text" id="set-invoice-footer" value="' + escapeHtml(settings['invoice_footer'] || 'Terima kasih atas kunjungan Anda!') + '" style="padding-left:14px;"></div></div>' +
     '<button type="button" class="btn btn-primary" onclick="saveStoreSettings()">Simpan Profil Toko &amp; Pajak</button>' +
     '</div>' +
@@ -18332,6 +18335,7 @@ function saveStoreSettings() {
     bank_account: newBankAccount,
     bank_account_name: newBankAccountName,
     tax_rate: taxRate,
+    daily_target: document.getElementById('set-daily-target') ? document.getElementById('set-daily-target').value.trim() : (APP_SETTINGS && APP_SETTINGS.daily_target ? APP_SETTINGS.daily_target : '5000000'),
     invoice_footer: document.getElementById('set-invoice-footer') ? document.getElementById('set-invoice-footer').value.trim() : '',
     batch_format_template: batchFormat,
     batch_format: batchFormat,

@@ -2886,10 +2886,13 @@ async function dispatchApiCall(fnName, args) {
       const today = new Date().toISOString().split('T')[0];
       const now = new Date();
       const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const sevenDaysAgo = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+      const iso7Days = sevenDaysAgo.toISOString();
 
-      const [txTodayRes, prodsRes, batchesRes, receivablesRes] = await Promise.all([
+      const [txTodayRes, prodsRes, batchesRes, receivablesRes, tx7DaysRes, settingsRes] = await Promise.all([
         supabase.from('transactions')
-          .select('total')
+          .select('id, total, created_at')
           .neq('status', 'VOID')
           .gte('created_at', `${today}T00:00:00Z`),
         supabase.from('products')
@@ -2901,15 +2904,81 @@ async function dispatchApiCall(fnName, args) {
         supabase.from('receivables')
           .select('id, customer_id, total, remaining, due_date, status')
           .neq('status', 'PAID')
-          .neq('status', 'CANCELLED')
+          .neq('status', 'CANCELLED'),
+        supabase.from('transactions')
+          .select('total, created_at')
+          .neq('status', 'VOID')
+          .gte('created_at', iso7Days),
+        supabase.from('settings')
+          .select('key, value')
+          .in('key', ['daily_target', 'target_omzet_harian'])
       ]);
 
-      const todaySales = (txTodayRes.data || []).reduce((sum, t) => sum + Number(t.total || 0), 0);
-      const todayTransactionCount = (txTodayRes.data || []).length;
+      const todayTxList = txTodayRes.data || [];
+      const todaySales = todayTxList.reduce((sum, t) => sum + Number(t.total || 0), 0);
+      const todayTransactionCount = todayTxList.length;
       const allBatches = batchesRes.data || [];
       const allProds = prodsRes.data || [];
 
-      // Hitung stok per produk untuk daftar stok menipis (<= 5)
+      // 1. Ambil Produk Terlaris Hari Ini secara REAL dari transaction_items
+      let topProductsToday = [];
+      const todayTxIds = todayTxList.map(t => t.id).filter(Boolean);
+      if (todayTxIds.length > 0) {
+        try {
+          const { data: todayItems } = await supabase.from('transaction_items')
+            .select('product_id, qty, subtotal, products(name)')
+            .in('transaction_id', todayTxIds.slice(0, 100));
+
+          if (Array.isArray(todayItems) && todayItems.length > 0) {
+            const prodQtyMap = {};
+            todayItems.forEach(item => {
+              const pName = (item.products && item.products.name) || item.product_id || 'Produk';
+              if (!prodQtyMap[pName]) {
+                prodQtyMap[pName] = { name: pName, qty: 0 };
+              }
+              prodQtyMap[pName].qty += Number(item.qty || 0);
+            });
+
+            const sortedProds = Object.values(prodQtyMap).sort((a, b) => b.qty - a.qty);
+            const maxQty = sortedProds[0] ? sortedProds[0].qty : 0;
+            topProductsToday = sortedProds.slice(0, 5).map(p => ({
+              name: p.name,
+              qty: p.qty,
+              percent: maxQty > 0 ? Math.round((p.qty / maxQty) * 100) : 0
+            }));
+          }
+        } catch (errProd) {
+          console.warn('Gagal memuat rincian produk terlaris hari ini:', errProd);
+        }
+      }
+
+      // 2. Hitung Omzet Harian 7 Hari Terakhir untuk grafik Realtime Spline (Data Asli)
+      const dayLabels = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+      const splineDays = [];
+      const splineValues = [];
+      const tx7Days = tx7DaysRes.data || [];
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const ymd = d.toISOString().split('T')[0];
+        splineDays.push(dayLabels[d.getDay()]);
+
+        const sumForDay = tx7Days
+          .filter(t => t.created_at && t.created_at.startsWith(ymd))
+          .reduce((acc, t) => acc + Number(t.total || 0), 0);
+        splineValues.push(sumForDay);
+      }
+
+      // 3. Target Omzet Harian dari Settings
+      let dailyTarget = 5000000;
+      if (settingsRes && Array.isArray(settingsRes.data)) {
+        const row = settingsRes.data.find(s => s.key === 'daily_target' || s.key === 'target_omzet_harian');
+        if (row && row.value) {
+          dailyTarget = Number(row.value) || 5000000;
+        }
+      }
+
+      // 4. Hitung stok per produk untuk daftar stok menipis (<= 5)
       const stockPerProd = {};
       allBatches.forEach(b => {
         const qStatus = String(b.quality_status || 'NORMAL').toUpperCase();
@@ -2929,7 +2998,7 @@ async function dispatchApiCall(fnName, args) {
         .filter(p => p.stock <= 5)
         .sort((a, b) => a.stock - b.stock);
 
-      // Daftar batch mendekati kedaluwarsa (<= 30 hari ke depan)
+      // 5. Daftar batch mendekati kedaluwarsa (<= 30 hari ke depan)
       const expiring = allBatches
         .filter(b => b.expiry_date && b.expiry_date <= in30Days && Number(b.qty_remaining) > 0)
         .map(b => {
@@ -2947,6 +3016,10 @@ async function dispatchApiCall(fnName, args) {
       return {
         todaySales: todaySales,
         todayTransactionCount: todayTransactionCount,
+        dailyTarget: dailyTarget,
+        topProducts: topProductsToday,
+        splineValues: splineValues,
+        splineDays: splineDays,
         receivables: receivablesRes.data || [],
         lowStock: lowStock,
         expiring: expiring,

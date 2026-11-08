@@ -710,7 +710,7 @@ function updateFloatingCartBar() {
 function saveCartToStorage() {
   try {
     localStorage.setItem('public_catalog_cart', JSON.stringify(cart));
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function loadCartFromStorage() {
@@ -819,7 +819,7 @@ async function sendOrderToWhatsApp() {
     localStorage.setItem('catalog_last_cust_name', customerName);
     localStorage.setItem('catalog_last_cust_phone', customerPhone);
     localStorage.setItem('catalog_last_cust_notes', notes);
-  } catch (e) {}
+  } catch (e) { }
 
   if (submitBtn) {
     submitBtn.disabled = true;
@@ -866,7 +866,7 @@ async function sendOrderToWhatsApp() {
     try {
       const { error: ordErr } = await supabaseClient.from('online_orders').insert(orderPayload);
       if (!ordErr) savedToCloud = true;
-    } catch (err) {}
+    } catch (err) { }
 
     if (!savedToCloud) {
       try {
@@ -1000,7 +1000,7 @@ function loadSavedCustomerInfo() {
     if (savedName && nameInput) nameInput.value = savedName;
     if (savedPhone && phoneInput) phoneInput.value = savedPhone;
     if (savedNotes && notesInput) notesInput.value = savedNotes;
-  } catch (e) {}
+  } catch (e) { }
 }
 
 // 9. EVENT LISTENERS

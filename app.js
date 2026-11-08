@@ -15720,36 +15720,39 @@ function drawStockValuationUI(data) {
     '<button type="button" class="laporan-nav-tab-btn" onclick="switchLaporanMainView(\'period_closing\')">🔒 Tutup Buku &amp; Cut-Off Periode</button>' +
     '</div>' +
 
-    '<!-- 4 KARTU RINGKASAN METRIK (KPI) -->' +
-    '<div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:18px;">' +
-    '<div class="stat-card">' +
-    '<div class="stat-header"><span class="stat-label">Varietas Aktif</span><span class="stat-icon">🌱</span></div>' +
-    '<div class="stat-value" style="font-size:24px;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">' + summary.totalVarieties + '</div>' +
-    '<div class="stat-meta">Ragam Varietas Benih Siap Salur</div>' +
+    '<!-- 4 KARTU RINGKASAN METRIK (KPI) CYBER -->' +
+    '<div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-bottom:20px;">' +
+    '  <div class="stat-card cyber-stat-card">' +
+    '    <div class="stat-header"><span class="stat-label">Varietas Aktif</span><span class="stat-icon" style="color:#22D3EE;">🌱</span></div>' +
+    '    <div class="stat-value" style="font-size:24px;color:#22D3EE;font-family:\'JetBrains Mono\',monospace;text-shadow:0 0 15px rgba(34,211,238,0.3);">' + summary.totalVarieties + '</div>' +
+    '    <div class="stat-meta">Ragam Varietas Benih Siap Salur</div>' +
+    '    <svg class="cyber-stat-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,25 Q25,8 50,18 T100,6 L100,30 L0,30 Z" fill="rgba(6,182,212,0.15)"></path><path d="M0,25 Q25,8 50,18 T100,6" fill="none" stroke="#06B6D4" stroke-width="2"></path></svg>' +
+    '  </div>' +
+    '  <div class="stat-card cyber-stat-card">' +
+    '    <div class="stat-header"><span class="stat-label">Total Sachet Siap Jual</span><span class="stat-icon" style="color:#60A5FA;">📦</span></div>' +
+    '    <div class="stat-value" style="font-size:24px;color:#60A5FA;font-family:\'JetBrains Mono\',monospace;text-shadow:0 0 15px rgba(96,165,250,0.3);">' + (Number(summary.totalPackedPcs) || 0).toLocaleString('id-ID') + ' pcs</div>' +
+    '    <div class="stat-meta">Kemasan Retail Eceran Toko</div>' +
+    '    <svg class="cyber-stat-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,28 Q30,12 60,20 T100,8 L100,30 L0,30 Z" fill="rgba(59,130,246,0.15)"></path><path d="M0,28 Q30,12 60,20 T100,8" fill="none" stroke="#3B82F6" stroke-width="2"></path></svg>' +
+    '  </div>' +
+    '  <div class="stat-card cyber-stat-card">' +
+    '    <div class="stat-header"><span class="stat-label">Total Stok Curah</span><span class="stat-icon" style="color:#FBBF24;">🌾</span></div>' +
+    '    <div class="stat-value" style="font-size:24px;color:#FBBF24;font-family:\'JetBrains Mono\',monospace;text-shadow:0 0 15px rgba(251,191,36,0.3);">' + bulkStr + '</div>' +
+    '    <div class="stat-meta">Bahan Baku Gudang Penangkaran</div>' +
+    '    <svg class="cyber-stat-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,22 Q25,28 55,10 T100,16 L100,30 L0,30 Z" fill="rgba(245,158,11,0.15)"></path><path d="M0,22 Q25,28 55,10 T100,16" fill="none" stroke="#F59E0B" stroke-width="2"></path></svg>' +
+    '  </div>' +
+    '  <div class="stat-card cyber-stat-card">' +
+    '    <div class="stat-header"><span class="stat-label">Total Valuasi Aset</span><span class="stat-icon" style="color:#34D399;">💰</span></div>' +
+    '    <div class="stat-value" style="font-size:24px;color:#34D399;font-family:\'JetBrains Mono\',monospace;text-shadow:0 0 15px rgba(52,211,153,0.3);">' + formatRupiah(summary.totalAssetValue) + '</div>' +
+    '    <div class="stat-meta">Akumulasi Nilai Modal FIFO Riil</div>' +
+    '    <svg class="cyber-stat-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,18 Q35,28 70,8 T100,22 L100,30 L0,30 Z" fill="rgba(16,185,129,0.15)"></path><path d="M0,18 Q35,28 70,8 T100,22" fill="none" stroke="#10B981" stroke-width="2"></path></svg>' +
+    '  </div>' +
     '</div>' +
-    '<div class="stat-card">' +
-    '<div class="stat-header"><span class="stat-label">Total Sachet Siap Jual</span><span class="stat-icon">📦</span></div>' +
-    '<div class="stat-value" style="font-size:24px;color:var(--primary);font-family:\'JetBrains Mono\',monospace;">' + (Number(summary.totalPackedPcs) || 0).toLocaleString('id-ID') + ' pcs</div>' +
-    '<div class="stat-meta">Kemasan Retail Eceran Toko</div>' +
-    '</div>' +
-    '<div class="stat-card">' +
-    '<div class="stat-header"><span class="stat-label">Total Stok Curah</span><span class="stat-icon">🌾</span></div>' +
-    '<div class="stat-value" style="font-size:24px;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">' + bulkStr + '</div>' +
-    '<div class="stat-meta">Bahan Baku Gudang Penangkaran</div>' +
-    '</div>' +
-    '<div class="stat-card">' +
-    '<div class="stat-header"><span class="stat-label">Total Valuasi Aset</span><span class="stat-icon">💰</span></div>' +
-    '<div class="stat-value" style="font-size:24px;color:var(--success);font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(summary.totalAssetValue) + '</div>' +
-    '<div class="stat-meta">Akumulasi Nilai Modal FIFO Riil</div>' +
-    '</div>' +
-    '</div>' +
-
-    '<!-- BILAH FILTER & AKSI INTERAKTIF -->' +
+    <!-- BILAH FILTER & AKSI INTERAKTIF -->' +
     '<div class="card" style="margin-bottom:20px;padding:16px;">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">' +
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:280px;">' +
-    '<input type="text" id="stock-val-search" placeholder="🔍 Cari varietas benih atau ID batch..." oninput="filterStockValuationTable()" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:260px;background:#FFF;">' +
-    '<select id="stock-val-type-filter" onchange="filterStockValuationTable()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#FFF;">' +
+    '<input type="text" id="stock-val-search" placeholder="🔍 Cari varietas benih atau ID batch..." oninput="filterStockValuationTable()" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:260px;background:var(--surface);">' +
+    '<select id="stock-val-type-filter" onchange="filterStockValuationTable()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);">' +
     '<option value="all">Semua Tipe Stok</option>' +
     '<option value="packed">Kemasan Sachet (Pcs)</option>' +
     '<option value="bulk">Baku / Curah (Gr)</option>' +
@@ -17205,11 +17208,11 @@ function drawPengaturanUI(settings) {
     '</div>' +
 
     '<div id="pane-roles" class="setting-pane" style="display:' + (activeTab === 'roles' ? 'block' : 'none') + ';">' +
-    '<div class="card" id="role-matrix-container" style="background: white; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);"></div>' +
+    '<div class="card" id="role-matrix-container" style="border-radius: var(--radius-md); padding: 20px;"></div>' +
     '</div>' +
 
     '<div id="pane-users" class="setting-pane" style="display:' + (activeTab === 'users' ? 'block' : 'none') + ';">' +
-    '<div class="card" id="users-management-container" style="background: white; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);"></div>' +
+    '<div class="card" id="users-management-container" style="border-radius: var(--radius-md); padding: 20px;"></div>' +
     '</div>' +
 
     '<div id="pane-notif" class="setting-pane" style="display:' + (activeTab === 'notif' ? 'block' : 'none') + ';">' +
@@ -17256,19 +17259,19 @@ function drawPengaturanUI(settings) {
     '</div>' +
 
     '<div id="pane-telegram" class="setting-pane" style="display:' + (activeTab === 'telegram' ? 'block' : 'none') + ';">' +
-    '<div class="card" style="background: white; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">' +
+    '<div class="card" style="border-radius: var(--radius-md); padding: 20px;">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">' +
     '<div>' +
-    '<h3 style="margin:0 0 4px 0;color:#2C1810;font-size:18px;font-weight:700;">🤖 Integrasi Bot Telegram</h3>' +
+    '<h3 style="margin:0 0 4px 0;color:var(--text-main);font-size:18px;font-weight:700;">🤖 Integrasi Bot Telegram</h3>' +
     '<p class="text-muted" style="margin:0;font-size:13px;color:#6B7280;">Hubungkan sistem dengan Bot Telegram untuk notifikasi otomatis instan ke pengelola.</p>' +
     '</div>' +
     '<div id="telegram-status-badge">' +
-    '<span style="background: #E8F5E9; color: #2E7D32; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">🟢 Aktif Terhubung</span>' +
+    '<span style="background: rgba(16,185,129,0.15); color: #34D399; border: 1px solid rgba(16,185,129,0.3); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">🟢 Aktif Terhubung</span>' +
     '</div>' +
     '</div>' +
     '<div class="field-group" style="margin-bottom:16px;">' +
     '<label class="field-label" style="display:block;font-weight:600;margin-bottom:6px;font-size:13px;color:#374151;">Telegram Bot Token</label>' +
-    '<input type="text" id="set-tg-token" class="input-field" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Contoh: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; font-family:monospace; font-size:13px; box-sizing:border-box;">' +
+    '<input type="text" id="set-tg-token" class="input-field" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Contoh: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family:monospace; font-size:13px; box-sizing:border-box;">' +
     '<small style="color:#6B7280;font-size:12px;margin-top:4px;display:block;">Dapatkan token dari @BotFather di aplikasi Telegram saat membuat bot baru.</small>' +
     '</div>' +
     '<div class="field-group" style="margin-bottom:16px;">' +
@@ -17468,8 +17471,8 @@ function renderRoleMatrixUI() {
   const headerHtml =
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">' +
     '<div>' +
-    '<h3 style="margin:0 0 4px 0;color:#2C1810;font-size:18px;font-weight:700;">Konfigurasi Hak Akses &amp; Peran</h3>' +
-    '<p class="text-muted" style="margin:0;font-size:13px;color:#6B7280;">Kelola hak otorisasi matriks modul per jabatan pengguna sistem.</p>' +
+    '<h3 style="margin:0 0 4px 0;color:var(--text-main);font-size:18px;font-weight:700;">Konfigurasi Hak Akses &amp; Peran</h3>' +
+    '<p style="margin:0;font-size:13px;color:var(--text-secondary);">Kelola hak otorisasi matriks modul per jabatan pengguna sistem.</p>' +
     '</div>' +
     '</div>';
 
@@ -17489,21 +17492,21 @@ function renderRoleMatrixUI() {
 
   let roleDesc = '';
   if (roleName === 'Admin') {
-    roleDesc = '<div style="color:#1E40AF;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">💡 <strong>Administrator:</strong> <span>Memiliki akses penuh (Lihat, Input/Ubah, Hapus) pada seluruh modul sistem demi integritas dan kelancaran operasional.</span></div>';
+    roleDesc = '<div style="color:#22D3EE;background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">💡 <strong>Administrator:</strong> <span>Memiliki akses penuh (Lihat, Input/Ubah, Hapus) pada seluruh modul sistem demi integritas dan kelancaran operasional.</span></div>';
   } else if (roleName === 'Koordinator') {
-    roleDesc = '<div style="color:#1E40AF;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">👁️ <strong>Koordinator Program:</strong> <span>Memiliki hak akses baca/pantau (View-Only) ke seluruh modul, tanpa izin memodifikasi atau menghapus data.</span></div>';
+    roleDesc = '<div style="color:#22D3EE;background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">👁️ <strong>Koordinator Program:</strong> <span>Memiliki hak akses baca/pantau (View-Only) ke seluruh modul, tanpa izin memodifikasi atau menghapus data.</span></div>';
   } else if (roleName === 'Kasir') {
-    roleDesc = '<div style="color:#1E40AF;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">🛒 <strong>Staf Kasir:</strong> <span>Atur centang izin akses operasional kasir, katalog produk, pelanggan, dan faktur transaksi.</span></div>';
+    roleDesc = '<div style="color:#22D3EE;background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">🛒 <strong>Staf Kasir:</strong> <span>Atur centang izin akses operasional kasir, katalog produk, pelanggan, dan faktur transaksi.</span></div>';
   } else if (roleName === 'QC') {
-    roleDesc = '<div style="color:#1E40AF;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">🔬 <strong>Quality Control (QC):</strong> <span>Atur centang izin akses pengujian mutu benih, stok batch FIFO, dan kemas mandiri.</span></div>';
+    roleDesc = '<div style="color:#22D3EE;background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">🔬 <strong>Quality Control (QC):</strong> <span>Atur centang izin akses pengujian mutu benih, stok batch FIFO, dan kemas mandiri.</span></div>';
   } else {
-    roleDesc = '<div style="color:#1E40AF;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">🔐 <span>Atur centang izin akses per modul untuk peran</span> <strong>' + escapeHtml(roleName) + '</strong>.</div>';
+    roleDesc = '<div style="color:#22D3EE;background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.3);border-radius:6px;padding:12px 16px;font-size:13px;margin-bottom:18px;line-height:1.5;">🔐 <span>Atur centang izin akses per modul untuk peran</span> <strong>' + escapeHtml(roleName) + '</strong>.</div>';
   }
 
   let tableHtml =
     '<div class="table-responsive" style="overflow-x:auto;">' +
     '<table class="data-table" style="width:100%;border-collapse:collapse;margin-bottom:0;">' +
-    '<thead style="background-color:#F5F0E6;color:#5C3A21;text-transform:uppercase;font-size:12px;">' +
+    '<thead>' +
     '<tr>' +
     '<th style="width:50px;text-align:center;padding:12px 14px;">NO</th>' +
     '<th style="text-align:left;padding:12px 14px;">MODUL SISTEM</th>' +
@@ -17530,7 +17533,7 @@ function renderRoleMatrixUI() {
     const chkStyle = 'width:16px;height:16px;accent-color:#5C3A21;' + (viewDisabled ? 'cursor:not-allowed;opacity:0.85;' : 'cursor:pointer;');
 
     tableHtml +=
-      '<tr style="border-bottom:1px solid #f0f0f0;">' +
+      '<tr style="border-bottom:1px solid var(--border);">' +
       '<td style="text-align:center;color:#888;font-size:13px;padding:10px 14px;">' + (idx + 1) + '</td>' +
       '<td style="padding:10px 14px;"><strong>' + escapeHtml(moduleNames[mKey]) + '</strong> <code style="font-size:11px;color:#888;">(' + escapeHtml(mKey) + ')</code></td>' +
       '<td style="text-align:center;padding:10px 14px;">' +
@@ -17753,8 +17756,8 @@ function renderUsersListUI() {
   const headerHtml =
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">' +
     '<div>' +
-    '<h3 style="margin:0 0 4px 0;color:#2C1810;font-size:18px;font-weight:700;">Daftar Akun Pengguna</h3>' +
-    '<p class="text-muted" style="margin:0;font-size:13px;color:#6B7280;">Kelola akun staf kasir, operator QC, koordinator, dan administrator.</p>' +
+    '<h3 style="margin:0 0 4px 0;color:var(--text-main);font-size:18px;font-weight:700;">Daftar Akun Pengguna</h3>' +
+    '<p style="margin:0;font-size:13px;color:var(--text-secondary);">Kelola akun staf kasir, operator QC, koordinator, dan administrator.</p>' +
     '</div>' +
     '<button type="button" class="btn btn-primary" onclick="openUserModal()">+ Tambah Pengguna Baru</button>' +
     '</div>';
@@ -17770,7 +17773,7 @@ function renderUsersListUI() {
   let tableHtml =
     '<div class="table-responsive" style="overflow-x:auto;">' +
     '<table class="data-table" style="width:100%;border-collapse:collapse;margin-bottom:0;">' +
-    '<thead style="background-color:#F5F0E6;color:#5C3A21;text-transform:uppercase;font-size:12px;">' +
+    '<thead>' +
     '<tr>' +
     '<th style="width:50px;text-align:center;padding:12px 14px;">NO</th>' +
     '<th style="text-align:left;padding:12px 14px;">USERNAME</th>' +
@@ -17793,9 +17796,9 @@ function renderUsersListUI() {
     const userIdOrName = u.id || u.username;
 
     tableHtml +=
-      '<tr style="border-bottom:1px solid #f0f0f0;">' +
+      '<tr style="border-bottom:1px solid var(--border);">' +
       '<td style="text-align:center;color:#888;font-size:13px;padding:12px 14px;">' + (idx + 1) + '</td>' +
-      '<td style="padding:12px 14px;"><strong data-no-i18n="true" translate="no" style="font-family:\'JetBrains Mono\',monospace;color:#2C1810;">' + escapeHtml(u.username) + '</strong></td>' +
+      '<td style="padding:12px 14px;"><strong data-no-i18n="true" translate="no" style="font-family:\'JetBrains Mono\',monospace;color:var(--text-main);">' + escapeHtml(u.username) + '</strong></td>' +
       '<td data-no-i18n="true" translate="no" style="padding:12px 14px;font-weight:500;">' + escapeHtml(fullName) + '</td>' +
       '<td style="padding:12px 14px;">' + roleBadge + '</td>' +
       '<td style="padding:12px 14px;font-size:12px;color:#6B7280;">' + (u.created_at ? formatDate(u.created_at) : '-') + '</td>' +
@@ -18863,7 +18866,7 @@ function renderFakturRows(list) {
     const clientName = t.customer_name || 'Umum';
 
     const cardStyle = isSelected
-      ? 'padding:10px 12px;border:1.5px solid var(--primary);cursor:pointer;border-radius:var(--radius-sm);background:var(--primary-light);transition:all 0.15s;'
+      ? 'padding:10px 12px;border:1.5px solid var(--primary);cursor:pointer;border-radius:var(--radius-sm);background:rgba(6,182,212,0.15);border-color:#06B6D4;box-shadow:0 0 14px rgba(6,182,212,0.22);transition:all 0.15s;'
       : 'padding:10px 12px;border:1px solid var(--border);cursor:pointer;border-radius:var(--radius-sm);background:var(--surface);transition:all 0.15s;';
 
     const priceHTML = isVoid

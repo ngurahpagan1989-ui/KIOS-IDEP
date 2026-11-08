@@ -7530,16 +7530,31 @@ body:not(.theme-light) .topbar-search:focus {
 }
 
 /* 3. High-Contrast Form Inputs & Selects */
+body:not(.theme-light) input,
 body:not(.theme-light) input[type="text"],
 body:not(.theme-light) input[type="password"],
 body:not(.theme-light) input[type="number"],
 body:not(.theme-light) input[type="email"],
 body:not(.theme-light) input[type="tel"],
+body:not(.theme-light) input[type="date"],
+body:not(.theme-light) input[type="month"],
+body:not(.theme-light) input[type="time"],
+body:not(.theme-light) input[type="datetime-local"],
+body:not(.theme-light) input[type="search"],
 body:not(.theme-light) select,
 body:not(.theme-light) textarea {
-  background: rgba(15, 23, 42, 0.85) !important;
+  background: rgba(15, 23, 42, 0.9) !important;
   color: #F8FAFC !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color-scheme: dark !important;
+}
+
+body:not(.theme-light) input[type="date"]::-webkit-calendar-picker-indicator,
+body:not(.theme-light) input[type="time"]::-webkit-calendar-picker-indicator,
+body:not(.theme-light) input[type="month"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) !important;
+  cursor: pointer;
+  opacity: 0.85;
 }
 
 body:not(.theme-light) input:focus,
@@ -7922,4 +7937,70 @@ body:not(.theme-light) .notif-settings-status-banner.is-active {
 body:not(.theme-light) .notif-settings-status-banner.is-active div[style*="color:#166534"],
 body:not(.theme-light) .notif-settings-status-banner.is-active div[style*="color:#15803D"] {
   color: #34D399 !important;
+}
+
+
+/* GLOBAL CYBER FIX FOR BUTTONS & TABS */
+body:not(.theme-light) .settings-tab-btn,
+.settings-tab-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: rgba(22, 30, 46, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #94A3B8 !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 8px 14px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+body:not(.theme-light) .settings-tab-btn:hover,
+.settings-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #FFFFFF !important;
+  border-color: rgba(6, 182, 212, 0.4) !important;
+}
+
+body:not(.theme-light) .settings-tab-btn.active,
+.settings-tab-btn.active {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3)) !important;
+  color: #22D3EE !important;
+  border: 1px solid rgba(6, 182, 212, 0.55) !important;
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.3) !important;
+  font-weight: 700 !important;
+}
+
+body:not(.theme-light) .invoice-format-tab-btn.active {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(59, 130, 246, 0.3)) !important;
+  color: #22D3EE !important;
+  border: 1px solid rgba(6, 182, 212, 0.5) !important;
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.3) !important;
+  font-weight: 700 !important;
+}
+
+body:not(.theme-light) .btn-tx-void {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #F87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+body:not(.theme-light) .btn-tx-void:hover {
+  background: #DC2626 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.4) !important;
+}
+
+body:not(.theme-light) .btn-warning {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #FBBF24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+
+body:not(.theme-light) .btn-warning:hover {
+  background: rgba(245, 158, 11, 0.35) !important;
+  color: #FFFFFF !important;
+  border-color: #F59E0B !important;
 }

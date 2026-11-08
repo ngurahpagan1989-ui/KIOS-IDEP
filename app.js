@@ -9169,9 +9169,9 @@ function renderInvoiceSignButtonHTML(tx) {
   const isSigned = !!(sigData && sigData.signature);
   const txId = tx.id || tx.invoice_no || '';
   if (isSigned) {
-    return '<button type="button" class="btn btn-secondary btn-sm" onclick="openInvoiceSignatureModal(\'' + escapeHtml(txId) + '\')" style="background:#ECFDF5;color:#065F46;border-color:#A7F3D0;font-weight:600;" title="Faktur sudah disahkan & ditandatangani Finance"><span style="font-size:12px;">✅</span> Disahkan Finance</button>';
+    return '<button type="button" class="btn btn-secondary btn-sm" onclick="openInvoiceSignatureModal(\'' + escapeHtml(txId) + '\')" style="background:rgba(16,185,129,0.15);color:#34D399;border:1px solid rgba(16,185,129,0.4);font-weight:600;" title="Faktur sudah disahkan & ditandatangani Finance"><span style="font-size:12px;">✅</span> Disahkan Finance</button>';
   }
-  return '<button type="button" class="btn btn-warning btn-sm" onclick="openInvoiceSignatureModal(\'' + escapeHtml(txId) + '\')" style="background:#FEF3C7;color:#92400E;border-color:#FCD34D;font-weight:700;" title="Bubuhkan tanda tangan & stempel resmi digital Finance"><span style="font-size:12px;">✍️</span> Sahkan &amp; TTD (Finance)</button>';
+  return '<button type="button" class="btn btn-warning btn-sm" onclick="openInvoiceSignatureModal(\'' + escapeHtml(txId) + '\')" style="background:rgba(245,158,11,0.18);color:#FBBF24;border:1px solid rgba(245,158,11,0.4);font-weight:700;" title="Bubuhkan tanda tangan & stempel resmi digital Finance"><span style="font-size:12px;">✍️</span> Sahkan &amp; TTD (Finance)</button>';
 }
 
 function renderFinanceSignatureBlock(tx, s, isPrint) {
@@ -15258,11 +15258,11 @@ function drawLaporanUI(data, filter) {
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
     '<div style="display:flex;align-items:center;gap:4px;">' +
     '<label style="font-size:11.5px;font-weight:600;color:var(--text-secondary);">Dari Tgl:</label>' +
-    '<input type="date" id="report-start-date" value="' + escapeHtml(startDateVal) + '" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;">' +
+    '<input type="date" id="report-start-date" value="' + escapeHtml(startDateVal) + '" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text-main);color-scheme:dark;">' +
     '</div>' +
     '<div style="display:flex;align-items:center;gap:4px;">' +
     '<label style="font-size:11.5px;font-weight:600;color:var(--text-secondary);">Sampai Tgl:</label>' +
-    '<input type="date" id="report-end-date" value="' + escapeHtml(endDateVal) + '" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;">' +
+    '<input type="date" id="report-end-date" value="' + escapeHtml(endDateVal) + '" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text-main);color-scheme:dark;">' +
     '</div>' +
     '<button type="button" class="btn btn-primary btn-sm" onclick="applyCustomReportFilter()">🔎 Terapkan</button>' +
     '</div>' +
@@ -16982,6 +16982,8 @@ function switchSettingTab(tabName) {
   // Menghapus class active dari semua .settings-tab-btn
   document.querySelectorAll('.settings-tab-btn').forEach(function (btn) {
     btn.classList.remove('active');
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-secondary');
   });
 
   // Menampilkan document.getElementById('pane-' + tabName)
@@ -17000,6 +17002,8 @@ function switchSettingTab(tabName) {
   }
   if (activeBtn) {
     activeBtn.classList.add('active');
+    activeBtn.classList.add('btn-primary');
+    activeBtn.classList.remove('btn-secondary');
   }
 
   CURRENT_SETTINGS_SUBTAB = tabName;
@@ -17082,13 +17086,13 @@ function drawPengaturanUI(settings) {
 
     '<!-- SUB-NAVIGASI TAB PENGATURAN -->' +
     '<div class="settings-tabs-wrapper nav-tabs" style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;flex-wrap:wrap;">' +
-    '<button type="button" id="tab-set-btn-profile" class="settings-tab-btn' + (activeTab === 'profile' ? ' active' : '') + '" data-tab="profile" onclick="switchSettingTab(\'profile\')">🏪 Profil Toko &amp; Pajak</button>' +
-    '<button type="button" id="tab-set-btn-batch" class="settings-tab-btn' + (activeTab === 'batch' ? ' active' : '') + '" data-tab="batch" onclick="switchSettingTab(\'batch\')">🏷️ Format Batch &amp; Multi-Tier</button>' +
-    '<button type="button" id="tab-set-btn-roles" class="settings-tab-btn' + (activeTab === 'roles' ? ' active' : '') + '" data-tab="roles" onclick="switchSettingTab(\'roles\')">🔐 Hak Akses &amp; Peran</button>' +
-    '<button type="button" id="tab-set-btn-users" class="settings-tab-btn' + (activeTab === 'users' ? ' active' : '') + '" data-tab="users" onclick="switchSettingTab(\'users\')">👥 Akun Pengguna</button>' +
-    '<button type="button" id="tab-set-btn-notif" class="settings-tab-btn' + (activeTab === 'notif' ? ' active' : '') + '" data-tab="notif" onclick="switchSettingTab(\'notif\')">📲 Notifikasi HP</button>' +
-    '<button type="button" id="tab-set-btn-telegram" class="settings-tab-btn' + (activeTab === 'telegram' ? ' active' : '') + '" data-tab="telegram" onclick="switchSettingTab(\'telegram\')">🤖 Bot Telegram</button>' +
-    '<button type="button" id="tab-set-btn-katalog" class="settings-tab-btn' + (activeTab === 'katalog' ? ' active' : '') + '" data-tab="katalog" onclick="switchSettingTab(\'katalog\')">🌐 Katalog Online</button>' +
+    '<button type="button" id="tab-set-btn-profile" class="settings-tab-btn btn btn-sm ' + (activeTab === 'profile' ? 'btn-primary active' : 'btn-secondary') + '" data-tab="profile" onclick="switchSettingTab(\'profile\')">🏪 Profil Toko &amp; Pajak</button>' +
+    '<button type="button" id="tab-set-btn-batch" class="settings-tab-btn btn btn-sm ' + (activeTab === 'batch' ? 'btn-primary active' : 'btn-secondary') + '" data-tab="batch" onclick="switchSettingTab(\'batch\')">🏷️ Format Batch &amp; Multi-Tier</button>' +
+    '<button type="button" id="tab-set-btn-roles" class="settings-tab-btn btn btn-sm ' + (activeTab === 'roles' ? 'btn-primary active' : 'btn-secondary') + '" data-tab="roles" onclick="switchSettingTab(\'roles\')">🔐 Hak Akses &amp; Peran</button>' +
+    '<button type="button" id="tab-set-btn-users" class="settings-tab-btn btn btn-sm ' + (activeTab === 'users' ? 'btn-primary active' : 'btn-secondary') + '" data-tab="users" onclick="switchSettingTab(\'users\')">👥 Akun Pengguna</button>' +
+    '<button type="button" id="tab-set-btn-notif" class="settings-tab-btn btn btn-sm ' + (activeTab === 'notif' ? 'btn-primary active' : 'btn-secondary') + '" data-tab="notif" onclick="switchSettingTab(\'notif\')">📲 Notifikasi HP</button>' +
+    '<button type="button" id="tab-set-btn-telegram" class="settings-tab-btn btn btn-sm ' + (activeTab === 'telegram' ? 'btn-primary active' : 'btn-secondary') + '" data-tab="telegram" onclick="switchSettingTab(\'telegram\')">🤖 Bot Telegram</button>' +
+    '<button type="button" id="tab-set-btn-katalog" class="settings-tab-btn btn btn-sm ' + (activeTab === 'katalog' ? 'btn-primary active' : 'btn-secondary') + '" data-tab="katalog" onclick="switchSettingTab(\'katalog\')">🌐 Katalog Online</button>' +
     '</div>' +
 
     '<div id="pane-profile" class="setting-pane" style="display:' + (activeTab === 'profile' ? 'block' : 'none') + ';">' +
@@ -18798,11 +18802,11 @@ function drawFakturUI(list) {
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">' +
     '<div>' +
     '<label style="font-size:9px;color:var(--text-secondary);display:block;">Mulai:</label>' +
-    '<input type="date" id="faktur-start-date" value="' + currentStart + '" style="width:100%;padding:4px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;">' +
+    '<input type="date" id="faktur-start-date" value="' + currentStart + '" style="width:100%;padding:4px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text-main);color-scheme:dark;">' +
     '</div>' +
     '<div>' +
     '<label style="font-size:9px;color:var(--text-secondary);display:block;">Sampai:</label>' +
-    '<input type="date" id="faktur-end-date" value="' + currentEnd + '" style="width:100%;padding:4px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;">' +
+    '<input type="date" id="faktur-end-date" value="' + currentEnd + '" style="width:100%;padding:4px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text-main);color-scheme:dark;">' +
     '</div>' +
     '</div>' +
     '<div style="display:flex;gap:6px;">' +
@@ -19026,10 +19030,10 @@ function renderInvoiceLayout(data, template) {
     '<button type="button" class="btn btn-primary btn-sm" onclick="printActiveInvoice()" style="font-weight:700;"><span style="font-size:13px;">🖨️</span> Cetak / Simpan PDF</button>' +
     '<button type="button" class="btn btn-secondary btn-sm btn-tx-wa" onclick="sendReceiptToWhatsApp(window._curInv)" style="background:#25D366;color:#FFFFFF;border-color:#25D366;font-weight:600;">📲 Kirim WA</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="openTransactionDetailModal(\'' + tx.id + '\')">🔍 Rincian Lengkap</button>' +
-    '<button type="button" class="btn btn-warning btn-sm" onclick="openTransactionDetailModal(\'' + tx.id + '\')" title="Ajukan klaim garansi benih dari nota ini" style="font-weight:600;">🌱 Klaim Benih</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="openTransactionDetailModal(\'' + tx.id + '\')" title="Ajukan klaim garansi benih dari nota ini" style="font-weight:600;color:#FBBF24;border-color:rgba(245,158,11,0.4);background:rgba(245,158,11,0.12);">🌱 Klaim Benih</button>' +
     (!isVoid ? '<button type="button" class="btn btn-secondary btn-sm" onclick="startEditTransaction(\'' + tx.id + '\')">✏️ Koreksi Nota</button>' : '') +
-    (!isVoid && adminUser ? '<button type="button" class="btn btn-danger btn-sm btn-tx-void" onclick="promptVoidTransaction(\'' + tx.id + '\', \'' + escapeHtml(custName).replace(/'/g, "\\'") + '\')" style="font-weight:700;">⚠️ Batalkan (Void)</button>' : '') +
-    (adminUser ? '<button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteTransactionUI(\'' + tx.id + '\')" style="color:#DC2626;border:1px solid #DC2626;padding:4px 8px;font-size:11px;" title="Hapus permanen darurat (khusus admin)">🗑️</button>' : '') +
+    (!isVoid && adminUser ? '<button type="button" class="btn btn-danger btn-sm btn-tx-void" onclick="promptVoidTransaction(\'' + tx.id + '\', \'' + escapeHtml(custName).replace(/'/g, "\\'") + '\')" style="font-weight:700;background:rgba(239,68,68,0.18);color:#F87171;border:1px solid rgba(239,68,68,0.4);">⚠️ Batalkan (Void)</button>' : '') +
+    (adminUser ? '<button type="button" class="btn btn-secondary btn-sm" onclick="deleteTransactionUI(\'' + tx.id + '\')" style="color:#F87171;border:1px solid rgba(239,68,68,0.35);background:rgba(239,68,68,0.12);padding:4px 8px;font-size:11px;" title="Hapus permanen darurat (khusus admin)">🗑️</button>' : '') +
     '<button type="button" class="btn btn-secondary btn-sm faktur-mobile-back-btn" onclick="scrollToFakturListMobile()">&uarr; Daftar Nota</button>' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="closeInvoicePanel()" title="Tutup pratinjau faktur">✕ Tutup</button>' +
     '</div>' +

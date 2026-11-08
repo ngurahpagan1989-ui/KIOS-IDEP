@@ -17246,18 +17246,18 @@ function drawPengaturanUI(settings) {
     '  <div class="card">' +
     '    <h3 style="margin-bottom:14px;display:flex;align-items:center;gap:8px;"><i class="fas fa-qrcode" style="color:var(--primary);"></i> Standee Meja &amp; Tautan Cepat</h3>' +
     '    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Bagikan katalog atau cetak QR Code untuk dipajang di kasir/etalase toko:</p>' +
-    '    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">' +
+    '    <div style="background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">' +
     '      <div style="font-size:12px;font-weight:700;color:var(--text-main);margin-bottom:6px;">Tautan Langsung:</div>' +
     '      <div style="display:flex;gap:8px;align-items:center;">' +
-    '        <input type="text" id="set-cat-url-preview" value="' + escapeHtml(getCatalogPublicUrl()) + '" readonly style="flex:1;padding:8px 10px;font-size:12px;background:#fff;border:1px solid #CBD5E1;border-radius:4px;font-family:monospace;" onclick="this.select()">' +
+    '        <input type="text" id="set-cat-url-preview" value="' + escapeHtml(getCatalogPublicUrl()) + '" readonly style="flex:1;padding:8px 10px;font-size:12px;background:rgba(15,23,42,0.9);color:var(--text-main);border:1px solid var(--border);border-radius:4px;font-family:monospace;" onclick="this.select()">' +
     '        <button type="button" class="btn btn-primary btn-sm" onclick="copyCatalogPublicUrl()"><i class="fas fa-copy"></i> Salin</button>' +
     '        <a href="' + escapeHtml(getCatalogPublicUrl()) + '" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;"><i class="fas fa-external-link-alt"></i> Buka</a>' +
     '      </div>' +
     '    </div>' +
-    '    <div style="text-align:center;padding:16px;border:1.5px dashed #CBD5E1;border-radius:var(--radius-sm);background:#fff;margin-bottom:14px;">' +
+    '    <div style="text-align:center;padding:16px;border:1.5px dashed var(--border);border-radius:var(--radius-sm);background:var(--surface-muted);margin-bottom:14px;">' +
     '      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=' + encodeURIComponent(getCatalogPublicUrl()) + '" alt="QR Code" style="width:140px;height:140px;display:inline-block;border:1px solid #E2E8F0;border-radius:8px;padding:6px;background:#fff;">' +
-    '      <div style="font-size:12px;font-weight:700;color:#0F172A;margin-top:8px;">Standee Akrilik Meja Kasir</div>' +
-    '      <div style="font-size:11px;color:#64748B;">Siap cetak dalam format A5/A6 untuk dipajang di toko</div>' +
+    '      <div style="font-size:12px;font-weight:700;color:var(--text-main);margin-top:8px;">Standee Akrilik Meja Kasir</div>' +
+    '      <div style="font-size:11px;color:var(--text-secondary);">Siap cetak dalam format A5/A6 untuk dipajang di toko</div>' +
     '    </div>' +
     '    <button type="button" class="btn btn-primary" onclick="printCatalogStandee()" style="width:100%;font-weight:700;"><i class="fas fa-print" style="margin-right:6px;"></i> Cetak Standee Meja Kasir</button>' +
     '  </div>' +
@@ -17277,28 +17277,28 @@ function drawPengaturanUI(settings) {
     '</div>' +
     '</div>' +
     '<div class="field-group" style="margin-bottom:16px;">' +
-    '<label class="field-label" style="display:block;font-weight:600;margin-bottom:6px;font-size:13px;color:#374151;">Telegram Bot Token</label>' +
-    '<input type="text" id="set-tg-token" class="input-field" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Contoh: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family:monospace; font-size:13px; box-sizing:border-box;">' +
-    '<small style="color:#6B7280;font-size:12px;margin-top:4px;display:block;">Dapatkan token dari @BotFather di aplikasi Telegram saat membuat bot baru.</small>' +
+    '<label class="field-label" style="display:block;font-weight:600;margin-bottom:6px;font-size:13px;color:var(--text-main);">Telegram Bot Token</label>' +
+    '<input type="text" id="set-tg-token" class="input-field" value="' + escapeHtml(settings['telegram_bot_token'] || '') + '" placeholder="Contoh: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family:monospace; font-size:13px; box-sizing:border-box; background:var(--surface); color:var(--text-main);">' +
+    '<small style="color:var(--text-secondary);font-size:12px;margin-top:4px;display:block;">Dapatkan token dari @BotFather di aplikasi Telegram saat membuat bot baru.</small>' +
     '</div>' +
     '<div class="field-group" style="margin-bottom:16px;">' +
-    '<label class="field-label" style="display:block;font-weight:600;margin-bottom:6px;font-size:13px;color:#374151;">Telegram Chat ID / Group ID</label>' +
-    '<input type="text" id="set-tg-chat-id" class="input-field" value="' + escapeHtml(settings['telegram_chat_id'] || '') + '" placeholder="Contoh: -1001234567890 atau 12345678" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; font-family:monospace; font-size:13px; box-sizing:border-box;">' +
-    '<small style="color:#6B7280;font-size:12px;margin-top:4px;display:block;">ID obrolan pribadi atau ID grup tempat notifikasi akan dikirimkan (gunakan bot @userinfobot atau sejenis).</small>' +
+    '<label class="field-label" style="display:block;font-weight:600;margin-bottom:6px;font-size:13px;color:var(--text-main);">Telegram Chat ID / Group ID</label>' +
+    '<input type="text" id="set-tg-chat-id" class="input-field" value="' + escapeHtml(settings['telegram_chat_id'] || '') + '" placeholder="Contoh: -1001234567890 atau 12345678" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color:var(--text-main); font-family:monospace; font-size:13px; box-sizing:border-box;">' +
+    '<small style="color:var(--text-secondary);font-size:12px;margin-top:4px;display:block;">ID obrolan pribadi atau ID grup tempat notifikasi akan dikirimkan (gunakan bot @userinfobot atau sejenis).</small>' +
     '</div>' +
-    '<div style="background: #FFF8E1; padding: 16px; border-radius: 8px; margin-top: 20px;">' +
-    '<h4 style="margin:0 0 12px 0;color:#854D0E;font-size:14px;font-weight:700;">Pilihan Notifikasi Otomatis (Push Alerts)</h4>' +
+    '<div style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); padding: 16px; border-radius: 8px; margin-top: 20px;">' +
+    '<h4 style="margin:0 0 12px 0;color:#FBBF24;font-size:14px;font-weight:700;">Pilihan Notifikasi Otomatis (Push Alerts)</h4>' +
     '<div style="display:flex;flex-direction:column;gap:10px;">' +
-    '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#374151;">' +
-    '<input type="checkbox" id="set-tg-notif-void" ' + (settings['telegram_notif_void'] === 'false' ? '' : 'checked') + ' style="width:16px;height:16px;accent-color:#5C3A21;">' +
+    '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-main);">' +
+    '<input type="checkbox" id="set-tg-notif-void" ' + (settings['telegram_notif_void'] === 'false' ? '' : 'checked') + ' style="width:16px;height:16px;accent-color:var(--primary);">' +
     '<span><strong>Alert Void Transaksi:</strong> Beritahu administrator seketika saat ada pembatalan / void nota transaksi kasir.</span>' +
     '</label>' +
-    '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#374151;">' +
-    '<input type="checkbox" id="set-tg-notif-dht" ' + (settings['telegram_notif_dht'] === 'false' ? '' : 'checked') + ' style="width:16px;height:16px;accent-color:#5C3A21;">' +
+    '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-main);">' +
+    '<input type="checkbox" id="set-tg-notif-dht" ' + (settings['telegram_notif_dht'] === 'false' ? '' : 'checked') + ' style="width:16px;height:16px;accent-color:var(--primary);">' +
     '<span><strong>Pengingat Oven DHT:</strong> Peringatan jatuh tempo proses pengeringan / oven benih DHT.</span>' +
     '</label>' +
-    '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#374151;">' +
-    '<input type="checkbox" id="set-tg-notif-qc" ' + (settings['telegram_notif_qc'] === 'false' ? '' : 'checked') + ' style="width:16px;height:16px;accent-color:#5C3A21;">' +
+    '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-main);">' +
+    '<input type="checkbox" id="set-tg-notif-qc" ' + (settings['telegram_notif_qc'] === 'false' ? '' : 'checked') + ' style="width:16px;height:16px;accent-color:var(--primary);">' +
     '<span><strong>Karantina QC:</strong> Peringatan saat ada lot benih atau bahan baku yang berstatus karantina / afkir QC.</span>' +
     '</label>' +
     '</div>' +
@@ -21881,37 +21881,37 @@ function buildCatalogPromoSettingsHTML(settings) {
   let bannersHtml = '';
   banners.slice(0, 3).forEach(function (b, idx) {
     bannersHtml +=
-      '<div style="background:#FFFFFF;border:1px solid #CBD5E1;border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">' +
+      '<div style="background:rgba(22,30,46,0.7);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">' +
       '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
-      '    <strong style="font-size:12.5px;color:var(--text-main);display:flex;align-items:center;gap:6px;">' +
-      '      <span style="background:var(--primary);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;">' + (idx + 1) + '</span> ' +
+      '    <strong style="font-size:13px;color:var(--text-main);display:flex;align-items:center;gap:8px;">' +
+      '      <span style="background:linear-gradient(135deg, var(--primary), var(--accent));color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;box-shadow:0 0 10px rgba(6,182,212,0.4);">' + (idx + 1) + '</span> ' +
       '      Slide Banner #' + (idx + 1) +
       '    </strong>' +
-      '    <span style="font-size:11px;color:var(--text-muted);">' + (idx === 0 ? 'Utama / Slide Awal' : 'Slide Bergantian') + '</span>' +
+      '    <span style="font-size:11px;font-weight:600;color:var(--primary);background:rgba(6,182,212,0.12);padding:2px 8px;border-radius:12px;border:1px solid rgba(6,182,212,0.25);">' + (idx === 0 ? '⭐ Utama / Slide Awal' : '🔄 Slide Bergantian') + '</span>' +
       '  </div>' +
       '  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">' +
       '    <div>' +
       '      <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">URL Gambar Banner</label>' +
-      '      <input type="text" id="set-banner-img-' + idx + '" value="' + escapeHtml(b.image_url || '') + '" placeholder="https://..." style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;">' +
+      '      <input type="text" id="set-banner-img-' + idx + '" value="' + escapeHtml(b.image_url || '') + '" placeholder="https://..." style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:rgba(15,23,42,0.85);color:var(--text-main);">' +
       '    </div>' +
       '    <div>' +
       '      <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Teks Badge / Label Kecil</label>' +
-      '      <input type="text" id="set-banner-badge-' + idx + '" value="' + escapeHtml(b.badge || '') + '" placeholder="Contoh: KOLEKSI SPESIAL" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;">' +
+      '      <input type="text" id="set-banner-badge-' + idx + '" value="' + escapeHtml(b.badge || '') + '" placeholder="Contoh: KOLEKSI SPESIAL" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:rgba(15,23,42,0.85);color:var(--text-main);">' +
       '    </div>' +
       '  </div>' +
       '  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">' +
       '    <div>' +
       '      <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Judul Utama Banner</label>' +
-      '      <input type="text" id="set-banner-title-' + idx + '" value="' + escapeHtml(b.title || '') + '" placeholder="Contoh: Benih Sayuran Lokal" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;">' +
+      '      <input type="text" id="set-banner-title-' + idx + '" value="' + escapeHtml(b.title || '') + '" placeholder="Contoh: Benih Sayuran Lokal" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:rgba(15,23,42,0.85);color:var(--text-main);">' +
       '    </div>' +
       '    <div>' +
       '      <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Kategori Target Klik</label>' +
-      '      <input type="text" id="set-banner-cat-' + idx + '" value="' + escapeHtml(b.category || 'Semua') + '" placeholder="Contoh: Sayuran atau Semua" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;">' +
+      '      <input type="text" id="set-banner-cat-' + idx + '" value="' + escapeHtml(b.category || 'Semua') + '" placeholder="Contoh: Sayuran atau Semua" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:rgba(15,23,42,0.85);color:var(--text-main);">' +
       '    </div>' +
       '  </div>' +
       '  <div>' +
       '    <label style="font-size:11px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Deskripsi Singkat Banner</label>' +
-      '    <input type="text" id="set-banner-desc-' + idx + '" value="' + escapeHtml(b.desc || '') + '" placeholder="Contoh: 100% Organik & Non-GMO" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;">' +
+      '    <input type="text" id="set-banner-desc-' + idx + '" value="' + escapeHtml(b.desc || '') + '" placeholder="Contoh: 100% Organik & Non-GMO" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:rgba(15,23,42,0.85);color:var(--text-main);">' +
       '  </div>' +
       '</div>';
   });
@@ -21923,11 +21923,11 @@ function buildCatalogPromoSettingsHTML(settings) {
     '      <h3 style="margin-bottom:4px;display:flex;align-items:center;gap:8px;"><i class="fas fa-bullhorn" style="color:var(--primary);"></i> Manajemen Media Promosi &amp; Banner Katalog</h3>' +
     '      <p style="font-size:12px;color:var(--text-secondary);margin:0;">Atur pita pengumuman berjalan, carousel banner promo, dan daftar produk unggulan di katalog online:</p>' +
     '    </div>' +
-    '    <span class="badge" style="background:#EFF6FF;color:#1D4ED8;font-weight:700;padding:6px 12px;border-radius:20px;font-size:12px;">✨ Tampilan Realtime</span>' +
+    '    <span class="badge" style="background:rgba(6,182,212,0.15);color:#22D3EE;border:1px solid rgba(6,182,212,0.3);font-weight:700;padding:6px 12px;border-radius:20px;font-size:12px;"><i class="fas fa-bolt" style="margin-right:4px;"></i> Tampilan Realtime</span>' +
     '  </div>' +
 
     '  <!-- 1. Pita Pengumuman Berjalan -->' +
-    '  <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
+    '  <div style="background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
     '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
     '      <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--text-main);cursor:pointer;margin:0;">' +
     '        <input type="checkbox" id="set-promo-ann-enable" ' + (promoConf.announcement_enabled ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--primary);">' +
@@ -21944,7 +21944,7 @@ function buildCatalogPromoSettingsHTML(settings) {
     '  </div>' +
 
     '  <!-- 2. Hero Banner Slider (3 Banner) -->' +
-    '  <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
+    '  <div style="background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
     '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
     '      <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--text-main);cursor:pointer;margin:0;">' +
     '        <input type="checkbox" id="set-promo-banner-enable" ' + (promoConf.banner_enabled ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--primary);">' +
@@ -21956,7 +21956,7 @@ function buildCatalogPromoSettingsHTML(settings) {
     '  </div>' +
 
     '  <!-- 3. Produk Pilihan / Paling Laris -->' +
-    '  <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
+    '  <div style="background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
     '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
     '      <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--text-main);cursor:pointer;margin:0;">' +
     '        <input type="checkbox" id="set-promo-feat-enable" ' + (promoConf.featured_enabled ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--primary);">' +

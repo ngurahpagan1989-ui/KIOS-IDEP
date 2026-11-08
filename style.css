@@ -7249,6 +7249,22 @@ body.perm-no-delete #modal-container .btn-void {
   font-size: 13px !important;
   padding: 7px 0 !important;
   font-family: 'JetBrains Mono', monospace !important;
+  color-scheme: dark !important;
+}
+
+/* OVERRIDE CHROME / EDGE / BROWSER AUTOFILL COLOR (HILANGKAN WARNA COKLAT / KUNING PADA LOGIN) */
+.vault-input-box input:-webkit-autofill,
+.vault-input-box input:-webkit-autofill:hover,
+.vault-input-box input:-webkit-autofill:focus,
+.vault-input-box input:-webkit-autofill:active,
+.vault-input-box input:autofill {
+  -webkit-box-shadow: 0 0 0 1000px #080D18 inset !important;
+  box-shadow: 0 0 0 1000px #080D18 inset !important;
+  -webkit-text-fill-color: #F8FAFC !important;
+  caret-color: #38BDF8 !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+  border-radius: 4px !important;
+  color-scheme: dark !important;
 }
 .vault-input-box input::placeholder {
   color: #475569 !important;
@@ -7555,6 +7571,38 @@ body:not(.theme-light) input[type="month"]::-webkit-calendar-picker-indicator {
   filter: invert(1) !important;
   cursor: pointer;
   opacity: 0.85;
+}
+
+/* GLOBAL AUTOFILL OVERRIDE UNTUK TEMA GELAP & TERANG */
+body:not(.theme-light) input:-webkit-autofill,
+body:not(.theme-light) input:-webkit-autofill:hover,
+body:not(.theme-light) input:-webkit-autofill:focus,
+body:not(.theme-light) input:-webkit-autofill:active,
+body:not(.theme-light) textarea:-webkit-autofill,
+body:not(.theme-light) textarea:-webkit-autofill:hover,
+body:not(.theme-light) textarea:-webkit-autofill:focus,
+body:not(.theme-light) textarea:-webkit-autofill:active,
+body:not(.theme-light) select:-webkit-autofill,
+body:not(.theme-light) select:-webkit-autofill:hover,
+body:not(.theme-light) select:-webkit-autofill:focus,
+body:not(.theme-light) select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px rgba(15, 23, 42, 0.95) inset !important;
+  box-shadow: 0 0 0 1000px rgba(15, 23, 42, 0.95) inset !important;
+  -webkit-text-fill-color: #F8FAFC !important;
+  caret-color: #06B6D4 !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+  color-scheme: dark !important;
+}
+
+body.theme-light input:-webkit-autofill,
+body.theme-light input:-webkit-autofill:hover,
+body.theme-light input:-webkit-autofill:focus,
+body.theme-light input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  -webkit-text-fill-color: #0F172A !important;
+  caret-color: #2563EB !important;
+  transition: background-color 5000s ease-in-out 0s !important;
 }
 
 body:not(.theme-light) input:focus,

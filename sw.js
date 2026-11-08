@@ -1,8 +1,8 @@
-const CACHE_NAME = 'pos-app-v11.3';
+const CACHE_NAME = 'pos-app-v11.4';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './style.css?v=8.2',
+  './style.css?v=8.3',
   './i18n.js?v=2.9',
   './app.js?v=10.3',
   './supabaseClient.js?v=6.4',

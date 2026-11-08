@@ -4541,7 +4541,7 @@ function drawStokUI(products, batches, mutations) {
     '<div class="card" style="margin-bottom:24px;">' +
     '<div class="stok-filter-toolbar">' +
     '<div class="stok-filter-group">' +
-    '<input type="text" id="stok-search-input" placeholder="🔍 Cari nama benih atau kode..." oninput="filterStokTable()" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:260px;background:#fff;">' +
+    '<input type="text" id="stok-search-input" placeholder="🔍 Cari nama benih atau kode..." oninput="filterStokTable()" style="padding:7px 12px;font-size:12.5px;border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-sm);width:100%;max-width:260px;background:rgba(15,23,42,0.95);color:#F8FAFC;">' +
     '<select id="stok-type-filter" onchange="filterStokTable()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;">' +
     '<option value="all">Semua Tipe Benih</option>' +
     '<option value="packed">Kemasan Siap Jual (Pcs)</option>' +
@@ -4875,7 +4875,7 @@ function openGlobalAuditModal() {
       '<div style="margin-bottom:14px;">' +
       '<div class="stok-filter-toolbar" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">' +
       '<div class="stok-filter-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
-      '<input type="text" id="modal-audit-search" placeholder="🔍 Cari benih, no. nota/batch, atau keterangan..." oninput="filterModalAuditTable()" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:280px;background:#fff;">' +
+      '<input type="text" id="modal-audit-search" placeholder="🔍 Cari benih, no. nota/batch, atau keterangan..." oninput="filterModalAuditTable()" style="padding:7px 12px;font-size:12.5px;border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-sm);width:100%;max-width:280px;background:rgba(15,23,42,0.95);color:#F8FAFC;">' +
       '<select id="modal-audit-type" onchange="filterModalAuditTable()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff;">' +
       '<option value="all">Semua Tipe Mutasi</option>' +
       '<option value="KELUAR_PENJUALAN">🧾 Keluar Penjualan (POS)</option>' +
@@ -13035,7 +13035,7 @@ function drawCRMUI(customers) {
     '<button type="button" class="btn btn-primary" onclick="openCustomerFormModal()">+ Tambah Pelanggan</button>' +
     '</div>' +
     '<div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">' +
-    '<input type="text" id="crm-search" placeholder="🔍 Cari nama pelanggan, no. WhatsApp, atau kategori..." oninput="renderFilteredCustomers()" style="padding:8px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:340px;background:#fff;">' +
+    '<input type="text" id="crm-search" placeholder="🔍 Cari nama pelanggan, no. WhatsApp, atau kategori..." oninput="renderFilteredCustomers()" style="padding:8px 12px;font-size:12.5px;border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-sm);width:100%;max-width:340px;background:rgba(15,23,42,0.95);color:#F8FAFC;">' +
     '</div>' +
     '<div class="table-container">' +
     '<table>' +
@@ -15260,11 +15260,11 @@ function drawLaporanUI(data, filter) {
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
     '<div style="display:flex;align-items:center;gap:4px;">' +
     '<label style="font-size:11.5px;font-weight:600;color:var(--text-secondary);">Dari Tgl:</label>' +
-    '<input type="date" id="report-start-date" value="' + escapeHtml(startDateVal) + '" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text-main);color-scheme:dark;">' +
+    '<input type="date" id="report-start-date" value="' + escapeHtml(startDateVal) + '" style="padding:5px 10px;font-size:12px;border:1px solid rgba(255,255,255,0.16);border-radius:var(--radius-xs);background:rgba(15,23,42,0.95);color:#F8FAFC;color-scheme:dark;">' +
     '</div>' +
     '<div style="display:flex;align-items:center;gap:4px;">' +
     '<label style="font-size:11.5px;font-weight:600;color:var(--text-secondary);">Sampai Tgl:</label>' +
-    '<input type="date" id="report-end-date" value="' + escapeHtml(endDateVal) + '" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface);color:var(--text-main);color-scheme:dark;">' +
+    '<input type="date" id="report-end-date" value="' + escapeHtml(endDateVal) + '" style="padding:5px 10px;font-size:12px;border:1px solid rgba(255,255,255,0.16);border-radius:var(--radius-xs);background:rgba(15,23,42,0.95);color:#F8FAFC;color-scheme:dark;">' +
     '</div>' +
     '<button type="button" class="btn btn-primary btn-sm" onclick="applyCustomReportFilter()">🔎 Terapkan</button>' +
     '</div>' +
@@ -15309,7 +15309,7 @@ function drawLaporanUI(data, filter) {
     '<div style="font-size:11.5px;color:var(--text-secondary);">Daftar transaksi belanja per nota lengkap dengan HPP modal riil dan margin keuntungan.</div>' +
     '</div>' +
     '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
-    '<input type="text" id="report-tx-search" placeholder="🔍 Cari nomor nota, pelanggan, atau metode bayar..." oninput="filterReportTransactions(this.value)" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);width:100%;max-width:340px;background:#FFF;">' +
+    '<input type="text" id="report-tx-search" placeholder="🔍 Cari nomor nota, pelanggan, atau metode bayar..." oninput="filterReportTransactions(this.value)" style="padding:7px 12px;font-size:12.5px;border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-sm);width:100%;max-width:340px;background:rgba(15,23,42,0.95);color:#F8FAFC;">' +
     '<span id="report-tx-count" class="badge badge-neutral" style="font-size:11.5px;font-weight:600;padding:6px 10px;">Menampilkan ' + transactionsList.length + ' transaksi</span>' +
     '</div>' +
     '</div>' +
@@ -15759,7 +15759,7 @@ function drawStockValuationUI(data) {
     '<option value="packed">Kemasan Sachet (Pcs)</option>' +
     '<option value="bulk">Baku / Curah (Gr)</option>' +
     '</select>' +
-    '<select id="stock-val-status-filter" onchange="filterStockValuationTable()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#FFF;">' +
+    '<select id="stock-val-status-filter" onchange="filterStockValuationTable()" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-sm);background:rgba(15,23,42,0.95);color:#F8FAFC;">' +
     '<option value="all">Semua Peringatan / Status</option>' +
     '<option value="AMAN">🟢 Aman &amp; Segar</option>' +
     '<option value="MENIPIS">⚠️ Stok Menipis</option>' +
@@ -18806,11 +18806,11 @@ function drawFakturUI(list) {
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">' +
     '<div>' +
     '<label style="font-size:9px;color:var(--text-secondary);display:block;">Mulai:</label>' +
-    '<input type="date" id="faktur-start-date" value="' + currentStart + '" style="width:100%;padding:4px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text-main);color-scheme:dark;">' +
+    '<input type="date" id="faktur-start-date" value="' + currentStart + '" style="width:100%;padding:5px 8px;font-size:11px;border:1px solid rgba(255,255,255,0.16);border-radius:4px;background:rgba(15,23,42,0.95);color:#F8FAFC;color-scheme:dark;">' +
     '</div>' +
     '<div>' +
     '<label style="font-size:9px;color:var(--text-secondary);display:block;">Sampai:</label>' +
-    '<input type="date" id="faktur-end-date" value="' + currentEnd + '" style="width:100%;padding:4px 6px;font-size:11px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text-main);color-scheme:dark;">' +
+    '<input type="date" id="faktur-end-date" value="' + currentEnd + '" style="width:100%;padding:5px 8px;font-size:11px;border:1px solid rgba(255,255,255,0.16);border-radius:4px;background:rgba(15,23,42,0.95);color:#F8FAFC;color-scheme:dark;">' +
     '</div>' +
     '</div>' +
     '<div style="display:flex;gap:6px;">' +
@@ -21579,12 +21579,12 @@ function openPublicCatalogManager() {
   const bodyHtml =
     '<div style="display:flex;flex-direction:column;gap:18px;">' +
     '  <!-- Kartu Tautan Cepat -->' +
-    '  <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:14px;">' +
+    '  <div style="background:rgba(22,30,46,0.7);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:14px;">' +
     '    <div style="font-size:12.5px;font-weight:700;color:var(--text-main);margin-bottom:6px;display:flex;align-items:center;gap:6px;">' +
     '      <i class="fas fa-link" style="color:var(--primary);"></i> Tautan Publik Katalog Pelanggan:' +
     '    </div>' +
     '    <div style="display:flex;gap:8px;align-items:center;">' +
-    '      <input type="text" id="public-catalog-url-input" value="' + escapeHtml(catalogUrl) + '" readonly style="flex:1;padding:8px 12px;font-size:12.5px;background:#ffffff;border:1px solid #CBD5E1;border-radius:var(--radius-xs);color:var(--text-main);font-family:monospace;" onclick="this.select()">' +
+    '      <input type="text" id="public-catalog-url-input" value="' + escapeHtml(catalogUrl) + '" readonly style="flex:1;padding:8px 12px;font-size:12.5px;background:rgba(15,23,42,0.9);border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius-xs);color:#22D3EE;font-family:monospace;" onclick="this.select()">' +
     '      <button type="button" class="btn btn-primary btn-sm" onclick="copyCatalogPublicUrl()" style="white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">' +
     '        <i class="fas fa-copy"></i> Salin' +
     '      </button>' +
@@ -21598,19 +21598,19 @@ function openPublicCatalogManager() {
     '  </div>' +
 
     '  <!-- Preview Standee QR Code Meja Kasir -->' +
-    '  <div style="border:1.5px dashed #CBD5E1;border-radius:var(--radius-md);padding:20px;text-align:center;background:#ffffff;box-shadow:0 4px 16px rgba(0,0,0,0.03);">' +
+    '  <div style="border:1.5px dashed rgba(6,182,212,0.4);border-radius:var(--radius-md);padding:20px;text-align:center;background:rgba(22,30,46,0.8);box-shadow:0 4px 20px rgba(0,0,0,0.4);">' +
     '    <div style="display:inline-block;padding:4px 12px;background:#EFF6FF;color:#2563EB;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">' +
     '      Standee Meja Kasir / Etalase Toko' +
     '    </div>' +
-    '    <h3 style="font-size:18px;font-weight:900;color:#0F172A;margin-bottom:2px;">' + escapeHtml(storeName) + '</h3>' +
-    '    <p style="font-size:11.5px;color:#64748B;margin-bottom:14px;max-width:340px;margin-left:auto;margin-right:auto;">' + escapeHtml(storeTagline) + '</p>' +
+    '    <h3 style="font-size:18px;font-weight:900;color:#F8FAFC;margin-bottom:2px;">' + escapeHtml(storeName) + '</h3>' +
+    '    <p style="font-size:11.5px;color:#94A3B8;margin-bottom:14px;max-width:340px;margin-left:auto;margin-right:auto;">' + escapeHtml(storeTagline) + '</p>' +
     '    <div style="display:inline-block;padding:12px;background:#ffffff;border:2px solid #0F172A;border-radius:16px;box-shadow:0 8px 20px rgba(0,0,0,0.08);margin-bottom:14px;">' +
     '      <img src="' + qrImgUrl + '" alt="QR Code Katalog" style="width:190px;height:190px;display:block;" onerror="this.alt=\'Gagal memuat QR Code\'">' +
     '    </div>' +
-    '    <div style="font-size:13px;font-weight:800;color:#0F172A;margin-bottom:4px;">' +
+    '    <div style="font-size:13px;font-weight:800;color:#F8FAFC;margin-bottom:4px;">' +
     '      📱 SCAN UNTUK LIHAT KATALOG &amp; PESAN' +
     '    </div>' +
-    '    <div style="font-size:11.5px;color:#64748B;">' +
+    '    <div style="font-size:11.5px;color:#94A3B8;">' +
     '      Arahkan kamera ponsel Anda untuk memesan langsung via WhatsApp' +
     '    </div>' +
     (storePhone ? '<div style="font-size:11px;font-weight:700;color:#2563EB;margin-top:6px;"><i class="fab fa-whatsapp"></i> WA: ' + escapeHtml(storePhone) + '</div>' : '') +
@@ -21927,7 +21927,7 @@ function buildCatalogPromoSettingsHTML(settings) {
     '  </div>' +
 
     '  <!-- 1. Pita Pengumuman Berjalan -->' +
-    '  <div style="background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
+    '  <div style="background:rgba(22,30,46,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
     '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
     '      <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--text-main);cursor:pointer;margin:0;">' +
     '        <input type="checkbox" id="set-promo-ann-enable" ' + (promoConf.announcement_enabled ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--primary);">' +
@@ -21944,7 +21944,7 @@ function buildCatalogPromoSettingsHTML(settings) {
     '  </div>' +
 
     '  <!-- 2. Hero Banner Slider (3 Banner) -->' +
-    '  <div style="background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
+    '  <div style="background:rgba(22,30,46,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
     '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
     '      <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--text-main);cursor:pointer;margin:0;">' +
     '        <input type="checkbox" id="set-promo-banner-enable" ' + (promoConf.banner_enabled ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--primary);">' +
@@ -21956,7 +21956,7 @@ function buildCatalogPromoSettingsHTML(settings) {
     '  </div>' +
 
     '  <!-- 3. Produk Pilihan / Paling Laris -->' +
-    '  <div style="background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
+    '  <div style="background:rgba(22,30,46,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);padding:14px;margin-bottom:18px;">' +
     '    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
     '      <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--text-main);cursor:pointer;margin:0;">' +
     '        <input type="checkbox" id="set-promo-feat-enable" ' + (promoConf.featured_enabled ? 'checked' : '') + ' style="width:16px;height:16px;accent-color:var(--primary);">' +

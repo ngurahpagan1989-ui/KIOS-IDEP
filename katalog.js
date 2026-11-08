@@ -21,22 +21,22 @@ let searchQuery = '';
 let cart = [];
 
 let storeConfig = {
-  name: 'Kebun Benih IDEP',
+  name: 'Kebun Benih Lestari',
   phone: '081945468237',
   address: '',
-  tagline: 'Pusat Benih Alami, Lokal & Berkelanjutan — IDEP Foundation'
+  tagline: 'Pusat Benih Alami, Lokal & Berkelanjutan'
 };
 
 const DEFAULT_PROMO_CONFIG = {
   announcement_enabled: true,
-  announcement_text: '🌱 Panen Benih Lokal Baru Tiba! • Pesan Online Mudah & Cepat • Gratis Konsultasi Menanam via WhatsApp IDEP Foundation',
+  announcement_text: '🌱 Panen Benih Lokal Baru Tiba! • Pesan Online Mudah & Cepat • Gratis Konsultasi Menanam via WhatsApp Toko',
   banner_enabled: true,
   banners: [
     {
       image_url: 'https://images.unsplash.com/photo-1592417817098-8f3d69109853?auto=format&fit=crop&w=1200&q=80',
       badge: 'KOLEKSI SPESIAL',
       title: 'Benih Sayuran & Buah Lokal Pusaka',
-      desc: '100% Organik, Alami, dan Non-GMO dari Kebun Pelestarian IDEP Foundation',
+      desc: '100% Organik, Alami, dan Non-GMO dari Kebun Pelestarian Terpercaya',
       btn_text: 'Jelajahi Benih',
       category: 'Sayuran'
     },
@@ -297,7 +297,7 @@ function renderHeroSlider(banners) {
 
   track.innerHTML = banners.map((b, idx) => `
     <div class="slider-slide" data-slide-index="${idx}">
-      <img src="${escapeHtml(b.image_url)}" alt="${escapeHtml(b.title || 'Promo Kebun IDEP')}" class="slide-bg" loading="${idx === 0 ? 'eager' : 'lazy'}">
+      <img src="${escapeHtml(b.image_url)}" alt="${escapeHtml(b.title || 'Promo Kebun Benih')}" class="slide-bg" loading="${idx === 0 ? 'eager' : 'lazy'}">
       <div class="slide-overlay">
         ${b.badge ? `<span class="slide-badge">${escapeHtml(b.badge)}</span>` : ''}
         <h2 class="slide-title">${escapeHtml(b.title || '')}</h2>

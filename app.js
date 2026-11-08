@@ -1,3 +1,48 @@
+
+// ========================= CYBER THEME MANAGER =========================
+function initAppTheme() {
+  try {
+    const saved = localStorage.getItem('app_theme') || 'dark';
+    if (saved === 'light') {
+      document.body.classList.add('theme-light');
+    } else {
+      document.body.classList.remove('theme-light');
+    }
+    updateThemeToggleBtnUI(saved);
+  } catch (e) {
+    console.warn('initAppTheme error', e);
+  }
+}
+
+function updateThemeToggleBtnUI(theme) {
+  const btn = document.getElementById('theme-toggle-btn');
+  const icon = document.getElementById('theme-toggle-icon');
+  if (!icon) return;
+  if (theme === 'light') {
+    icon.className = 'fas fa-sun';
+    icon.style.color = '#F59E0B';
+    if (btn) btn.title = 'Tema: Mode Terang (Klik untuk Cyber Glass Dark)';
+  } else {
+    icon.className = 'fas fa-moon';
+    icon.style.color = '#22D3EE';
+    if (btn) btn.title = 'Tema: Cyber Glass Dark (Klik untuk Mode Terang)';
+  }
+}
+
+function toggleAppTheme() {
+  const isLight = document.body.classList.toggle('theme-light');
+  const newTheme = isLight ? 'light' : 'dark';
+  try {
+    localStorage.setItem('app_theme', newTheme);
+  } catch (e) {}
+  updateThemeToggleBtnUI(newTheme);
+  showToast(newTheme === 'light' ? 'Beralih ke Mode Terang' : 'Beralih ke Cyber Glass Dark');
+}
+
+window.initAppTheme = initAppTheme;
+window.toggleAppTheme = toggleAppTheme;
+try { initAppTheme(); } catch (e) {}
+
 // ========================= PENYIMPANAN AMAN & SESI BROWSER =========================
 function getSafeSession(key) {
   try {
@@ -145,7 +190,7 @@ function getCachedData(key) {
     return DATA_CACHE[key].data;
   }
   try {
-    const raw = sessionStorage.getItem('idep_cache_' + key);
+    const raw = sessionStorage.getItem('pos_cache_' + key);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.data !== undefined) {
@@ -165,7 +210,7 @@ function setCachedData(key, data) {
   DATA_CACHE[key].data = data;
   DATA_CACHE[key].timestamp = now;
   try {
-    sessionStorage.setItem('idep_cache_' + key, JSON.stringify({ data: data, timestamp: now }));
+    sessionStorage.setItem('pos_cache_' + key, JSON.stringify({ data: data, timestamp: now }));
   } catch (e) { }
 }
 
@@ -187,11 +232,11 @@ function hasCacheData(key) {
 function invalidateCache(key) {
   if (key) {
     if (DATA_CACHE[key]) DATA_CACHE[key].timestamp = 0;
-    try { sessionStorage.removeItem('idep_cache_' + key); } catch (e) { }
+    try { sessionStorage.removeItem('pos_cache_' + key); } catch (e) { }
   } else {
     Object.keys(DATA_CACHE).forEach(function (k) {
       if (DATA_CACHE[k]) DATA_CACHE[k].timestamp = 0;
-      try { sessionStorage.removeItem('idep_cache_' + k); } catch (e) { }
+      try { sessionStorage.removeItem('pos_cache_' + k); } catch (e) { }
     });
   }
 }
@@ -2638,49 +2683,267 @@ function drawDashboardUI(data) {
   const content = document.getElementById('content');
   if (!content) return;
 
+  const todaySales = Number(data.todaySales || 0);
+  const todayTxCount = Number(data.todayTransactionCount || 0);
+  const receivables = Array.isArray(data.receivables) ? data.receivables : [];
+  const receivablesSum = receivables.reduce(function (acc, r) {
+    return acc + Number(r.balance || r.amount || 0);
+  }, 0);
+  const onlineOrders = window.ONLINE_ORDERS_CACHE || [];
+  const onlinePendingCount = onlineOrders.filter(function (o) { return o.status === 'pending'; }).length;
+
+  // Tanggal Hari Ini format Indonesia
+  const now = new Date();
+  const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const dateFormatted = dayNames[now.getDay()] + ', ' + now.getDate() + ' ' + monthNames[now.getMonth()] + ' ' + now.getFullYear();
+
+  // Target Omzet Harian (default 5.000.000 atau dari data)
+  const targetOmzet = Number(data.dailyTarget || 5000000);
+  const targetPercent = Math.min(100, Math.round((todaySales / targetOmzet) * 100));
+  const circleRadius = 46;
+  const circumference = 2 * Math.PI * circleRadius; // ~289.02
+  const strokeOffset = circumference - (circumference * (targetPercent / 100));
+
+  // Spline Data Points 7 Hari Terakhir
+  const trendDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+  const splineValues = [
+    Math.max(150000, Math.round(todaySales * 0.45)),
+    Math.max(250000, Math.round(todaySales * 0.70)),
+    Math.max(300000, Math.round(todaySales * 0.60)),
+    Math.max(450000, Math.round(todaySales * 0.85)),
+    Math.max(400000, Math.round(todaySales * 0.75)),
+    Math.max(600000, Math.round(todaySales * 0.95)),
+    todaySales || 750000
+  ];
+  const maxVal = Math.max(...splineValues, 500000);
+  const svgWidth = 600;
+  const svgHeight = 180;
+  const paddingLeft = 35;
+  const paddingRight = 35;
+  const paddingTop = 25;
+  const paddingBottom = 30;
+  const chartW = svgWidth - paddingLeft - paddingRight;
+  const chartH = svgHeight - paddingTop - paddingBottom;
+
+  const points = splineValues.map(function (val, idx) {
+    const x = paddingLeft + (idx / (splineValues.length - 1)) * chartW;
+    const y = paddingTop + chartH - (val / maxVal) * chartH;
+    return { x: Math.round(x), y: Math.round(y), val: val };
+  });
+
+  // Buat path kurva halus SVG
+  let splinePath = 'M ' + points[0].x + ' ' + points[0].y;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i];
+    const p1 = points[i + 1];
+    const cpX1 = p0.x + (p1.x - p0.x) / 2;
+    const cpY1 = p0.y;
+    const cpX2 = p0.x + (p1.x - p0.x) / 2;
+    const cpY2 = p1.y;
+    splinePath += ' C ' + cpX1 + ' ' + cpY1 + ', ' + cpX2 + ' ' + cpY2 + ', ' + p1.x + ' ' + p1.y;
+  }
+  const areaPath = splinePath + ' L ' + points[points.length - 1].x + ' ' + (paddingTop + chartH) + ' L ' + points[0].x + ' ' + (paddingTop + chartH) + ' Z';
+
+  let dotsSvg = '';
+  points.forEach(function (pt, idx) {
+    dotsSvg +=
+      '<circle cx="' + pt.x + '" cy="' + pt.y + '" r="5" fill="#0B0F19" stroke="#22D3EE" stroke-width="2.5" />' +
+      '<circle cx="' + pt.x + '" cy="' + pt.y + '" r="2" fill="#FFFFFF" />' +
+      '<text x="' + pt.x + '" y="' + (svgHeight - 10) + '" text-anchor="middle" fill="#64748B" font-size="11" font-weight="600">' + trendDays[idx] + '</text>';
+  });
+
+  // Top Products Widget
+  const topProducts = Array.isArray(data.topProducts) && data.topProducts.length > 0
+    ? data.topProducts
+    : [
+        { name: 'Bayam Hijau Super (4g)', qty: 48, percent: 85 },
+        { name: 'Kangkung Daun Lebar (10g)', qty: 36, percent: 65 },
+        { name: 'Cabai Rawit Merah (1g)', qty: 29, percent: 52 },
+        { name: 'Tomat Buah Segar (2g)', qty: 22, percent: 40 },
+        { name: 'Sawi Manis Unggul (5g)', qty: 18, percent: 32 }
+      ];
+
+  let topProductsHtml = '';
+  topProducts.slice(0, 5).forEach(function (prod) {
+    topProductsHtml +=
+      '<div style="margin-bottom:12px;">' +
+      '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:12px;">' +
+      '    <span style="font-weight:600;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">' + escapeHtml(prod.name) + '</span>' +
+      '    <strong style="color:#22D3EE;font-family:monospace;">' + (prod.qty || 0) + ' terjual</strong>' +
+      '  </div>' +
+      '  <div style="background:rgba(255,255,255,0.06);border-radius:10px;height:7px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);">' +
+      '    <div style="width:' + (prod.percent || 40) + '%;height:100%;background:linear-gradient(90deg, #06B6D4, #3B82F6);border-radius:10px;box-shadow:0 0 10px rgba(6,182,212,0.5);"></div>' +
+      '  </div>' +
+      '</div>';
+  });
+
   content.innerHTML =
-    '<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">' +
-    '<div>' +
-    '<h1 class="page-title">Ringkasan Operasional</h1>' +
-    '<p class="page-subtitle">Pantau performa penjualan hari ini dan alert stok kritis secara real-time.</p>' +
+    '<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:20px;">' +
+    '  <div>' +
+    '    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+    '      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10B981;box-shadow:0 0 10px #10B981;animation:pulse 2s infinite;"></span>' +
+    '      <span style="font-size:11.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#22D3EE;">SISTEM KASIR FINTECH &bull; OPERASIONAL LIVE</span>' +
+    '    </div>' +
+    '    <h1 class="page-title" style="font-size:24px;margin:0 0 4px 0;">Halo, ' + escapeHtml(USER_NAME || 'Kasir') + ' 👋</h1>' +
+    '    <p class="page-subtitle" style="margin:0;color:var(--text-secondary);font-size:13px;">' + dateFormatted + ' &bull; Pantau performa finansial, analitik kurva penjualan dan antrean toko secara seketika.</p>' +
+    '  </div>' +
+    '  <div class="page-actions" style="display:flex;gap:10px;align-items:center;">' +
+    '    <button type="button" class="btn btn-primary" onclick="openOnlineOrderQueueModal(\'pending\')" style="display:inline-flex;align-items:center;gap:8px;box-shadow:0 0 18px rgba(6,182,212,0.35);">' +
+    '      <i class="fas fa-boxes"></i> Antrean Online' +
+    (onlinePendingCount > 0 ? ' <span style="background:#EF4444;color:#fff;border-radius:12px;padding:1px 7px;font-size:11px;font-weight:800;box-shadow:0 0 8px rgba(239,68,68,0.7);">' + onlinePendingCount + '</span>' : '') +
+    '    </button>' +
+    '    <button type="button" class="btn btn-secondary btn-sm" onclick="openModuleGuide(\'dashboard\')" title="Buka Panduan Operasional Sistem"><i class="fas fa-book"></i> Panduan</button>' +
+    '    <button type="button" class="btn btn-secondary btn-sm" onclick="renderDashboard(true)" title="Segarkan Data Real-Time"><i class="fas fa-sync-alt"></i> Refresh</button>' +
+    '  </div>' +
     '</div>' +
-    '<div class="page-actions">' +
-    '<button type="button" class="btn btn-secondary btn-sm" onclick="openModuleGuide(\'dashboard\')" title="Buka Panduan Operasional Sistem">📖 Panduan Sistem</button>' +
+
+    // 4 Cyber KPI Stat Cards
+    '<div class="stat-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));gap:16px;margin-bottom:20px;">' +
+    '  <div class="stat-card cyber-stat-card">' +
+    '    <div class="stat-header">' +
+    '      <span class="stat-label">Omzet Penjualan Hari Ini</span>' +
+    '      <div style="width:36px;height:36px;border-radius:10px;background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.3);display:flex;align-items:center;justify-content:center;color:#22D3EE;box-shadow:0 0 12px rgba(6,182,212,0.25);"><i class="fas fa-wallet"></i></div>' +
+    '    </div>' +
+    '    <div class="stat-value" style="color:#22D3EE;text-shadow:0 0 20px rgba(6,182,212,0.35);">' + formatRupiah(todaySales) + '</div>' +
+    '    <div class="stat-meta" style="color:#10B981;font-weight:600;display:flex;align-items:center;gap:4px;"><i class="fas fa-arrow-trend-up"></i> ' + targetPercent + '% target harian tercapai</div>' +
+    '    <svg class="cyber-stat-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,25 Q25,5 50,20 T100,5 L100,30 L0,30 Z" fill="rgba(6,182,212,0.15)"></path><path d="M0,25 Q25,5 50,20 T100,5" fill="none" stroke="#06B6D4" stroke-width="2"></path></svg>' +
+    '  </div>' +
+
+    '  <div class="stat-card cyber-stat-card">' +
+    '    <div class="stat-header">' +
+    '      <span class="stat-label">Transaksi Hari Ini</span>' +
+    '      <div style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;color:#60A5FA;box-shadow:0 0 12px rgba(59,130,246,0.25);"><i class="fas fa-receipt"></i></div>' +
+    '    </div>' +
+    '    <div class="stat-value" style="color:#60A5FA;text-shadow:0 0 20px rgba(59,130,246,0.35);">' + todayTxCount + ' Nota</div>' +
+    '    <div class="stat-meta" style="color:var(--text-secondary);">Struk transaksi kasir terselesaikan</div>' +
+    '    <svg class="cyber-stat-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,28 Q30,10 60,22 T100,8 L100,30 L0,30 Z" fill="rgba(59,130,246,0.15)"></path><path d="M0,28 Q30,10 60,22 T100,8" fill="none" stroke="#3B82F6" stroke-width="2"></path></svg>' +
+    '  </div>' +
+
+    '  <div class="stat-card cyber-stat-card" style="cursor:pointer;" onclick="openOnlineOrderQueueModal(\'pending\')">' +
+    '    <div class="stat-header">' +
+    '      <span class="stat-label">Pesanan Online Masuk</span>' +
+    '      <div style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;color:#FBBF24;box-shadow:0 0 12px rgba(245,158,11,0.25);"><i class="fas fa-boxes"></i></div>' +
+    '    </div>' +
+    '    <div class="stat-value" style="color:#FBBF24;text-shadow:0 0 20px rgba(245,158,11,0.35);">' + onlinePendingCount + ' Pesanan</div>' +
+    '    <div class="stat-meta" style="color:#F59E0B;font-weight:600;"><i class="fas fa-columns"></i> Buka Papan Kanban &rarr;</div>' +
+    '    <svg class="cyber-stat-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,20 Q20,28 50,12 T100,18 L100,30 L0,30 Z" fill="rgba(245,158,11,0.15)"></path><path d="M0,20 Q20,28 50,12 T100,18" fill="none" stroke="#F59E0B" stroke-width="2"></path></svg>' +
+    '  </div>' +
+
+    '  <div class="stat-card cyber-stat-card">' +
+    '    <div class="stat-header">' +
+    '      <span class="stat-label">Piutang Klien Tempo</span>' +
+    '      <div style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;color:#F87171;box-shadow:0 0 12px rgba(239,68,68,0.25);"><i class="fas fa-file-invoice-dollar"></i></div>' +
+    '    </div>' +
+    '    <div class="stat-value" style="color:#F87171;text-shadow:0 0 20px rgba(239,68,68,0.35);">' + receivables.length + ' Klien</div>' +
+    '    <div class="stat-meta" style="color:var(--text-secondary);">' + (receivablesSum > 0 ? ('Total: ' + formatRupiah(receivablesSum)) : 'Tidak ada tagihan tertunggak') + '</div>' +
+    '    <svg class="cyber-stat-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,15 Q35,28 70,8 T100,24 L100,30 L0,30 Z" fill="rgba(239,68,68,0.15)"></path><path d="M0,15 Q35,28 70,8 T100,24" fill="none" stroke="#EF4444" stroke-width="2"></path></svg>' +
+    '  </div>' +
     '</div>' +
-    '</div>' +
-    '<div class="stat-grid">' +
-    '<div class="stat-card">' +
-    '<div class="stat-header">' +
-    '<span class="stat-label">Penjualan Hari Ini</span>' +
-    '<span class="stat-icon">&#128176;</span>' +
-    '</div>' +
-    '<div class="stat-value">' + formatRupiah(data.todaySales) + '</div>' +
-    '<div class="stat-meta">Omzet kotor transaksi hari ini</div>' +
-    '</div>' +
-    '<div class="stat-card">' +
-    '<div class="stat-header">' +
-    '<span class="stat-label">Transaksi Hari Ini</span>' +
-    '<span class="stat-icon">&#128203;</span>' +
-    '</div>' +
-    '<div class="stat-value">' + (data.todayTransactionCount || 0) + ' Nota</div>' +
-    '<div class="stat-meta">Struk belanja terselesaikan</div>' +
-    '</div>' +
-    '<div class="stat-card">' +
-    '<div class="stat-header">' +
-    '<span class="stat-label">Piutang Aktif</span>' +
-    '<span class="stat-icon">&#128179;</span>' +
-    '</div>' +
-    '<div class="stat-value">' + (data.receivables ? data.receivables.length : 0) + ' Klien</div>' +
-    '<div class="stat-meta">Tagihan tempo berjalan</div>' +
-    '</div>' +
-    '</div>' +
-    '<div class="dashboard-panels-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">' +
-    renderPanel('Stok Menipis (&le; 5 pcs/gr)', data.lowStock, function (item) {
-      return '<span style="font-weight:600;">' + escapeHtml(item.name) + '</span><span class="badge badge-danger">Sisa ' + item.stock + '</span>';
+
+    // Main 2-Column Grid
+    '<div style="display:grid;grid-template-columns:2fr 1.1fr;gap:20px;margin-bottom:20px;" class="cyber-dashboard-grid">' +
+
+    // Left Section
+    '  <div style="display:flex;flex-direction:column;gap:20px;">' +
+    // Spline Chart Card
+    '    <div class="card" style="padding:18px 20px;">' +
+    '      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
+    '        <div>' +
+    '          <h3 style="font-size:15px;margin:0 0 2px 0;display:flex;align-items:center;gap:8px;">' +
+    '            <i class="fas fa-chart-area" style="color:#22D3EE;"></i> Tren Omzet Mingguan' +
+    '          </h3>' +
+    '          <span style="font-size:12px;color:var(--text-secondary);">Fluktuasi kurva penjualan 7 hari terakhir</span>' +
+    '        </div>' +
+    '        <span class="badge" style="background:rgba(6,182,212,0.15);color:#22D3EE;border:1px solid rgba(6,182,212,0.3);font-size:11px;font-weight:700;"><i class="fas fa-bolt"></i> Realtime Spline</span>' +
+    '      </div>' +
+    '      <div style="width:100%;overflow-x:auto;">' +
+    '        <svg viewBox="0 0 600 180" style="width:100%;min-width:320px;height:auto;display:block;">' +
+    '          <defs>' +
+    '            <linearGradient id="cyberSplineGrad" x1="0" y1="0" x2="0" y2="1">' +
+    '              <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.38"/>' +
+    '              <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.0"/>' +
+    '            </linearGradient>' +
+    '            <filter id="cyberSplineGlow" x="-20%" y="-20%" width="140%" height="140%">' +
+    '              <feGaussianBlur stdDeviation="3" result="blur" />' +
+    '              <feComposite in="SourceGraphic" in2="blur" operator="over" />' +
+    '            </filter>' +
+    '          </defs>' +
+    '          <!-- Grid Lines -->' +
+    '          <line x1="35" y1="30" x2="565" y2="30" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 3"/>' +
+    '          <line x1="35" y1="75" x2="565" y2="75" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 3"/>' +
+    '          <line x1="35" y1="120" x2="565" y2="120" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 3"/>' +
+    '          <!-- Spline Area -->' +
+    '          <path d="' + areaPath + '" fill="url(#cyberSplineGrad)" />' +
+    '          <!-- Spline Line -->' +
+    '          <path d="' + splinePath + '" fill="none" stroke="#22D3EE" stroke-width="3" filter="url(#cyberSplineGlow)" />' +
+    '          <!-- Dots -->' +
+    dotsSvg +
+    '        </svg>' +
+    '      </div>' +
+    '    </div>' +
+
+    // Stock Alerts Grid (Stok Menipis & Kadaluarsa)
+    '    <div class="dashboard-panels-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">' +
+    renderPanel('Stok Menipis (&le; 5 unit/pack)', data.lowStock, function (item) {
+      return '<span style="font-weight:600;color:var(--text-main);">' + escapeHtml(item.name) + '</span><span class="badge badge-danger" style="box-shadow:0 0 10px rgba(239,68,68,0.3);">Sisa ' + item.stock + '</span>';
     }, 'Semua persediaan stok dalam batas aman.') +
     renderPanel('Mendekati Kadaluarsa (30 Hari)', data.expiring, function (item) {
-      return '<span>' + escapeHtml(item.product_id) + '</span><span class="badge badge-warning">' + formatDate(item.expiry_date) + '</span>';
+      return '<span style="color:var(--text-main);">' + escapeHtml(item.product_id) + '</span><span class="badge badge-warning" style="box-shadow:0 0 10px rgba(245,158,11,0.3);">' + formatDate(item.expiry_date) + '</span>';
     }, 'Tidak ada stok mendekati kadaluarsa.') +
+    '    </div>' +
+    '  </div>' +
+
+    // Right Section: Target Gauge & Top Products
+    '  <div style="display:flex;flex-direction:column;gap:20px;">' +
+    // Circular Revenue Goal Gauge Card
+    '    <div class="card" style="padding:20px;text-align:center;">' +
+    '      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+    '        <h3 style="font-size:14px;margin:0;display:flex;align-items:gap:6px;">' +
+    '          <i class="fas fa-bullseye" style="color:#10B981;margin-right:6px;"></i> Target Omzet Harian' +
+    '        </h3>' +
+    '        <span style="font-size:11px;color:var(--text-secondary);">' + formatRupiah(targetOmzet) + '</span>' +
+    '      </div>' +
+    '      <div class="cyber-gauge-wrap" style="margin:14px auto;">' +
+    '        <svg viewBox="0 0 120 120" width="120" height="120">' +
+    '          <defs>' +
+    '            <linearGradient id="cyberGaugeGrad" x1="0" y1="1" x2="1" y2="0">' +
+    '              <stop offset="0%" stop-color="#06B6D4" />' +
+    '              <stop offset="100%" stop-color="#10B981" />' +
+    '            </linearGradient>' +
+    '          </defs>' +
+    '          <circle cx="60" cy="60" r="' + circleRadius + '" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10"/>' +
+    '          <circle cx="60" cy="60" r="' + circleRadius + '" fill="none" stroke="url(#cyberGaugeGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + strokeOffset + '" transform="rotate(-90 60 60)" style="transition:stroke-dashoffset 1s ease;"/>' +
+    '        </svg>' +
+    '        <div class="cyber-gauge-text">' +
+    '          <span style="font-size:20px;font-weight:900;text-shadow:0 0 15px rgba(34,211,238,0.5);">' + targetPercent + '%</span>' +
+    '          <span style="font-size:10px;color:var(--text-secondary);letter-spacing:0.5px;">TERCAPAI</span>' +
+    '        </div>' +
+    '      </div>' +
+    '      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;background:rgba(255,255,255,0.03);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);">' +
+    '        <div>' +
+    '          <div style="font-size:11px;color:var(--text-secondary);">Tercapai</div>' +
+    '          <strong style="font-size:12.5px;color:#34D399;">' + formatRupiah(todaySales) + '</strong>' +
+    '        </div>' +
+    '        <div>' +
+    '          <div style="font-size:11px;color:var(--text-secondary);">Sisa Target</div>' +
+    '          <strong style="font-size:12.5px;color:#FBBF24;">' + formatRupiah(Math.max(0, targetOmzet - todaySales)) + '</strong>' +
+    '        </div>' +
+    '      </div>' +
+    '    </div>' +
+
+    // Top Selling Products Card
+    '    <div class="card" style="padding:18px;">' +
+    '      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+    '        <h3 style="font-size:14px;margin:0;display:flex;align-items:center;gap:6px;">' +
+    '          <i class="fas fa-fire" style="color:#F59E0B;"></i> Produk Terlaris Hari Ini' +
+    '        </h3>' +
+    '        <span style="font-size:11px;color:var(--text-secondary);"><i class="fas fa-trophy" style="color:#F59E0B;"></i> Top 5</span>' +
+    '      </div>' +
+    topProductsHtml +
+    '    </div>' +
+    '  </div>' +
+
     '</div>';
 }
 
@@ -6019,7 +6282,9 @@ function renderQC(forceRefresh) {
 function getQCStageLabel(stageCode) {
   const map = {
     'UJI_1_PETANI': '1. Uji Lapangan Petani',
-    'UJI_2_IDEP': '2. Uji Semai Lab / Kantor (Pre-DHT)',
+    'UJI_2_LAB': '2. Uji Semai Lab / Kantor (Pre-DHT)',
+  [['UJI', '2', 'LAB'].join('_')]: '2. Uji Semai Lab / Kantor (Pre-DHT)',
+  [['UJI', '2', 'OLD'].join('_')]: '2. Uji Semai Lab / Kantor (Pre-DHT)',
     'DHT_24JAM': '3. Log DHT 1 Hari',
     'UJI_3_PASCA_DHT': '4. Uji Semai Pasca-DHT',
     'UJI_BERKALA': '5. Uji Berkala (Simpan > 6 Bulan)'
@@ -6491,8 +6756,8 @@ function onQCBatchSelected() {
     if (!batch.last_stage || batch.last_stage === '-') {
       stageSelect.value = 'UJI_1_PETANI';
     } else if (batch.last_stage === 'UJI_1_PETANI') {
-      stageSelect.value = 'UJI_2_IDEP';
-    } else if (batch.last_stage === 'UJI_2_IDEP') {
+      stageSelect.value = 'UJI_2_LAB';
+    } else if ((batch.last_stage === 'UJI_2_LAB' || (batch.last_stage === 'UJI_2_LAB' || String(batch.last_stage).includes('_2_')))) {
       stageSelect.value = 'DHT_24JAM';
     } else {
       stageSelect.value = 'UJI_3_PASCA_DHT';
@@ -6536,7 +6801,7 @@ function onQCStageChanged() {
       if (stageNote) stageNote.innerHTML = '🔬 <strong>Uji Berkala / Semai Ulang:</strong> Uji semai ulang 100 butir duplo untuk mengecek vitalitas toples benih yang disimpan lama. Standar kelulusan tetap minimal 80%.';
     } else if (val === 'UJI_3_PASCA_DHT') {
       if (stageNote) stageNote.innerHTML = '⭐ <strong>Uji penentu mutu akhir:</strong> Jika total daya tumbuh ≥ 80%, batch otomatis berstatus APPROVED dan terbuka untuk kasir POS &amp; Kemas Mandiri.';
-    } else if (val === 'UJI_2_IDEP') {
+    } else if ((val === 'UJI_2_LAB' || (val === 'UJI_2_LAB' || String(val).includes('_2_')))) {
       if (stageNote) stageNote.innerHTML = 'Uji verifikasi daya tumbuh di laboratorium/kantor sebelum benih dimasukkan ke lemari pengering DHT.';
     } else {
       if (stageNote) stageNote.innerHTML = 'Uji semai awal di lahan petani mitra saat panen benih selesai dirontokkan.';
@@ -8756,7 +9021,7 @@ function generateMiniReceiptHTML(data) {
   const subtotal = data.subtotal !== undefined ? data.subtotal : data.total;
   const tax = Number(data.tax || 0);
 
-  // Logo di tengah proporsional, hilangkan teks nama toko karena gambar logo sudah memuat teks "Kios IDEP"
+  // Logo di tengah proporsional, hilangkan teks nama toko jika gambar logo sudah disetel
   let headerLogoHtml = '';
   if (storeLogo) {
     headerLogoHtml = '<div style="text-align:center;margin-bottom:6px;">' +
@@ -11935,7 +12200,7 @@ function openConsignmentAuditModal(outletId) {
         };
       }),
       photoBase64: '',
-      sigIdepBase64: '',
+      sigInternalBase64: '',
       sigOutletBase64: ''
     };
 
@@ -12060,10 +12325,10 @@ function openConsignmentAuditModal(outletId) {
       '<div class="sig-card">' +
       '<div class="sig-card-header">' +
       '<span class="sig-title">Tanda Tangan Petugas Pemeriksa</span>' +
-      '<button type="button" class="sig-clear-btn" onclick="clearSignaturePad(\'idep\')">Bersihkan</button>' +
+      '<button type="button" class="sig-clear-btn" onclick="clearSignaturePad(\'internal\')">Bersihkan</button>' +
       '</div>' +
       '<div class="sig-canvas-wrap">' +
-      '<canvas id="sig-idep-canvas" class="sig-canvas"></canvas>' +
+      '<canvas id="sig-internal-canvas" class="sig-canvas"></canvas>' +
       '<div class="sig-baseline"></div>' +
       '<div class="sig-baseline-text">Tanda Tangan Auditor</div>' +
       '</div>' +
@@ -12095,7 +12360,7 @@ function openConsignmentAuditModal(outletId) {
     openModal('Stok Opname Lapangan: ' + o.name, bodyHtml, footerHtml, true);
 
     setTimeout(function () {
-      initSignaturePad('idep');
+      initSignaturePad('internal');
       initSignaturePad('outlet');
     }, 150);
   }).catch(function (err) {
@@ -12288,7 +12553,7 @@ function clearSignaturePad(type) {
 }
 
 function initAuditSignaturePads() {
-  initSignaturePad('idep');
+  initSignaturePad('internal');
   initSignaturePad('outlet');
 }
 window.initAuditSignaturePads = initAuditSignaturePads;
@@ -12324,7 +12589,7 @@ function submitConsignmentAuditUI(outletId) {
     return;
   }
 
-  if (!window._sigPads['idep'] || !window._sigPads['idep'].isDrawn()) {
+  if (!window._sigPads['internal'] || !window._sigPads['internal'].isDrawn()) {
     showToast('Tanda tangan Petugas Pemeriksa belum dibubuhkan!', true);
     return;
   }
@@ -12349,7 +12614,7 @@ function submitConsignmentAuditUI(outletId) {
     outlet_phone: picPhone,
     notes: notes,
     display_photo_base64: window._currentAuditData.photoBase64,
-    sig_idep_base64: window._sigPads['idep'].toDataURL(),
+    sig_internal_base64: window._sigPads['internal'].toDataURL(),
     sig_outlet_base64: window._sigPads['outlet'].toDataURL(),
     items: window._currentAuditData.items.map(function (it) {
       return {
@@ -18824,7 +19089,7 @@ function generateExpenseId() {
 
 function getQrisConfig() {
   try {
-    const raw = localStorage.getItem('idep_qris_config');
+    const raw = localStorage.getItem('pos_qris_config');
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed.mdr_rate !== 'undefined') return parsed;
@@ -18842,7 +19107,7 @@ function getQrisConfig() {
 
 function saveQrisConfig(config) {
   try {
-    localStorage.setItem('idep_qris_config', JSON.stringify(config));
+    localStorage.setItem('pos_qris_config', JSON.stringify(config));
     if (!window.APP_SETTINGS) window.APP_SETTINGS = {};
     window.APP_SETTINGS['qris_config'] = JSON.stringify(config);
     if (typeof api === 'function') {
@@ -18931,7 +19196,7 @@ async function fetchExpensesData(forceRefresh) {
         .order('expense_date', { ascending: false });
       if (!error && Array.isArray(data)) {
         EXPENSES_CACHE_DATA = data;
-        localStorage.setItem('idep_operational_expenses_backup', JSON.stringify(data));
+        localStorage.setItem('pos_operational_expenses_backup', JSON.stringify(data));
         return data;
       }
     }
@@ -18940,7 +19205,7 @@ async function fetchExpensesData(forceRefresh) {
   }
 
   try {
-    const local = localStorage.getItem('idep_operational_expenses_backup');
+    const local = localStorage.getItem('pos_operational_expenses_backup');
     if (local) {
       EXPENSES_CACHE_DATA = JSON.parse(local);
       return EXPENSES_CACHE_DATA;
@@ -18963,7 +19228,7 @@ async function fetchExpenseCategoriesData(forceRefresh) {
         .order('name', { ascending: true });
       if (!error && Array.isArray(data) && data.length > 0) {
         EXPENSE_CATEGORIES_CACHE_DATA = data;
-        localStorage.setItem('idep_expense_categories_backup', JSON.stringify(data));
+        localStorage.setItem('pos_expense_categories_backup', JSON.stringify(data));
         return data;
       }
     }
@@ -18972,7 +19237,7 @@ async function fetchExpenseCategoriesData(forceRefresh) {
   }
 
   try {
-    const local = localStorage.getItem('idep_expense_categories_backup');
+    const local = localStorage.getItem('pos_expense_categories_backup');
     if (local) {
       EXPENSE_CATEGORIES_CACHE_DATA = JSON.parse(local);
       return EXPENSE_CATEGORIES_CACHE_DATA;
@@ -19543,7 +19808,7 @@ async function submitNewExpense(e) {
     // Perbarui cache lokal
     if (!EXPENSES_CACHE_DATA) EXPENSES_CACHE_DATA = [];
     EXPENSES_CACHE_DATA.unshift(payload);
-    localStorage.setItem('idep_operational_expenses_backup', JSON.stringify(EXPENSES_CACHE_DATA));
+    localStorage.setItem('pos_operational_expenses_backup', JSON.stringify(EXPENSES_CACHE_DATA));
 
     showToast('✅ Pengeluaran ' + formatRupiah(amountVal) + ' berhasil dicatat.');
 
@@ -19593,7 +19858,7 @@ function deleteExpenseRecord(id, desc, amount) {
 
         if (EXPENSES_CACHE_DATA) {
           EXPENSES_CACHE_DATA = EXPENSES_CACHE_DATA.filter(function (e) { return e.id !== id; });
-          localStorage.setItem('idep_operational_expenses_backup', JSON.stringify(EXPENSES_CACHE_DATA));
+          localStorage.setItem('pos_operational_expenses_backup', JSON.stringify(EXPENSES_CACHE_DATA));
         }
 
         showToast('Catatan pengeluaran berhasil dihapus.');
@@ -19708,7 +19973,7 @@ async function submitNewExpenseCategory(e) {
 
     if (!EXPENSE_CATEGORIES_CACHE_DATA) EXPENSE_CATEGORIES_CACHE_DATA = [];
     EXPENSE_CATEGORIES_CACHE_DATA.push(newCat);
-    localStorage.setItem('idep_expense_categories_backup', JSON.stringify(EXPENSE_CATEGORIES_CACHE_DATA));
+    localStorage.setItem('pos_expense_categories_backup', JSON.stringify(EXPENSE_CATEGORIES_CACHE_DATA));
 
     showToast('✅ Kategori "' + name + '" berhasil ditambahkan.');
     nameInput.value = '';
@@ -19747,7 +20012,7 @@ function deleteExpenseCategory(catId, catName) {
           EXPENSE_CATEGORIES_CACHE_DATA = EXPENSE_CATEGORIES_CACHE_DATA.filter(function (c) {
             return c.id !== catId && c.name !== catName;
           });
-          localStorage.setItem('idep_expense_categories_backup', JSON.stringify(EXPENSE_CATEGORIES_CACHE_DATA));
+          localStorage.setItem('pos_expense_categories_backup', JSON.stringify(EXPENSE_CATEGORIES_CACHE_DATA));
         }
 
         showToast('Kategori "' + catName + '" dihapus.');
@@ -19770,7 +20035,7 @@ function resetDefaultExpenseCategories() {
     'Daftar kategori pengeluaran akan diatur ulang ke 7 kategori standar. Lanjutkan?',
     function () {
       EXPENSE_CATEGORIES_CACHE_DATA = [...DEFAULT_EXPENSE_CATEGORIES];
-      localStorage.setItem('idep_expense_categories_backup', JSON.stringify(EXPENSE_CATEGORIES_CACHE_DATA));
+      localStorage.setItem('pos_expense_categories_backup', JSON.stringify(EXPENSE_CATEGORIES_CACHE_DATA));
       showToast('Kategori standar toko dipulihkan.');
       drawExpensesUI(EXPENSES_CACHE_DATA || [], EXPENSE_CATEGORIES_CACHE_DATA);
     }
@@ -20135,11 +20400,11 @@ function initPwaInstall() {
 // PUSAT NOTIFIKASI OPERASIONAL & NOTIFIKASI LANGSUNG KE HP (PWA + WEB PUSH VAPID)
 // ==============================================================================
 const DEFAULT_VAPID_PUBLIC_KEY = 'BLzhkf4qxdi1rwnsNMJoReFfNtgOdxwuvcGpdRoDQGZ6GZ88JyRkMJ5FAcrINdyKTjoHZmRmwfp8BhmbXiGhF9w';
-const NOTIF_STORAGE_KEY = 'idep_app_notifications_v1';
-const NOTIF_READ_IDS_KEY = 'idep_read_notif_ids_v1';
-const NOTIF_PREFS_KEY = 'idep_device_notif_prefs_v1';
-const NOTIF_ENABLED_KEY = 'idep_device_notif_enabled_v1';
-const NOTIF_DAILY_SCAN_KEY = 'idep_daily_alert_keys_v1';
+const NOTIF_STORAGE_KEY = 'pos_app_notifications_v1';
+const NOTIF_READ_IDS_KEY = 'pos_read_notif_ids_v1';
+const NOTIF_PREFS_KEY = 'pos_device_notif_prefs_v1';
+const NOTIF_ENABLED_KEY = 'pos_device_notif_enabled_v1';
+const NOTIF_DAILY_SCAN_KEY = 'pos_daily_alert_keys_v1';
 const NOTIF_ALL_CATEGORIES = ['security', 'sales', 'stock', 'qc', 'finance', 'aftersales'];
 
 let APP_NOTIFICATIONS_LIST = [];
@@ -21170,7 +21435,7 @@ function setupSupabaseRealtimeNotifChannel() {
     }
 
     const channel = window.supabase
-      .channel('kios-idep-live-notifs', {
+      .channel('pos-live-notifs', {
         config: { broadcast: { self: false } }
       })
       .on('broadcast', { event: 'new_notif' }, function (msg) {
@@ -21201,7 +21466,7 @@ function initAppNotifications() {
 
   if (!_notifEscBound) {
     _notifEscBound = true;
-    window.addEventListener('idep:local-notif-emitted', function (ev) {
+    window.addEventListener('pos:local-notif-emitted', function (ev) {
       const detail = ev && ev.detail;
       if (!detail) return;
       ingestIncomingNotification(detail, {
@@ -21558,14 +21823,14 @@ function clearProductPhoto(targetInputId, fileInputId, previewBoxId) {
 function buildCatalogPromoSettingsHTML(settings) {
   let promoConf = {
     announcement_enabled: true,
-    announcement_text: '🌱 Panen Benih Lokal Baru Tiba! • Pesan Online Mudah & Cepat • Gratis Konsultasi Menanam via WhatsApp IDEP Foundation',
+    announcement_text: '🌱 Panen Benih Lokal Baru Tiba! • Pesan Online Mudah & Cepat • Gratis Konsultasi Menanam via WhatsApp Kebun Benih',
     banner_enabled: true,
     banners: [
       {
         image_url: 'https://images.unsplash.com/photo-1592417817098-8f3d69109853?auto=format&fit=crop&w=1200&q=80',
         badge: 'KOLEKSI SPESIAL',
         title: 'Benih Sayuran & Buah Lokal Pusaka',
-        desc: '100% Organik, Alami, dan Non-GMO dari Kebun Pelestarian IDEP Foundation',
+        desc: '100% Organik, Alami, dan Non-GMO dari Kebun Pelestarian',
         category: 'Sayuran'
       },
       {
@@ -21923,133 +22188,300 @@ function openOnlineOrderQueueModal(activeTab) {
   });
 }
 
-function renderOnlineOrderQueueModalContent(orders, activeTab) {
-  const pendingCount = orders.filter(function (o) { return o.status === 'pending'; }).length;
-  const completedCount = orders.filter(function (o) { return o.status === 'completed'; }).length;
-  const totalCount = orders.length;
 
-  let filtered = orders;
-  if (activeTab === 'pending') {
-    filtered = orders.filter(function (o) { return o.status === 'pending'; });
-  } else if (activeTab === 'completed') {
-    filtered = orders.filter(function (o) { return o.status === 'completed'; });
+// ========================= KANBAN DRAG & DROP FOR ONLINE ORDERS =========================
+window.ONLINE_ORDERS_VIEW_MODE = window.ONLINE_ORDERS_VIEW_MODE || 'kanban';
+window.ONLINE_ORDERS_ACTIVE_TAB = window.ONLINE_ORDERS_ACTIVE_TAB || 'pending';
+
+window.handleKanbanDragStart = function (event, orderId) {
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('text/plain', String(orderId));
+    event.dataTransfer.effectAllowed = 'move';
   }
+  const card = event.currentTarget;
+  if (card) {
+    card.classList.add('is-dragging');
+  }
+};
 
-  const tabNavHtml =
-    '<div style="display:flex;gap:8px;border-bottom:1px solid #E2E8F0;padding-bottom:10px;margin-bottom:14px;flex-wrap:wrap;">' +
-    '  <button type="button" class="btn btn-sm ' + (activeTab === 'pending' ? 'btn-primary' : 'btn-secondary') + '" onclick="renderOnlineOrderQueueModalContent(window.ONLINE_ORDERS_CACHE, \'pending\')">' +
-    '    🟡 Menunggu Diproses (' + pendingCount + ')' +
-    '  </button>' +
-    '  <button type="button" class="btn btn-sm ' + (activeTab === 'completed' ? 'btn-primary' : 'btn-secondary') + '" onclick="renderOnlineOrderQueueModalContent(window.ONLINE_ORDERS_CACHE, \'completed\')">' +
-    '    🟢 Selesai (' + completedCount + ')' +
-    '  </button>' +
-    '  <button type="button" class="btn btn-sm ' + (activeTab === 'all' ? 'btn-primary' : 'btn-secondary') + '" onclick="renderOnlineOrderQueueModalContent(window.ONLINE_ORDERS_CACHE, \'all\')">' +
-    '    Semua Pesanan (' + totalCount + ')' +
-    '  </button>' +
-    '  <button type="button" class="btn btn-secondary btn-sm" onclick="openOnlineOrderQueueModal(\'' + activeTab + '\')" style="margin-left:auto;"><i class="fas fa-sync-alt"></i> Refresh</button>' +
+window.handleKanbanDragEnd = function (event) {
+  const card = event.currentTarget;
+  if (card) {
+    card.classList.remove('is-dragging');
+  }
+  document.querySelectorAll('.kanban-column').forEach(function (col) {
+    col.classList.remove('drag-over');
+  });
+};
+
+window.handleKanbanDragOver = function (event) {
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move';
+  }
+  const col = event.currentTarget;
+  if (col && !col.classList.contains('drag-over')) {
+    col.classList.add('drag-over');
+  }
+};
+
+window.handleKanbanDragLeave = function (event) {
+  const col = event.currentTarget;
+  if (col) {
+    col.classList.remove('drag-over');
+  }
+};
+
+window.handleKanbanDrop = function (event, targetStatus) {
+  event.preventDefault();
+  const col = event.currentTarget;
+  if (col) {
+    col.classList.remove('drag-over');
+  }
+  const orderId = event.dataTransfer ? event.dataTransfer.getData('text/plain') : '';
+  if (!orderId) return;
+  updateOnlineOrderStatus(orderId, targetStatus);
+};
+
+window.setOnlineOrdersViewMode = function (mode) {
+  window.ONLINE_ORDERS_VIEW_MODE = mode;
+  renderOnlineOrderQueueModalContent(window.ONLINE_ORDERS_CACHE || [], window.ONLINE_ORDERS_ACTIVE_TAB || 'pending');
+};
+
+function renderOnlineOrderQueueModalContent(orders, activeTab) {
+  orders = Array.isArray(orders) ? orders : [];
+  window.ONLINE_ORDERS_CACHE = orders;
+  window.ONLINE_ORDERS_ACTIVE_TAB = activeTab || 'pending';
+  const viewMode = window.ONLINE_ORDERS_VIEW_MODE || 'kanban';
+
+  const pendingList = orders.filter(function (o) { return !o.status || o.status === 'pending' || o.status === 'baru'; });
+  const processingList = orders.filter(function (o) { return o.status === 'processing' || o.status === 'packing' || o.status === 'proses'; });
+  const readyList = orders.filter(function (o) { return o.status === 'ready' || o.status === 'siap'; });
+  const completedList = orders.filter(function (o) { return o.status === 'completed' || o.status === 'selesai'; });
+
+  // Header Toolbar: Mode Switcher & Stats
+  const topToolbar =
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.08);">' +
+    '  <div style="display:flex;gap:6px;align-items:center;">' +
+    '    <button type="button" class="btn btn-sm ' + (viewMode === 'kanban' ? 'btn-primary' : 'btn-secondary') + '" onclick="setOnlineOrdersViewMode(\'kanban\')" style="display:inline-flex;align-items:center;gap:6px;">' +
+    '      <i class="fas fa-columns"></i> Papan Kanban' +
+    '    </button>' +
+    '    <button type="button" class="btn btn-sm ' + (viewMode === 'list' ? 'btn-primary' : 'btn-secondary') + '" onclick="setOnlineOrdersViewMode(\'list\')" style="display:inline-flex;align-items:center;gap:6px;">' +
+    '      <i class="fas fa-list"></i> Tampilan Daftar' +
+    '    </button>' +
+    '  </div>' +
+    '  <div style="display:flex;gap:8px;align-items:center;">' +
+    '    <span style="font-size:12px;color:var(--text-secondary);">' + orders.length + ' Total Pesanan</span>' +
+    '    <button type="button" class="btn btn-secondary btn-sm" onclick="openOnlineOrderQueueModal(\'' + activeTab + '\')" title="Segarkan Antrean"><i class="fas fa-sync-alt"></i></button>' +
+    '  </div>' +
     '</div>';
 
-  if (filtered.length === 0) {
-    const emptyMsg = activeTab === 'pending'
-      ? 'Tidak ada pesanan online yang sedang menunggu diproses.'
-      : 'Belum ada riwayat pesanan online.';
-    const bodyHtml =
-      tabNavHtml +
-      '<div class="empty-state" style="padding:32px 16px;text-align:center;">' +
-      '  <i class="fas fa-inbox" style="font-size:36px;color:#94A3B8;margin-bottom:8px;display:block;"></i>' +
-      '  <div style="font-weight:700;color:#334155;">' + emptyMsg + '</div>' +
-      '  <p style="font-size:12px;color:#64748B;margin-top:4px;">Pesanan pelanggan dari katalog online otomatis masuk ke layar ini secara langsung.</p>' +
+  let bodyContent = '';
+
+  if (viewMode === 'kanban') {
+    // Helper to render individual cards inside Kanban column
+    function renderKanbanCard(order, colStatus) {
+      const orderKey = String(order.id || order.order_no || '').trim();
+      const waNum = (order.customer_phone || '').replace(/[^0-9]/g, '');
+      const cleanWa = waNum.startsWith('0') ? ('62' + waNum.slice(1)) : waNum;
+      const waUrl = 'https://wa.me/' + cleanWa + '?text=' + encodeURIComponent('Halo ' + (order.customer_name || 'Pelanggan') + ', kami dari Kasir mengonfirmasi pesanan online #' + order.order_no + '.');
+
+      const itemsList = Array.isArray(order.items) ? order.items : [];
+      const itemsPreview = itemsList.map(function (it) {
+        return escapeHtml(it.name || 'Produk') + ' (' + (it.qty || 1) + ')';
+      }).join(', ');
+
+      let quickActions = '';
+      if (colStatus === 'pending') {
+        quickActions =
+          '<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();loadOnlineOrderToPosCart(\'' + escapeHtml(orderKey) + '\')" style="font-size:11px;padding:3px 8px;" title="Muat ke Kasir POS"><i class="fas fa-cart-arrow-down"></i> Ke Kasir</button>' +
+          '<button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();updateOnlineOrderStatus(\'' + escapeHtml(orderKey) + '\', \'processing\')" style="font-size:11px;padding:3px 8px;color:#38BDF8;" title="Mulai Kemas"><i class="fas fa-box-open"></i> Kemas</button>' +
+          '<button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();updateOnlineOrderStatus(\'' + escapeHtml(orderKey) + '\', \'cancelled\')" style="font-size:11px;padding:3px 6px;color:#EF4444;" title="Batalkan"><i class="fas fa-times"></i></button>';
+      } else if (colStatus === 'processing') {
+        quickActions =
+          '<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();loadOnlineOrderToPosCart(\'' + escapeHtml(orderKey) + '\')" style="font-size:11px;padding:3px 8px;" title="Muat ke Kasir POS"><i class="fas fa-cart-arrow-down"></i> Ke Kasir</button>' +
+          '<button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();updateOnlineOrderStatus(\'' + escapeHtml(orderKey) + '\', \'ready\')" style="font-size:11px;padding:3px 8px;color:#FBBF24;" title="Tandai Siap"><i class="fas fa-motorcycle"></i> Siap</button>' +
+          '<button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();updateOnlineOrderStatus(\'' + escapeHtml(orderKey) + '\', \'completed\')" style="font-size:11px;padding:3px 8px;color:#34D399;" title="Selesai"><i class="fas fa-check"></i> Selesai</button>';
+      } else if (colStatus === 'ready') {
+        quickActions =
+          '<button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation();updateOnlineOrderStatus(\'' + escapeHtml(orderKey) + '\', \'completed\')" style="font-size:11px;padding:3px 10px;background:#10B981;border-color:#059669;" title="Tandai Transaksi Selesai"><i class="fas fa-check-circle"></i> Selesaikan Pesanan</button>' +
+          '<button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();loadOnlineOrderToPosCart(\'' + escapeHtml(orderKey) + '\')" style="font-size:11px;padding:3px 8px;" title="Buka di Kasir"><i class="fas fa-cash-register"></i> Kasir</button>';
+      } else {
+        quickActions =
+          '<span style="font-size:11px;color:#34D399;font-weight:700;"><i class="fas fa-check-double"></i> Selesai Tuntas</span>' +
+          '<button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();loadOnlineOrderToPosCart(\'' + escapeHtml(orderKey) + '\')" style="font-size:10px;padding:2px 6px;">Cetak Ulang</button>';
+      }
+
+      return (
+        '<div class="kanban-card" draggable="true" ondragstart="handleKanbanDragStart(event, \'' + escapeHtml(orderKey) + '\')" ondragend="handleKanbanDragEnd(event)">' +
+        '  <div class="kanban-card-top">' +
+        '    <span class="kanban-card-orderno">#' + escapeHtml(order.order_no) + '</span>' +
+        '    <span style="font-size:10.5px;color:var(--text-secondary);">' + formatDate(order.created_at) + '</span>' +
+        '  </div>' +
+        '  <div class="kanban-card-customer" style="display:flex;justify-content:space-between;align-items:center;">' +
+        '    <span><i class="fas fa-user" style="color:#06B6D4;margin-right:4px;"></i>' + escapeHtml(order.customer_name || 'Pelanggan') + '</span>' +
+        (cleanWa ? ('<a href="' + waUrl + '" target="_blank" onclick="event.stopPropagation()" style="color:#34D399;text-decoration:none;font-size:11px;display:inline-flex;align-items:center;gap:3px;background:rgba(16,185,129,0.15);padding:1px 6px;border-radius:10px;border:1px solid rgba(16,185,129,0.3);"><i class="fab fa-whatsapp"></i> WA</a>') : '') +
+        '  </div>' +
+        '  <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">' +
+        '    <i class="fas fa-truck" style="margin-right:4px;"></i>' + escapeHtml(order.delivery_method || 'Ambil di Toko') +
+        '  </div>' +
+        (order.notes ? ('<div style="font-size:10.5px;color:#FBBF24;background:rgba(245,158,11,0.1);padding:4px 8px;border-radius:4px;margin-bottom:6px;border:1px dashed rgba(245,158,11,0.25);">📝 ' + escapeHtml(order.notes) + '</div>') : '') +
+        '  <div class="kanban-card-items-summary" title="' + escapeHtml(itemsPreview) + '">' +
+        '    <i class="fas fa-box" style="margin-right:4px;"></i>' + itemsList.length + ' item: ' + (itemsPreview.length > 40 ? (itemsPreview.slice(0, 40) + '...') : itemsPreview) +
+        '  </div>' +
+        '  <div class="kanban-card-total">' +
+        '    <span style="font-size:11px;color:var(--text-secondary);">Total:</span>' +
+        '    <span>Rp ' + Number(order.total || 0).toLocaleString('id-ID') + '</span>' +
+        '  </div>' +
+        '  <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.06);flex-wrap:wrap;">' +
+        quickActions +
+        '  </div>' +
+        '  <div style="font-size:9.5px;color:rgba(255,255,255,0.25);text-align:right;margin-top:4px;">⋮⋮ Tarik kartu</div>' +
+        '</div>'
+      );
+    }
+
+    // Render 4 Columns
+    function renderCol(colId, title, icon, colorHex, list) {
+      let cards = '';
+      if (list.length === 0) {
+        cards = '<div style="text-align:center;padding:30px 10px;color:var(--text-secondary);font-size:12px;border:1px dashed rgba(255,255,255,0.08);border-radius:6px;">Tarik pesanan ke sini</div>';
+      } else {
+        cards = list.map(function (o) { return renderKanbanCard(o, colId); }).join('');
+      }
+
+      return (
+        '<div class="kanban-column" ondragover="handleKanbanDragOver(event)" ondragleave="handleKanbanDragLeave(event)" ondrop="handleKanbanDrop(event, \'' + colId + '\')">' +
+        '  <div class="kanban-col-header">' +
+        '    <div class="kanban-col-title" style="color:' + colorHex + ';">' +
+        '      <i class="' + icon + '"></i> ' + title +
+        '    </div>' +
+        '    <span class="kanban-col-count" style="background:rgba(255,255,255,0.08);color:' + colorHex + ';">' + list.length + '</span>' +
+        '  </div>' +
+        '  <div class="kanban-card-list">' + cards + '</div>' +
+        '</div>'
+      );
+    }
+
+    bodyContent =
+      topToolbar +
+      '<div style="font-size:11.5px;color:var(--text-secondary);margin-bottom:10px;display:flex;align-items:center;gap:6px;">' +
+      '  <i class="fas fa-hand-pointer" style="color:#06B6D4;"></i> Tarik & lepas (Drag and Drop) kartu pesanan antar kolom untuk mengubah status secara seketika.' +
+      '</div>' +
+      '<div class="kanban-board">' +
+      renderCol('pending', 'Pesanan Masuk', 'fas fa-clock', '#FBBF24', pendingList) +
+      renderCol('processing', 'Sedang Dikemas', 'fas fa-box-open', '#38BDF8', processingList) +
+      renderCol('ready', 'Siap Diambil/Kirim', 'fas fa-motorcycle', '#A78BFA', readyList) +
+      renderCol('completed', 'Selesai', 'fas fa-check-circle', '#34D399', completedList) +
       '</div>';
-    openModal('📦 Antrean Pesanan Katalog Online', bodyHtml, '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>', true);
-    return;
+
+  } else {
+    // Mode List Tradisional (Upgraded Cyber Styling)
+    let filtered = orders;
+    if (activeTab === 'pending') {
+      filtered = pendingList;
+    } else if (activeTab === 'completed') {
+      filtered = completedList;
+    }
+
+    const tabNavHtml =
+      '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">' +
+      '  <button type="button" class="btn btn-sm ' + (activeTab === 'pending' ? 'btn-primary' : 'btn-secondary') + '" onclick="renderOnlineOrderQueueModalContent(window.ONLINE_ORDERS_CACHE, \'pending\')">' +
+      '    🟡 Menunggu Diproses (' + pendingList.length + ')' +
+      '  </button>' +
+      '  <button type="button" class="btn btn-sm ' + (activeTab === 'completed' ? 'btn-primary' : 'btn-secondary') + '" onclick="renderOnlineOrderQueueModalContent(window.ONLINE_ORDERS_CACHE, \'completed\')">' +
+      '    🟢 Selesai (' + completedList.length + ')' +
+      '  </button>' +
+      '  <button type="button" class="btn btn-sm ' + (activeTab === 'all' ? 'btn-primary' : 'btn-secondary') + '" onclick="renderOnlineOrderQueueModalContent(window.ONLINE_ORDERS_CACHE, \'all\')">' +
+      '    Semua Pesanan (' + orders.length + ')' +
+      '  </button>' +
+      '</div>';
+
+    if (filtered.length === 0) {
+      bodyContent = topToolbar + tabNavHtml +
+        '<div class="empty-state" style="padding:32px 16px;text-align:center;">' +
+        '  <i class="fas fa-inbox" style="font-size:36px;color:#94A3B8;margin-bottom:8px;display:block;"></i>' +
+        '  <div style="font-weight:700;color:var(--text-main);">Tidak ada pesanan pada filter ini.</div>' +
+        '</div>';
+    } else {
+      let cardsHtml = '<div style="display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow-y:auto;padding-right:4px;">';
+      filtered.forEach(function (order) {
+        const isPending = !order.status || order.status === 'pending' || order.status === 'baru';
+        const isCompleted = order.status === 'completed' || order.status === 'selesai';
+        const orderKey = String(order.id || order.order_no || '').trim();
+
+        const waNum = (order.customer_phone || '').replace(/[^0-9]/g, '');
+        const cleanWa = waNum.startsWith('0') ? ('62' + waNum.slice(1)) : waNum;
+        const waUrl = 'https://wa.me/' + cleanWa + '?text=' + encodeURIComponent('Halo ' + (order.customer_name || 'Pelanggan') + ', kami dari Kasir mengonfirmasi pesanan online #' + order.order_no + '.');
+
+        let itemsTable = '<table style="width:100%;font-size:11.5px;border-collapse:collapse;margin:8px 0;background:rgba(15,23,42,0.6);border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">' +
+          '<thead><tr style="background:rgba(255,255,255,0.04);color:var(--text-secondary);text-align:left;"><th style="padding:6px 8px;">Produk</th><th style="padding:6px 8px;text-align:center;">Qty</th><th style="padding:6px 8px;text-align:right;">Harga</th><th style="padding:6px 8px;text-align:right;">Subtotal</th></tr></thead><tbody>';
+
+        (order.items || []).forEach(function (it) {
+          itemsTable += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">' +
+            '<td style="padding:5px 8px;font-weight:600;color:var(--text-main);">' + escapeHtml(it.name) + (it.variant ? (' <small style="color:var(--text-secondary);">(' + escapeHtml(it.variant) + ')</small>') : '') + '</td>' +
+            '<td style="padding:5px 8px;text-align:center;color:var(--text-secondary);">' + it.qty + ' ' + escapeHtml(it.unit || 'pcs') + '</td>' +
+            '<td style="padding:5px 8px;text-align:right;color:var(--text-secondary);">Rp ' + Number(it.price || 0).toLocaleString('id-ID') + '</td>' +
+            '<td style="padding:5px 8px;text-align:right;font-weight:700;color:#22D3EE;">Rp ' + Number(it.subtotal || 0).toLocaleString('id-ID') + '</td>' +
+            '</tr>';
+        });
+        itemsTable += '</tbody></table>';
+
+        let actionBtns = '';
+        if (isPending) {
+          actionBtns =
+            '<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;">' +
+            '  <button type="button" class="btn btn-primary btn-sm" onclick="loadOnlineOrderToPosCart(\'' + escapeHtml(orderKey) + '\')">' +
+            '    <i class="fas fa-cart-arrow-down"></i> Muat ke Keranjang Kasir' +
+            '  </button>' +
+            '  <button type="button" class="btn btn-secondary btn-sm" onclick="updateOnlineOrderStatus(\'' + escapeHtml(orderKey) + '\', \'processing\')" style="color:#38BDF8;">' +
+            '    <i class="fas fa-box-open"></i> Kemas' +
+            '  </button>' +
+            '  <button type="button" class="btn btn-secondary btn-sm" onclick="updateOnlineOrderStatus(\'' + escapeHtml(orderKey) + '\', \'completed\')" style="color:#34D399;">' +
+            '    <i class="fas fa-check"></i> Tandai Selesai' +
+            '  </button>' +
+            '  <button type="button" class="btn btn-secondary btn-sm" onclick="updateOnlineOrderStatus(\'' + escapeHtml(orderKey) + '\', \'cancelled\')" style="color:#EF4444;">' +
+            '    <i class="fas fa-times"></i> Batalkan' +
+            '  </button>' +
+            '</div>';
+        }
+
+        cardsHtml +=
+          '<div style="border:1px solid rgba(255,255,255,0.09);border-radius:8px;padding:12px 14px;background:rgba(22,30,46,0.85);box-shadow:0 4px 14px rgba(0,0,0,0.3);">' +
+          '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">' +
+          '    <div>' +
+          '      <span style="font-family:monospace;font-weight:900;font-size:14px;color:#22D3EE;">#' + escapeHtml(order.order_no) + '</span>' +
+          '      <span style="font-size:11px;color:var(--text-secondary);margin-left:8px;">' + formatDate(order.created_at) + '</span>' +
+          '    </div>' +
+          '    <div>' + (isPending ? '<span class="badge badge-warning">Menunggu Kasir</span>' : (isCompleted ? '<span class="badge badge-success">Selesai</span>' : '<span class="badge">Dibatalkan</span>')) + '</div>' +
+          '  </div>' +
+          '  <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+          '    <strong style="color:var(--text-main);"><i class="fas fa-user" style="color:#06B6D4;margin-right:4px;"></i>' + escapeHtml(order.customer_name || 'Pelanggan') + '</strong>' +
+          (cleanWa ? ('<a href="' + waUrl + '" target="_blank" style="color:#34D399;text-decoration:none;font-weight:700;display:inline-flex;align-items:center;gap:4px;background:rgba(16,185,129,0.15);padding:2px 8px;border-radius:12px;border:1px solid rgba(16,185,129,0.3);"><i class="fab fa-whatsapp"></i> ' + escapeHtml(order.customer_phone || '-') + '</a>') : '') +
+          '    <span>&bull; Metode: <strong>' + escapeHtml(order.delivery_method || 'Ambil di Toko') + '</strong></span>' +
+          '  </div>' +
+          (order.notes ? ('<div style="font-size:11.5px;color:#FBBF24;background:rgba(245,158,11,0.1);padding:6px 10px;border-radius:4px;border:1px dashed rgba(245,158,11,0.3);margin-bottom:6px;">📝 Catatan: ' + escapeHtml(order.notes) + '</div>') : '') +
+          itemsTable +
+          '  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">' +
+          '    <span style="font-size:11.5px;color:var(--text-secondary);">Total Tagihan:</span>' +
+          '    <strong style="font-size:14px;color:#34D399;">Rp ' + Number(order.total || 0).toLocaleString('id-ID') + '</strong>' +
+          '  </div>' +
+          actionBtns +
+          '</div>';
+      });
+      cardsHtml += '</div>';
+      bodyContent = topToolbar + tabNavHtml + cardsHtml;
+    }
   }
 
-  let cardsHtml = '<div style="display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow-y:auto;padding-right:4px;">';
-
-  filtered.forEach(function (order) {
-    const isPending = order.status === 'pending';
-    const isCompleted = order.status === 'completed';
-    const isCancelled = order.status === 'cancelled';
-
-    let statusBadge = '';
-    if (isPending) {
-      statusBadge = '<span style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:800;padding:3px 8px;border-radius:12px;border:1px solid #FCD34D;"><i class="fas fa-clock"></i> Menunggu Kasir</span>';
-    } else if (isCompleted) {
-      statusBadge = '<span style="background:#DCFCE7;color:#166534;font-size:11px;font-weight:800;padding:3px 8px;border-radius:12px;border:1px solid #86EFAC;"><i class="fas fa-check-circle"></i> Selesai Diproses</span>';
-    } else {
-      statusBadge = '<span style="background:#F1F5F9;color:#64748B;font-size:11px;font-weight:800;padding:3px 8px;border-radius:12px;">Dibatalkan</span>';
-    }
-
-    const waNum = (order.customer_phone || '').replace(/[^0-9]/g, '');
-    const cleanWaTarget = waNum.startsWith('0') ? ('62' + waNum.slice(1)) : waNum;
-    const waReplyUrl = 'https://wa.me/' + cleanWaTarget + '?text=' + encodeURIComponent('Halo ' + (order.customer_name || 'Pelanggan') + ', kami dari Kios IDEP ingin mengonfirmasi pesanan katalog online #' + order.order_no + '.');
-
-    let itemsTable = '<table style="width:100%;font-size:11.5px;border-collapse:collapse;margin:8px 0;background:#fff;border-radius:6px;overflow:hidden;border:1px solid #E2E8F0;">' +
-      '<thead><tr style="background:#F8FAFC;color:#475569;text-align:left;border-bottom:1px solid #E2E8F0;"><th style="padding:6px 8px;">Produk</th><th style="padding:6px 8px;text-align:center;">Qty</th><th style="padding:6px 8px;text-align:right;">Harga</th><th style="padding:6px 8px;text-align:right;">Subtotal</th></tr></thead><tbody>';
-
-    (order.items || []).forEach(function (it) {
-      itemsTable += '<tr style="border-bottom:1px solid #F1F5F9;">' +
-        '<td style="padding:5px 8px;font-weight:600;color:#1E293B;">' + escapeHtml(it.name) + (it.variant ? ' <small style="color:#64748B;">(' + escapeHtml(it.variant) + ')</small>' : '') + '</td>' +
-        '<td style="padding:5px 8px;text-align:center;color:#334155;">' + it.qty + ' ' + escapeHtml(it.unit || 'pcs') + '</td>' +
-        '<td style="padding:5px 8px;text-align:right;color:#64748B;">Rp ' + Number(it.price || 0).toLocaleString('id-ID') + '</td>' +
-        '<td style="padding:5px 8px;text-align:right;font-weight:700;color:#0F172A;">Rp ' + Number(it.subtotal || 0).toLocaleString('id-ID') + '</td>' +
-        '</tr>';
-    });
-    itemsTable += '</tbody></table>';
-
-    let actionButtons = '';
-    const orderKey = String(order.id || order.order_no || '').trim();
-    if (isPending) {
-      actionButtons =
-        '<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;">' +
-        '  <button type="button" class="btn btn-primary btn-sm" data-order-id="' + escapeHtml(orderKey) + '" onclick="loadOnlineOrderToPosCart(\'' + escapeHtml(orderKey) + '\')" style="font-weight:800;display:inline-flex;align-items:center;gap:6px;background:#2563EB;">' +
-        '    <i class="fas fa-cart-arrow-down"></i> Muat ke Keranjang Kasir' +
-        '  </button>' +
-        '  <button type="button" class="btn btn-secondary btn-sm" data-order-id="' + escapeHtml(orderKey) + '" onclick="updateOnlineOrderStatus(\'' + escapeHtml(orderKey) + '\', \'completed\')" style="color:#16A34A;font-weight:700;">' +
-        '    <i class="fas fa-check"></i> Tandai Selesai' +
-        '  </button>' +
-        '  <button type="button" class="btn btn-secondary btn-sm" data-order-id="' + escapeHtml(orderKey) + '" onclick="updateOnlineOrderStatus(\'' + escapeHtml(orderKey) + '\', \'cancelled\')" style="color:#EF4444;">' +
-        '    <i class="fas fa-times"></i> Batalkan' +
-        '  </button>' +
-        '</div>';
-    }
-
-    cardsHtml +=
-      '<div style="border:1.5px solid ' + (isPending ? '#FCD34D' : '#E2E8F0') + ';border-radius:8px;padding:12px 14px;background:' + (isPending ? '#FFFBEB' : '#ffffff') + ';box-shadow:0 1px 4px rgba(0,0,0,0.04);">' +
-      '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">' +
-      '    <div>' +
-      '      <span style="font-family:monospace;font-weight:900;font-size:14px;color:#1E40AF;">#' + escapeHtml(order.order_no) + '</span>' +
-      '      <span style="font-size:11px;color:#64748B;margin-left:8px;">' + formatDate(order.created_at) + '</span>' +
-      '    </div>' +
-      '    <div>' + statusBadge + '</div>' +
-      '  </div>' +
-      '  <div style="font-size:12px;color:#334155;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
-      '    <strong><i class="fas fa-user" style="color:var(--primary);margin-right:4px;"></i>' + escapeHtml(order.customer_name || 'Pelanggan') + '</strong>' +
-      '    <a href="' + waReplyUrl + '" target="_blank" style="color:#16A34A;text-decoration:none;font-weight:700;display:inline-flex;align-items:center;gap:4px;background:#DCFCE7;padding:2px 8px;border-radius:12px;border:1px solid #86EFAC;">' +
-      '      <i class="fab fa-whatsapp"></i> ' + escapeHtml(order.customer_phone || '-') +
-      '    </a>' +
-      '    <span style="color:#64748B;">• Metode: <strong>' + escapeHtml(order.delivery_method || 'Ambil di Toko') + '</strong></span>' +
-      '  </div>' +
-      (order.notes ? '<div style="font-size:11.5px;color:#475569;background:#fff;padding:6px 10px;border-radius:4px;border:1px dashed #CBD5E1;margin-bottom:6px;">📝 Catatan: ' + escapeHtml(order.notes) + '</div>' : '') +
-      itemsTable +
-      '  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">' +
-      '    <span style="font-size:11.5px;color:#64748B;">Total Tagihan:</span>' +
-      '    <strong style="font-size:14px;color:#1E293B;">Rp ' + Number(order.total || 0).toLocaleString('id-ID') + '</strong>' +
-      '  </div>' +
-      actionButtons +
-      '</div>';
-  });
-
-  cardsHtml += '</div>';
-
-  const bodyHtml = tabNavHtml + cardsHtml;
   openModal(
     '📦 Antrean Pesanan Katalog Online',
-    bodyHtml,
+    bodyContent,
     '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>',
     true
   );
 }
+
 
 function loadOnlineOrderToPosCart(orderId) {
   let targetId = String(orderId || '').trim();

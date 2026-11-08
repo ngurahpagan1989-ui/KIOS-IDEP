@@ -1,4 +1,55 @@
 :root {
+  --primary: #06B6D4;          /* Neon Cyan */
+  --primary-dark: #0891B2;
+  --primary-light: rgba(6, 182, 212, 0.16);
+  --primary-hover: #22D3EE;
+  --accent: #3B82F6;           /* Electric Blue */
+  --accent-light: rgba(59, 130, 246, 0.16);
+  --accent-hover: #60A5FA;
+  
+  --bg-app: #0B0F19;           /* Deep Obsidian Night */
+  --surface: rgba(17, 24, 39, 0.78); /* Dark Frosted Glass */
+  --surface-solid: #111827;
+  --surface-muted: rgba(30, 41, 59, 0.65);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-focus: #06B6D4;
+  --border-glow: rgba(6, 182, 212, 0.4);
+  
+  --text-main: #F8FAFC;        /* High-contrast crisp white */
+  --text-secondary: #94A3B8;   /* Cool slate */
+  --text-muted: #64748B;
+  --text-inverted: #0B0F19;
+  
+  --success: #10B981;          /* Neon Mint */
+  --success-bg: rgba(16, 185, 129, 0.16);
+  --warning: #F59E0B;          /* Neon Amber */
+  --warning-bg: rgba(245, 158, 11, 0.16);
+  --danger: #EF4444;           /* Neon Rose/Red */
+  --danger-bg: rgba(239, 68, 68, 0.16);
+  --info: #06B6D4;
+  --info-bg: rgba(6, 182, 212, 0.16);
+  
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-full: 9999px;
+
+  --shadow-xs: 0 2px 6px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.1);
+  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.7), 0 0 24px rgba(6, 182, 212, 0.15);
+  --shadow-xl: 0 22px 55px rgba(0, 0, 0, 0.85), 0 0 36px rgba(6, 182, 212, 0.2);
+  --shadow-glow: 0 0 20px rgba(6, 182, 212, 0.35);
+  
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --sidebar-width: 260px;
+  --topbar-height: 64px;
+}
+
+body.theme-light {
   --primary: #2563EB;
   --primary-dark: #1D4ED8;
   --primary-light: #EFF6FF;
@@ -9,9 +60,11 @@
   
   --bg-app: #F8FAFC;
   --surface: #FFFFFF;
+  --surface-solid: #FFFFFF;
   --surface-muted: #F1F5F9;
   --border: #E2E8F0;
   --border-focus: #2563EB;
+  --border-glow: rgba(37, 99, 235, 0.3);
   
   --text-main: #0F172A;
   --text-secondary: #475569;
@@ -27,23 +80,12 @@
   --info: #0284C7;
   --info-bg: #E0F2FE;
   
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-full: 9999px;
-
   --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
   --shadow-xl: 0 24px 48px rgba(15, 23, 42, 0.18);
-  
-  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --sidebar-width: 260px;
-  --topbar-height: 64px;
+  --shadow-glow: 0 0 15px rgba(37, 99, 235, 0.2);
 }
 
 *, *::before, *::after {
@@ -7403,4 +7445,324 @@ body.perm-no-delete #modal-container .btn-void {
   .login-card.vault-door {
     padding: 18px 16px 14px !important;
   }
+}
+
+/* ==============================================================================
+ * CYBER FINTECH DARK GLASSMORPHISM ADDITIONS (@_code_and_chill_ INSPIRATION)
+ * ============================================================================== */
+
+/* 1. Global Glassmorphism & High-Contrast Typography */
+body:not(.theme-light) {
+  background-color: var(--bg-app);
+  background-image: 
+    radial-gradient(circle at 10% 10%, rgba(6, 182, 212, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 90% 90%, rgba(59, 130, 246, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.5) 0%, transparent 100%);
+  background-attachment: fixed;
+  color: var(--text-main);
+}
+
+body:not(.theme-light) .card,
+body:not(.theme-light) .stat-card,
+body:not(.theme-light) .table-container,
+body:not(.theme-light) .pos-catalog-panel,
+body:not(.theme-light) .pos-cart-panel,
+body:not(.theme-light) .product-card {
+  background: var(--surface) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+body:not(.theme-light) .card:hover,
+body:not(.theme-light) .stat-card:hover {
+  border-color: var(--border-glow) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), 0 0 18px rgba(6, 182, 212, 0.15) !important;
+}
+
+/* 2. Floating Cyber Sidebar & Topbar */
+body:not(.theme-light) .sidebar {
+  background: rgba(9, 13, 22, 0.96) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+body:not(.theme-light) .sidebar-brand .brand-logo {
+  background: linear-gradient(135deg, #06B6D4, #3B82F6) !important;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.35) !important;
+}
+
+body:not(.theme-light) .nav-item {
+  color: #94A3B8 !important;
+}
+
+body:not(.theme-light) .nav-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #FFFFFF !important;
+}
+
+body:not(.theme-light) .nav-item.active {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(59, 130, 246, 0.25)) !important;
+  color: #22D3EE !important;
+  border: 1px solid rgba(6, 182, 212, 0.4) !important;
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.25) !important;
+  font-weight: 700 !important;
+}
+
+body:not(.theme-light) .topbar {
+  background: rgba(9, 13, 22, 0.88) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+body:not(.theme-light) .topbar-search {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #F8FAFC !important;
+}
+
+body:not(.theme-light) .topbar-search:focus {
+  border-color: #06B6D4 !important;
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.25) !important;
+}
+
+/* 3. High-Contrast Form Inputs & Selects */
+body:not(.theme-light) input[type="text"],
+body:not(.theme-light) input[type="password"],
+body:not(.theme-light) input[type="number"],
+body:not(.theme-light) input[type="email"],
+body:not(.theme-light) input[type="tel"],
+body:not(.theme-light) select,
+body:not(.theme-light) textarea {
+  background: rgba(15, 23, 42, 0.85) !important;
+  color: #F8FAFC !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+body:not(.theme-light) input:focus,
+body:not(.theme-light) select:focus,
+body:not(.theme-light) textarea:focus {
+  border-color: #06B6D4 !important;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.22), 0 0 16px rgba(6, 182, 212, 0.25) !important;
+}
+
+/* 4. Table Headers & Rows */
+body:not(.theme-light) thead th {
+  background: rgba(15, 23, 42, 0.9) !important;
+  color: #94A3B8 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body:not(.theme-light) tbody td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #E2E8F0 !important;
+}
+
+body:not(.theme-light) tbody tr:hover {
+  background: rgba(6, 182, 212, 0.05) !important;
+}
+
+/* 5. Modals with Deep Cyber Blur */
+body:not(.theme-light) .modal-backdrop {
+  background: rgba(4, 7, 15, 0.82) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+body:not(.theme-light) .modal-content,
+body:not(.theme-light) .modal-dialog,
+body:not(.theme-light) .pod-dialog,
+body:not(.theme-light) .danger-dialog {
+  background: rgba(17, 24, 39, 0.97) !important;
+  border: 1px solid rgba(6, 182, 212, 0.3) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(6, 182, 212, 0.18) !important;
+  color: #F8FAFC !important;
+}
+
+/* 6. Buttons with Neon Glow */
+body:not(.theme-light) .btn-primary {
+  background: linear-gradient(135deg, #06B6D4, #0284C7) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3) !important;
+}
+
+body:not(.theme-light) .btn-primary:hover {
+  background: linear-gradient(135deg, #22D3EE, #0369A1) !important;
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.45) !important;
+}
+
+body:not(.theme-light) .btn-secondary {
+  background: rgba(30, 41, 59, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #E2E8F0 !important;
+}
+
+body:not(.theme-light) .btn-secondary:hover {
+  background: rgba(51, 65, 85, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  color: #FFFFFF !important;
+}
+
+/* 7. KANBAN BOARD SYSTEM FOR ORDERS (DRAG & DROP) */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  min-height: 480px;
+  margin-top: 12px;
+}
+
+.kanban-column {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+  transition: all 0.2s ease;
+}
+
+.kanban-column.drag-over {
+  background: rgba(6, 182, 212, 0.1);
+  border: 1.5px dashed #06B6D4 !important;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+}
+
+.kanban-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.kanban-col-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-main);
+}
+
+.kanban-col-count {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.kanban-card-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  min-height: 100px;
+}
+
+.kanban-card {
+  background: rgba(22, 30, 46, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.kanban-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(6, 182, 212, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), 0 0 14px rgba(6, 182, 212, 0.18);
+}
+
+.kanban-card.is-dragging {
+  opacity: 0.4;
+  transform: scale(1.03) rotate(2deg);
+  cursor: grabbing;
+}
+
+.kanban-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.kanban-card-orderno {
+  font-family: monospace;
+  font-weight: 900;
+  font-size: 13px;
+  color: #22D3EE;
+}
+
+.kanban-card-customer {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #F8FAFC;
+  margin-bottom: 4px;
+}
+
+.kanban-card-items-summary {
+  font-size: 11px;
+  color: #94A3B8;
+  margin-bottom: 8px;
+}
+
+.kanban-card-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #34D399;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  padding-top: 6px;
+  margin-top: 6px;
+}
+
+/* 8. CYBER SPLINE CHART & REVENUE GAUGE WIDGETS */
+.cyber-stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.cyber-stat-sparkline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.cyber-gauge-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+}
+
+.cyber-gauge-text {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  color: #22D3EE;
 }

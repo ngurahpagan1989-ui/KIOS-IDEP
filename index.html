@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=7.0">
+  <link rel="stylesheet" href="style.css?v=8.0">
   <!-- Session Restore Anti-Flash & Idle Timeout Pre-Check -->
   <script>
     (function() {
@@ -35,7 +35,7 @@
             localStorage.setItem('ekasir_idle_logout_notice', JSON.stringify({ minutes: timeoutMin, ts: Date.now() }));
             sessionStorage.removeItem('ekasir_token');
             localStorage.removeItem('ekasir_token');
-            localStorage.removeItem('idep_pos_token');
+            localStorage.removeItem('pos_token');
             localStorage.removeItem('ekasir_last_activity');
           } else {
             document.documentElement.classList.add('has-session');
@@ -58,7 +58,7 @@
   <div id="login-screen" class="login-screen" aria-modal="true" role="dialog">
     <div class="login-backdrop"></div>
 
-    <div class="vault-wrapper" data-theme="steel">
+    <div class="vault-wrapper" data-theme="cyberpunk">
       <!-- TOP CONTROL & STATUS BAR -->
       <div class="vault-top-bar">
         <div class="vault-system-title">
@@ -69,7 +69,7 @@
             <div class="vault-system-name">
               VAULT LOCK SYSTEM <span class="vault-version-tag">v4.2</span> <span class="vault-badge-secure">SECURE</span>
             </div>
-            <div class="vault-system-sub">Baja Pneumatik &bull; Web Audio API &bull; 3D Motion &bull; Kios IDEP</div>
+            <div class="vault-system-sub">Baja Pneumatik &bull; Web Audio API &bull; 3D Motion &bull; POS Terminal</div>
           </div>
         </div>
 
@@ -78,8 +78,8 @@
             <i class="fas fa-volume-up" id="vault-sfx-icon"></i> <span id="vault-sfx-text">SFX ON</span>
           </button>
           <div class="vault-theme-pills">
-            <button type="button" class="vault-theme-btn active" id="btn-theme-steel" onclick="setVaultTheme('steel')">Steel</button>
-            <button type="button" class="vault-theme-btn" id="btn-theme-cyber" onclick="setVaultTheme('cyberpunk')">Cyberpunk</button>
+            <button type="button" class="vault-theme-btn" id="btn-theme-steel" onclick="setVaultTheme('steel')">Steel</button>
+            <button type="button" class="vault-theme-btn active" id="btn-theme-cyber" onclick="setVaultTheme('cyberpunk')">Cyberpunk</button>
           </div>
           <div class="vault-lang-pills">
             <button type="button" class="vault-lang-btn active" data-lang="id" onclick="window.i18n && window.i18n.setLanguage('id')">🇮🇩 ID</button>
@@ -208,7 +208,7 @@
         </div>
 
         <div class="vault-footer">
-          <small>&copy; Sistem POS Kasir &amp; Manajemen Stok IDEP Foundation</small>
+          <small>&copy; Sistem POS Kasir &amp; Manajemen Stok Terintegrasi</small>
         </div>
       </div>
     </div>
@@ -365,6 +365,10 @@
         </div>
 
         <div class="topbar-actions">
+          <button type="button" id="theme-toggle-btn" class="topbar-icon-btn" onclick="toggleAppTheme()" title="Ganti Tema (Cyber Dark / Light)" aria-label="Ganti Tema">
+            <i class="fas fa-moon" id="theme-toggle-icon"></i>
+          </button>
+
           <div class="lang-switch-pill topbar-lang-pill" role="group" aria-label="Language Selector">
             <button type="button" class="lang-btn active" data-lang="id" onclick="window.i18n && window.i18n.setLanguage('id')">ID</button>
             <button type="button" class="lang-btn" data-lang="en" onclick="window.i18n && window.i18n.setLanguage('en')">EN</button>
@@ -627,7 +631,7 @@
               <div class="input-wrapper">
                 <select id="qc-stage" required style="padding-left:14px;" onchange="onQCStageChanged()">
                   <option value="UJI_1_PETANI">1. Uji Lapangan Petani</option>
-                  <option value="UJI_2_IDEP">2. Uji Semai Lab / Kantor (Pre-DHT)</option>
+                  <option value="UJI_2_LAB">2. Uji Semai Lab / Kantor (Pre-DHT)</option>
                   <option value="DHT_24JAM">3. Log DHT 1 Hari</option>
                   <option value="UJI_3_PASCA_DHT" selected>4. Uji Semai Pasca-DHT</option>
                   <option value="UJI_BERKALA">5. Uji Berkala / Semai Ulang (Toples Simpan &gt; 6 Bulan)</option>
@@ -975,6 +979,6 @@
   <!-- Multi-Language i18n Engine -->
   <script src="i18n.js?v=2.9"></script>
   <!-- Core Application Logic -->
-  <script src="app.js?v=9.1"></script>
+  <script src="app.js?v=10.0"></script>
 </body>
 </html>

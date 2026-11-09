@@ -10,3 +10,4 @@ const idx2 = app.indexOf('openModuleGuide');
 if (idx2 !== -1) {
   console.log('openModuleGuide at', idx2, ':', app.substring(idx2 - 50, idx2 + 400));
 }
+

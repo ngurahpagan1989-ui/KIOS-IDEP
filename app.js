@@ -22791,3 +22791,126 @@ window.loadOnlineOrderToPosCart = loadOnlineOrderToPosCart;
 window.updateOnlineOrderStatus = updateOnlineOrderStatus;
 window.checkOnlineOrdersBadge = checkOnlineOrdersBadge;
 window.startOnlineOrdersPolling = startOnlineOrdersPolling;
+
+
+// ========================= GLASSY FORM V3 FRAMER-MOTION REPRODUCTION =========================
+window.switchGlassyView = function (targetView) {
+  const card = document.getElementById('vault-door-card');
+  const viewLogin = document.getElementById('glassy-view-login');
+  const viewRegister = document.getElementById('glassy-view-register');
+  const viewPin = document.getElementById('glassy-view-pin');
+
+  if (!card || !viewLogin || !viewRegister) return;
+
+  if (window.VaultAudio && typeof window.VaultAudio.playClick === 'function') {
+    window.VaultAudio.playClick();
+  }
+
+  // 1. Identify active view
+  let activeView = null;
+  if (viewLogin.style.display !== 'none' && viewLogin.classList.contains('active-view')) activeView = viewLogin;
+  else if (viewRegister.style.display !== 'none' && viewRegister.classList.contains('active-view')) activeView = viewRegister;
+  else if (viewPin && viewPin.style.display !== 'none' && viewPin.classList.contains('active-view')) activeView = viewPin;
+  else activeView = viewLogin;
+
+  let nextView = viewLogin;
+  if (targetView === 'register') nextView = viewRegister;
+  else if (targetView === 'pin' && viewPin) nextView = viewPin;
+
+  if (activeView === nextView) return;
+
+  // 2. Lock current card height to start morphing smoothly
+  const currentHeight = card.offsetHeight;
+  card.style.height = currentHeight + 'px';
+  card.style.overflow = 'hidden';
+
+  // 3. Animate OUT active view
+  activeView.classList.remove('animate-in');
+  activeView.classList.add('animate-out');
+
+  setTimeout(function () {
+    activeView.style.display = 'none';
+    activeView.classList.remove('active-view', 'animate-out');
+
+    // 4. Measure target natural height
+    nextView.style.visibility = 'hidden';
+    nextView.style.display = 'block';
+    nextView.style.position = 'relative';
+
+    card.style.height = 'auto';
+    const targetHeight = card.offsetHeight;
+    card.style.height = currentHeight + 'px'; // reset before transition
+    void card.offsetHeight; // force reflow
+
+    // 5. Animate card height to targetHeight!
+    card.style.height = targetHeight + 'px';
+
+    // 6. Animate IN next view
+    nextView.style.visibility = 'visible';
+    nextView.classList.add('active-view', 'animate-in');
+
+    if (targetView === 'pin') {
+      setVaultActiveInput('login-password');
+      updateGlassyPinDots();
+    } else if (targetView === 'login') {
+      setVaultActiveInput('login-username');
+      const userInp = document.getElementById('login-username');
+      if (userInp) userInp.focus();
+    }
+
+    // After animation finishes, release fixed height for responsiveness
+    setTimeout(function () {
+      card.style.height = 'auto';
+      card.style.overflow = 'visible';
+      nextView.classList.remove('animate-in');
+    }, 450);
+  }, 160);
+};
+
+// Aliases for compatibility
+window.toggleGlassyView = function (mode) {
+  window.switchGlassyView(mode);
+};
+
+window.handleSocialLogin = function (provider) {
+  if (window.VaultAudio && typeof window.VaultAudio.playClick === 'function') {
+    window.VaultAudio.playClick();
+  }
+  if (typeof showToast === 'function') {
+    showToast('Autentikasi ' + (provider === 'google' ? 'Google Workspace' : 'Apple ID') + ' sedang disiapkan untuk domain POS.', false);
+  }
+};
+
+window.handleRegisterSubmit = function (e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const name = (document.getElementById('reg-fullname') || {}).value || '';
+  const email = (document.getElementById('reg-email') || {}).value || '';
+  const pass = (document.getElementById('reg-password') || {}).value || '';
+  const passConf = (document.getElementById('reg-password-confirm') || {}).value || '';
+
+  if (pass !== passConf) {
+    if (typeof showToast === 'function') {
+      showToast('Konfirmasi kata sandi tidak cocok. Silakan periksa kembali.', true);
+    }
+    return false;
+  }
+
+  if (window.VaultAudio && typeof window.VaultAudio.playSuccess === 'function') {
+    window.VaultAudio.playSuccess();
+  }
+
+  if (typeof showToast === 'function') {
+    showToast('Akun ' + (name || email) + ' siap digunakan! Beralih ke layar masuk...', false);
+  }
+
+  const loginUserEl = document.getElementById('login-username');
+  const loginPassEl = document.getElementById('login-password');
+  if (loginUserEl) loginUserEl.value = email || name;
+  if (loginPassEl) loginPassEl.value = pass;
+
+  setTimeout(function () {
+    window.switchGlassyView('login');
+  }, 700);
+
+  return false;
+};

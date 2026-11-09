@@ -8613,11 +8613,20 @@ input[type="month"]::-webkit-calendar-picker-indicator:hover {
   border-radius: 12px !important;
   padding: 10px 14px !important;
   font-size: 12.5px !important;
-  display: flex !important;
   align-items: center !important;
   gap: 10px !important;
   margin-bottom: 18px !important;
   box-shadow: 0 4px 14px rgba(239, 68, 68, 0.15) !important;
+  display: none;
+}
+.glassy-alert-banner.is-active,
+.glassy-alert-banner[style*="display: flex"],
+.glassy-alert-banner[style*="display: block"] {
+  display: flex !important;
+}
+.glassy-alert-banner[style*="display: none"],
+.glassy-alert-banner[style*="display:none"] {
+  display: none !important;
 }
 
 /* Primary Button */
@@ -9208,54 +9217,106 @@ input[type="datetime-local"],
   inset: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
+  height: 100dvh !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
   padding: 16px !important;
   box-sizing: border-box !important;
+  overflow-x: hidden !important;
   overflow-y: auto !important;
-  z-index: 2000 !important;
+  z-index: 99999 !important;
+  background: #060911 !important;
 }
 
+/* Background canvas clipped strictly to screen bounds */
+.login-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+.glassy-ambient-wave {
+  position: absolute !important;
+  width: 160% !important;
+  height: 160% !important;
+  top: -30% !important;
+  left: -30% !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+  filter: blur(65px) !important;
+}
+
+/* Card container centered vertically and horizontally */
 .glassy-card-container {
   position: relative !important;
   z-index: 10 !important;
   width: 100% !important;
   max-width: 420px !important;
-  margin: 0 auto !important;
+  margin: auto !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 10px !important;
+  gap: 8px !important;
 }
 
 .login-card.glassy-card {
-  padding: 26px 24px 22px !important;
-  border-radius: 24px !important;
+  padding: 24px 22px 20px !important;
+  border-radius: 22px !important;
 }
 
 .glassy-card-header {
-  margin-bottom: 18px !important;
+  margin-bottom: 16px !important;
 }
 
 .glassy-title {
-  font-size: 24px !important;
+  font-size: 22px !important;
   margin-bottom: 4px !important;
 }
 
 .glassy-subtitle {
-  font-size: 12.5px !important;
+  font-size: 12px !important;
   color: #94A3B8 !important;
   line-height: 1.4 !important;
 }
 
 .glassy-field-group {
-  margin-bottom: 14px !important;
+  margin-bottom: 12px !important;
 }
 
 .glassy-footer-copy {
   text-align: center !important;
   color: #64748B !important;
   font-size: 11px !important;
-  margin-top: 4px !important;
+  margin-top: 2px !important;
+}
+
+/* Ensure alert banner stays strictly hidden unless active */
+.glassy-alert-banner {
+  display: none;
+}
+.glassy-alert-banner.is-active,
+.glassy-alert-banner[style*="display: flex"],
+.glassy-alert-banner[style*="display: block"] {
+  display: flex !important;
+}
+.glassy-alert-banner[style*="display: none"],
+.glassy-alert-banner[style*="display:none"] {
+  display: none !important;
+}
+
+@media screen and (max-width: 768px) {
+  .login-screen {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 12px !important;
+  }
+  .glassy-card-container {
+    margin: auto !important;
+    max-width: 380px !important;
+  }
 }

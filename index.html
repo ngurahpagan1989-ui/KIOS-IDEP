@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=13.2">
+  <link rel="stylesheet" href="style.css?v=13.3">
   <style>
     /* Critical Inline Dark Cyber Overrides (Prevents Flash & Browser UA Light Inputs) */
     html, body {
@@ -84,19 +84,20 @@
 
   <!-- ===================== LOGIN SCREEN OVERLAY (GLASSY LOGIN FORM V3) ===================== -->
   <div id="login-screen" class="login-screen" aria-modal="true" role="dialog">
-    <div class="login-backdrop"></div>
-    <div class="glassy-ambient-wave" aria-hidden="true"></div>
+    <div class="login-backdrop" aria-hidden="true">
+        <div class="glassy-ambient-wave" aria-hidden="true"></div>
+      </div>
 
     <div class="glassy-card-container">
       <!-- TOP MINIMAL UTILITY BAR -->
       <div class="glassy-top-bar">
         <div class="glassy-security-pill">
           <span class="glassy-live-dot pulse-cyan"></span>
-          <span class="glassy-security-text">SECURE TERMINAL</span>
+          <span class="glassy-security-text">TERMINAL AMAN</span>
         </div>
         <div class="glassy-top-actions">
           <button type="button" id="vault-sfx-toggle" class="glassy-util-btn" title="Toggle Sound FX" onclick="toggleVaultSFX()">
-            <i class="fas fa-volume-up" id="vault-sfx-icon"></i> <span id="vault-sfx-text">SFX ON</span>
+            <i class="fas fa-volume-up" id="vault-sfx-icon"></i> <span id="vault-sfx-text">SUARA ON</span>
           </button>
           <div class="glassy-lang-pills">
             <button type="button" class="glassy-lang-btn active" data-lang="id" onclick="window.i18n && window.i18n.setLanguage('id')">ID</button>
@@ -157,7 +158,7 @@
             <div class="glassy-field-group">
               <div class="glassy-label-row">
                 <label class="glassy-field-label" for="login-password">Kata Sandi</label>
-                <a href="#" class="glassy-text-link" onclick="switchGlassyView('pin'); return false;">Forgot password?</a>
+                <a href="#" class="glassy-text-link" onclick="switchGlassyView('pin'); return false;">Lupa kata sandi?</a>
               </div>
               <div class="glassy-input-wrap">
                 <span class="glassy-input-icon"><i class="fas fa-lock"></i></span>
@@ -173,10 +174,10 @@
               <label class="glassy-checkbox-label">
                 <input type="checkbox" id="login-remember-me" checked>
                 <span class="glassy-custom-check"></span>
-                <span class="glassy-check-text">Remember me</span>
+                <span class="glassy-check-text">Ingat Saya</span>
               </label>
               <span class="glassy-status-indicator" id="vault-lcd-status">
-                <span class="glassy-pulse-dot"></span> Ready
+                <span class="glassy-pulse-dot"></span> Siap
               </span>
               <span id="vault-lcd-lock" style="display:none;">TERKUNCI</span>
             </div>
@@ -1032,8 +1033,8 @@
   <!-- Supabase Client Adapter & API Bridge -->
   <script src="supabaseClient.js?v=6.5"></script>
   <!-- Multi-Language i18n Engine -->
-  <script src="i18n.js?v=3.1"></script>
+  <script src="i18n.js?v=3.2"></script>
   <!-- Core Application Logic -->
-  <script src="app.js?v=13.2"></script>
+  <script src="app.js?v=13.3"></script>
 </body>
 </html>

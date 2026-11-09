@@ -9,7 +9,7 @@
 (function (window) {
   'use strict';
 
-  var STORAGE_KEY = 'idep_language';
+  var STORAGE_KEY = 'pos_language';
   var DEFAULT_LANG = 'id';
 
   var currentLang = DEFAULT_LANG;
@@ -26,6 +26,12 @@
   // COMPREHENSIVE TRANSLATION DICTIONARY (ID -> EN)
   // ===========================================================================
   var DICTIONARY = {
+    'TERKUNCI': 'LOCKED',
+    'TERMINAL AMAN': 'SECURE TERMINAL',
+    'SUARA ON': 'SFX ON',
+    'SUARA OFF': 'SFX OFF',
+    'Lupa kata sandi?': 'Forgot password?',
+    'Siap': 'Ready',
     'Selamat Datang Kembali': 'Welcome Back',
     'Masukkan nama pengguna dan kata sandi untuk mengakses terminal kasir': 'Enter your username and password to access the cashier terminal',
     'Nama Pengguna / Email': 'Username / Email',

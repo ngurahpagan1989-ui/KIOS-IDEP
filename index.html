@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=9.0">
+  <link rel="stylesheet" href="style.css?v=9.1">
   <style>
     /* Critical Inline Dark Cyber Overrides (Prevents Flash & Browser UA Light Inputs) */
     html, body {
@@ -82,162 +82,185 @@
   <!-- Top Progress Bar (Loading State Indicator) -->
   <div id="top-progress-bar" class="top-progress-bar" style="display:none;"></div>
 
-  <!-- ===================== LOGIN SCREEN OVERLAY (VAULT LOCK SYSTEM) ===================== -->
+  <!-- ===================== LOGIN SCREEN OVERLAY (GLASSY LOGIN FORM V3) ===================== -->
   <div id="login-screen" class="login-screen" aria-modal="true" role="dialog">
     <div class="login-backdrop"></div>
+    <div class="glassy-ambient-wave" aria-hidden="true"></div>
 
-    <div class="vault-wrapper" data-theme="cyberpunk">
-      <!-- TOP CONTROL & STATUS BAR -->
-      <div class="vault-top-bar">
-        <div class="vault-system-title">
-          <div class="vault-system-icon">
-            <i class="fas fa-shield-alt"></i>
-          </div>
-          <div class="vault-system-info">
-            <div class="vault-system-name">
-              VAULT LOCK SYSTEM <span class="vault-version-tag">v4.2</span> <span class="vault-badge-secure">SECURE</span>
-            </div>
-            <div class="vault-system-sub">Baja Pneumatik &bull; Web Audio API &bull; 3D Motion &bull; POS Terminal</div>
-          </div>
+    <div class="glassy-card-container">
+      <!-- TOP UTILITY / SECURITY BAR -->
+      <div class="glassy-top-bar">
+        <div class="glassy-security-pill">
+          <span class="glassy-live-dot pulse-cyan"></span>
+          <span class="glassy-security-text">SECURE TERMINAL</span>
         </div>
-
-        <div class="vault-top-controls">
-          <button type="button" id="vault-sfx-toggle" class="vault-top-btn" title="Toggle Sound FX" onclick="toggleVaultSFX()">
+        <div class="glassy-top-actions">
+          <button type="button" id="vault-sfx-toggle" class="glassy-util-btn" title="Toggle Sound FX" onclick="toggleVaultSFX()">
             <i class="fas fa-volume-up" id="vault-sfx-icon"></i> <span id="vault-sfx-text">SFX ON</span>
           </button>
-          <div class="vault-theme-pills">
-            <button type="button" class="vault-theme-btn" id="btn-theme-steel" onclick="setVaultTheme('steel')">Steel</button>
-            <button type="button" class="vault-theme-btn active" id="btn-theme-cyber" onclick="setVaultTheme('cyberpunk')">Cyberpunk</button>
-          </div>
-          <div class="vault-lang-pills">
-            <button type="button" class="vault-lang-btn active" data-lang="id" onclick="window.i18n && window.i18n.setLanguage('id')">🇮🇩 ID</button>
-            <button type="button" class="vault-lang-btn" data-lang="en" onclick="window.i18n && window.i18n.setLanguage('en')">🇬🇧 EN</button>
+          <div class="glassy-lang-pills">
+            <button type="button" class="glassy-lang-btn active" data-lang="id" onclick="window.i18n && window.i18n.setLanguage('id')">ID</button>
+            <button type="button" class="glassy-lang-btn" data-lang="en" onclick="window.i18n && window.i18n.setLanguage('en')">EN</button>
           </div>
         </div>
       </div>
 
-      <!-- MAIN HEAVY VAULT DOOR -->
-      <div class="login-card vault-door" id="vault-door-card">
-        <!-- Engsel Pintu Baja (Hinges on Left Edge) -->
-        <div class="vault-hinge vault-hinge-top" aria-hidden="true"></div>
-        <div class="vault-hinge vault-hinge-bottom" aria-hidden="true"></div>
+      <!-- MAIN GLASSY CARD -->
+      <div class="glassy-card-flipper" id="glassy-card-flipper">
+        <div class="login-card glassy-card vault-door" id="vault-door-card">
+          <!-- Geometric Cyan Corner Accents (Signature Video Feature) -->
+          <svg class="glassy-corner-badge glassy-corner-tl" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <path d="M0 14V0H14L32 0L0 32V14Z" fill="url(#corner-grad-tl)" stroke="#22D3EE" stroke-width="1.2"/>
+            <defs>
+              <linearGradient id="corner-grad-tl" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#06B6D4" stop-opacity="0.95"/>
+                <stop offset="1" stop-color="#3B82F6" stop-opacity="0.4"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <svg class="glassy-corner-badge glassy-corner-br" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <path d="M0 14V0H14L32 0L0 32V14Z" fill="url(#corner-grad-br)" stroke="#22D3EE" stroke-width="1.2"/>
+            <defs>
+              <linearGradient id="corner-grad-br" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#06B6D4" stop-opacity="0.95"/>
+                <stop offset="1" stop-color="#3B82F6" stop-opacity="0.4"/>
+              </linearGradient>
+            </defs>
+          </svg>
 
-        <!-- Baut Pneumatik Baja (Pneumatic Locking Bolts on Right Edge) -->
-        <div class="vault-bolt vault-bolt-top" id="vault-bolt-top" aria-hidden="true"></div>
-        <div class="vault-bolt vault-bolt-bottom" id="vault-bolt-bottom" aria-hidden="true"></div>
-
-        <!-- Baut Perimeter Baja (Perimeter Rivets) -->
-        <div class="vault-rivet vault-rivet-tl" aria-hidden="true"></div>
-        <div class="vault-rivet vault-rivet-tc" aria-hidden="true"></div>
-        <div class="vault-rivet vault-rivet-tr" aria-hidden="true"></div>
-        <div class="vault-rivet vault-rivet-ml" aria-hidden="true"></div>
-        <div class="vault-rivet vault-rivet-mr" aria-hidden="true"></div>
-        <div class="vault-rivet vault-rivet-bl" aria-hidden="true"></div>
-        <div class="vault-rivet vault-rivet-bc" aria-hidden="true"></div>
-        <div class="vault-rivet vault-rivet-br" aria-hidden="true"></div>
-
-        <!-- Header Panel Pintu Brankas -->
-        <div class="vault-door-header">
-          <div class="vault-header-left">
-            <span class="vault-header-led"></span>
-            <span class="vault-header-class">HEAVY SECURITY CLASS VII</span>
-          </div>
-          <div class="vault-header-right">
-            <span class="vault-door-id">DOOR ID: 88-T &bull; TERMINAL KASIR</span>
-          </div>
-        </div>
-
-        <!-- Konten Pintu Brankas (2 Kolom: Cam Wheel & Auth Panel) -->
-        <div class="vault-door-grid">
-          <!-- KOLOM KIRI: MECHANICAL CAM WHEEL -->
-          <div class="vault-cam-col">
-            <div class="vault-wheel-container">
-              <div class="vault-cam-wheel" id="vault-cam-wheel" title="Putar Roda Brankas Baja" onclick="spinCamWheelClick()">
-                <div class="vault-wheel-outer-rim">
-                  <div class="vault-wheel-disc">
-                    <!-- Spoke Bar dengan 2 Knob Kuningan/Emas (Sesuai Desain Brankas) -->
-                    <div class="vault-spoke-bar">
-                      <div class="vault-spoke-knob vault-knob-top"></div>
-                      <div class="vault-spoke-center-hub">
-                        <div class="vault-hub-ring">
-                          <span class="vault-hub-led"></span>
-                        </div>
-                      </div>
-                      <div class="vault-spoke-knob vault-knob-bottom"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="vault-wheel-label">MECHANICAL CAM WHEEL</div>
-          </div>
-
-          <!-- KOLOM KANAN: AUTHENTICATION & TACTILE KEYPAD -->
-          <div class="vault-auth-col">
-            <!-- Screen LCD Terminal -->
-            <div class="vault-lcd-screen">
-              <div class="vault-lcd-header">
-                <span class="vault-lcd-title">AUTHENTICATION:</span>
-                <span class="vault-lcd-status" id="vault-lcd-status">MASUKKAN KREDENSIAL</span>
-              </div>
-              <div class="vault-lcd-sub">
-                <span class="vault-lcd-hint" id="vault-lcd-hint">STATUS:</span>
-                <span class="vault-lcd-lock" id="vault-lcd-lock">TERKUNCI</span>
-              </div>
+          <!-- FRONT FACE: CREDENTIALS LOGIN (Welcome Back) -->
+          <div class="glassy-face glassy-face-front" id="glassy-face-front">
+            <div class="glassy-card-header">
+              <h2 class="glassy-title">Welcome Back</h2>
+              <p class="glassy-subtitle">Enter your credentials to access your secure account</p>
             </div>
 
-            <!-- Form Username & Password -->
+            <!-- Login Form -->
             <form id="login-form" novalidate onsubmit="return handleLogin(event);">
-              <div class="vault-input-group">
-                <label class="vault-input-label" for="login-username">USERNAME</label>
-                <div class="vault-input-box">
-                  <span class="vault-input-icon">&#128100;</span>
-                  <input type="text" id="login-username" name="username" placeholder="Masukkan username" required autocomplete="username" autofocus onfocus="setVaultActiveInput('login-username')" style="color-scheme:dark;">
+              <!-- Username / Email Input -->
+              <div class="glassy-field-group">
+                <label class="glassy-field-label" for="login-username">Email Address / Username</label>
+                <div class="glassy-input-wrap">
+                  <span class="glassy-input-icon"><i class="far fa-envelope"></i></span>
+                  <input type="text" id="login-username" name="username" placeholder="name@domain.com atau admin" required autocomplete="username" autofocus onfocus="setVaultActiveInput('login-username')" style="color-scheme:dark;">
                 </div>
               </div>
 
-              <div class="vault-input-group">
-                <label class="vault-input-label" for="login-password">PASSWORD / PIN</label>
-                <div class="vault-input-box">
-                  <span class="vault-input-icon">&#128274;</span>
-                  <input type="password" id="login-password" name="password" placeholder="Masukkan password" required autocomplete="current-password" onfocus="setVaultActiveInput('login-password')" style="color-scheme:dark;">
-                  <button type="button" id="toggle-password-visibility" class="vault-pwd-toggle" title="Lihat password" aria-label="Lihat password">&#128065;</button>
+              <!-- Password Input -->
+              <div class="glassy-field-group">
+                <div class="glassy-label-row">
+                  <label class="glassy-field-label" for="login-password">Password</label>
+                  <a href="#" class="glassy-text-link" onclick="toggleGlassyView('pin'); return false;">Mode PIN?</a>
+                </div>
+                <div class="glassy-input-wrap">
+                  <span class="glassy-input-icon"><i class="fas fa-lock"></i></span>
+                  <input type="password" id="login-password" name="password" placeholder="••••••••••••" required autocomplete="current-password" onfocus="setVaultActiveInput('login-password')" oninput="window.updateGlassyPinDots && window.updateGlassyPinDots()" style="color-scheme:dark;">
+                  <button type="button" id="toggle-password-visibility" class="glassy-pwd-toggle" title="Lihat password" aria-label="Lihat password">
+                    <i class="far fa-eye" id="toggle-password-icon"></i>
+                  </button>
                 </div>
               </div>
 
-              <div id="login-error" class="vault-alert-banner alert-danger" style="display:none;" role="alert">
-                <span class="vault-alert-icon">&#9888;</span>
+              <!-- Remember Me & Status Row -->
+              <div class="glassy-options-row">
+                <label class="glassy-checkbox-label">
+                  <input type="checkbox" id="login-remember-me" checked>
+                  <span class="glassy-custom-check"></span>
+                  <span class="glassy-check-text">Remember me</span>
+                </label>
+                <span class="glassy-status-indicator" id="vault-lcd-status">
+                  <span class="glassy-pulse-dot"></span> Ready
+                </span>
+                <span id="vault-lcd-lock" style="display:none;">TERKUNCI</span>
+              </div>
+
+              <!-- Error Alert Banner -->
+              <div id="login-error" class="glassy-alert-banner alert-danger" style="display:none;" role="alert">
+                <span class="alert-icon">&#9888;</span>
                 <span id="login-error-text"></span>
               </div>
 
-              <!-- TACTILE KEYPAD (1-9, CLR, 0, OPEN) -->
-              <div class="vault-keypad">
-                <button type="button" class="vault-key" onclick="handleVaultKey('1')">1</button>
-                <button type="button" class="vault-key" onclick="handleVaultKey('2')">2</button>
-                <button type="button" class="vault-key" onclick="handleVaultKey('3')">3</button>
+              <!-- Primary Sign In Button -->
+              <button type="submit" class="glassy-btn-primary" id="login-submit">
+                <span id="login-submit-text">Sign In</span>
+                <i class="fas fa-arrow-right" style="font-size:14px;margin-left:6px;"></i>
+                <span id="login-spinner" class="spinner-border spinner-border-sm" style="display:none;margin-left:8px;" role="status" aria-hidden="true">
+                  <i class="fas fa-circle-notch fa-spin"></i>
+                </span>
+              </button>
 
-                <button type="button" class="vault-key" onclick="handleVaultKey('4')">4</button>
-                <button type="button" class="vault-key" onclick="handleVaultKey('5')">5</button>
-                <button type="button" class="vault-key" onclick="handleVaultKey('6')">6</button>
+              <!-- Divider -->
+              <div class="glassy-divider">
+                <span>OR CONTINUE WITH</span>
+              </div>
 
-                <button type="button" class="vault-key" onclick="handleVaultKey('7')">7</button>
-                <button type="button" class="vault-key" onclick="handleVaultKey('8')">8</button>
-                <button type="button" class="vault-key" onclick="handleVaultKey('9')">9</button>
-
-                <button type="button" class="vault-key vault-key-clear" onclick="handleVaultClear()">CLR</button>
-                <button type="button" class="vault-key" onclick="handleVaultKey('0')">0</button>
-                <button type="submit" class="vault-key vault-key-open" id="login-submit">
-                  <span class="btn-text" id="login-submit-text">OPEN</span>
-                  <span class="spinner" id="login-spinner" style="display:none;" aria-hidden="true"></span>
+              <!-- Quick Action / Alternative Buttons (Google / Apple Style from Video) -->
+              <div class="glassy-alt-actions">
+                <button type="button" class="glassy-alt-btn" onclick="toggleGlassyView('pin')">
+                  <i class="fas fa-calculator" style="color:#22D3EE;"></i>
+                  <span>Mode PIN Kasir</span>
                 </button>
+                <button type="button" class="glassy-alt-btn" onclick="checkLiveServerPing()">
+                  <i class="fas fa-wifi" style="color:#34D399;"></i>
+                  <span>Cloud Live</span>
+                </button>
+              </div>
+
+              <!-- Footer Toggle -->
+              <div class="glassy-card-footer">
+                <span>Akses kasir kilat?</span>
+                <a href="#" class="glassy-link-cyan" onclick="toggleGlassyView('pin'); return false;">Mode PIN Kasir</a>
               </div>
             </form>
           </div>
-        </div>
 
-        <div class="vault-footer">
-          <small>&copy; Sistem POS Kasir &amp; Manajemen Stok Terintegrasi</small>
+          <!-- BACK FACE: TACTILE PIN KEYPAD (Flip Mode like Video Frame 00:02) -->
+          <div class="glassy-face glassy-face-back" id="glassy-face-back" style="display:none;">
+            <div class="glassy-card-header">
+              <h2 class="glassy-title">Mode PIN Kasir</h2>
+              <p class="glassy-subtitle">Ketik PIN numerik untuk akses kasir kilat</p>
+            </div>
+
+            <!-- PIN Masked Indicator -->
+            <div class="glassy-pin-display-box">
+              <div class="glassy-pin-dots" id="glassy-pin-dots">
+                <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
+                <span class="pin-dot"></span>
+              </div>
+            </div>
+
+            <!-- Tactile Keypad (1-9, CLR, 0, ENTER) -->
+            <div class="glassy-keypad-grid">
+              <button type="button" class="glassy-key" onclick="handleGlassyKey('1')">1</button>
+              <button type="button" class="glassy-key" onclick="handleGlassyKey('2')">2</button>
+              <button type="button" class="glassy-key" onclick="handleGlassyKey('3')">3</button>
+              <button type="button" class="glassy-key" onclick="handleGlassyKey('4')">4</button>
+              <button type="button" class="glassy-key" onclick="handleGlassyKey('5')">5</button>
+              <button type="button" class="glassy-key" onclick="handleGlassyKey('6')">6</button>
+              <button type="button" class="glassy-key" onclick="handleGlassyKey('7')">7</button>
+              <button type="button" class="glassy-key" onclick="handleGlassyKey('8')">8</button>
+              <button type="button" class="glassy-key" onclick="handleGlassyKey('9')">9</button>
+              <button type="button" class="glassy-key glassy-key-clear" onclick="handleGlassyClear()">CLR</button>
+              <button type="button" class="glassy-key" onclick="handleGlassyKey('0')">0</button>
+              <button type="button" class="glassy-key glassy-key-enter" onclick="submitGlassyPIN()">
+                <i class="fas fa-check"></i>
+              </button>
+            </div>
+
+            <div class="glassy-card-footer" style="margin-top:20px;">
+              <span>Sudah punya akun?</span>
+              <a href="#" class="glassy-link-cyan" onclick="toggleGlassyView('login'); return false;">Masuk dengan Password</a>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div class="glassy-footer-copy">
+        <small>&copy; 2026 POS Kasir &amp; Manajemen Stok Terintegrasi</small>
       </div>
     </div>
   </div>
@@ -1007,6 +1030,6 @@
   <!-- Multi-Language i18n Engine -->
   <script src="i18n.js?v=3.0"></script>
   <!-- Core Application Logic -->
-  <script src="app.js?v=11.0"></script>
+  <script src="app.js?v=11.1"></script>
 </body>
 </html>

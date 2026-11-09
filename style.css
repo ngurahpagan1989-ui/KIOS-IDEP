@@ -9081,3 +9081,121 @@ input[type="datetime-local"],
   box-shadow: 0 0 14px rgba(6, 182, 212, 0.3) !important;
   font-weight: 700 !important;
 }
+
+/* ==============================================================================
+   PANDUAN KASIR & DUKUNGAN MODAL (LOGIN SCREEN)
+   ============================================================================== */
+.glassy-alt-btn.glassy-btn-wa:hover {
+  border-color: rgba(37, 211, 102, 0.45) !important;
+  box-shadow: 0 0 16px rgba(37, 211, 102, 0.25) !important;
+  color: #4ADE80 !important;
+}
+
+.glassy-alt-btn.glassy-btn-guide:hover {
+  border-color: rgba(56, 189, 248, 0.45) !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25) !important;
+  color: #38BDF8 !important;
+}
+
+.login-guide-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(8, 13, 26, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+.login-guide-modal-card {
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-radius: 18px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(6, 182, 212, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.login-guide-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(22, 30, 46, 0.8);
+}
+
+.login-guide-modal-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #F8FAFC;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-guide-modal-close {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94A3B8;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.login-guide-modal-close:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #EF4444;
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.login-guide-modal-body {
+  padding: 18px 20px;
+  overflow-y: auto;
+  color: #CBD5E1;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.login-guide-item {
+  background: rgba(30, 41, 59, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.login-guide-item-title {
+  font-weight: 700;
+  color: #22D3EE;
+  font-size: 13px;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.login-guide-modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(22, 30, 46, 0.6);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

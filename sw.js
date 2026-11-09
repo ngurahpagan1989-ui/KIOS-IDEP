@@ -1,10 +1,10 @@
-const CACHE_NAME = 'pos-app-v13.0';
+const CACHE_NAME = 'pos-app-v13.1';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './style.css?v=13.0',
+  './style.css?v=13.1',
   './i18n.js?v=3.0',
-  './app.js?v=13.0',
+  './app.js?v=13.1',
   './supabaseClient.js?v=6.5',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
   './manifest.json',

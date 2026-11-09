@@ -22925,3 +22925,122 @@ window.handleRegisterSubmit = function (e) {
 
   return false;
 };
+
+// ==================== BANTUAN & PANDUAN KASIR (LOGIN SCREEN) ====================
+window.handleLoginWhatsAppSupport = function () {
+  if (window.VaultAudio && typeof window.VaultAudio.playClick === 'function') {
+    window.VaultAudio.playClick();
+  }
+
+  let phone = '';
+  try {
+    const raw = localStorage.getItem('ekasir_settings');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.store_phone) phone = String(parsed.store_phone).trim();
+    }
+  } catch (e) {}
+
+  if (!phone && typeof APP_SETTINGS !== 'undefined' && APP_SETTINGS && APP_SETTINGS.store_phone) {
+    phone = String(APP_SETTINGS.store_phone).trim();
+  }
+
+  let cleanPhone = phone.replace(/[^0-9]/g, '');
+  if (cleanPhone.startsWith('0')) {
+    cleanPhone = '62' + cleanPhone.slice(1);
+  } else if (!cleanPhone.startsWith('62') && cleanPhone.length > 8) {
+    cleanPhone = '62' + cleanPhone;
+  }
+
+  const msg = encodeURIComponent('Halo Admin/Owner, saya staf kasir butuh bantuan terkait akses masuk / kendala kredensial akun di aplikasi Kasir.');
+
+  if (cleanPhone && cleanPhone.length >= 10) {
+    window.open('https://wa.me/' + cleanPhone + '?text=' + msg, '_blank');
+  } else {
+    const inputPhone = prompt('Nomor WhatsApp Admin belum dikonfigurasi di Pengaturan Toko.\nSilakan masukkan nomor WhatsApp tujuan (contoh: 08123456789):');
+    if (inputPhone) {
+      let c = inputPhone.replace(/[^0-9]/g, '');
+      if (c.startsWith('0')) c = '62' + c.slice(1);
+      window.open('https://wa.me/' + c + '?text=' + msg, '_blank');
+    }
+  }
+};
+
+window.openLoginGuideModal = function () {
+  if (window.VaultAudio && typeof window.VaultAudio.playClick === 'function') {
+    window.VaultAudio.playClick();
+  }
+
+  let existing = document.getElementById('login-guide-modal-overlay');
+  if (existing) {
+    existing.style.display = 'flex';
+    return;
+  }
+
+  const modalHtml = 
+    '<div id="login-guide-modal-overlay" class="login-guide-modal-overlay" onclick="if(event.target===this) closeLoginGuideModal()">' +
+    '  <div class="login-guide-modal-card">' +
+    '    <div class="login-guide-modal-header">' +
+    '      <h3 class="login-guide-modal-title">' +
+    '        <i class="fas fa-book-open" style="color:#38BDF8;"></i>' +
+    '        <span>Panduan Singkat Kasir &amp; Akses Masuk</span>' +
+    '      </h3>' +
+    '      <button type="button" class="login-guide-modal-close" onclick="closeLoginGuideModal()" title="Tutup">✕</button>' +
+    '    </div>' +
+    '    <div class="login-guide-modal-body">' +
+    '      <div class="login-guide-item">' +
+    '        <div class="login-guide-item-title">' +
+    '          <i class="fas fa-key"></i> Kredensial &amp; Masuk Sistem' +
+    '        </div>' +
+    '        <div>Gunakan <strong>Username / Email</strong> dan <strong>Password</strong> yang telah didaftarkan oleh Administrator Toko. Anda juga dapat menggunakan <strong>Mode PIN Kasir</strong> untuk login cepat melalui layar sentuh tanpa mengetik panjang.</div>' +
+    '      </div>' +
+
+    '      <div class="login-guide-item">' +
+    '        <div class="login-guide-item-title">' +
+    '          <i class="fas fa-wifi"></i> Dukungan Offline-First (Tanpa Internet)' +
+    '        </div>' +
+    '        <div>Aplikasi kasir ini tetap dapat digunakan melayani transaksi penjualan saat internet toko sedang mati (offline). Semua struk transaksi otomatis tersimpan di penyimpanan lokal dan akan sinkron ke cloud saat koneksi internet pulih.</div>' +
+    '      </div>' +
+
+    '      <div class="login-guide-item">' +
+    '        <div class="login-guide-item-title">' +
+    '          <i class="fas fa-keyboard"></i> Pintasan Keyboard Kasir (Shortcuts)' +
+    '        </div>' +
+    '        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;font-size:12px;">' +
+    '          <div><kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;color:#22D3EE;">F2</kbd> : Cari Produk</div>' +
+    '          <div><kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;color:#22D3EE;">F4</kbd> : Bayar / Checkout</div>' +
+    '          <div><kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;color:#22D3EE;">F8</kbd> : Tahan (Hold) Nota</div>' +
+    '          <div><kbd style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;color:#22D3EE;">ESC</kbd> : Tutup Jendela</div>' +
+    '        </div>' +
+    '      </div>' +
+
+    '      <div class="login-guide-item" style="margin-bottom:0;">' +
+    '        <div class="login-guide-item-title">' +
+    '          <i class="fab fa-whatsapp" style="color:#25D366;"></i> Lupa Password / Bantuan Teknis' +
+    '        </div>' +
+    '        <div>Jika mengalami kendala akun terkunci atau lupa kata sandi, silakan klik tombol <strong>Bantuan WA</strong> untuk langsung menghubungi Admin / Pemilik Toko.</div>' +
+    '      </div>' +
+    '    </div>' +
+    '    <div class="login-guide-modal-footer">' +
+    '      <button type="button" class="btn btn-secondary btn-sm" onclick="handleLoginWhatsAppSupport()">' +
+    '        <i class="fab fa-whatsapp" style="color:#25D366;margin-right:6px;"></i> Chat Admin' +
+    '      </button>' +
+    '      <button type="button" class="btn btn-primary btn-sm" onclick="closeLoginGuideModal()" style="min-width:100px;">' +
+    '        Mengerti &amp; Tutup' +
+    '      </button>' +
+    '    </div>' +
+    '  </div>' +
+    '</div>';
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+};
+
+window.closeLoginGuideModal = function () {
+  if (window.VaultAudio && typeof window.VaultAudio.playClick === 'function') {
+    window.VaultAudio.playClick();
+  }
+  const el = document.getElementById('login-guide-modal-overlay');
+  if (el) {
+    el.style.display = 'none';
+  }
+};

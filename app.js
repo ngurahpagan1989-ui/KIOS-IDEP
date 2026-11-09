@@ -21990,7 +21990,7 @@ function buildCatalogPromoSettingsHTML(settings) {
   });
 
   return (
-    '<div class="card" style="margin-top:20px;border-top:3px solid var(--primary);">' +
+    '<div class="card" style="margin-top:20px;border-top:3px solid var(--primary);background:rgba(17,24,39,0.85);border:1px solid rgba(255,255,255,0.08);color:var(--text-main);box-shadow:0 4px 20px rgba(0,0,0,0.35);border-radius:var(--radius-md);padding:20px;">' +
     '  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +
     '    <div>' +
     '      <h3 style="margin-bottom:4px;display:flex;align-items:center;gap:8px;"><i class="fas fa-bullhorn" style="color:var(--primary);"></i> Manajemen Media Promosi &amp; Banner Katalog</h3>' +
@@ -22819,35 +22819,45 @@ window.switchGlassyView = function (targetView) {
 
   if (activeView === nextView) return;
 
-  // 2. Lock current card height to start morphing smoothly
+  // 2. Lock current card height to start smooth morph
   const currentHeight = card.offsetHeight;
   card.style.height = currentHeight + 'px';
   card.style.overflow = 'hidden';
 
-  // 3. Animate OUT active view
+  // 3. TRIGGER 3D FOLD-CLOSE ("Gerakan Menutup" - edge-on folding)
+  card.classList.remove('is-opening');
+  card.classList.add('is-closing');
   activeView.classList.remove('animate-in');
   activeView.classList.add('animate-out');
 
+  // 4. Halfway (220ms), card is rotated -90deg (completely shut/edge-on):
   setTimeout(function () {
     activeView.style.display = 'none';
     activeView.classList.remove('active-view', 'animate-out');
 
-    // 4. Measure target natural height
+    // Measure target natural height while edge-on
     nextView.style.visibility = 'hidden';
     nextView.style.display = 'block';
     nextView.style.position = 'relative';
 
     card.style.height = 'auto';
     const targetHeight = card.offsetHeight;
-    card.style.height = currentHeight + 'px'; // reset before transition
-    void card.offsetHeight; // force reflow
+    card.style.height = currentHeight + 'px'; // reset before height transition
+    void card.offsetHeight; // force browser reflow
 
-    // 5. Animate card height to targetHeight!
+    // Animate height to new target
     card.style.height = targetHeight + 'px';
 
-    // 6. Animate IN next view
+    // Show next view & TRIGGER 3D SPRING-OPEN ("Gerakan Membuka Kembali")
     nextView.style.visibility = 'visible';
     nextView.classList.add('active-view', 'animate-in');
+
+    card.classList.remove('is-closing');
+    card.classList.add('is-opening');
+
+    if (window.VaultAudio && typeof window.VaultAudio.playClank === 'function') {
+      window.VaultAudio.playClank();
+    }
 
     if (targetView === 'pin') {
       setVaultActiveInput('login-password');
@@ -22858,13 +22868,14 @@ window.switchGlassyView = function (targetView) {
       if (userInp) userInp.focus();
     }
 
-    // After animation finishes, release fixed height for responsiveness
+    // 5. When opening animation completes, release fixed height & cleanup classes
     setTimeout(function () {
       card.style.height = 'auto';
       card.style.overflow = 'visible';
+      card.classList.remove('is-opening');
       nextView.classList.remove('animate-in');
-    }, 450);
-  }, 160);
+    }, 420);
+  }, 220);
 };
 
 // Aliases for compatibility

@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=13.1">
+  <link rel="stylesheet" href="style.css?v=13.2">
   <style>
     /* Critical Inline Dark Cyber Overrides (Prevents Flash & Browser UA Light Inputs) */
     html, body {
@@ -139,14 +139,14 @@
         <!-- VIEW 1: SIGN IN (Welcome Back) - Active View -->
         <div class="glassy-view active-view" id="glassy-view-login">
           <div class="glassy-card-header">
-            <h2 class="glassy-title">Welcome Back</h2>
-            <p class="glassy-subtitle">Enter your credentials to access your secure account</p>
+            <h2 class="glassy-title">Selamat Datang Kembali</h2>
+            <p class="glassy-subtitle">Masukkan nama pengguna dan kata sandi untuk mengakses terminal kasir</p>
           </div>
 
           <form id="login-form" novalidate onsubmit="return handleLogin(event);">
             <!-- Email / Username -->
             <div class="glassy-field-group">
-              <label class="glassy-field-label" for="login-username">Email Address</label>
+              <label class="glassy-field-label" for="login-username">Nama Pengguna / Email</label>
               <div class="glassy-input-wrap">
                 <span class="glassy-input-icon"><i class="far fa-envelope"></i></span>
                 <input type="text" id="login-username" name="username" placeholder="name@domain.com" required autocomplete="username" autofocus onfocus="setVaultActiveInput('login-username')" style="color-scheme:dark;">
@@ -156,7 +156,7 @@
             <!-- Password -->
             <div class="glassy-field-group">
               <div class="glassy-label-row">
-                <label class="glassy-field-label" for="login-password">Password</label>
+                <label class="glassy-field-label" for="login-password">Kata Sandi</label>
                 <a href="#" class="glassy-text-link" onclick="switchGlassyView('pin'); return false;">Forgot password?</a>
               </div>
               <div class="glassy-input-wrap">
@@ -189,7 +189,7 @@
 
             <!-- Submit Button (Sign In ->) -->
             <button type="submit" class="glassy-btn-primary" id="login-submit">
-              <span id="login-submit-text">Sign In</span>
+              <span id="login-submit-text">Masuk ke Sistem</span>
               <i class="fas fa-arrow-right" style="font-size:14px;margin-left:6px;"></i>
               <span id="login-spinner" class="spinner-border spinner-border-sm" style="display:none;margin-left:8px;" role="status" aria-hidden="true">
                 <i class="fas fa-circle-notch fa-spin"></i>
@@ -214,96 +214,13 @@
             </div>
 
             <!-- Footer: Switch to Sign Up (Create Account) -->
-            <div class="glassy-card-footer">
-              <span>Belum punya akun?</span> <a href="#" class="glassy-link-cyan" onclick="switchGlassyView('register'); return false;">Daftar Akun</a> &bull; <a href="#" class="glassy-link-cyan" onclick="switchGlassyView('pin'); return false;">Mode PIN 🔢</a>
+            <div class="glassy-card-footer" style="margin-top:16px;">
+              <a href="#" class="glassy-link-cyan" onclick="switchGlassyView('pin'); return false;">Masuk Cepat via Mode PIN Kasir 🔢</a>
             </div>
           </form>
         </div>
 
-        <!-- VIEW 2: SIGN UP (Create Account - EXACT MATCH VIDEO FRAME 00:02) -->
-        <div class="glassy-view" id="glassy-view-register" style="display:none;">
-          <div class="glassy-card-header">
-            <h2 class="glassy-title">Create Account</h2>
-            <p class="glassy-subtitle">Join us today to access your secure workspace</p>
-          </div>
-
-          <form id="register-form" novalidate onsubmit="return handleRegisterSubmit(event);">
-            <!-- Full Name -->
-            <div class="glassy-field-group">
-              <label class="glassy-field-label" for="reg-fullname">Full Name</label>
-              <div class="glassy-input-wrap">
-                <span class="glassy-input-icon"><i class="far fa-user"></i></span>
-                <input type="text" id="reg-fullname" placeholder="John Doe" required style="color-scheme:dark;">
-              </div>
-            </div>
-
-            <!-- Email Address -->
-            <div class="glassy-field-group">
-              <label class="glassy-field-label" for="reg-email">Email Address</label>
-              <div class="glassy-input-wrap">
-                <span class="glassy-input-icon"><i class="far fa-envelope"></i></span>
-                <input type="email" id="reg-email" placeholder="name@domain.com" required style="color-scheme:dark;">
-              </div>
-            </div>
-
-            <!-- Password & Confirm Password Row -->
-            <div class="glassy-field-row-grid">
-              <div class="glassy-field-group" style="margin-bottom:0;">
-                <label class="glassy-field-label" for="reg-password">Password</label>
-                <div class="glassy-input-wrap">
-                  <span class="glassy-input-icon"><i class="fas fa-lock"></i></span>
-                  <input type="password" id="reg-password" placeholder="••••••••••••" required style="color-scheme:dark;">
-                </div>
-              </div>
-              <div class="glassy-field-group" style="margin-bottom:0;">
-                <label class="glassy-field-label" for="reg-password-confirm">Confirm Password</label>
-                <div class="glassy-input-wrap">
-                  <span class="glassy-input-icon"><i class="fas fa-lock"></i></span>
-                  <input type="password" id="reg-password-confirm" placeholder="••••••••••••" required style="color-scheme:dark;">
-                </div>
-              </div>
-            </div>
-
-            <!-- Terms Checkbox -->
-            <div class="glassy-options-row" style="margin-top:16px;margin-bottom:20px;">
-              <label class="glassy-checkbox-label">
-                <input type="checkbox" id="reg-terms" checked required>
-                <span class="glassy-custom-check"></span>
-                <span class="glassy-check-text">I agree to the Terms &amp; Privacy Policy</span>
-              </label>
-            </div>
-
-            <!-- Create Account Button -->
-            <button type="submit" class="glassy-btn-primary" id="reg-submit">
-              <span>Create Account</span>
-              <i class="fas fa-arrow-right" style="font-size:14px;margin-left:6px;"></i>
-            </button>
-
-            <!-- Divider -->
-            <div class="glassy-divider">
-              <span>BANTUAN &amp; DUKUNGAN KASIR</span>
-            </div>
-
-            <!-- Support / Help Buttons (WhatsApp & Panduan Kasir) -->
-            <div class="glassy-alt-actions">
-              <button type="button" class="glassy-alt-btn glassy-btn-wa" onclick="handleLoginWhatsAppSupport()" title="Hubungi Admin via WhatsApp">
-                <i class="fab fa-whatsapp" style="font-size:18px;color:#25D366;"></i>
-                <span>Bantuan WA</span>
-              </button>
-              <button type="button" class="glassy-alt-btn glassy-btn-guide" onclick="openLoginGuideModal()" title="Buka Panduan Singkat Kasir">
-                <i class="fas fa-book-open" style="font-size:16px;color:#38BDF8;"></i>
-                <span>Panduan Kasir</span>
-              </button>
-            </div>
-
-            <!-- Footer: Switch back to Sign In -->
-            <div class="glassy-card-footer">
-              <span>Sudah punya akun?</span> <a href="#" class="glassy-link-cyan" onclick="switchGlassyView('login'); return false;">Masuk ke Sistem</a>
-            </div>
-          </form>
-        </div>
-
-        <!-- VIEW 3: MODE PIN KASIR (Tactile Numeric Keypad) -->
+        <!-- VIEW 2: MODE PIN KASIR (Tactile Numeric Keypad) -->
         <div class="glassy-view" id="glassy-view-pin" style="display:none;">
           <div class="glassy-card-header">
             <h2 class="glassy-title">Mode PIN Kasir</h2>
@@ -341,8 +258,7 @@
           </div>
 
           <div class="glassy-card-footer" style="margin-top:20px;">
-            <span>Kembali ke form masuk?</span>
-            <a href="#" class="glassy-link-cyan" onclick="switchGlassyView('login'); return false;">Sign In</a>
+            <a href="#" class="glassy-link-cyan" onclick="switchGlassyView('login'); return false;">Kembali ke Login Nama Pengguna &amp; Kata Sandi</a>
           </div>
         </div>
       </div>
@@ -1116,8 +1032,8 @@
   <!-- Supabase Client Adapter & API Bridge -->
   <script src="supabaseClient.js?v=6.5"></script>
   <!-- Multi-Language i18n Engine -->
-  <script src="i18n.js?v=3.0"></script>
+  <script src="i18n.js?v=3.1"></script>
   <!-- Core Application Logic -->
-  <script src="app.js?v=13.1"></script>
+  <script src="app.js?v=13.2"></script>
 </body>
 </html>

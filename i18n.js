@@ -26,6 +26,22 @@
   // COMPREHENSIVE TRANSLATION DICTIONARY (ID -> EN)
   // ===========================================================================
   var DICTIONARY = {
+    'Selamat Datang Kembali': 'Welcome Back',
+    'Masukkan nama pengguna dan kata sandi untuk mengakses terminal kasir': 'Enter your username and password to access the cashier terminal',
+    'Nama Pengguna / Email': 'Username / Email',
+    'Kata Sandi': 'Password',
+    'Ingat Saya': 'Remember Me',
+    'Masuk ke Sistem': 'Sign In',
+    'BANTUAN & DUKUNGAN KASIR': 'CASHIER HELP & SUPPORT',
+    'Bantuan WA': 'WhatsApp Help',
+    'Panduan Kasir': 'Cashier Guide',
+    'Masuk Cepat via Mode PIN Kasir 🔢': 'Quick Login via Cashier PIN 🔢',
+    'Mode PIN Kasir': 'Cashier PIN Mode',
+    'Ketik PIN numerik untuk akses kasir kilat': 'Enter numeric PIN for quick cashier access',
+    'Kembali ke Login Nama Pengguna & Kata Sandi': 'Back to Username & Password Login',
+    'Hubungi Admin via WhatsApp': 'Contact Admin via WhatsApp',
+    'Buka Panduan Singkat Kasir': 'Open Cashier Quick Guide',
+    'Panduan Singkat Kasir & Akses Masuk': 'Cashier Quick Guide & System Access',
     '-- Belum ada supplier, klik "+ Baru" --': '-- No suppliers yet, click "+ New" --',
     '-- Pilih Bahan Baku Curah --': '-- Select Bulk Raw Material --',
     '-- Pilih Bahan Baku Dulu --': '-- Select Raw Material First --',
@@ -2133,7 +2149,7 @@
     document.documentElement.lang = currentLang;
 
     // Update all .lang-btn elements
-    document.querySelectorAll('.lang-btn').forEach(function (btn) {
+    document.querySelectorAll('.lang-btn, .glassy-lang-btn').forEach(function (btn) {
       var lang = btn.getAttribute('data-lang');
       if (lang === currentLang) {
         btn.classList.add('active');

@@ -22797,10 +22797,9 @@ window.startOnlineOrdersPolling = startOnlineOrdersPolling;
 window.switchGlassyView = function (targetView) {
   const card = document.getElementById('vault-door-card');
   const viewLogin = document.getElementById('glassy-view-login');
-  const viewRegister = document.getElementById('glassy-view-register');
   const viewPin = document.getElementById('glassy-view-pin');
 
-  if (!card || !viewLogin || !viewRegister) return;
+  if (!card || !viewLogin || !viewPin) return;
 
   if (window.VaultAudio && typeof window.VaultAudio.playClick === 'function') {
     window.VaultAudio.playClick();
@@ -22809,14 +22808,10 @@ window.switchGlassyView = function (targetView) {
   // 1. Identify active view
   let activeView = null;
   if (viewLogin.style.display !== 'none' && viewLogin.classList.contains('active-view')) activeView = viewLogin;
-  else if (viewRegister.style.display !== 'none' && viewRegister.classList.contains('active-view')) activeView = viewRegister;
-  else if (viewPin && viewPin.style.display !== 'none' && viewPin.classList.contains('active-view')) activeView = viewPin;
+  else if (viewPin.style.display !== 'none' && viewPin.classList.contains('active-view')) activeView = viewPin;
   else activeView = viewLogin;
 
-  let nextView = viewLogin;
-  if (targetView === 'register') nextView = viewRegister;
-  else if (targetView === 'pin' && viewPin) nextView = viewPin;
-
+  let nextView = targetView === 'pin' ? viewPin : viewLogin;
   if (activeView === nextView) return;
 
   // 2. Lock current card height to start smooth morph
@@ -22842,7 +22837,7 @@ window.switchGlassyView = function (targetView) {
 
     card.style.height = 'auto';
     const targetHeight = card.offsetHeight;
-    card.style.height = currentHeight + 'px'; // reset before height transition
+    card.style.height = currentHeight + 'px';
     void card.offsetHeight; // force browser reflow
 
     // Animate height to new target
@@ -22862,7 +22857,7 @@ window.switchGlassyView = function (targetView) {
     if (targetView === 'pin') {
       setVaultActiveInput('login-password');
       updateGlassyPinDots();
-    } else if (targetView === 'login') {
+    } else {
       setVaultActiveInput('login-username');
       const userInp = document.getElementById('login-username');
       if (userInp) userInp.focus();

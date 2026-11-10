@@ -568,11 +568,11 @@ function cleanProductCodeForBatch(nameOrCode) {
 window.cleanProductCodeForBatch = cleanProductCodeForBatch;
 
 /**
- * Ekstraksi Tahun-Bulan (YYMM) kadaluarsa untuk rotasi FIFO benih
+ * Ekstraksi Tahun-Bulan (YYMM) dari tanggal produksi/kadaluarsa
  */
-function extractYYMMClient(expiryDate) {
-  if (expiryDate) {
-    const parts = String(expiryDate).trim().split(/[-/]/);
+function extractYYMMClient(dateVal) {
+  if (dateVal) {
+    const parts = String(dateVal).trim().split(/[-/]/);
     if (parts.length >= 2) {
       if (parts[0].length === 4) {
         return parts[0].slice(2, 4) + String(parts[1]).padStart(2, '0');
@@ -581,10 +581,10 @@ function extractYYMMClient(expiryDate) {
       }
     }
   }
-  const future = new Date();
-  future.setFullYear(future.getFullYear() + 1);
-  const yy = String(future.getFullYear()).slice(2, 4);
-  const mm = String(future.getMonth() + 1).padStart(2, '0');
+  // Default jika kosong: gunakan BULAN & TAHUN HARI INI (bukan tahun depan)
+  const today = new Date();
+  const yy = String(today.getFullYear()).slice(2, 4);
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
   return yy + mm;
 }
 window.extractYYMMClient = extractYYMMClient;
@@ -5314,18 +5314,19 @@ function openBatchDetailModal(productId, productName) {
       const farmerText = escapeHtml(b.farmer_name || 'Mitra Penangkaran');
 
       return '<tr style="' + (isDepleted ? 'opacity:0.65;' : '') + '">' +
-        '<td>' + priorityBadge + '</td>' +
-        '<td><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--text-primary);font-size:12.5px;">' + escapeHtml(b.batch_code || b.id) + '</strong></td>' +
-        '<td><div style="font-size:11.5px;color:var(--text-secondary);">' + farmerText + '</div>' + qcBadge + '</td>' +
-        '<td style="font-size:12px;">' + prodDateStr + '</td>' +
-        '<td>' +
+        '<td style="white-space:nowrap;">' + priorityBadge + '</td>' +
+        '<td style="white-space:nowrap;"><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--text-primary);font-size:12.5px;white-space:nowrap;">' + escapeHtml(b.batch_code || b.id) + '</strong></td>' +
+        '<td style="white-space:nowrap;"><div style="font-size:11.5px;color:var(--text-secondary);">' + farmerText + '</div>' + qcBadge + '</td>' +
+        '<td style="font-size:12px;white-space:nowrap;">' + prodDateStr + '</td>' +
+        '<td style="white-space:nowrap;">' +
         '<div style="font-size:12px;font-family:\'JetBrains Mono\',monospace;"><strong>' + qtyRem.toLocaleString('id-ID') + '</strong> / ' + qtyIn.toLocaleString('id-ID') + ' ' + unitText + '</div>' +
         '<div class="fifo-progress-track"><div class="fifo-progress-fill" style="width:' + pct + '%;' + (pct <= 20 ? 'background:#ef4444;' : '') + '"></div></div>' +
         '</td>' +
-        '<td><strong style="color:var(--text-primary);font-family:\'JetBrains Mono\',monospace;font-size:12px;">' + formatRupiah(b.cost_per_unit || b.buy_price) + '</strong></td>' +
-        '<td>' + expiryBadge + '</td>' +
-        '<td style="text-align:center;">' +
-        '<button type="button" class="btn btn-secondary btn-sm" onclick="openStockAdjustmentModal(\'' + productId + '\', \'' + b.id + '\')" title="Koreksi stok batch ini" style="font-size:11px;padding:3px 8px;"><i class="fas fa-scale-balanced"></i> Koreksi</button>' +
+        '<td style="white-space:nowrap;"><strong style="color:var(--text-primary);font-family:\'JetBrains Mono\',monospace;font-size:12px;">' + formatRupiah(b.cost_per_unit || b.buy_price) + '</strong></td>' +
+        '<td style="white-space:nowrap;">' + expiryBadge + '</td>' +
+        '<td style="text-align:center;white-space:nowrap;">' +
+        '<button type="button" class="btn btn-secondary btn-sm" onclick="openStockAdjustmentModal(\'' + productId + '\', \'' + b.id + '\')" title="Koreksi stok batch ini" style="font-size:11px;padding:3px 8px;margin-right:4px;"><i class="fas fa-scale-balanced"></i> Koreksi</button>' +
+        '<button type="button" class="btn btn-secondary btn-sm" onclick="promptEditBatchCode(\'' + b.id + '\', \'' + escapeHtml(b.batch_code || b.id) + '\', \'' + productId + '\', \'' + escapeHtml(productName) + '\')" title="Ubah kode batch" style="font-size:11px;padding:3px 8px;"><i class="fas fa-edit"></i> Ubah Kode</button>' +
         '</td>' +
         '</tr>';
     }).join('');
@@ -5363,18 +5364,18 @@ function openBatchDetailModal(productId, productName) {
       summaryHTML +
       '<div style="margin-bottom:20px;">' +
       '<h4 style="margin:0 0 10px;font-size:14px;font-weight:700;"><i class="fas fa-layer-group" style="color:var(--primary);margin-right:6px;"></i> Antrean Lot Batch FIFO Aktif &amp; Riwayat Lot</h4>' +
-      '<div class="table-container" style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
-      '<table>' +
+      '<div class="table-container" style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:14px;">' +
+      '<table style="width:100%;min-width:980px;border-collapse:collapse;">' +
       '<thead>' +
       '<tr>' +
-      '<th style="width:140px;">Prioritas FIFO</th>' +
-      '<th>Kode Batch / Lot</th>' +
-      '<th style="width:150px;">Penangkar / Mutu</th>' +
-      '<th style="width:110px;">Tgl Produksi</th>' +
-      '<th style="width:130px;">Sisa / Awal</th>' +
-      '<th style="width:110px;">HPP Satuan</th>' +
-      '<th style="width:140px;">Kedaluwarsa</th>' +
-      '<th style="width:90px;text-align:center;">Aksi</th>' +
+      '<th style="width:130px;white-space:nowrap;">Prioritas FIFO</th>' +
+      '<th style="width:180px;white-space:nowrap;">Kode Batch / Lot</th>' +
+      '<th style="width:140px;white-space:nowrap;">Penangkar / Mutu</th>' +
+      '<th style="width:110px;white-space:nowrap;">Tgl Produksi</th>' +
+      '<th style="width:130px;white-space:nowrap;">Sisa / Awal</th>' +
+      '<th style="width:110px;white-space:nowrap;">HPP Satuan</th>' +
+      '<th style="width:130px;white-space:nowrap;">Kedaluwarsa</th>' +
+      '<th style="width:160px;text-align:center;white-space:nowrap;">Aksi</th>' +
       '</tr>' +
       '</thead>' +
       '<tbody>' +
@@ -5390,7 +5391,7 @@ function openBatchDetailModal(productId, productName) {
       '<span style="font-size:11.5px;color:var(--text-secondary);">Mencakup Penjualan Kasir, Produksi Kemas, Pembelian &amp; Opname</span>' +
       '</div>' +
       '<div class="table-container" style="max-height:360px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
-      '<table>' +
+      '<table style="width:100%;min-width:850px;border-collapse:collapse;">' +
       '<thead>' +
       '<tr>' +
       '<th style="width:140px;">Tanggal &amp; Waktu</th>' +
@@ -5411,11 +5412,32 @@ function openBatchDetailModal(productId, productName) {
       '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>';
 
     openModal('📋 Rincian Antrean Batch FIFO: ' + escapeHtml(productName), bodyHtml, footerHtml, true);
+    const dialog = document.getElementById('modal-dialog');
+    if (dialog) {
+      dialog.classList.add('modal-dialog-xl');
+    }
   }).catch(function (err) {
     showToast('Gagal memuat batch: ' + (err.message || err), true);
   });
 }
 window.openBatchDetailModal = openBatchDetailModal;
+
+function promptEditBatchCode(batchId, currentCode, productId, productName) {
+  const newCode = prompt('Ubah Kode Batch / Lot untuk ' + (productName || 'varietas ini') + ':', currentCode);
+  if (!newCode || newCode.trim() === '' || newCode.trim() === currentCode) {
+    return;
+  }
+  const cleanNewCode = newCode.trim().toUpperCase();
+  api('updateStockBatchCode', TOKEN, batchId, cleanNewCode).then(function () {
+    invalidateCache('batches');
+    invalidateCache('products');
+    showToast('Kode batch berhasil diubah menjadi: ' + cleanNewCode);
+    openBatchDetailModal(productId, productName);
+  }).catch(function (err) {
+    showToast('Gagal mengubah kode batch: ' + (err.message || err), true);
+  });
+}
+window.promptEditBatchCode = promptEditBatchCode;
 
 function openStockAdjustmentModal(defaultProductId, defaultBatchId) {
   const prodOptions = _STOK_PRODUCTS.map(function (p) {
@@ -5662,20 +5684,19 @@ function generateAdjustmentBatchCode() {
   if (!codeInput) return;
 
   let prodTerm = 'BENIH';
+  let prodId = '';
   if (pSelect && pSelect.selectedIndex >= 0) {
+    prodId = pSelect.value;
     prodTerm = pSelect.options[pSelect.selectedIndex].text || '';
   }
 
+  const prodDateInput = document.getElementById('adj-new-prod-date');
+  const prodDateVal = prodDateInput ? prodDateInput.value : '';
   const expInput = document.getElementById('adj-new-exp-date');
   const expVal = expInput ? expInput.value : '';
-  const yymm = typeof extractYYMMClient === 'function' ? extractYYMMClient(expVal) : (function () {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() + 1);
-    return String(d.getFullYear()).slice(-2) + String(d.getMonth() + 1).padStart(2, '0');
-  })();
-  const prodCode = typeof cleanProductCodeForBatch === 'function' ? cleanProductCodeForBatch(prodTerm) : 'BENIH';
+  const seqNum = typeof getNextBatchSequenceForProduct === 'function' ? getNextBatchSequenceForProduct(prodId, prodTerm, null) : 1;
 
-  codeInput.value = 'BATCH-' + prodCode + '-' + yymm + '-001';
+  codeInput.value = generateClientBatchCode(prodTerm, prodDateVal, seqNum, prodId, { expiryDate: expVal });
 }
 window.generateAdjustmentBatchCode = generateAdjustmentBatchCode;
 
@@ -7526,6 +7547,17 @@ function openPurchaseModal() {
   renderFarmerOptions();
   addPurchaseItemRow();
 
+  // Pre-load batches agar urutan batch otomatis per produk selalu akurat sesuai database
+  api('getStockBatches', TOKEN).then(function (batches) {
+    if (Array.isArray(batches)) {
+      setCachedData('batches', batches);
+      _STOK_BATCHES = batches;
+      renumberPurchaseBatchSequences();
+    }
+  }).catch(function (e) {
+    console.warn('Preload batches untuk sequence pembelian:', e);
+  });
+
   const farmerEl = document.getElementById('purchase-farmer') || document.getElementById('pur-farmer');
   if (farmerEl) {
     farmerEl.addEventListener('change', function () {
@@ -7763,7 +7795,7 @@ function addPurchaseItemRow() {
     '<input type="text" class="pur-item-hpp-display" readonly value="Rp 0" data-value="0" title="HPP Final / Pcs = Harga Beli + Biaya Ekstra" style="width:100%;padding:6px 6px;font-size:12px;font-weight:700;color:#166534;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-xs);cursor:default;text-align:right;">' +
     '</td>' +
     '<td>' +
-    '<input type="date" class="pi-prod-date pur-item-prod-date" value="' + todayStr + '" style="width:100%;padding:6px 4px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '<input type="date" class="pi-prod-date pur-item-prod-date" value="' + todayStr + '" onchange="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" oninput="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" style="width:100%;padding:6px 4px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
     '</td>' +
     '<td class="pr-4">' +
     '<input type="date" class="pi-expiry pur-item-expiry" onchange="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" oninput="autoFillPurchaseRowBatch(this.closest(\'.price-tier-row\'), false)" style="width:100%;padding:6px 4px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
@@ -7800,23 +7832,58 @@ function cleanFarmerInitialClient(farmerName) {
   return code + '01';
 }
 
-function extractYYMMClient(expiryDate) {
-  if (expiryDate) {
-    const parts = String(expiryDate).trim().split(/[-/]/);
-    if (parts.length >= 2) {
-      if (parts[0].length === 4) {
-        return parts[0].slice(2, 4) + String(parts[1]).padStart(2, '0');
-      } else if (parts.length >= 3 && parts[2].length === 4) {
-        return parts[2].slice(2, 4) + String(parts[1]).padStart(2, '0');
+function getNextBatchSequenceForProduct(productId, productTerm, currentRow) {
+  let maxSeq = 0;
+  let countExisting = 0;
+
+  // 1. Periksa riwayat batch yang tersimpan di cache (_STOK_BATCHES atau DATA_CACHE.batches)
+  const allBatches = (Array.isArray(_STOK_BATCHES) && _STOK_BATCHES.length > 0)
+    ? _STOK_BATCHES
+    : ((DATA_CACHE && DATA_CACHE.batches && Array.isArray(DATA_CACHE.batches.data)) ? DATA_CACHE.batches.data : []);
+
+  const pCodeClean = cleanProductCodeForBatch(productTerm || '');
+
+  allBatches.forEach(function (b) {
+    if (!b) return;
+    const isSameProduct = (productId && String(b.product_id) === String(productId));
+    const bCode = String(b.batch_code || b.batch_no || '');
+    const isMatchingCode = pCodeClean && bCode.toUpperCase().includes('BATCH-' + pCodeClean);
+
+    if (isSameProduct || isMatchingCode) {
+      countExisting++;
+      // Ekstrak angka urut di paling akhir string (misal: BATCH-ARG-2805-001 -> 1)
+      const match = bCode.match(/-(\d{1,4})$/);
+      if (match) {
+        const seqNum = parseInt(match[1], 10);
+        if (!isNaN(seqNum) && seqNum > maxSeq) {
+          maxSeq = seqNum;
+        }
+      }
+    }
+  });
+
+  let nextSeq = Math.max(maxSeq, countExisting);
+
+  // 2. Tambahkan hitungan jika ada baris barang sebelumnya di tabel pembelian saat ini dengan produk yang sama
+  if (currentRow && currentRow.parentNode) {
+    const allRows = Array.from(currentRow.parentNode.querySelectorAll('.price-tier-row'));
+    const curIdx = allRows.indexOf(currentRow);
+    for (let i = 0; i < curIdx; i++) {
+      const prevRow = allRows[i];
+      const prevProdSelect = prevRow.querySelector('.pi-product, .pur-item-product');
+      if (prevProdSelect) {
+        const pVal = String(prevProdSelect.value || '');
+        const pTxt = prevProdSelect.selectedIndex >= 0 ? prevProdSelect.options[prevProdSelect.selectedIndex].text : '';
+        if ((productId && pVal === String(productId)) || (productTerm && pTxt.toLowerCase().includes(String(productTerm).toLowerCase()))) {
+          nextSeq++;
+        }
       }
     }
   }
-  const future = new Date();
-  future.setFullYear(future.getFullYear() + 1);
-  const yy = String(future.getFullYear()).slice(2, 4);
-  const mm = String(future.getMonth() + 1).padStart(2, '0');
-  return yy + mm;
+
+  return nextSeq + 1;
 }
+window.getNextBatchSequenceForProduct = getNextBatchSequenceForProduct;
 
 function flashInputHighlight(inputEl) {
   if (!inputEl) return;
@@ -7843,7 +7910,7 @@ function renumberPurchaseBatchSequences() {
   });
 }
 
-function generateClientBatchCode(productOrFarmer, expiryDate, itemIndex, extraProduct) {
+function generateClientBatchCode(productOrFarmer, prodDateOrExpiry, itemIndex, extraProduct, options) {
   let template = (APP_SETTINGS && (APP_SETTINGS['batch_format_template'] || APP_SETTINGS['batch_format'])) || 'BATCH-{CODE}-{YYMM}-{SEQ}';
 
   // Jika masih memakai template lama dengan {FARMER}, otomatis alihkan ke format standar {CODE}
@@ -7876,10 +7943,14 @@ function generateClientBatchCode(productOrFarmer, expiryDate, itemIndex, extraPr
     productCode = 'BENIH';
   }
 
-  // 2. Token {YYMM}
-  const yymm = typeof extractYYMMClient === 'function' ? extractYYMMClient(expiryDate) : '2611';
+  // 2. Token {YYMM} dari Tanggal Produksi benih (Tahun-Bulan produksi riil, e.g. 2605, 2608, 2611)
+  const yymm = typeof extractYYMMClient === 'function' ? extractYYMMClient(prodDateOrExpiry) : '2611';
 
-  // 3. Token {SEQ} (3-digit urut: 001, 002, dst)
+  // Opsi token kedaluwarsa {EXP_YYMM} jika ada template yang membutuhkan
+  const expDateVal = (options && options.expiryDate) ? options.expiryDate : null;
+  const expYymm = expDateVal && typeof extractYYMMClient === 'function' ? extractYYMMClient(expDateVal) : yymm;
+
+  // 3. Token {SEQ} (3-digit urut dinamis: 001, 002, 003, dst)
   const seqNum = Number(itemIndex) || 1;
   const seq3 = String(seqNum).padStart(3, '0');
   const seq2 = String(seqNum).padStart(2, '0');
@@ -7897,6 +7968,8 @@ function generateClientBatchCode(productOrFarmer, expiryDate, itemIndex, extraPr
     .replace(/\{PROD\}/g, productCode)
     .replace(/\{FARMER\}/g, productCode)
     .replace(/\{YYMM\}/g, yymm)
+    .replace(/\{PROD_YYMM\}/g, yymm)
+    .replace(/\{EXP_YYMM\}/g, expYymm)
     .replace(/\{SEQ\}/g, seq3)
     .replace(/\{SEQ2\}/g, seq2)
     .replace(/\{RAND4\}/g, rand4)
@@ -7922,10 +7995,11 @@ function autoFillPurchaseRowBatch(row, forceNewRandom) {
 
   const prodSelect = row.querySelector('.pi-product, .pur-item-product');
   let productTerm = '';
+  let productId = '';
   if (prodSelect) {
-    const prodId = prodSelect.value;
+    productId = prodSelect.value;
     const allProds = (DATA_CACHE && DATA_CACHE.products && DATA_CACHE.products.data) || PRODUCTS_CACHE || [];
-    const prodObj = allProds.find(function (p) { return p && String(p.id) === String(prodId); });
+    const prodObj = allProds.find(function (p) { return p && String(p.id) === String(productId); });
     if (prodObj) {
       productTerm = prodObj.code || prodObj.name;
     } else if (prodSelect.selectedIndex >= 0) {
@@ -7933,10 +8007,15 @@ function autoFillPurchaseRowBatch(row, forceNewRandom) {
     }
   }
 
+  // Gunakan Tanggal Produksi sebagai sumber YYMM kode batch
+  const prodDateInput = row.querySelector('.pi-prod-date, .pur-item-prod-date');
+  const prodDate = prodDateInput ? prodDateInput.value.trim() : '';
   const expiry = (row.querySelector('.pi-expiry') ? row.querySelector('.pi-expiry').value : '').trim();
-  const itemIndex = getPurchaseRowIndex(row);
 
-  const batchCode = generateClientBatchCode(productTerm, expiry, itemIndex);
+  // Hitung nomor urut berikutnya secara dinamis berdasarkan database & riwayat batch produk ini
+  const seqNum = getNextBatchSequenceForProduct(productId, productTerm, row);
+
+  const batchCode = generateClientBatchCode(productTerm, prodDate, seqNum, productId, { expiryDate: expiry });
   lotInput.value = batchCode;
   flashInputHighlight(lotInput);
 
@@ -7949,7 +8028,7 @@ function regenerateBatchRow(btn) {
   const row = btn.closest('.price-tier-row');
   if (row) {
     autoFillPurchaseRowBatch(row, true);
-    showToast('Token acak batch berhasil di-generate ulang.');
+    showToast('Kode batch berhasil di-generate ulang.');
   }
 }
 
@@ -8246,25 +8325,25 @@ function submitPurchase() {
 
   const rows = Array.from(document.querySelectorAll('#pur-items .price-tier-row'));
 
-  // Validasi pengaman: jika ada baris item dengan kolom .pi-lot masih kosong, jalankan generateClientBatchCode
-  rows.forEach(function (row, idx) {
+  // Validasi pengaman: jika ada baris item dengan kolom .pi-lot masih kosong, jalankan autoFillPurchaseRowBatch
+  rows.forEach(function (row) {
     const lotInput = row.querySelector('.pi-lot');
     if (lotInput && !lotInput.value.trim()) {
-      const prodSelect = row.querySelector('.pi-product, .pur-item-product');
-      const prodId = prodSelect ? prodSelect.value : '';
-      const expVal = row.querySelector('.pi-expiry') ? row.querySelector('.pi-expiry').value : '';
-      lotInput.value = generateClientBatchCode(prodId, expVal, idx + 1);
+      autoFillPurchaseRowBatch(row, true);
     }
   });
 
-  const items = rows.map(function (row, idx) {
+  const items = rows.map(function (row) {
     const prodDateVal = row.querySelector('.pi-prod-date') ? row.querySelector('.pi-prod-date').value : '';
     const lotInput = row.querySelector('.pi-lot');
     const prodId = row.querySelector('.pi-product').value;
     let batchNo = lotInput ? lotInput.value.trim() : '';
     if (!batchNo) {
+      const prodSelect = row.querySelector('.pi-product, .pur-item-product');
+      const prodText = prodSelect ? (prodSelect.options[prodSelect.selectedIndex] ? prodSelect.options[prodSelect.selectedIndex].text : '') : '';
       const expVal = row.querySelector('.pi-expiry') ? row.querySelector('.pi-expiry').value : '';
-      batchNo = generateClientBatchCode(prodId, expVal, idx + 1);
+      const seq = typeof getNextBatchSequenceForProduct === 'function' ? getNextBatchSequenceForProduct(prodId, prodText, row) : 1;
+      batchNo = generateClientBatchCode(prodId, prodDateVal, seq, prodId, { expiryDate: expVal });
     }
     const allProds = (DATA_CACHE.products && DATA_CACHE.products.data) || PRODUCTS_CACHE || [];
     const prodObj = allProds.find(function (p) { return p && String(p.id) === String(prodId); });

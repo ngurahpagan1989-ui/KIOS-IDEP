@@ -1473,7 +1473,7 @@ async function dispatchApiCall(fnName, args) {
       // 2. Simpan Item-Item menjadi Purchase Items, Stock Batches, dan Stock Movements
       for (const item of (purchase.items || [])) {
         const batchId = crypto.randomUUID();
-        const d = new Date();
+        const d = item.production_date ? new Date(item.production_date) : new Date();
         const yymm = String(d.getFullYear()).slice(-2) + String(d.getMonth() + 1).padStart(2, '0');
         const batchCode = item.batch_no ? String(item.batch_no).trim() : `BATCH-BENIH-${yymm}-001`;
         const qtyIn = Number(item.qty || 0);
@@ -3769,6 +3769,21 @@ async function dispatchApiCall(fnName, args) {
         console.warn('[Supabase] createStockMutation local saved only:', e);
         return item;
       }
+    }
+
+    case 'updateStockBatchCode': {
+      const [, batchId, newBatchCode] = args;
+      if (!batchId || !newBatchCode) {
+        throw new Error('ID batch dan nomor kode batch baru harus diisi.');
+      }
+      const trimmedCode = String(newBatchCode).trim().toUpperCase();
+      const { error: updErr } = await supabase
+        .from('stock_batches')
+        .update({ batch_code: trimmedCode, updated_at: new Date().toISOString() })
+        .eq('id', batchId);
+      if (updErr) throw updErr;
+
+      return { success: true, message: 'Kode batch berhasil diperbarui menjadi ' + trimmedCode };
     }
 
     case 'adjustStockBatch': {

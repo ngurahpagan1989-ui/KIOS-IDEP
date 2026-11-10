@@ -524,18 +524,38 @@ function cleanProductCodeForBatch(nameOrCode) {
   const words = str.split(/\s+/).filter(Boolean);
   if (words.length >= 2) {
     const firstWord = words[0].replace(/[^a-zA-Z]/g, '').toUpperCase();
-    const consonants = firstWord.replace(/[AEIOU]/g, '');
-    if (consonants.length >= 3) {
-      return consonants.slice(0, 3);
-    } else if (consonants.length === 2 && words[1]) {
-      const secondConsonants = words[1].replace(/[^a-zA-Z]/g, '').toUpperCase().replace(/[AEIOU]/g, '');
-      return consonants + (secondConsonants[0] || words[1][0] || 'X').toUpperCase();
-    } else if (firstWord.length >= 3) {
-      return firstWord.slice(0, 3);
+    const firstChar = firstWord[0];
+    const isVowel = 'AEIOU'.includes(firstChar);
+    if (isVowel) {
+      const restConsonants = firstWord.slice(1).replace(/[AEIOU]/g, '');
+      if (restConsonants.length >= 2) {
+        return firstChar + restConsonants.slice(0, 2);
+      }
+      return firstWord.slice(0, 3).padEnd(3, 'X');
+    } else {
+      const consonants = firstWord.replace(/[AEIOU]/g, '');
+      if (consonants.length >= 3) {
+        return consonants.slice(0, 3);
+      } else if (consonants.length === 2 && words[1]) {
+        const secondConsonants = words[1].replace(/[^a-zA-Z]/g, '').toUpperCase().replace(/[AEIOU]/g, '');
+        return consonants + (secondConsonants[0] || words[1][0] || 'X').toUpperCase();
+      } else if (firstWord.length >= 3) {
+        return firstWord.slice(0, 3);
+      }
     }
   }
 
   const singleClean = str.replace(/[^a-zA-Z]/g, '').toUpperCase();
+  const firstChar = singleClean[0];
+  const isVowel = 'AEIOU'.includes(firstChar);
+  if (isVowel) {
+    const restConsonants = singleClean.slice(1).replace(/[AEIOU]/g, '');
+    if (restConsonants.length >= 2) {
+      return firstChar + restConsonants.slice(0, 2);
+    }
+    return singleClean.slice(0, 3).padEnd(3, 'X');
+  }
+
   const cons = singleClean.replace(/[AEIOU]/g, '');
   if (cons.length >= 3) {
     return cons.slice(0, 3);
@@ -7580,6 +7600,7 @@ function buildProductOptionsHTML(category, selectedId) {
 function onPurchaseRowProductChange(row) {
   if (!row) return;
   const prodSelect = row.querySelector('.pi-product, .pur-item-product');
+  const priceInput = row.querySelector('.pi-price, .pur-item-buy-price');
   const extraInput = row.querySelector('.pur-item-cost-extra, .pi-cost-extra');
   if (!prodSelect || !extraInput) return;
 
@@ -7603,6 +7624,39 @@ function onPurchaseRowProductChange(row) {
     extraInput.style.backgroundColor = '';
     extraInput.style.color = '';
     extraInput.style.cursor = '';
+  }
+
+  // Otomatis ambil harga beli per gram dari master produk curah atau batch sebelumnya
+  if (isCurah && priceInput && (!priceInput.value || Number(priceInput.value) === 0 || priceInput.dataset.manual !== 'true')) {
+    let curahPrice = 0;
+    if (prodObj) {
+      // 1. Cek dari batch aktif / riwayat batch produk curah ini
+      const batches = prodObj.batches || (DATA_CACHE.batches && DATA_CACHE.batches.data ? DATA_CACHE.batches.data.filter(function (b) { return b && String(b.product_id) === String(prodObj.id); }) : []);
+      if (Array.isArray(batches) && batches.length > 0) {
+        for (let i = batches.length - 1; i >= 0; i--) {
+          const b = batches[i];
+          const bPrice = Number(b.buy_price || b.cost_per_unit || 0);
+          if (bPrice > 0) {
+            curahPrice = bPrice;
+            break;
+          }
+        }
+      }
+      // 2. Cek dari tingkat harga (price tiers)
+      if (curahPrice === 0 && Array.isArray(prodObj.priceTiers) && prodObj.priceTiers.length > 0) {
+        const tier = prodObj.priceTiers.find(function (t) { return t && Number(t.price) > 0; });
+        if (tier) curahPrice = Number(tier.price);
+      }
+      // 3. Fallback dari properti buy_price / cost / price produk
+      if (curahPrice === 0 && Number(prodObj.buy_price || prodObj.cost || prodObj.price || 0) > 0) {
+        curahPrice = Number(prodObj.buy_price || prodObj.cost || prodObj.price);
+      }
+    }
+
+    if (curahPrice > 0) {
+      priceInput.value = curahPrice;
+      flashInputHighlight(priceInput);
+    }
   }
 
   autoFillPurchaseRowBatch(row, false);
@@ -7700,7 +7754,7 @@ function addPurchaseItemRow() {
     '<input type="number" class="pi-qty pur-item-qty" placeholder="Qty" min="1" value="1" oninput="calculatePurchaseRowHPP(this)" style="width:100%;padding:6px 4px;font-size:12px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
     '</td>' +
     '<td>' +
-    '<input type="number" class="pi-price pur-item-buy-price" placeholder="0" min="0" oninput="calculatePurchaseRowHPP(this)" style="width:100%;padding:6px 6px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);text-align:right;">' +
+    '<input type="number" class="pi-price pur-item-buy-price" placeholder="0" min="0" oninput="this.dataset.manual=\'true\';calculatePurchaseRowHPP(this)" style="width:100%;padding:6px 6px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);text-align:right;">' +
     '</td>' +
     '<td>' +
     '<input type="number" class="pur-item-cost-extra pi-cost-extra" placeholder="0" min="0" value="0" oninput="calculatePurchaseRowHPP(this)" style="width:100%;padding:6px 6px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);text-align:right;">' +

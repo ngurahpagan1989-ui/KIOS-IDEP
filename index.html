@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=13.3">
+  <link rel="stylesheet" href="style.css?v=13.4">
   <style>
     /* Critical Inline Dark Cyber Overrides (Prevents Flash & Browser UA Light Inputs) */
     html, body {
@@ -76,6 +76,20 @@
     html.has-session #login-screen { display: none !important; }
     html.has-session #app-shell { display: flex !important; }
   </style>
+  <script src="i18n.js?v=3.3"></script>
+  <script>
+    window.setAppLanguage = function (lang) {
+      if (window.i18n && typeof window.i18n.setLanguage === 'function') {
+        window.i18n.setLanguage(lang);
+      } else {
+        try { localStorage.setItem('pos_language', lang); } catch (e) {}
+        document.querySelectorAll('.glassy-lang-btn, .lang-btn').forEach(function (b) {
+          if (b.getAttribute('data-lang') === lang) b.classList.add('active');
+          else b.classList.remove('active');
+        });
+      }
+    };
+  </script>
 </head>
 <body>
 
@@ -100,43 +114,14 @@
             <i class="fas fa-volume-up" id="vault-sfx-icon"></i> <span id="vault-sfx-text">SUARA ON</span>
           </button>
           <div class="glassy-lang-pills">
-            <button type="button" class="glassy-lang-btn active" data-lang="id" onclick="window.i18n && window.i18n.setLanguage('id')">ID</button>
-            <button type="button" class="glassy-lang-btn" data-lang="en" onclick="window.i18n && window.i18n.setLanguage('en')">EN</button>
+            <button type="button" class="glassy-lang-btn active" data-lang="id" onclick="setAppLanguage('id')">ID</button>
+            <button type="button" class="glassy-lang-btn" data-lang="en" onclick="setAppLanguage('en')">EN</button>
           </div>
         </div>
       </div>
 
       <!-- MAIN GLASSY CARD WITH MORPHING HEIGHT & CORNER ACCENTS -->
       <div class="login-card glassy-card vault-door" id="vault-door-card">
-        <!-- Isometric Cyan Folded Corner Badges (Matching Video Frame 00:01) -->
-        <div class="glassy-corner-badge glassy-corner-tl" aria-hidden="true">
-          <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 24C0 10.7452 10.7452 0 24 0H40C42.2091 0 43.4357 2.55393 42.0622 4.28258L4.28258 42.0622C2.55393 43.4357 0 42.2091 0 40V24Z" fill="url(#cyan-grad-tl)" />
-            <path d="M1 24C1 11.2975 11.2975 1 24 1H38L2 38V24C2 24 1 24 1 24Z" stroke="#22D3EE" stroke-width="1.6" stroke-linecap="round" />
-            <defs>
-              <linearGradient id="cyan-grad-tl" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#06B6D4" stop-opacity="0.95"/>
-                <stop offset="0.6" stop-color="#0284C7" stop-opacity="0.75"/>
-                <stop offset="1" stop-color="#3B82F6" stop-opacity="0.3"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-
-        <div class="glassy-corner-badge glassy-corner-br" aria-hidden="true">
-          <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 24C0 10.7452 10.7452 0 24 0H40C42.2091 0 43.4357 2.55393 42.0622 4.28258L4.28258 42.0622C2.55393 43.4357 0 42.2091 0 40V24Z" fill="url(#cyan-grad-br)" />
-            <path d="M1 24C1 11.2975 11.2975 1 24 1H38L2 38V24C2 24 1 24 1 24Z" stroke="#22D3EE" stroke-width="1.6" stroke-linecap="round" />
-            <defs>
-              <linearGradient id="cyan-grad-br" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#06B6D4" stop-opacity="0.95"/>
-                <stop offset="0.6" stop-color="#0284C7" stop-opacity="0.75"/>
-                <stop offset="1" stop-color="#3B82F6" stop-opacity="0.3"/>
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-
         <!-- VIEW 1: SIGN IN (Welcome Back) - Active View -->
         <div class="glassy-view active-view" id="glassy-view-login">
           <div class="glassy-card-header">
@@ -1031,10 +1016,10 @@
   <!-- Supabase CDN Client Library (v2) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Supabase Client Adapter & API Bridge -->
-  <script src="supabaseClient.js?v=6.5"></script>
+  <script src="supabaseClient.js?v=6.6"></script>
   <!-- Multi-Language i18n Engine -->
-  <script src="i18n.js?v=3.2"></script>
+  <script src="i18n.js?v=3.3"></script>
   <!-- Core Application Logic -->
-  <script src="app.js?v=13.3"></script>
+  <script src="app.js?v=13.4"></script>
 </body>
 </html>

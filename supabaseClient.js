@@ -65,7 +65,7 @@ function ensureLiveNotifBroadcastChannel() {
   if (!supabase) return null;
   if (window.__LIVE_NOTIF_CHANNEL) return window.__LIVE_NOTIF_CHANNEL;
   try {
-    const ch = supabase.channel('kios-idep-live-notifs', {
+    const ch = supabase.channel('pos-live-notifs', {
       config: { broadcast: { self: false } }
     });
     ch.subscribe();
@@ -95,7 +95,7 @@ function emitOperationalNotification(notif) {
 
     // 1. Update pusat notifikasi di tab saat ini secara instan
     try {
-      window.dispatchEvent(new CustomEvent('idep:local-notif-emitted', {
+      window.dispatchEvent(new CustomEvent('pos:local-notif-emitted', {
         detail: Object.assign({}, detail, { isFromCurrentTab: true, forceBanner: Boolean(notif.forceBanner) })
       }));
     } catch (e) {}
@@ -2359,10 +2359,19 @@ async function dispatchApiCall(fnName, args) {
     }
 
     case 'getAllConsignmentTransfers': {
-      const { data, error } = await supabase
+      const [, statusFilter] = args;
+      let query = supabase
         .from('consignment_transfers')
         .select('*, outlets(name)')
         .order('sent_at', { ascending: false });
+
+      if (statusFilter === 'IN_TRANSIT') {
+        query = query.neq('delivery_status', 'DELIVERED');
+      } else if (statusFilter === 'DELIVERED') {
+        query = query.eq('delivery_status', 'DELIVERED');
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []).map(t => ({
         ...t,
@@ -2435,9 +2444,10 @@ async function dispatchApiCall(fnName, args) {
         displayPhotoUrl = await uploadToSupabaseStorage('qc-photos', `audit_display_${auditId}.jpg`, payload.display_photo_base64);
       }
 
-      let sigIdepUrl = '';
-      if (payload.sig_idep_base64 && payload.sig_idep_base64.startsWith('data:image')) {
-        sigIdepUrl = await uploadToSupabaseStorage('signatures', `sig_idep_${auditId}.png`, payload.sig_idep_base64, 'image/png');
+      let sigInternalUrl = '';
+      const rawSigInternal = payload.sig_internal_base64 || payload.sig_idep_base64;
+      if (rawSigInternal && rawSigInternal.startsWith('data:image')) {
+        sigInternalUrl = await uploadToSupabaseStorage('signatures', `sig_auditor_${auditId}.png`, rawSigInternal, 'image/png');
       }
 
       let sigOutletUrl = '';
@@ -2445,16 +2455,21 @@ async function dispatchApiCall(fnName, args) {
         sigOutletUrl = await uploadToSupabaseStorage('signatures', `sig_outlet_${auditId}.png`, payload.sig_outlet_base64, 'image/png');
       }
 
-      await supabase.from('consignment_audits').insert({
+      const auditInsertData = {
         id: auditId,
         outlet_id: outletId,
         audit_date: payload.audit_date || new Date().toISOString().split('T')[0],
         outlet_pic: payload.outlet_pic || '',
         display_photo_url: displayPhotoUrl,
-        sig_idep_url: sigIdepUrl,
         sig_outlet_url: sigOutletUrl,
         notes: payload.notes || ''
-      });
+      };
+      if (sigInternalUrl) {
+        auditInsertData.sig_internal_url = sigInternalUrl;
+        auditInsertData.sig_idep_url = sigInternalUrl;
+      }
+
+      await supabase.from('consignment_audits').insert(auditInsertData);
 
       for (const it of (payload.items || [])) {
         await supabase.from('consignment_audit_items').insert({
@@ -2465,7 +2480,7 @@ async function dispatchApiCall(fnName, args) {
           qty_sold: Number(it.qty_sold || 0),
           qty_returned: Number(it.qty_returned || 0),
           qty_missing: Number(it.qty_missing || 0),
-          missing_chargeable: !!it.missing_chargeable,
+          missing_chargeable: (it.missing_chargeable === true || String(it.missing_chargeable) === 'true'),
           qty_restock: Number(it.qty_restock || 0)
         });
 
@@ -2479,43 +2494,185 @@ async function dispatchApiCall(fnName, args) {
         });
       }
 
-      const totalSoldAudit = (payload.items || []).reduce((sum, it) => sum + Number(it.qty_sold || 0), 0);
+      const totalSold = (payload.items || []).reduce((sum, it) => sum + Number(it.qty_sold || 0), 0);
+      const totalReturned = (payload.items || []).reduce((sum, it) => sum + Number(it.qty_returned || 0), 0);
+      const totalMissing = (payload.items || []).reduce((sum, it) => sum + Number(it.qty_missing || 0), 0);
+      const totalChargeable = (payload.items || []).reduce((sum, it) => sum + ((it.missing_chargeable === true || String(it.missing_chargeable) === 'true') ? Number(it.qty_missing || 0) : 0), 0);
+      const totalWriteoff = Math.max(0, totalMissing - totalChargeable);
+      const totalRestock = (payload.items || []).reduce((sum, it) => sum + Number(it.qty_restock || 0), 0);
+
       emitOperationalNotification({
         title: '🏪 Opname Konsinyasi Selesai',
-        body: 'Audit rak mitra selesai dicatat (' + totalSoldAudit + ' pcs terjual' + (payload.outlet_pic ? ', PIC: ' + payload.outlet_pic : '') + ').',
+        body: 'Audit rak mitra selesai dicatat (' + totalSold + ' pcs terjual' + (payload.outlet_pic ? ', PIC: ' + payload.outlet_pic : '') + ').',
         category: 'finance',
         route: '#konsinyasi',
         urgent: false
       });
 
-      return { success: true, id: auditId, message: 'Berita acara opname konsinyasi berhasil disimpan.' };
+      return {
+        success: true,
+        id: auditId,
+        audit_id: auditId,
+        audit_date: payload.audit_date || new Date().toISOString().split('T')[0],
+        outlet_name: payload.store_name || '',
+        outlet_pic: payload.outlet_pic || '',
+        outlet_phone: payload.outlet_phone || '',
+        total_sold: totalSold,
+        total_returned: totalReturned,
+        total_missing: totalMissing,
+        total_chargeable_missing: totalChargeable,
+        total_writeoff_missing: totalWriteoff,
+        total_restock: totalRestock,
+        message: 'Berita acara opname konsinyasi berhasil disimpan.'
+      };
     }
 
     case 'createConsignmentInvoice': {
       const [, payload] = args;
-      const { data: rawAuditItems, error: aiErr } = await supabase
-        .from('consignment_audit_items')
-        .select('*')
-        .eq('audit_id', payload.audit_id);
-      if (aiErr) throw aiErr;
+      const auditId = payload.audit_id;
+      const outletId = payload.outlet_id;
 
-      const auditItems = rawAuditItems || [];
-      const prodIds = [...new Set(auditItems.map(it => it.product_id).filter(Boolean))];
-      let pMap = {};
-      if (prodIds.length > 0) {
-        try {
-          const { data: prods } = await supabase.from('products').select('id, name').in('id', prodIds);
-          (prods || []).forEach(p => { if (p && p.id) pMap[p.id] = p.name; });
-        } catch (e) {
-          console.warn('Gagal memuat produk audit konsinyasi:', e);
-        }
+      if (!auditId) throw new Error('ID Audit Opname wajib disertakan.');
+
+      // 1. Ambil data audit & outlet
+      const [auditRes, auditItemsRes, outletRes] = await Promise.all([
+        supabase.from('consignment_audits').select('*').eq('id', auditId).maybeSingle(),
+        supabase.from('consignment_audit_items').select('*').eq('audit_id', auditId),
+        outletId ? supabase.from('outlets').select('*').eq('id', outletId).maybeSingle() : Promise.resolve({ data: null })
+      ]);
+
+      const auditData = auditRes.data || {};
+      const targetOutletId = outletId || auditData.outlet_id;
+      let outlet = outletRes.data;
+      if (!outlet && targetOutletId) {
+        const { data: oData } = await supabase.from('outlets').select('*').eq('id', targetOutletId).maybeSingle();
+        outlet = oData;
+      }
+      outlet = outlet || {};
+
+      const auditItems = auditItemsRes.data || [];
+      // Filter item tertagih: qty_sold > 0 atau (qty_missing > 0 dan missing_chargeable)
+      const billableItems = auditItems.filter(it => {
+        const sold = Number(it.qty_sold || 0);
+        const missing = Number(it.qty_missing || 0);
+        const isChargeable = (it.missing_chargeable === true || String(it.missing_chargeable) === 'true');
+        return sold > 0 || (missing > 0 && isChargeable);
+      });
+
+      if (billableItems.length === 0) {
+        throw new Error('Tidak ada kuantiti terjual atau barang hilang tertagih pada Berita Acara ini.');
       }
 
-      const soldItems = auditItems.filter(it => Number(it.qty_sold || 0) > 0).map(it => ({
-        ...it,
-        products: { name: pMap[it.product_id] || it.product_name || 'Produk' }
-      }));
-      return { success: true, count: soldItems.length, message: 'Nota konsinyasi siap diproses.' };
+      // 2. Ambil referensi produk & price_tiers untuk outlet ini
+      const prodIds = [...new Set(billableItems.map(it => it.product_id).filter(Boolean))];
+      const outletTierName = String(outlet.price_tier || 'Outlet').trim().toLowerCase();
+
+      const [prodsRes, tiersRes] = await Promise.all([
+        supabase.from('products').select('id, name, unit, sell_price, cost_price, sku').in('id', prodIds),
+        supabase.from('price_tiers').select('product_id, tier_name, price').in('product_id', prodIds)
+      ]);
+
+      const prodsMap = {};
+      (prodsRes.data || []).forEach(p => { if (p && p.id) prodsMap[p.id] = p; });
+
+      const tiersByProd = {};
+      (tiersRes.data || []).forEach(t => {
+        if (!t || !t.product_id) return;
+        if (!tiersByProd[t.product_id]) tiersByProd[t.product_id] = [];
+        tiersByProd[t.product_id].push(t);
+      });
+
+      // 3. Susun item transaksi faktur
+      const txId = crypto.randomUUID();
+      const invoiceNo = `FKT-KSN-${Date.now().toString().slice(-6)}`;
+      let totalAmount = 0;
+      const txItems = [];
+
+      for (const it of billableItems) {
+        const p = prodsMap[it.product_id] || {};
+        const pTiers = tiersByProd[it.product_id] || [];
+        const exactTier = pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === outletTierName)
+          || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'outlet')
+          || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'reguler');
+
+        const unitPrice = exactTier ? Number(exactTier.price || 0) : Number(p.sell_price || 0);
+        const soldQty = Number(it.qty_sold || 0);
+        const missingQty = (it.missing_chargeable === true || String(it.missing_chargeable) === 'true') ? Number(it.qty_missing || 0) : 0;
+        const totalQty = soldQty + missingQty;
+        const lineTotal = totalQty * unitPrice;
+        totalAmount += lineTotal;
+
+        txItems.push({
+          transaction_id: txId,
+          product_id: it.product_id,
+          batch_id: it.batch_id || null,
+          qty: totalQty,
+          price: unitPrice,
+          cost: Number(p.cost_price || 0),
+          subtotal: lineTotal
+        });
+      }
+
+      // 4. Catat ke tabel transactions
+      const txStatus = payload.payment_type === 'installment' ? 'tempo' : 'paid';
+      const txInsertData = {
+        id: txId,
+        invoice_no: invoiceNo,
+        customer_name: outlet.name || 'Outlet Konsinyasi',
+        customer_phone: outlet.phone || '',
+        source: 'KONSINYASI',
+        subtotal: totalAmount,
+        tax: 0,
+        total: totalAmount,
+        payment_method: payload.payment_type === 'installment' ? 'TEMPO' : 'TRANSFER',
+        payment_type: payload.payment_type || 'cash',
+        status: txStatus,
+        notes: `Faktur Konsinyasi Hasil Stok Opname #${auditId} (${outlet.name || 'Mitra'})`
+      };
+
+      const { error: txErr } = await supabase.from('transactions').insert(txInsertData);
+      if (txErr) throw txErr;
+
+      // 5. Catat transaction_items
+      if (txItems.length > 0) {
+        const { error: itemsErr } = await supabase.from('transaction_items').insert(txItems);
+        if (itemsErr) console.warn('[Konsinyasi] Warning insert transaction_items:', itemsErr);
+      }
+
+      // 6. Jika tempo / kredit, catat ke tabel receivables (piutang)
+      if (payload.payment_type === 'installment') {
+        await supabase.from('receivables').insert({
+          id: crypto.randomUUID(),
+          transaction_id: txId,
+          customer_id: null,
+          total: totalAmount,
+          paid: 0,
+          remaining: totalAmount,
+          due_date: payload.due_date || null,
+          status: 'active'
+        });
+      }
+
+      // 7. Update nomor invoice di consignment_audits
+      await supabase.from('consignment_audits').update({
+        invoice_id: invoiceNo
+      }).eq('id', auditId);
+
+      emitOperationalNotification({
+        title: '🧾 Faktur Konsinyasi Baru ' + invoiceNo,
+        body: (outlet.name || 'Toko Mitra') + ' • Rp ' + Number(totalAmount).toLocaleString('id-ID') + ' (' + (payload.payment_type === 'installment' ? 'Tempo' : 'Lunas') + ')',
+        category: 'finance',
+        route: '#faktur',
+        urgent: false
+      });
+
+      return {
+        success: true,
+        invoice_no: invoiceNo,
+        transaction_id: txId,
+        total: totalAmount,
+        message: 'Faktur konsinyasi #' + invoiceNo + ' (Rp ' + Number(totalAmount).toLocaleString('id-ID') + ') berhasil diterbitkan!'
+      };
     }
 
     case 'confirmDeliveryReceipt': {
@@ -3695,6 +3852,26 @@ async function dispatchApiCall(fnName, args) {
         audit_status: daysSinceAudit > 30 ? 'red' : (daysSinceAudit > 14 ? 'yellow' : 'green')
       };
 
+      // Agregasikan akumulasi totals untuk tiap rekaman audit agar rincian opname & tombol faktur selalu akurat
+      const enrichedAudits = auditsList.map(a => {
+        const items = a.consignment_audit_items || [];
+        const totalSold = items.reduce((s, it) => s + Number(it.qty_sold || 0), 0);
+        const totalReturned = items.reduce((s, it) => s + Number(it.qty_returned || 0), 0);
+        const totalMissing = items.reduce((s, it) => s + Number(it.qty_missing || 0), 0);
+        const totalChargeable = items.reduce((s, it) => s + ((it.missing_chargeable === true || String(it.missing_chargeable) === 'true') ? Number(it.qty_missing || 0) : 0), 0);
+        const totalWriteoff = Math.max(0, totalMissing - totalChargeable);
+        const totalRestock = items.reduce((s, it) => s + Number(it.qty_restock || 0), 0);
+        return {
+          ...a,
+          total_sold: totalSold,
+          total_returned: totalReturned,
+          total_missing: totalMissing,
+          total_chargeable_missing: totalChargeable,
+          total_writeoff_missing: totalWriteoff,
+          total_restock: totalRestock
+        };
+      });
+
       return {
         outlet: normalizedOutlet,
         stocks: (stocksRes.data || []).map(s => {
@@ -3713,7 +3890,7 @@ async function dispatchApiCall(fnName, args) {
           };
         }),
         transfers: transfersRes.data || [],
-        audits: auditsList
+        audits: enrichedAudits
       };
     }
 
@@ -3747,6 +3924,10 @@ async function dispatchApiCall(fnName, args) {
         }
       } else {
         transfer = tData;
+      }
+
+      if (transfer) {
+        transfer.recipient_signature = transfer.recipient_signature_url || transfer.recipient_signature || '';
       }
 
       // 2. Ambil data item transfer secara mandiri (hindari error 'relationship in schema cache')
@@ -3826,7 +4007,22 @@ async function dispatchApiCall(fnName, args) {
     }
 
     case 'getConsignmentSuratJalanPdf': {
-      return { success: true, url: '' };
+      const [, transferId] = args;
+      const targetId = transferId || args[0];
+      if (targetId) {
+        try {
+          const { data: tr } = await supabase
+            .from('consignment_transfers')
+            .select('surat_jalan_url, pdf_url')
+            .eq('id', targetId)
+            .maybeSingle();
+          const url = (tr && (tr.surat_jalan_url || tr.pdf_url)) || '';
+          return { success: true, pdf_url: url, url: url };
+        } catch (e) {
+          console.warn('[getConsignmentSuratJalanPdf] Warn:', e);
+        }
+      }
+      return { success: true, pdf_url: '', url: '' };
     }
 
     case 'deleteTransaction': {

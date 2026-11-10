@@ -7456,7 +7456,9 @@ function formatProductClaimLabel(p) {
 }
 
 function buildProductOptionsHTML(category, selectedId) {
-  const list = PRODUCTS_CACHE || [];
+  let list = (PRODUCTS_CACHE && PRODUCTS_CACHE.length > 0)
+    ? PRODUCTS_CACHE
+    : (DATA_CACHE && DATA_CACHE.products && Array.isArray(DATA_CACHE.products.data) ? DATA_CACHE.products.data : []);
   const filtered = list.filter(function (p) {
     if (!p || !p.active) return false;
     const isRaw = isCurahInventoryProduct(p);
@@ -10944,6 +10946,22 @@ function showOutletDetailModal(outletId, activeTab) {
 
     // 3. Tab Riwayat Kunjungan & Stok Opname Lapangan (MOV)
     const auditRowsHtml = audits.length ? audits.map(function (a) {
+      const aItems = a.consignment_audit_items || [];
+      const computedSold = aItems.reduce(function (s, it) { return s + Number(it.qty_sold || 0); }, 0);
+      const computedMissing = aItems.reduce(function (s, it) { return s + Number(it.qty_missing || 0); }, 0);
+      const computedChargeable = aItems.reduce(function (s, it) {
+        return s + ((it.missing_chargeable === true || String(it.missing_chargeable) === 'true') ? Number(it.qty_missing || 0) : 0);
+      }, 0);
+      const computedReturned = aItems.reduce(function (s, it) { return s + Number(it.qty_returned || 0); }, 0);
+      const computedRestock = aItems.reduce(function (s, it) { return s + Number(it.qty_restock || 0); }, 0);
+
+      const totalSold = (a.total_sold !== undefined && a.total_sold !== null) ? Number(a.total_sold) : computedSold;
+      const totalMissing = (a.total_missing !== undefined && a.total_missing !== null) ? Number(a.total_missing) : computedMissing;
+      const totalChargeable = (a.total_chargeable_missing !== undefined && a.total_chargeable_missing !== null) ? Number(a.total_chargeable_missing) : computedChargeable;
+      const totalWriteoff = (a.total_writeoff_missing !== undefined && a.total_writeoff_missing !== null) ? Number(a.total_writeoff_missing) : Math.max(0, totalMissing - totalChargeable);
+      const totalReturned = (a.total_returned !== undefined && a.total_returned !== null) ? Number(a.total_returned) : computedReturned;
+      const totalRestock = (a.total_restock !== undefined && a.total_restock !== null) ? Number(a.total_restock) : computedRestock;
+
       const pdfBtn = a.pdf_url ?
         '<a href="' + escapeHtml(a.pdf_url) + '" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📄 Buka PDF</a>' :
         '<span class="badge badge-neutral">PDF di Drive</span>';
@@ -10964,9 +10982,9 @@ function showOutletDetailModal(outletId, activeTab) {
         '• Tanggal Opname: ' + formatDate(a.audit_date) + '\n' +
         '• Petugas Pemeriksa: ' + a.auditor_name + '\n' +
         '• Terjual: ' + (a.total_sold || 0) + ' pcs\n' +
-        '• Retur Rusak/Exp: ' + (a.total_returned || 0) + ' pcs\n' +
+        '• Retur Rusak/Exp: ' + totalReturned + ' pcs\n' +
         missingWaLine +
-        '• Restock Baru di Tempat: ' + (a.total_restock || 0) + ' pcs\n' +
+        '• Restock Baru di Tempat: ' + totalRestock + ' pcs\n' +
         (a.notes ? ('• Catatan: ' + a.notes + '\n') : '') +
         (a.pdf_url ? ('\nDokumen PDF Berita Acara dapat diunduh pada tautan Google Drive:\n' + a.pdf_url + '\n\n') : '\n') +
         'Terima kasih atas kerja samanya.\n*Manajemen POS & Inventaris*'
@@ -10974,7 +10992,7 @@ function showOutletDetailModal(outletId, activeTab) {
       const waBtn = '<button type="button" class="btn btn-secondary btn-sm" onclick="openConsignmentAuditWAModal(\'' + escapeHtml(a.outlet_pic || o.pic_name) + '\',\'' + waText + '\')">💬 Kirim WA</button>';
 
       let invoiceActionHtml = '';
-      const billableCount = Number(a.total_sold || 0) + Number(a.total_chargeable_missing || 0);
+      const billableCount = totalSold + totalChargeable;
       if (a.invoice_id) {
         invoiceActionHtml = '<span class="badge badge-success" style="font-size:10px;">🧾 Faktur: #' + escapeHtml(a.invoice_id) + '</span>';
       } else if (billableCount > 0) {
@@ -10997,10 +11015,10 @@ function showOutletDetailModal(outletId, activeTab) {
         '📅 ' + formatDate(a.audit_date) + ' &bull; Auditor: <strong>' + escapeHtml(a.auditor_name) + '</strong> &bull; PIC: <strong>' + escapeHtml(a.outlet_pic) + '</strong>' +
         '</div>' +
         '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">' +
-        'Terjual: <strong style="color:var(--success);">' + (a.total_sold || 0) + ' pcs</strong> &bull; ' +
-        'Retur: <strong style="color:var(--warning);">' + (a.total_returned || 0) + ' pcs</strong>' +
+        'Terjual: <strong style="color:var(--success);">' + totalSold + ' pcs</strong> &bull; ' +
+        'Retur: <strong style="color:var(--warning);">' + totalReturned + ' pcs</strong>' +
         missingCardInfo + ' &bull; ' +
-        'Restock: <strong style="color:#2563eb;">' + (a.total_restock || 0) + ' pcs</strong>' +
+        'Restock: <strong style="color:#2563eb;">' + totalRestock + ' pcs</strong>' +
         '</div>' +
         (a.notes ? ('<div style="font-size:11px;color:var(--text-muted);margin-top:2px;font-style:italic;">Catatan: ' + escapeHtml(a.notes) + '</div>') : '') +
         '</div>' +
@@ -11088,7 +11106,23 @@ function switchOutletTab(tabName) {
 }
 
 // ========================= MODAL DROP / TRANSFER STOK BARU =========================
-function openTransferStockModal(outletId) {
+async function openTransferStockModal(outletId) {
+  if (!PRODUCTS_CACHE || PRODUCTS_CACHE.length === 0) {
+    if (DATA_CACHE && DATA_CACHE.products && Array.isArray(DATA_CACHE.products.data) && DATA_CACHE.products.data.length > 0) {
+      PRODUCTS_CACHE = DATA_CACHE.products.data;
+    } else {
+      try {
+        const pList = await api('getProducts', TOKEN);
+        if (Array.isArray(pList)) {
+          PRODUCTS_CACHE = pList;
+          if (!DATA_CACHE.products) DATA_CACHE.products = {};
+          DATA_CACHE.products.data = pList;
+        }
+      } catch (e) {
+        console.warn('Gagal memuat produk transfer:', e);
+      }
+    }
+  }
   let outletName = 'Outlet Mitra';
   if (window._currentOutletDetail && window._currentOutletDetail.outlet) {
     outletName = window._currentOutletDetail.outlet.name;
@@ -11203,13 +11237,14 @@ function submitTransferStock(outletId) {
 function openTransferSuratJalan(transferId) {
   showToast('Memuat Surat Jalan PDF dari Google Drive...');
   api('getConsignmentSuratJalanPdf', TOKEN, transferId).then(function (res) {
-    if (res && res.pdf_url) {
-      window.open(res.pdf_url, '_blank');
+    if (res && (res.pdf_url || res.url)) {
+      window.open(res.pdf_url || res.url, '_blank');
     } else {
-      showToast('Tautan Surat Jalan tidak ditemukan.', true);
+      printConsignmentSuratJalan(transferId);
     }
   }).catch(function (err) {
-    showToast('Gagal memuat Surat Jalan: ' + (err.message || err), true);
+    console.warn('Fallback ke cetak HTML:', err);
+    printConsignmentSuratJalan(transferId);
   });
 }
 
@@ -11350,9 +11385,9 @@ function printConsignmentSuratJalan(transferId) {
       '</td>' +
       '<td style="width:50%;text-align:center;padding:14px;vertical-align:bottom;">' +
       '<div style="font-size:10px;font-weight:bold;color:#475569;margin-bottom:8px;">Pihak Penerima (Toko Cabang / Mitra)</div>' +
-      (transfer.recipient_signature ?
+      ((transfer.recipient_signature_url || transfer.recipient_signature) ?
         ('<div style="height:55px;text-align:center;margin-bottom:6px;">' +
-          '<img src="' + transfer.recipient_signature + '" style="max-height:50px;max-width:160px;display:inline-block;" />' +
+          '<img src="' + (transfer.recipient_signature_url || transfer.recipient_signature) + '" style="max-height:50px;max-width:160px;display:inline-block;" />' +
           '</div>') :
         '<div style="height:48px;"></div>'
       ) +
@@ -12013,8 +12048,8 @@ function viewDeliveryReceiptModal(deliveryId, parentOutletId) {
       '</div>' +
       '<div style="background:#FFFFFF;border:1px solid var(--border);border-radius:var(--radius-xs);padding:12px;text-align:center;">' +
       '<div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:bold;margin-bottom:6px;">Tanda Tangan Digital Penerima</div>' +
-      (t.recipient_signature ?
-        ('<img src="' + t.recipient_signature + '" style="max-height:85px;max-width:100%;object-fit:contain;border:1px dashed #cbd5e1;border-radius:4px;padding:4px;background:#F8FAFC;" alt="Tanda Tangan" />') :
+      ((t.recipient_signature_url || t.recipient_signature) ?
+        ('<img src="' + (t.recipient_signature_url || t.recipient_signature) + '" style="max-height:85px;max-width:100%;object-fit:contain;border:1px dashed #cbd5e1;border-radius:4px;padding:4px;background:#F8FAFC;" alt="Tanda Tangan" />') :
         '<div style="color:var(--text-muted);font-size:12px;padding:20px;">(Tanda tangan tidak tersedia)</div>'
       ) +
       '</div>' +
@@ -12550,6 +12585,8 @@ function initSignaturePad(type) {
   const canvas = document.getElementById('sig-' + type + '-canvas');
   if (!canvas) return;
 
+  canvas.style.touchAction = 'none';
+
   const rect = canvas.getBoundingClientRect();
   canvas.width = rect.width || 320;
   canvas.height = rect.height || 140;
@@ -12565,15 +12602,17 @@ function initSignaturePad(type) {
 
   function getPos(e) {
     const cRect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / (cRect.width || 1);
+    const scaleY = canvas.height / (cRect.height || 1);
     if (e.touches && e.touches.length > 0) {
       return {
-        x: e.touches[0].clientX - cRect.left,
-        y: e.touches[0].clientY - cRect.top
+        x: (e.touches[0].clientX - cRect.left) * scaleX,
+        y: (e.touches[0].clientY - cRect.top) * scaleY
       };
     }
     return {
-      x: e.clientX - cRect.left,
-      y: e.clientY - cRect.top
+      x: (e.clientX - cRect.left) * scaleX,
+      y: (e.clientY - cRect.top) * scaleY
     };
   }
 
@@ -12855,6 +12894,11 @@ function submitConsignmentInvoice(auditId, outletId) {
     closeModal();
     showToast(res.message || 'Faktur konsinyasi berhasil diterbitkan.');
     renderKonsinyasi(true);
+    if (outletId) {
+      setTimeout(function () {
+        showOutletDetailModal(outletId, 'audits');
+      }, 350);
+    }
   }).catch(function (err) {
     if (btn) { btn.disabled = false; btn.textContent = '🧾 Buat Faktur Resmi'; }
     showToast('Gagal menerbitkan faktur: ' + (err.message || err), true);

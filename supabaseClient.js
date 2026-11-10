@@ -55,6 +55,44 @@ function saveMutationToLocalBackup(item) {
 }
 window.saveMutationToLocalBackup = saveMutationToLocalBackup;
 
+/**
+ * Generator Penomoran Dokumen Otomatis Terpusat (Sequential Counter Bulanan)
+ * Format Baku Standar: [PREFIX]-[YYMM]-[URUT_4_DIGIT]
+ * Contoh: INV-2611-0001, SJ-2611-0001, PO-2611-0001, QC-2611-0001, MOV-2611-0001, dsb.
+ * Otomatis tereset kembali ke 0001 setiap awal bulan baru secara kronologis.
+ */
+async function generateSequentialDocNo(prefix, tableName, column = 'invoice_no') {
+  const d = new Date();
+  const yymm = String(d.getFullYear()).slice(-2) + String(d.getMonth() + 1).padStart(2, '0');
+  const leader = prefix + '-' + yymm + '-';
+
+  try {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select(column)
+      .like(column, leader + '%')
+      .order(column, { ascending: false })
+      .limit(1);
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const latestCode = data[0][column];
+      if (latestCode && typeof latestCode === 'string' && latestCode.startsWith(leader)) {
+        const rawNum = latestCode.slice(leader.length).trim();
+        const num = parseInt(rawNum, 10);
+        if (!isNaN(num) && num > 0) {
+          return leader + String(num + 1).padStart(4, '0');
+        }
+      }
+    }
+    return leader + '0001';
+  } catch (err) {
+    console.warn(`[DocNo] Gagal query nomor dokumen ${prefix} pada tabel ${tableName}, gunakan fallback unik:`, err);
+    const rand4 = Math.floor(1000 + Math.random() * 9000);
+    return leader + rand4;
+  }
+}
+window.generateSequentialDocNo = generateSequentialDocNo;
+
 // ==============================================================================
 // 1B. ENGINE NOTIFIKASI REALTIME & WEB PUSH (HANDPHONE / PWA)
 // ==============================================================================
@@ -1194,7 +1232,7 @@ async function dispatchApiCall(fnName, args) {
 
       const consumedItems = [];
       const txId = crypto.randomUUID();
-      const invoiceNo = payload.invoice_no || `INV-${Date.now().toString().slice(-6)}`;
+      const invoiceNo = payload.invoice_no || await generateSequentialDocNo('INV', 'transactions', 'invoice_no');
 
       // Hitung subtotal, tax, dan total
       let calcSubtotal = 0;
@@ -1418,7 +1456,7 @@ async function dispatchApiCall(fnName, args) {
     case 'createPurchase': {
       const [, purchase] = args;
       const purchaseId = crypto.randomUUID();
-      const invoiceNo = purchase.invoice_no || `PUR-${Date.now().toString().slice(-6)}`;
+      const invoiceNo = purchase.invoice_no || await generateSequentialDocNo('PO', 'purchases', 'invoice_no');
       const now = new Date().toISOString();
 
       // 1. Simpan Header Pembelian
@@ -2198,7 +2236,7 @@ async function dispatchApiCall(fnName, args) {
         }
       }
 
-      const qcCode = `QC-${Date.now().toString().slice(-6)}`;
+      const qcCode = await generateSequentialDocNo('QC', 'seed_qc_logs', 'qc_code');
       const { data: qcRecord, error: qcErr } = await supabase.from('seed_qc_logs').insert({
         qc_code: qcCode,
         batch_id: payload.batch_id,
@@ -2258,7 +2296,7 @@ async function dispatchApiCall(fnName, args) {
       const startDate = payload.start_time ? new Date(payload.start_time) : new Date();
       const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
 
-      const qcCode = `DHT-${Date.now().toString().slice(-6)}`;
+      const qcCode = await generateSequentialDocNo('DHT', 'seed_qc_logs', 'qc_code');
       const { data, error } = await supabase.from('seed_qc_logs').insert({
         qc_code: qcCode,
         batch_id: payload.batch_id,
@@ -2405,7 +2443,7 @@ async function dispatchApiCall(fnName, args) {
     case 'transferStockToOutlet': {
       const [, payload] = args;
       const transferId = crypto.randomUUID();
-      const invoiceNo = `SJ-${Date.now().toString().slice(-6)}`;
+      const invoiceNo = await generateSequentialDocNo('SJ', 'consignment_transfers', 'invoice_no');
       const items = payload.items || [];
       const prodIds = [...new Set(items.map(it => it.product_id).filter(Boolean))];
 
@@ -2577,11 +2615,12 @@ async function dispatchApiCall(fnName, args) {
         // Jika ada restock baru di tempat saat opname, potong stok gudang pusat secara FIFO
         const restockQty = Number(it.qty_restock || 0);
         if (restockQty > 0) {
+          const movRef = await generateSequentialDocNo('MOV', 'stock_mutations', 'reference_no');
           await consumeStockFIFOClient(
             it.product_id,
             restockQty,
             auditId,
-            `OPN-${auditId.slice(0, 6).toUpperCase()}`,
+            movRef,
             'KELUAR_KONSINYASI',
             it.batch_id || null
           );
@@ -2712,7 +2751,7 @@ async function dispatchApiCall(fnName, args) {
 
       // 3. Susun item transaksi faktur
       const txId = crypto.randomUUID();
-      const invoiceNo = `FKT-KSN-${Date.now().toString().slice(-6)}`;
+      const invoiceNo = await generateSequentialDocNo('FKT-KSN', 'transactions', 'invoice_no');
       let totalAmount = 0;
       const txItems = [];
 
@@ -3817,7 +3856,7 @@ async function dispatchApiCall(fnName, args) {
       const newBatchQty = adjType === 'MINUS' ? Math.max(0, prevQty - qtyNum) : (prevQty + qtyNum);
       const diffQty = adjType === 'MINUS' ? -qtyNum : qtyNum;
       const mutationType = adjType === 'MINUS' ? 'ADJUSTMENT_OUT' : 'ADJUSTMENT_IN';
-      const refNo = 'ADJ-' + Date.now().toString().slice(-6);
+      const refNo = await generateSequentialDocNo('ADJ', 'stock_mutations', 'reference_no');
       const reasonLabel = (payload && payload.reason) || 'KOREKSI_STOK';
       const notesFull = `[${reasonLabel}] ${(payload && payload.notes) || '-'} (Petugas: ${(payload && payload.user_name) || 'Admin'})`;
 

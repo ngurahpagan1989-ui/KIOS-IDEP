@@ -826,11 +826,11 @@ async function sendOrderToWhatsApp() {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan Pesanan ke Antrean POS...';
   }
 
-  // Generate Nomor Pesanan Resmi (#KT-YYMMDD-XXX)
+  // Generate Nomor Pesanan Resmi (#ORD-YYMMDD-XXX)
   const now = new Date();
   const dateStr = String(now.getFullYear()).slice(-2) + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
   const rndDigits = Math.floor(100 + Math.random() * 900);
-  const orderNo = `KT-${dateStr}-${rndDigits}`;
+  const orderNo = `ORD-${dateStr}-${rndDigits}`;
   const orderId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('ord-' + Date.now());
 
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);

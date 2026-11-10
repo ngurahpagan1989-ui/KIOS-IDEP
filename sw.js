@@ -5,7 +5,7 @@ const STATIC_ASSETS = [
   './style.css?v=13.7',
   './i18n.js?v=3.3',
   './app.js?v=13.7',
-  './supabaseClient.js?v=6.9',
+  './supabaseClient.js?v=7.0',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
   './manifest.json',
   './icon-192.png',

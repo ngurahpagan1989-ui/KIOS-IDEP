@@ -503,11 +503,27 @@ function renderCategoryChips() {
   const container = document.getElementById('category-chips');
   if (!container) return;
 
-  container.innerHTML = categories.map(cat => `
+  const chipsHtml = categories.map(cat => `
     <button type="button" class="category-chip ${cat === activeCategory ? 'active' : ''}" onclick="selectCategory('${escapeHtml(cat)}')">
       ${escapeHtml(cat)}
     </button>
   `).join('');
+
+  const readyPillHtml = `
+    <button type="button" class="category-chip ${filterOnlyReady ? 'active' : ''}" onclick="toggleOnlyReadyChip()" style="${filterOnlyReady ? 'background:#059669;border-color:#059669;color:#ffffff;' : 'border-color:rgba(16,185,129,0.4);color:#10B981;'}">
+      <i class="fas fa-check-circle" style="font-size:11px;margin-right:4px;"></i> Ready Stock Saja
+    </button>
+  `;
+
+  container.innerHTML = chipsHtml + readyPillHtml;
+}
+
+function toggleOnlyReadyChip() {
+  filterOnlyReady = !filterOnlyReady;
+  const chk = document.getElementById('chk-only-ready');
+  if (chk) chk.checked = filterOnlyReady;
+  renderCategoryChips();
+  applyFilterAndRender();
 }
 
 function selectCategory(cat) {
@@ -565,8 +581,15 @@ function renderProductsGrid() {
     const isAvailable = p.stock > 0;
 
     const thumbHtml = p.photo_url ?
-      `<img src="${escapeHtml(p.photo_url)}" alt="${escapeHtml(p.name)}" class="product-thumb" loading="lazy" onerror="this.outerHTML='<div class=\\'product-thumb-placeholder\\'><i class=\\'fas fa-seedling\\'></i><span>${escapeHtml(p.category)}</span></div>'">` :
-      `<div class="product-thumb-placeholder"><i class="fas fa-seedling"></i><span>${escapeHtml(p.category)}</span></div>`;
+      `<img src="${escapeHtml(p.photo_url)}" alt="${escapeHtml(p.name)}" class="product-thumb" loading="lazy" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='flex';">
+       <div class="product-thumb-placeholder" style="display:none;">
+         <div class="placeholder-icon-ring"><i class="fas fa-seedling"></i></div>
+         <span class="placeholder-tag">${escapeHtml(p.category)}</span>
+       </div>` :
+      `<div class="product-thumb-placeholder">
+         <div class="placeholder-icon-ring"><i class="fas fa-seedling"></i></div>
+         <span class="placeholder-tag">${escapeHtml(p.category)}</span>
+       </div>`;
 
     let actionHtml = '';
     if (!isAvailable) {
@@ -617,8 +640,7 @@ function renderProductsGrid() {
           <div class="product-category">${escapeHtml(p.category)}</div>
           <h3 class="product-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</h3>
           <div class="product-variant-info">
-            ${p.variant ? `<span>📦 ${escapeHtml(p.variant)}</span>` : ''}
-            <span>&bull; ${escapeHtml(p.unit)}</span>
+            ${p.variant ? `<span>📦 ${escapeHtml(p.variant)}</span> <span>&bull; ${escapeHtml(p.unit)}</span>` : `<span>📦 Kemasan ${escapeHtml(p.unit)}</span>`}
           </div>
           <div class="product-price-row">
             <div class="product-price">${formatRupiah(p.price)}</div>
@@ -1050,6 +1072,7 @@ function askStockViaWhatsApp(productId) {
 
 function toggleOnlyReadyFilter(isChecked) {
   filterOnlyReady = !!isChecked;
+  renderCategoryChips();
   applyFilterAndRender();
 }
 

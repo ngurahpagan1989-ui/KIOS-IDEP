@@ -78,6 +78,22 @@
   </style>
   <script src="i18n.js?v=3.3"></script>
   <script>
+    // Auto-purge stale Service Worker caches on version update
+    if ('caches' in window) {
+      caches.keys().then(function (names) {
+        names.forEach(function (name) {
+          if (name !== 'pos-app-v13.4') {
+            caches.delete(name);
+          }
+        });
+      });
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        regs.forEach(function (r) { r.update(); });
+      });
+    }
+
     window.setAppLanguage = function (lang) {
       if (window.i18n && typeof window.i18n.setLanguage === 'function') {
         window.i18n.setLanguage(lang);

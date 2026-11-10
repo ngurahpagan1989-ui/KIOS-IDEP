@@ -10964,7 +10964,7 @@ function showOutletDetailModal(outletId, activeTab) {
 
       const pdfBtn = a.pdf_url ?
         '<a href="' + escapeHtml(a.pdf_url) + '" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📄 Buka PDF</a>' :
-        '<span class="badge badge-neutral">PDF di Drive</span>';
+        '<button type="button" class="btn btn-secondary btn-sm" onclick="printConsignmentAuditReport(\'' + escapeHtml(a.id) + '\')" title="Cetak Berita Acara Stok Opname A4">🖨️ Cetak BA</button>';
 
       const photoThumb = a.display_photo_url ?
         '<a href="' + escapeHtml(a.display_photo_url) + '" target="_blank" title="Buka Foto Display Rak">' +
@@ -12821,13 +12821,97 @@ function openAuditSuccessModal(res, payload, outletId) {
       '<a href="' + escapeHtml(res.pdf_url) + '" target="_blank" class="btn btn-primary btn-block btn-lg" style="text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;">' +
       '<span>📄 Buka / Unduh Berita Acara (PDF)</span>' +
       '</a>' :
-      '<div class="badge badge-warning" style="display:block;padding:8px;">PDF berhasil diarsipkan di folder Drive.</div>') +
+      '<button type="button" class="btn btn-primary btn-block btn-lg" onclick="printConsignmentAuditReport(\'' + escapeHtml(res.audit_id) + '\')" style="display:flex;align-items:center;justify-content:center;gap:6px;">' +
+      '<span>🖨️ Cetak / Simpan PDF Berita Acara Opname</span>' +
+      '</button>') +
     invoiceBtnHtml +
     waActionHtml +
     '</div>';
 
   openModal('Berita Acara Opname Sukses', bodyHtml, '<button type="button" class="btn btn-secondary" onclick="closeModal();' + (outletId ? ('showOutletDetailModal(\'' + outletId + '\', \'audits\');') : 'renderKonsinyasi(true);') + '">Selesai &amp; Tutup</button>');
 }
+
+function printConsignmentAuditReport(auditId) {
+  showToast('Menyiapkan dokumen Berita Acara Stok Opname...');
+  api('getConsignmentAuditReceiptData', TOKEN, auditId).then(function (res) {
+    if (!res || !res.audit) {
+      showToast('Data Berita Acara Opname tidak ditemukan.', true);
+      return;
+    }
+    const a = res.audit;
+    const o = res.outlet || {};
+    const items = res.items || [];
+    const settings = APP_SETTINGS || window.APP_SETTINGS || {};
+    const storeTitle = settings.store_name || 'Toko Kasir & Inventaris';
+    const storeLogo = settings.store_logo || settings.store_logo_light || '';
+    const storeAddress = settings.store_address || '';
+    const storePhone = settings.store_phone || '';
+
+    const rowsHtml = items.map(function (it, idx) {
+      const sys = Number(it.qty_system || 0);
+      const act = Number(it.qty_actual || 0);
+      const ret = Number(it.qty_returned || 0);
+      const miss = Number(it.qty_missing || 0);
+      const sold = Number(it.qty_sold || 0);
+      const restock = Number(it.qty_restock || 0);
+      const bal = act + restock;
+      const isChargeable = (it.missing_chargeable === true || String(it.missing_chargeable) === 'true');
+      const missDesc = miss > 0 ? (miss + ' (' + (isChargeable ? 'Tagih Mitra' : 'Beban Toko') + ')') : '0';
+      return '<tr>' +
+        '<td style="text-align:center;padding:6px;border:1px solid #cbd5e1;">' + (idx + 1) + '</td>' +
+        '<td style="padding:6px;border:1px solid #cbd5e1;font-weight:bold;">' + escapeHtml(it.product_name || it.product_id) + '</td>' +
+        '<td style="text-align:center;padding:6px;border:1px solid #cbd5e1;">' + sys + '</td>' +
+        '<td style="text-align:center;padding:6px;border:1px solid #cbd5e1;">' + act + '</td>' +
+        '<td style="text-align:center;padding:6px;border:1px solid #cbd5e1;">' + ret + '</td>' +
+        '<td style="text-align:center;padding:6px;border:1px solid #cbd5e1;">' + missDesc + '</td>' +
+        '<td style="text-align:center;padding:6px;border:1px solid #cbd5e1;font-weight:bold;color:#15803d;">' + sold + '</td>' +
+        '<td style="text-align:center;padding:6px;border:1px solid #cbd5e1;color:#2563eb;">+' + restock + '</td>' +
+        '<td style="text-align:center;padding:6px;border:1px solid #cbd5e1;font-weight:bold;">' + bal + '</td>' +
+        '</tr>';
+    }).join('');
+
+    const logoHtml = storeLogo
+      ? '<img src="' + escapeHtml(storeLogo) + '" style="max-height:50px;max-width:160px;object-fit:contain;display:block;margin-bottom:4px;" alt="Logo" />'
+      : '<div style="font-size:14pt;font-weight:800;color:#2563EB;">' + escapeHtml(storeTitle).toUpperCase() + '</div>';
+
+    const sigAuditor = a.sig_idep_url || '';
+    const sigOutlet = a.sig_outlet_url || '';
+
+    const printHtml =
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Berita Acara Opname #' + escapeHtml(a.id) + '</title>' +
+      '<style>@page{size:A4 portrait;margin:14mm;}body{font-family:Arial,sans-serif;color:#1e293b;font-size:11px;line-height:1.4;margin:0;}table{width:100%;border-collapse:collapse;}</style>' +
+      '</head><body>' +
+      '<div style="border-bottom:2px solid #2563EB;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;">' +
+      '<div>' + logoHtml + '<div style="font-size:9.5px;color:#475569;">' + escapeHtml(storeAddress) + (storePhone ? (' | WA: ' + escapeHtml(storePhone)) : '') + '</div></div>' +
+      '<div style="text-align:right;"><div style="font-size:14pt;font-weight:800;color:#2563EB;">BERITA ACARA STOK OPNAME</div><div style="font-size:9px;color:#64748b;">No. Dokumen: #' + escapeHtml(a.id.slice(0, 8).toUpperCase()) + ' | Tanggal: ' + escapeHtml(a.audit_date || '-') + '</div></div>' +
+      '</div>' +
+      '<table style="margin-bottom:14px;background:#f8fafc;border:1px solid #e2e8f0;"><tr>' +
+      '<td style="padding:8px 12px;width:50%;border-right:1px solid #e2e8f0;"><strong>Outlet Mitra:</strong> ' + escapeHtml(o.name || a.store_name || '-') + '<br/><strong>PIC Toko:</strong> ' + escapeHtml(a.outlet_pic || o.pic_name || '-') + ' (' + escapeHtml(a.outlet_phone || o.phone || '-') + ')</td>' +
+      '<td style="padding:8px 12px;width:50%;"><strong>Petugas Pemeriksa:</strong> ' + escapeHtml(a.auditor_name || '-') + '<br/><strong>Status Faktur:</strong> ' + escapeHtml(a.invoice_id ? ('#' + a.invoice_id) : 'Belum Diterbitkan') + '</td>' +
+      '</tr></table>' +
+      '<table style="margin-bottom:14px;"><thead><tr style="background:#2563EB;color:#fff;font-size:10px;">' +
+      '<th style="padding:6px;border:1px solid #1e40af;">No</th><th style="padding:6px;border:1px solid #1e40af;text-align:left;">Produk</th><th style="padding:6px;border:1px solid #1e40af;">Saldo Lalu</th><th style="padding:6px;border:1px solid #1e40af;">Fisik Rak</th><th style="padding:6px;border:1px solid #1e40af;">Retur</th><th style="padding:6px;border:1px solid #1e40af;">Selisih/Hilang</th><th style="padding:6px;border:1px solid #1e40af;">Terjual</th><th style="padding:6px;border:1px solid #1e40af;">Restock</th><th style="padding:6px;border:1px solid #1e40af;">Saldo Baru</th>' +
+      '</tr></thead><tbody>' + rowsHtml + '</tbody></table>' +
+      (a.notes ? ('<div style="margin-bottom:14px;padding:8px 10px;background:#f8fafc;border:1px solid #cbd5e1;"><strong>Catatan Observasi:</strong> ' + escapeHtml(a.notes) + '</div>') : '') +
+      '<table style="margin-top:20px;border:1px solid #cbd5e1;"><tr>' +
+      '<td style="width:50%;text-align:center;padding:12px;border-right:1px solid #cbd5e1;"><strong>Petugas Pemeriksa</strong><div style="height:60px;display:flex;align-items:center;justify-content:center;">' + (sigAuditor ? ('<img src="' + sigAuditor + '" style="max-height:55px;max-width:160px;" />') : '') + '</div><div style="border-top:1px solid #94a3b8;padding-top:4px;">' + escapeHtml(a.auditor_name || 'Auditor') + '</div></td>' +
+      '<td style="width:50%;text-align:center;padding:12px;"><strong>PIC Toko Mitra</strong><div style="height:60px;display:flex;align-items:center;justify-content:center;">' + (sigOutlet ? ('<img src="' + sigOutlet + '" style="max-height:55px;max-width:160px;" />') : '') + '</div><div style="border-top:1px solid #94a3b8;padding-top:4px;">' + escapeHtml(a.outlet_pic || o.pic_name || 'PIC Mitra') + '</div></td>' +
+      '</tr></table>' +
+      '<script>window.onload=function(){window.print();};<\/script></body></html>';
+
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.open();
+      w.document.write(printHtml);
+      w.document.close();
+    } else {
+      showToast('Pop-up diblokir browser. Izinkan pop-up untuk mencetak Berita Acara.', true);
+    }
+  }).catch(function (err) {
+    showToast('Gagal memuat Berita Acara: ' + (err.message || err), true);
+  });
+}
+window.printConsignmentAuditReport = printConsignmentAuditReport;
 
 function openConsignmentAuditWAModal(picName, encodedText) {
   showPromptDialog(
@@ -20457,7 +20541,7 @@ if ('serviceWorker' in navigator) {
     }
   });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js?v=13.4', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=13.5', { updateViaCache: 'none' })
       .then(function (reg) {
         console.log('[PWA] Service Worker berhasil terdaftar:', reg.scope);
         try { if (reg.update) reg.update(); } catch (e) {}

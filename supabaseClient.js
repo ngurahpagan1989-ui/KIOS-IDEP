@@ -2308,15 +2308,22 @@ async function dispatchApiCall(fnName, args) {
     case 'getOutlets': {
       const [outletsRes, stocksRes, auditsRes] = await Promise.all([
         supabase.from('outlets').select('*').order('name', { ascending: true }),
-        supabase.from('outlet_stocks').select('outlet_id, qty_current'),
+        supabase.from('outlet_stocks').select('outlet_id, product_id, qty_current, updated_at').order('updated_at', { ascending: false }),
         supabase.from('consignment_audits').select('outlet_id, audit_date, created_at').order('audit_date', { ascending: false })
       ]);
       if (outletsRes.error) throw outletsRes.error;
 
       const stockSumMap = {};
+      const seenOutletProd = new Set();
       (stocksRes.data || []).forEach(s => {
         if (!s || !s.outlet_id) return;
-        stockSumMap[s.outlet_id] = (stockSumMap[s.outlet_id] || 0) + Number(s.qty_current || 0);
+        const key = `${s.outlet_id}__${s.product_id || ''}`;
+        if (s.product_id && seenOutletProd.has(key)) return;
+        if (s.product_id) seenOutletProd.add(key);
+        const qty = Number(s.qty_current || 0);
+        if (qty > 0) {
+          stockSumMap[s.outlet_id] = (stockSumMap[s.outlet_id] || 0) + qty;
+        }
       });
 
       const lastAuditMap = {};
@@ -2362,7 +2369,7 @@ async function dispatchApiCall(fnName, args) {
       const [, statusFilter] = args;
       let query = supabase
         .from('consignment_transfers')
-        .select('*, outlets(name)')
+        .select('*, outlets(name, pic_name, phone)')
         .order('sent_at', { ascending: false });
 
       if (statusFilter === 'IN_TRANSIT') {
@@ -2375,7 +2382,8 @@ async function dispatchApiCall(fnName, args) {
       if (error) throw error;
       return (data || []).map(t => ({
         ...t,
-        outlet_name: t.outlets ? t.outlets.name : 'Outlet'
+        outlet_name: (t.outlets && t.outlets.name) || t.outlet_name || 'Outlet Mitra',
+        pic_name: (t.outlets && t.outlets.pic_name) || t.actual_recipient_name || '-'
       }));
     }
 
@@ -2384,16 +2392,36 @@ async function dispatchApiCall(fnName, args) {
       const transferId = crypto.randomUUID();
       const invoiceNo = `SJ-${Date.now().toString().slice(-6)}`;
       const items = payload.items || [];
+      const prodIds = [...new Set(items.map(it => it.product_id).filter(Boolean))];
+
+      // Ambil info outlet & tingkat harga (price_tiers) agar harga satuan surat jalan tercatat akurat
+      const [outletRes, tiersRes] = await Promise.all([
+        supabase.from('outlets').select('id, name, price_tier').eq('id', payload.outlet_id).maybeSingle(),
+        prodIds.length > 0
+          ? supabase.from('price_tiers').select('product_id, tier_name, price').in('product_id', prodIds)
+          : Promise.resolve({ data: [] })
+      ]);
+
+      const outletRow = outletRes.data || {};
+      const outletTierName = String(outletRow.price_tier || 'Outlet').trim().toLowerCase();
+      const tiersByProd = {};
+      (tiersRes.data || []).forEach(t => {
+        if (!t || !t.product_id) return;
+        if (!tiersByProd[t.product_id]) tiersByProd[t.product_id] = [];
+        tiersByProd[t.product_id].push(t);
+      });
 
       // 1. Simpan Header Transfer
-      await supabase.from('consignment_transfers').insert({
+      const { error: trfErr } = await supabase.from('consignment_transfers').insert({
         id: transferId,
         outlet_id: payload.outlet_id,
+        outlet_name: outletRow.name || '',
         invoice_no: invoiceNo,
         total_pcs: items.reduce((sum, it) => sum + Number(it.qty || 0), 0),
         notes: payload.notes || '',
         delivery_status: 'PENDING'
       });
+      if (trfErr) throw trfErr;
 
       // 2. Potong stok pusat via FIFO client dan catat item transfer
       for (const it of items) {
@@ -2407,28 +2435,56 @@ async function dispatchApiCall(fnName, args) {
           prefBatch
         );
 
-        await supabase.from('consignment_transfer_items').insert({
+        let unitPrice = Number(it.unit_price || 0);
+        if (unitPrice <= 0) {
+          const pTiers = tiersByProd[it.product_id] || [];
+          const exactTier = pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === outletTierName)
+            || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'outlet')
+            || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'reguler')
+            || pTiers[0];
+          unitPrice = exactTier ? Number(exactTier.price || 0) : 0;
+        }
+
+        const { error: itemErr } = await supabase.from('consignment_transfer_items').insert({
           transfer_id: transferId,
           product_id: it.product_id,
           qty: Number(it.qty),
-          unit_price: Number(it.unit_price || 0)
+          unit_price: unitPrice
         });
+        if (itemErr) throw itemErr;
 
-        // Update saldo rak cabang
-        const { data: existStock } = await supabase
+        // Update saldo rak cabang (hindari duplikasi baris karena outlet_stocks memakai PK id)
+        const { data: existRows } = await supabase
           .from('outlet_stocks')
-          .select('qty_current')
+          .select('id, qty_current')
           .eq('outlet_id', payload.outlet_id)
           .eq('product_id', it.product_id)
-          .maybeSingle();
+          .order('updated_at', { ascending: false });
 
-        const currentQty = existStock ? Number(existStock.qty_current || 0) : 0;
-        await supabase.from('outlet_stocks').upsert({
-          outlet_id: payload.outlet_id,
-          product_id: it.product_id,
-          qty_current: currentQty + Number(it.qty),
-          updated_at: new Date().toISOString()
-        });
+        if (existRows && existRows.length > 0) {
+          const currentQty = Number(existRows[0].qty_current || 0);
+          await supabase
+            .from('outlet_stocks')
+            .update({
+              qty_current: currentQty + Number(it.qty),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existRows[0].id);
+
+          if (existRows.length > 1) {
+            const dupIds = existRows.slice(1).map(r => r.id).filter(Boolean);
+            if (dupIds.length > 0) {
+              await supabase.from('outlet_stocks').delete().in('id', dupIds);
+            }
+          }
+        } else {
+          await supabase.from('outlet_stocks').insert({
+            outlet_id: payload.outlet_id,
+            product_id: it.product_id,
+            qty_current: Number(it.qty),
+            updated_at: new Date().toISOString()
+          });
+        }
       }
 
       return { success: true, id: transferId, invoice_no: invoiceNo };
@@ -2455,24 +2511,42 @@ async function dispatchApiCall(fnName, args) {
         sigOutletUrl = await uploadToSupabaseStorage('signatures', `sig_outlet_${auditId}.png`, payload.sig_outlet_base64, 'image/png');
       }
 
+      const itemsList = payload.items || [];
+      const totalSold = itemsList.reduce((sum, it) => sum + Number(it.qty_sold || 0), 0);
+      const totalReturned = itemsList.reduce((sum, it) => sum + Number(it.qty_returned || 0), 0);
+      const totalMissing = itemsList.reduce((sum, it) => sum + Number(it.qty_missing || 0), 0);
+      const totalChargeable = itemsList.reduce((sum, it) => sum + ((it.missing_chargeable === true || String(it.missing_chargeable) === 'true') ? Number(it.qty_missing || 0) : 0), 0);
+      const totalWriteoff = Math.max(0, totalMissing - totalChargeable);
+      const totalRestock = itemsList.reduce((sum, it) => sum + Number(it.qty_restock || 0), 0);
+
+      const auditDateStr = payload.audit_date || new Date().toISOString().split('T')[0];
       const auditInsertData = {
         id: auditId,
         outlet_id: outletId,
-        audit_date: payload.audit_date || new Date().toISOString().split('T')[0],
+        store_name: payload.store_name || '',
+        audit_date: auditDateStr,
+        auditor_name: payload.auditor_name || 'Petugas Pemeriksa',
         outlet_pic: payload.outlet_pic || '',
+        outlet_phone: payload.outlet_phone || '',
+        total_sold: totalSold,
+        total_returned: totalReturned,
+        total_missing: totalMissing,
+        total_chargeable_missing: totalChargeable,
+        total_writeoff_missing: totalWriteoff,
+        total_restock: totalRestock,
         display_photo_url: displayPhotoUrl,
         sig_outlet_url: sigOutletUrl,
         notes: payload.notes || ''
       };
       if (sigInternalUrl) {
-        auditInsertData.sig_internal_url = sigInternalUrl;
         auditInsertData.sig_idep_url = sigInternalUrl;
       }
 
-      await supabase.from('consignment_audits').insert(auditInsertData);
+      const { error: auditErr } = await supabase.from('consignment_audits').insert(auditInsertData);
+      if (auditErr) throw auditErr;
 
-      for (const it of (payload.items || [])) {
-        await supabase.from('consignment_audit_items').insert({
+      for (const it of itemsList) {
+        const { error: aItemErr } = await supabase.from('consignment_audit_items').insert({
           audit_id: auditId,
           product_id: it.product_id,
           qty_system: Number(it.qty_system || 0),
@@ -2483,23 +2557,54 @@ async function dispatchApiCall(fnName, args) {
           missing_chargeable: (it.missing_chargeable === true || String(it.missing_chargeable) === 'true'),
           qty_restock: Number(it.qty_restock || 0)
         });
+        if (aItemErr) throw aItemErr;
 
-        // Update saldo rak cabang
-        const newStock = Number(it.qty_actual || 0) + Number(it.qty_restock || 0);
-        await supabase.from('outlet_stocks').upsert({
-          outlet_id: outletId,
-          product_id: it.product_id,
-          qty_current: newStock,
-          updated_at: new Date().toISOString()
-        });
+        // Jika ada restock baru di tempat saat opname, potong stok gudang pusat secara FIFO
+        const restockQty = Number(it.qty_restock || 0);
+        if (restockQty > 0) {
+          await consumeStockFIFOClient(
+            it.product_id,
+            restockQty,
+            auditId,
+            `OPN-${auditId.slice(0, 6).toUpperCase()}`,
+            'KELUAR_KONSINYASI',
+            it.batch_id || null
+          );
+        }
+
+        // Update saldo rak cabang berdasarkan ID baris agar tidak membuat duplikat
+        const newStock = Number(it.qty_actual || 0) + restockQty;
+        const { data: existRows } = await supabase
+          .from('outlet_stocks')
+          .select('id')
+          .eq('outlet_id', outletId)
+          .eq('product_id', it.product_id)
+          .order('updated_at', { ascending: false });
+
+        if (existRows && existRows.length > 0) {
+          await supabase
+            .from('outlet_stocks')
+            .update({
+              qty_current: newStock,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existRows[0].id);
+
+          if (existRows.length > 1) {
+            const dupIds = existRows.slice(1).map(r => r.id).filter(Boolean);
+            if (dupIds.length > 0) {
+              await supabase.from('outlet_stocks').delete().in('id', dupIds);
+            }
+          }
+        } else {
+          await supabase.from('outlet_stocks').insert({
+            outlet_id: outletId,
+            product_id: it.product_id,
+            qty_current: newStock,
+            updated_at: new Date().toISOString()
+          });
+        }
       }
-
-      const totalSold = (payload.items || []).reduce((sum, it) => sum + Number(it.qty_sold || 0), 0);
-      const totalReturned = (payload.items || []).reduce((sum, it) => sum + Number(it.qty_returned || 0), 0);
-      const totalMissing = (payload.items || []).reduce((sum, it) => sum + Number(it.qty_missing || 0), 0);
-      const totalChargeable = (payload.items || []).reduce((sum, it) => sum + ((it.missing_chargeable === true || String(it.missing_chargeable) === 'true') ? Number(it.qty_missing || 0) : 0), 0);
-      const totalWriteoff = Math.max(0, totalMissing - totalChargeable);
-      const totalRestock = (payload.items || []).reduce((sum, it) => sum + Number(it.qty_restock || 0), 0);
 
       emitOperationalNotification({
         title: '🏪 Opname Konsinyasi Selesai',
@@ -2513,7 +2618,7 @@ async function dispatchApiCall(fnName, args) {
         success: true,
         id: auditId,
         audit_id: auditId,
-        audit_date: payload.audit_date || new Date().toISOString().split('T')[0],
+        audit_date: auditDateStr,
         outlet_name: payload.store_name || '',
         outlet_pic: payload.outlet_pic || '',
         outlet_phone: payload.outlet_phone || '',
@@ -2563,13 +2668,14 @@ async function dispatchApiCall(fnName, args) {
         throw new Error('Tidak ada kuantiti terjual atau barang hilang tertagih pada Berita Acara ini.');
       }
 
-      // 2. Ambil referensi produk & price_tiers untuk outlet ini
+      // 2. Ambil referensi produk, price_tiers & HPP batch untuk outlet ini
       const prodIds = [...new Set(billableItems.map(it => it.product_id).filter(Boolean))];
       const outletTierName = String(outlet.price_tier || 'Outlet').trim().toLowerCase();
 
-      const [prodsRes, tiersRes] = await Promise.all([
-        supabase.from('products').select('id, name, unit, sell_price, cost_price, sku').in('id', prodIds),
-        supabase.from('price_tiers').select('product_id, tier_name, price').in('product_id', prodIds)
+      const [prodsRes, tiersRes, batchesRes] = await Promise.all([
+        supabase.from('products').select('id, name, unit, sku').in('id', prodIds),
+        supabase.from('price_tiers').select('product_id, tier_name, price').in('product_id', prodIds),
+        supabase.from('stock_batches').select('product_id, buy_price, cost_per_unit').in('product_id', prodIds).order('created_at', { ascending: false })
       ]);
 
       const prodsMap = {};
@@ -2582,6 +2688,13 @@ async function dispatchApiCall(fnName, args) {
         tiersByProd[t.product_id].push(t);
       });
 
+      const costByProd = {};
+      (batchesRes.data || []).forEach(b => {
+        if (!b || !b.product_id || costByProd[b.product_id] !== undefined) return;
+        const c = Number(b.cost_per_unit || b.buy_price || 0);
+        if (c > 0) costByProd[b.product_id] = c;
+      });
+
       // 3. Susun item transaksi faktur
       const txId = crypto.randomUUID();
       const invoiceNo = `FKT-KSN-${Date.now().toString().slice(-6)}`;
@@ -2589,13 +2702,14 @@ async function dispatchApiCall(fnName, args) {
       const txItems = [];
 
       for (const it of billableItems) {
-        const p = prodsMap[it.product_id] || {};
         const pTiers = tiersByProd[it.product_id] || [];
         const exactTier = pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === outletTierName)
           || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'outlet')
-          || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'reguler');
+          || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'reguler')
+          || pTiers[0];
 
-        const unitPrice = exactTier ? Number(exactTier.price || 0) : Number(p.sell_price || 0);
+        const unitPrice = exactTier ? Number(exactTier.price || 0) : 0;
+        const unitCost = Number(costByProd[it.product_id] || 0);
         const soldQty = Number(it.qty_sold || 0);
         const missingQty = (it.missing_chargeable === true || String(it.missing_chargeable) === 'true') ? Number(it.qty_missing || 0) : 0;
         const totalQty = soldQty + missingQty;
@@ -2608,26 +2722,24 @@ async function dispatchApiCall(fnName, args) {
           batch_id: it.batch_id || null,
           qty: totalQty,
           price: unitPrice,
-          cost: Number(p.cost_price || 0),
+          cost: unitCost,
           subtotal: lineTotal
         });
       }
 
-      // 4. Catat ke tabel transactions
+      // 4. Catat ke tabel transactions (hanya kolom yang ada di skema tabel transactions)
       const txStatus = payload.payment_type === 'installment' ? 'tempo' : 'paid';
       const txInsertData = {
         id: txId,
         invoice_no: invoiceNo,
-        customer_name: outlet.name || 'Outlet Konsinyasi',
-        customer_phone: outlet.phone || '',
+        customer_name: outlet.name || auditData.store_name || 'Outlet Konsinyasi',
         source: 'KONSINYASI',
         subtotal: totalAmount,
         tax: 0,
         total: totalAmount,
         payment_method: payload.payment_type === 'installment' ? 'TEMPO' : 'TRANSFER',
-        payment_type: payload.payment_type || 'cash',
-        status: txStatus,
-        notes: `Faktur Konsinyasi Hasil Stok Opname #${auditId} (${outlet.name || 'Mitra'})`
+        payment_type: payload.payment_type || 'full',
+        status: txStatus
       };
 
       const { error: txErr } = await supabase.from('transactions').insert(txInsertData);
@@ -2641,16 +2753,19 @@ async function dispatchApiCall(fnName, args) {
 
       // 6. Jika tempo / kredit, catat ke tabel receivables (piutang)
       if (payload.payment_type === 'installment') {
-        await supabase.from('receivables').insert({
+        const { error: recErr } = await supabase.from('receivables').insert({
           id: crypto.randomUUID(),
           transaction_id: txId,
           customer_id: null,
+          customer_name: outlet.name || auditData.store_name || 'Outlet Konsinyasi',
           total: totalAmount,
           paid: 0,
           remaining: totalAmount,
           due_date: payload.due_date || null,
-          status: 'active'
+          status: 'active',
+          notes: `Faktur Konsinyasi #${invoiceNo} (Opname #${auditId})`
         });
+        if (recErr) console.warn('[Konsinyasi] Warning insert receivables:', recErr);
       }
 
       // 7. Update nomor invoice di consignment_audits
@@ -2694,6 +2809,7 @@ async function dispatchApiCall(fnName, args) {
           delivery_status: 'DELIVERED',
           actual_recipient_name: payload.actualRecipientName,
           recipient_role: payload.recipientRole || 'Staf Outlet',
+          recipient_signature: signatureUrl,
           recipient_signature_url: signatureUrl,
           received_at: new Date().toISOString(),
           delivery_notes: payload.deliveryNotes || ''
@@ -3822,9 +3938,9 @@ async function dispatchApiCall(fnName, args) {
       const [, outletId] = args;
       const [outletRes, stocksRes, transfersRes, auditsRes, tiersRes] = await Promise.all([
         supabase.from('outlets').select('*').eq('id', outletId).single(),
-        supabase.from('outlet_stocks').select('*, products(name, unit, sell_price)').eq('outlet_id', outletId),
+        supabase.from('outlet_stocks').select('*, products(name, unit, sku)').eq('outlet_id', outletId).order('updated_at', { ascending: false }),
         supabase.from('consignment_transfers').select('*').eq('outlet_id', outletId).order('sent_at', { ascending: false }).limit(30),
-        supabase.from('consignment_audits').select('*, consignment_audit_items(*)').eq('outlet_id', outletId).order('audit_date', { ascending: false }).limit(30),
+        supabase.from('consignment_audits').select('*').eq('outlet_id', outletId).order('audit_date', { ascending: false }).limit(30),
         supabase.from('price_tiers').select('product_id, tier_name, price')
       ]);
       if (outletRes.error) throw outletRes.error;
@@ -3839,6 +3955,24 @@ async function dispatchApiCall(fnName, args) {
       });
 
       const auditsList = auditsRes.data || [];
+      const auditIds = auditsList.map(a => a.id).filter(Boolean);
+      const auditItemsByAuditId = {};
+      if (auditIds.length > 0) {
+        try {
+          const { data: aItems } = await supabase
+            .from('consignment_audit_items')
+            .select('*')
+            .in('audit_id', auditIds);
+          (aItems || []).forEach(it => {
+            if (!it || !it.audit_id) return;
+            if (!auditItemsByAuditId[it.audit_id]) auditItemsByAuditId[it.audit_id] = [];
+            auditItemsByAuditId[it.audit_id].push(it);
+          });
+        } catch (e) {
+          console.warn('[getOutletDetail] Gagal memuat consignment_audit_items:', e);
+        }
+      }
+
       const latestAuditStr = (auditsList[0] && (auditsList[0].audit_date || auditsList[0].created_at)) || outletRow.created_at || null;
       let daysSinceAudit = 0;
       if (latestAuditStr) {
@@ -3854,42 +3988,93 @@ async function dispatchApiCall(fnName, args) {
 
       // Agregasikan akumulasi totals untuk tiap rekaman audit agar rincian opname & tombol faktur selalu akurat
       const enrichedAudits = auditsList.map(a => {
-        const items = a.consignment_audit_items || [];
-        const totalSold = items.reduce((s, it) => s + Number(it.qty_sold || 0), 0);
-        const totalReturned = items.reduce((s, it) => s + Number(it.qty_returned || 0), 0);
-        const totalMissing = items.reduce((s, it) => s + Number(it.qty_missing || 0), 0);
-        const totalChargeable = items.reduce((s, it) => s + ((it.missing_chargeable === true || String(it.missing_chargeable) === 'true') ? Number(it.qty_missing || 0) : 0), 0);
-        const totalWriteoff = Math.max(0, totalMissing - totalChargeable);
-        const totalRestock = items.reduce((s, it) => s + Number(it.qty_restock || 0), 0);
+        const items = auditItemsByAuditId[a.id] || a.consignment_audit_items || [];
+        const calcSold = items.reduce((s, it) => s + Number(it.qty_sold || 0), 0);
+        const calcReturned = items.reduce((s, it) => s + Number(it.qty_returned || 0), 0);
+        const calcMissing = items.reduce((s, it) => s + Number(it.qty_missing || 0), 0);
+        const calcChargeable = items.reduce((s, it) => s + ((it.missing_chargeable === true || String(it.missing_chargeable) === 'true') ? Number(it.qty_missing || 0) : 0), 0);
+        const calcWriteoff = Math.max(0, calcMissing - calcChargeable);
+        const calcRestock = items.reduce((s, it) => s + Number(it.qty_restock || 0), 0);
         return {
           ...a,
-          total_sold: totalSold,
-          total_returned: totalReturned,
-          total_missing: totalMissing,
-          total_chargeable_missing: totalChargeable,
-          total_writeoff_missing: totalWriteoff,
-          total_restock: totalRestock
+          consignment_audit_items: items,
+          total_sold: items.length > 0 ? calcSold : Number(a.total_sold || 0),
+          total_returned: items.length > 0 ? calcReturned : Number(a.total_returned || 0),
+          total_missing: items.length > 0 ? calcMissing : Number(a.total_missing || 0),
+          total_chargeable_missing: items.length > 0 ? calcChargeable : Number(a.total_chargeable_missing || 0),
+          total_writeoff_missing: items.length > 0 ? calcWriteoff : Number(a.total_writeoff_missing || 0),
+          total_restock: items.length > 0 ? calcRestock : Number(a.total_restock || 0)
         };
       });
 
+      // Deduplikasi outlet_stocks per product_id (jika ada baris ganda lama)
+      const uniqueStocks = [];
+      const seenProdIds = new Set();
+      (stocksRes.data || []).forEach(s => {
+        if (!s || !s.product_id) return;
+        if (seenProdIds.has(s.product_id)) return;
+        seenProdIds.add(s.product_id);
+        if (Number(s.qty_current || 0) > 0) {
+          uniqueStocks.push(s);
+        }
+      });
+
+      // Lookup kode batch asal dari stock_mutations berdasarkan riwayat transfer outlet ini
+      const batchByProdId = {};
+      const transfersList = transfersRes.data || [];
+      if (uniqueStocks.length > 0 && transfersList.length > 0) {
+        try {
+          const refNos = [];
+          transfersList.forEach(tr => {
+            if (tr.id) refNos.push(tr.id);
+            if (tr.invoice_no) refNos.push(tr.invoice_no);
+          });
+          if (refNos.length > 0) {
+            const { data: muts } = await supabase
+              .from('stock_mutations')
+              .select('product_id, batch_id')
+              .in('reference_no', refNos);
+            if (muts && muts.length > 0) {
+              const bIds = [...new Set(muts.map(m => m.batch_id).filter(Boolean))];
+              const { data: bRows } = bIds.length > 0
+                ? await supabase.from('stock_batches').select('id, batch_code').in('id', bIds)
+                : { data: [] };
+              const bCodeMap = {};
+              (bRows || []).forEach(b => { if (b && b.id) bCodeMap[b.id] = b.batch_code || b.id; });
+              muts.forEach(m => {
+                const code = bCodeMap[m.batch_id] || m.batch_id;
+                if (code && !batchByProdId[m.product_id]) {
+                  batchByProdId[m.product_id] = code;
+                }
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('[getOutletDetail] Gagal lookup batch asal:', e);
+        }
+      }
+
       return {
         outlet: normalizedOutlet,
-        stocks: (stocksRes.data || []).map(s => {
+        stocks: uniqueStocks.map(s => {
           const pTiers = tiersByProd[s.product_id] || [];
           const exactTier = pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === outletTierName)
             || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'outlet')
-            || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'reguler');
-          const unitPrice = exactTier ? Number(exactTier.price || 0) : Number(s.products?.sell_price || 0);
+            || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'reguler')
+            || pTiers[0];
+          const unitPrice = exactTier ? Number(exactTier.price || 0) : 0;
           const qtyCur = Number(s.qty_current || 0);
           return {
             ...s,
             product_name: s.products ? s.products.name : 'Produk',
             unit: s.products ? s.products.unit : 'pcs',
+            sku: s.products ? (s.products.sku || '') : '',
+            batch_id: s.batch_id || batchByProdId[s.product_id] || '',
             tier_price: unitPrice,
             subtotal: qtyCur * unitPrice
           };
         }),
-        transfers: transfersRes.data || [],
+        transfers: transfersList,
         audits: enrichedAudits
       };
     }
@@ -3939,17 +4124,26 @@ async function dispatchApiCall(fnName, args) {
 
       const items = rawItems || [];
 
-      // 3. Ambil data produk terkait secara independen
+      // 3. Ambil data produk & price_tiers terkait secara independen
       const productIds = [...new Set(items.map(it => it.product_id).filter(Boolean))];
       let productsMap = {};
+      const tiersByProd = {};
+      const outletObj = (transfer && transfer.outlets) ? transfer.outlets : {};
+      const outletTierName = String(outletObj.price_tier || 'Outlet').trim().toLowerCase();
+
       if (productIds.length > 0) {
         try {
-          const { data: prods } = await supabase
-            .from('products')
-            .select('id, name, unit, sku')
-            .in('id', productIds);
-          (prods || []).forEach(p => {
+          const [prodsRes, tiersRes] = await Promise.all([
+            supabase.from('products').select('id, name, unit, sku').in('id', productIds),
+            supabase.from('price_tiers').select('product_id, tier_name, price').in('product_id', productIds)
+          ]);
+          (prodsRes.data || []).forEach(p => {
             if (p && p.id) productsMap[p.id] = p;
+          });
+          (tiersRes.data || []).forEach(t => {
+            if (!t || !t.product_id) return;
+            if (!tiersByProd[t.product_id]) tiersByProd[t.product_id] = [];
+            tiersByProd[t.product_id].push(t);
           });
         } catch (pErr) {
           console.warn('Gagal memuat produk untuk surat jalan:', pErr);
@@ -3987,19 +4181,29 @@ async function dispatchApiCall(fnName, args) {
 
       return {
         transfer: transfer,
-        outlet: transfer.outlets || {},
+        outlet: outletObj,
         items: items.map(it => {
           const prod = productsMap[it.product_id] || {};
           const prodName = prod.name || it.name || it.product_name || 'Produk';
           const prodUnit = prod.unit || it.unit || 'pcs';
           const prodSku = prod.sku || it.sku || '';
           const batchDisplay = it.batch_id || (batchMap[it.product_id] ? batchMap[it.product_id].join(', ') : '-');
+          let unitPrice = Number(it.unit_price || 0);
+          if (unitPrice <= 0) {
+            const pTiers = tiersByProd[it.product_id] || [];
+            const exactTier = pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === outletTierName)
+              || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'outlet')
+              || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'reguler')
+              || pTiers[0];
+            unitPrice = exactTier ? Number(exactTier.price || 0) : 0;
+          }
           return {
             ...it,
             name: prodName,
             product_name: prodName,
             unit: prodUnit,
             sku: prodSku,
+            unit_price: unitPrice,
             batch_id: batchDisplay
           };
         })
@@ -4013,16 +4217,53 @@ async function dispatchApiCall(fnName, args) {
         try {
           const { data: tr } = await supabase
             .from('consignment_transfers')
-            .select('surat_jalan_url, pdf_url')
+            .select('pdf_url')
             .eq('id', targetId)
             .maybeSingle();
-          const url = (tr && (tr.surat_jalan_url || tr.pdf_url)) || '';
+          const url = (tr && tr.pdf_url) || '';
           return { success: true, pdf_url: url, url: url };
         } catch (e) {
           console.warn('[getConsignmentSuratJalanPdf] Warn:', e);
         }
       }
       return { success: true, pdf_url: '', url: '' };
+    }
+
+    case 'getConsignmentAuditReceiptData': {
+      const [, auditId] = args;
+      const targetId = auditId || args[0];
+      const { data: audit, error: aErr } = await supabase
+        .from('consignment_audits')
+        .select('*')
+        .eq('id', targetId)
+        .single();
+      if (aErr) throw aErr;
+
+      const [outletRes, itemsRes] = await Promise.all([
+        audit.outlet_id ? supabase.from('outlets').select('*').eq('id', audit.outlet_id).maybeSingle() : Promise.resolve({ data: null }),
+        supabase.from('consignment_audit_items').select('*').eq('audit_id', targetId)
+      ]);
+      const outlet = outletRes.data || {};
+      const rawItems = itemsRes.data || [];
+      const prodIds = [...new Set(rawItems.map(it => it.product_id).filter(Boolean))];
+      const productsMap = {};
+      if (prodIds.length > 0) {
+        const { data: prods } = await supabase.from('products').select('id, name, unit, sku').in('id', prodIds);
+        (prods || []).forEach(p => { if (p && p.id) productsMap[p.id] = p; });
+      }
+      return {
+        audit,
+        outlet,
+        items: rawItems.map(it => {
+          const p = productsMap[it.product_id] || {};
+          return {
+            ...it,
+            product_name: p.name || 'Produk',
+            unit: p.unit || 'pcs',
+            sku: p.sku || ''
+          };
+        })
+      };
     }
 
     case 'deleteTransaction': {

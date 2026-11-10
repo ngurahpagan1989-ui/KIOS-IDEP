@@ -401,6 +401,25 @@ function formatDate(d) {
   return formatDateIndo(d);
 }
 
+function formatDateTimeIndo(dateStr) {
+  if (!dateStr || dateStr === '-' || dateStr === 'null' || dateStr === 'undefined') return '-';
+  try {
+    const raw = String(dateStr).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      return formatDateIndo(raw);
+    }
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) {
+      const isEn = window.i18n && window.i18n.getLanguage() === 'en';
+      const datePart = d.toLocaleDateString(isEn ? 'en-GB' : 'id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+      const timePart = d.toLocaleTimeString(isEn ? 'en-GB' : 'id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace(/\./g, ':');
+      return datePart + ', ' + timePart;
+    }
+  } catch (e) { }
+  return formatDateIndo(dateStr);
+}
+window.formatDateTimeIndo = formatDateTimeIndo;
+
 let _toastTimer = null;
 window.CONFIG_ALERT_DIALOG_ERRORS = true; // Error otomatis tampil sebagai kotak dialog di tengah layar
 
@@ -10905,17 +10924,17 @@ function showOutletDetailModal(outletId, activeTab) {
 
       const recipientInfo = isDelivered ?
         ('<div><strong>' + escapeHtml(t.actual_recipient_name || '-') + '</strong></div>' +
-          '<div style="font-size:10px;color:var(--text-secondary);">' + escapeHtml(t.recipient_role || 'Penerima') + (t.received_at ? (' &bull; ' + formatDate(t.received_at)) : '') + '</div>') :
+          '<div style="font-size:10px;color:var(--text-secondary);">' + escapeHtml(t.recipient_role || 'Penerima') + (t.received_at ? (' &bull; ' + formatDateTimeIndo(t.received_at)) : '') + '</div>') :
         '<span style="color:var(--text-muted);font-size:11px;">Menunggu Serah Terima</span>';
 
       const actionSignBtn = !isDelivered ?
         ('<button type="button" class="btn btn-primary btn-sm" onclick="openDeliveryReceiptModal(\'' + t.id + '\', \'' + o.id + '\')" style="margin-right:4px;">✍️ Serah Terima / Tanda Tangan</button>') :
         ('<button type="button" class="btn btn-secondary btn-sm" onclick="viewDeliveryReceiptModal(\'' + t.id + '\', \'' + o.id + '\')" style="margin-right:4px;">👁️ Bukti Serah Terima</button>');
 
-      const printSjBtn = '<button type="button" class="btn btn-secondary btn-sm" onclick="printConsignmentSuratJalan(\'' + t.id + '\')" style="margin-right:4px;" title="Cetak Surat Jalan A4 Langsung">🖨️ Cetak SJ</button>';
-      const pdfBtn = t.pdf_url ?
-        '<a href="' + escapeHtml(t.pdf_url) + '" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📄 PDF</a>' :
-        '<button type="button" class="btn btn-secondary btn-sm" onclick="openTransferSuratJalan(\'' + t.id + '\')">📄 PDF</button>';
+      const docActionBtn = t.pdf_url ?
+        ('<button type="button" class="btn btn-secondary btn-sm" onclick="printConsignmentSuratJalan(\'' + t.id + '\')" style="margin-right:4px;" title="Cetak Surat Jalan A4 Langsung">🖨️ Cetak SJ</button>' +
+          '<a href="' + escapeHtml(t.pdf_url) + '" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📄 PDF</a>') :
+        ('<button type="button" class="btn btn-secondary btn-sm" onclick="printConsignmentSuratJalan(\'' + t.id + '\')" title="Cetak atau Simpan PDF Surat Jalan A4">🖨️ Cetak / PDF</button>');
 
       return '<tr>' +
         '<td>' + formatDate(t.sent_at) + '</td>' +
@@ -10923,7 +10942,7 @@ function showOutletDetailModal(outletId, activeTab) {
         '<td style="text-align:center;"><strong style="font-size:13px;">' + (t.total_pcs || 0) + '</strong> pcs</td>' +
         '<td>' + statusBadge + '</td>' +
         '<td>' + recipientInfo + '</td>' +
-        '<td style="text-align:right;white-space:nowrap;">' + actionSignBtn + printSjBtn + pdfBtn + '</td>' +
+        '<td style="text-align:right;white-space:nowrap;">' + actionSignBtn + docActionBtn + '</td>' +
         '</tr>';
     }).join('') : '<tr><td colspan="6"><div style="text-align:center;padding:24px;color:var(--text-secondary);">Belum ada riwayat drop stok untuk outlet ini.</div></td></tr>';
 
@@ -11000,7 +11019,7 @@ function showOutletDetailModal(outletId, activeTab) {
       }
 
       const missingCardInfo = Number(a.total_missing || 0) > 0 ?
-        (' &bull; Hilang/Selisih: <strong style="color:#dc2626;">' + a.total_missing + ' pcs</strong> (' + (a.total_chargeable_missing || 0) + ' tagih mitra, ' + (a.total_writeoff_missing || 0) + ' beban Toko)') : '';
+        (' &bull; Hilang/Selisih: <strong style="color:var(--danger);">' + a.total_missing + ' pcs</strong> (' + (a.total_chargeable_missing || 0) + ' tagih mitra, ' + (a.total_writeoff_missing || 0) + ' beban Toko)') : '';
 
       return '<div class="audit-hist-card">' +
         '<div class="audit-hist-info">' +
@@ -11018,7 +11037,7 @@ function showOutletDetailModal(outletId, activeTab) {
         'Terjual: <strong style="color:var(--success);">' + totalSold + ' pcs</strong> &bull; ' +
         'Retur: <strong style="color:var(--warning);">' + totalReturned + ' pcs</strong>' +
         missingCardInfo + ' &bull; ' +
-        'Restock: <strong style="color:#2563eb;">' + totalRestock + ' pcs</strong>' +
+        'Restock: <strong style="color:var(--primary);">' + totalRestock + ' pcs</strong>' +
         '</div>' +
         (a.notes ? ('<div style="font-size:11px;color:var(--text-muted);margin-top:2px;font-style:italic;">Catatan: ' + escapeHtml(a.notes) + '</div>') : '') +
         '</div>' +
@@ -11132,9 +11151,9 @@ async function openTransferStockModal(outletId) {
   }
 
   const bodyHtml =
-    '<div style="background:#F8FAFC;border:1px solid #E2E8F0;padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">' +
+    '<div style="background:var(--surface-muted);border:1px solid var(--border);border-left:4px solid var(--primary);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">' +
     '<div style="font-size:13px;font-weight:700;color:var(--primary);">Drop / Pengiriman Stok ke ' + escapeHtml(outletName) + '</div>' +
-    '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Stok benih kemasan jadi akan dipotong otomatis dari gudang pusat secara FIFO dan ditambahkan ke saldo rak outlet. Dokumen Surat Jalan Delivery Order otomatis diterbitkan ke Google Drive.</div>' +
+    '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Stok benih kemasan jadi akan dipotong otomatis dari gudang pusat secara FIFO dan ditambahkan ke saldo rak outlet. Dokumen Surat Jalan siap dicetak/disimpan PDF dan diverifikasi tanda tangan penerima.</div>' +
     '</div>' +
     '<div class="field-group">' +
     '<label class="field-label">Daftar Varietas Benih yang Dikirim <span style="color:var(--danger)">*</span></label>' +
@@ -11143,7 +11162,7 @@ async function openTransferStockModal(outletId) {
     '</div>' +
     '<div class="field-group" style="margin-top:14px;">' +
     '<label class="field-label">Catatan / Keterangan Pengiriman (Opsional)</label>' +
-    '<input type="text" id="transfer-notes" placeholder="Contoh: Titipan display tambahan menyambut musim tanam..." style="width:100%;padding:8px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '<input type="text" id="transfer-notes" class="field-input" placeholder="Contoh: Titipan display tambahan menyambut musim tanam..." style="width:100%;padding:8px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
     '</div>';
 
   const footerHtml =
@@ -11161,10 +11180,10 @@ function addTransferStockRow() {
   row.className = 'price-tier-row transfer-stock-row';
   row.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;align-items:center;';
   row.innerHTML =
-    '<select class="transfer-product" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;font-weight:600;font-size:13px;text-overflow:ellipsis;">' +
+    '<select class="transfer-product field-input" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-xs);font-weight:600;font-size:13px;text-overflow:ellipsis;">' +
     buildProductOptionsHTML('jadi') +
     '</select>' +
-    '<input type="number" class="transfer-qty" placeholder="Qty Pcs" min="1" value="10" style="width:85px;min-width:70px;padding:8px 8px;border:1px solid var(--border);border-radius:var(--radius-xs);text-align:center;font-weight:700;font-size:13px;">' +
+    '<input type="number" class="transfer-qty field-input" placeholder="Qty Pcs" min="1" value="10" style="width:85px;min-width:70px;padding:8px 8px;border:1px solid var(--border);border-radius:var(--radius-xs);text-align:center;font-weight:700;font-size:13px;">' +
     '<button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()" title="Hapus baris" style="padding:6px 10px;line-height:1;font-size:14px;flex-shrink:0;">&times;</button>';
   container.appendChild(row);
 }
@@ -11235,7 +11254,7 @@ function submitTransferStock(outletId) {
 }
 
 function openTransferSuratJalan(transferId) {
-  showToast('Memuat Surat Jalan PDF dari Google Drive...');
+  showToast('Menyiapkan dokumen Surat Jalan...');
   api('getConsignmentSuratJalanPdf', TOKEN, transferId).then(function (res) {
     if (res && (res.pdf_url || res.url)) {
       window.open(res.pdf_url || res.url, '_blank');
@@ -11312,7 +11331,7 @@ function printConsignmentSuratJalan(transferId) {
       '<div style="font-size:9pt;color:#64748b;font-weight:600;text-transform:uppercase;margin-bottom:8px;">PENGIRIMAN STOK KONSINYASI</div>' +
       '<table style="display:inline-table;width:auto;text-align:left;font-size:9.5pt;border-collapse:collapse;">' +
       '<tr><td style="color:#64748b;padding:2px 8px 2px 0;font-weight:600;">No. SJ</td><td style="color:#1e293b;font-weight:bold;">: #' + escapeHtml(transfer.invoice_no || transfer.id) + '</td></tr>' +
-      '<tr><td style="color:#64748b;padding:2px 8px 2px 0;font-weight:600;">Tanggal</td><td style="color:#1e293b;">: ' + escapeHtml(transfer.sent_at ? transfer.sent_at.split(' ')[0] : '-') + '</td></tr>' +
+      '<tr><td style="color:#64748b;padding:2px 8px 2px 0;font-weight:600;">Tanggal</td><td style="color:#1e293b;">: ' + escapeHtml(formatDate(transfer.sent_at)) + '</td></tr>' +
       '<tr><td style="color:#64748b;padding:2px 8px 2px 0;font-weight:600;">Status</td><td style="color:' + (transfer.delivery_status === 'DELIVERED' ? '#0f766e' : '#d97706') + ';font-weight:bold;">: ' + escapeHtml(transfer.delivery_status || 'DELIVERED') + '</td></tr>' +
       '</table>' +
       '</td>' +
@@ -11330,7 +11349,7 @@ function printConsignmentSuratJalan(transferId) {
       '</td>' +
       '<td style="padding:8px 12px;width:50%;vertical-align:top;">' +
       '<div style="font-size:9px;color:#64748b;text-transform:uppercase;font-weight:bold;">Informasi Pengiriman</div>' +
-      '<div style="font-size:11px;font-weight:bold;color:#1e293b;margin-top:2px;">Tanggal Kirim: ' + escapeHtml(transfer.sent_at || '-') + '</div>' +
+      '<div style="font-size:11px;font-weight:bold;color:#1e293b;margin-top:2px;">Tanggal Kirim: ' + escapeHtml(formatDateTimeIndo(transfer.sent_at)) + '</div>' +
       '<div style="font-size:10px;color:#64748b;margin-top:3px;">No. Dokumen: <strong>' + escapeHtml(transfer.invoice_no || transfer.id) + '</strong></div>' +
       '<div style="font-size:10px;color:#64748b;margin-top:2px;">ID Transfer: ' + escapeHtml(transfer.id) + '</div>' +
       (transfer.notes ? ('<div style="font-size:10px;color:#64748b;margin-top:2px;">Catatan: ' + escapeHtml(transfer.notes) + '</div>') : '') +
@@ -11344,12 +11363,12 @@ function printConsignmentSuratJalan(transferId) {
       '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;">' +
       '<thead>' +
       '<tr style="background:#2563EB;color:#ffffff;">' +
-      '<th style="padding:7px 8px;border:1px solid #5C381E;font-size:10px;width:28px;">No</th>' +
-      '<th style="padding:7px 8px;border:1px solid #5C381E;font-size:10px;text-align:left;">Nama Produk</th>' +
-      '<th style="padding:7px 8px;border:1px solid #5C381E;font-size:10px;text-align:center;width:120px;">No. Batch / Lot</th>' +
-      '<th style="padding:7px 8px;border:1px solid #5C381E;font-size:10px;text-align:center;width:75px;">Qty Kirim</th>' +
-      '<th style="padding:7px 8px;border:1px solid #5C381E;font-size:10px;text-align:right;width:95px;">Harga Satuan</th>' +
-      '<th style="padding:7px 8px;border:1px solid #5C381E;font-size:10px;text-align:right;width:105px;">Total Nilai Titip</th>' +
+      '<th style="padding:7px 8px;border:1px solid #1e40af;font-size:10px;width:28px;">No</th>' +
+      '<th style="padding:7px 8px;border:1px solid #1e40af;font-size:10px;text-align:left;">Nama Produk</th>' +
+      '<th style="padding:7px 8px;border:1px solid #1e40af;font-size:10px;text-align:center;width:120px;">No. Batch / Lot</th>' +
+      '<th style="padding:7px 8px;border:1px solid #1e40af;font-size:10px;text-align:center;width:75px;">Qty Kirim</th>' +
+      '<th style="padding:7px 8px;border:1px solid #1e40af;font-size:10px;text-align:right;width:95px;">Harga Satuan</th>' +
+      '<th style="padding:7px 8px;border:1px solid #1e40af;font-size:10px;text-align:right;width:105px;">Total Nilai Titip</th>' +
       '</tr>' +
       '</thead>' +
       '<tbody>' +
@@ -11380,7 +11399,7 @@ function printConsignmentSuratJalan(transferId) {
       '<div style="font-size:10px;font-weight:bold;color:#475569;margin-bottom:50px;">Pihak Pengirim</div>' +
       '<div style="border-top:1px solid #94a3b8;padding-top:4px;display:inline-block;width:80%;">' +
       '<strong style="font-size:11px;">Petugas Pengantar</strong>' +
-      '<div style="font-size:9px;color:#64748b;">Tanggal: ' + (transfer.sent_at ? transfer.sent_at.split(' ')[0] : '-') + '</div>' +
+      '<div style="font-size:9px;color:#64748b;">Tanggal: ' + escapeHtml(formatDate(transfer.sent_at)) + '</div>' +
       '</div>' +
       '</td>' +
       '<td style="width:50%;text-align:center;padding:14px;vertical-align:bottom;">' +
@@ -11394,7 +11413,7 @@ function printConsignmentSuratJalan(transferId) {
       '<div style="border-top:1px solid #94a3b8;padding-top:4px;display:inline-block;width:80%;">' +
       '<strong style="font-size:11px;">' + escapeHtml(transfer.actual_recipient_name || outlet.pic_name || outlet.name || 'Penanggung Jawab Toko') + '</strong>' +
       '<div style="font-size:9px;color:#64748b;">' + (transfer.recipient_role ? ('Jabatan: ' + escapeHtml(transfer.recipient_role)) : 'Tanda Tangan &amp; Cap Toko') + '</div>' +
-      (transfer.received_at ? ('<div style="font-size:8.5px;color:#0f766e;margin-top:2px;">Diterima: ' + escapeHtml(transfer.received_at) + '</div>') : '') +
+      (transfer.received_at ? ('<div style="font-size:8.5px;color:#0f766e;margin-top:2px;">Diterima: ' + escapeHtml(formatDateTimeIndo(transfer.received_at)) + '</div>') : '') +
       '</div>' +
       '</td>' +
       '</tr>' +
@@ -11402,7 +11421,7 @@ function printConsignmentSuratJalan(transferId) {
       '</div>' +
 
       '<div style="margin-top:18px;text-align:center;font-size:8px;color:#94a3b8;">' +
-      'Surat Jalan digital ini diterbitkan secara sah oleh Sistem POS pada ' + escapeHtml(transfer.sent_at || '-') + '.' +
+      'Surat Jalan digital ini diterbitkan secara sah oleh Sistem POS pada ' + escapeHtml(formatDateTimeIndo(transfer.sent_at)) + '.' +
       '</div>' +
       '<script>' +
       'window.onload = function() { window.print(); };' +
@@ -12018,61 +12037,65 @@ function viewDeliveryReceiptModal(deliveryId, parentOutletId) {
     let itemsRows = items.map(function (it) {
       const cleanName = typeof formatCleanProductName === 'function' ? formatCleanProductName(it.product_name) : it.product_name;
       return '<tr>' +
-        '<td>' + escapeHtml(cleanName) + '</td>' +
-        '<td style="text-align:center;font-family:\'JetBrains Mono\',monospace;">' + escapeHtml(it.batch_id || '-') + '</td>' +
-        '<td style="text-align:center;font-weight:bold;">' + Number(it.qty || 0) + ' ' + escapeHtml(it.unit || 'pcs') + '</td>' +
+        '<td style="font-weight:600;color:var(--text-main);">' + escapeHtml(cleanName) + '</td>' +
+        '<td style="text-align:center;font-family:\'JetBrains Mono\',monospace;color:var(--text-secondary);">' + escapeHtml(it.batch_id || '-') + '</td>' +
+        '<td style="text-align:center;font-weight:700;color:var(--primary);">' + Number(it.qty || 0) + ' ' + escapeHtml(it.unit || 'pcs') + '</td>' +
         '</tr>';
     }).join('');
+    if (!itemsRows) {
+      itemsRows = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:12px;">Tidak ada rincian item benih.</td></tr>';
+    }
+
+    const receivedLabel = t.received_at ? formatDateTimeIndo(t.received_at) : formatDate(t.sent_at);
 
     const bodyHtml =
       '<div class="pod-summary-card">' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">' +
       '<div>' +
       '<div class="pod-doc-tag">#' + escapeHtml(t.invoice_no || t.id) + '</div>' +
-      '<div class="pod-outlet-title" style="margin-top:4px;">🏪 ' + escapeHtml(o.name || '-') + '</div>' +
-      '<div style="font-size:11px;color:var(--text-secondary);">PIC Outlet: ' + escapeHtml(o.pic_name || '-') + '</div>' +
+      '<div class="pod-outlet-title" style="margin-top:6px;">🏪 ' + escapeHtml(o.name || t.outlet_name || '-') + '</div>' +
+      '<div style="font-size:11.5px;color:var(--text-secondary);">PIC Outlet: <strong style="color:var(--text-main);">' + escapeHtml(o.pic_name || '-') + '</strong></div>' +
       '</div>' +
       '<div style="text-align:right;">' +
       '<span class="badge-delivered">✅ DELIVERED</span>' +
-      '<div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Diterima: ' + (t.received_at || formatDate(t.sent_at)) + '</div>' +
+      '<div style="font-size:11.5px;color:var(--text-secondary);margin-top:6px;">Diterima: <strong style="color:var(--text-main);">' + escapeHtml(receivedLabel) + '</strong></div>' +
       '</div>' +
       '</div>' +
       '</div>' +
 
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">' +
-      '<div style="background:#FFFFFF;border:1px solid var(--border);border-radius:var(--radius-xs);padding:12px;">' +
-      '<div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:bold;">Orang yang Menerima Fisik</div>' +
-      '<div style="font-size:14px;font-weight:bold;color:var(--text-main);margin-top:2px;">' + escapeHtml(t.actual_recipient_name || '-') + '</div>' +
-      '<div style="font-size:11.5px;color:var(--primary);font-weight:600;margin-top:2px;">Status: ' + escapeHtml(t.recipient_role || 'Staf Toko / Kasir') + '</div>' +
-      (t.delivery_notes ? ('<div style="font-size:11px;color:var(--text-secondary);margin-top:6px;background:var(--surface-muted);padding:6px 8px;border-radius:4px;"><strong>Catatan:</strong> ' + escapeHtml(t.delivery_notes) + '</div>') : '') +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:16px;">' +
+      '<div style="background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;">' +
+      '<div style="font-size:10.5px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.4px;font-weight:700;">Orang yang Menerima Fisik</div>' +
+      '<div style="font-size:15px;font-weight:700;color:var(--text-main);margin-top:6px;">' + escapeHtml(t.actual_recipient_name || '-') + '</div>' +
+      '<div style="font-size:12px;color:var(--primary);font-weight:600;margin-top:4px;">Status: ' + escapeHtml(t.recipient_role || 'Staf Toko / Kasir') + '</div>' +
+      (t.delivery_notes ? ('<div style="font-size:11.5px;color:var(--text-secondary);margin-top:8px;background:var(--surface);border:1px solid var(--border);padding:6px 8px;border-radius:var(--radius-xs);"><strong>Catatan:</strong> ' + escapeHtml(t.delivery_notes) + '</div>') : '') +
       '</div>' +
-      '<div style="background:#FFFFFF;border:1px solid var(--border);border-radius:var(--radius-xs);padding:12px;text-align:center;">' +
-      '<div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:bold;margin-bottom:6px;">Tanda Tangan Digital Penerima</div>' +
+      '<div style="background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center;">' +
+      '<div style="font-size:10.5px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.4px;font-weight:700;margin-bottom:8px;">Tanda Tangan Digital Penerima</div>' +
       ((t.recipient_signature_url || t.recipient_signature) ?
-        ('<img src="' + (t.recipient_signature_url || t.recipient_signature) + '" style="max-height:85px;max-width:100%;object-fit:contain;border:1px dashed #cbd5e1;border-radius:4px;padding:4px;background:#F8FAFC;" alt="Tanda Tangan" />') :
+        ('<img src="' + (t.recipient_signature_url || t.recipient_signature) + '" style="max-height:90px;max-width:100%;object-fit:contain;border:1px dashed #94a3b8;border-radius:6px;padding:6px 12px;background:#F8FAFC;" alt="Tanda Tangan" />') :
         '<div style="color:var(--text-muted);font-size:12px;padding:20px;">(Tanda tangan tidak tersedia)</div>'
       ) +
       '</div>' +
       '</div>' +
 
       '<div class="pod-items-box">' +
-      '<div class="pod-items-label"><span>Daftar Benih yang Telah Diserahkan:</span></div>' +
+      '<div class="pod-items-label"><span>📦 Daftar Benih yang Telah Diserahkan:</span></div>' +
       '<table class="pod-items-table">' +
       '<thead><tr><th>Nama Benih</th><th style="text-align:center;">Batch</th><th style="text-align:center;">Jumlah</th></tr></thead>' +
       '<tbody>' + itemsRows + '</tbody>' +
       '</table>' +
       '</div>';
 
-    const printSjBtn = '<button type="button" class="btn btn-secondary" onclick="printConsignmentSuratJalan(\'' + t.id + '\')" style="display:inline-flex;align-items:center;gap:4px;">🖨️ Cetak Surat Jalan</button>';
-    const pdfBtn = t.pdf_url ?
-      ('<a href="' + escapeHtml(t.pdf_url) + '" target="_blank" class="btn btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📄 Unduh PDF Berita Acara Resmi</a>') :
-      ('<button type="button" class="btn btn-primary" onclick="openTransferSuratJalan(\'' + t.id + '\')">📄 Buka PDF Surat Jalan</button>');
+    const docButtonsHtml = t.pdf_url ?
+      ('<button type="button" class="btn btn-secondary" onclick="printConsignmentSuratJalan(\'' + t.id + '\')" style="display:inline-flex;align-items:center;gap:6px;">🖨️ Cetak Surat Jalan</button>' +
+        '<a href="' + escapeHtml(t.pdf_url) + '" target="_blank" class="btn btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">📄 Unduh PDF Berita Acara Resmi</a>') :
+      ('<button type="button" class="btn btn-primary" onclick="printConsignmentSuratJalan(\'' + t.id + '\')" style="display:inline-flex;align-items:center;gap:6px;">🖨️ Cetak / Simpan PDF Surat Jalan</button>');
 
     const closeBtnText = window._wasOutletModalOpen ? '⬅️ Kembali ke Detail Surat Jalan' : 'Tutup';
     const footerHtml =
       '<button type="button" class="btn btn-secondary" onclick="closePodViewModal()">' + closeBtnText + '</button>' +
-      printSjBtn +
-      pdfBtn;
+      docButtonsHtml;
 
     const bodyEl = document.getElementById('pod-view-modal-body');
     const footerEl = document.getElementById('pod-view-modal-footer');
@@ -12204,17 +12227,17 @@ function renderTransfersTableRows(list) {
 
     const recipientInfo = isDelivered ?
       ('<div><strong>' + escapeHtml(t.actual_recipient_name || '-') + '</strong></div>' +
-        '<div style="font-size:10px;color:var(--text-secondary);">' + escapeHtml(t.recipient_role || 'Penerima') + (t.received_at ? (' &bull; ' + formatDate(t.received_at)) : '') + '</div>') :
+        '<div style="font-size:10px;color:var(--text-secondary);">' + escapeHtml(t.recipient_role || 'Penerima') + (t.received_at ? (' &bull; ' + formatDateTimeIndo(t.received_at)) : '') + '</div>') :
       '<span style="color:var(--text-muted);font-size:11px;">Menunggu Serah Terima</span>';
 
     const actionBtn = !isDelivered ?
       ('<button type="button" class="btn btn-primary btn-sm" onclick="openDeliveryReceiptModal(\'' + t.id + '\', \'' + t.outlet_id + '\')" style="margin-right:4px;">✍️ Serah Terima / Tanda Tangan</button>') :
       ('<button type="button" class="btn btn-secondary btn-sm" onclick="viewDeliveryReceiptModal(\'' + t.id + '\', \'' + t.outlet_id + '\')" style="margin-right:4px;">👁️ Bukti Serah Terima</button>');
 
-    const printSjBtn = '<button type="button" class="btn btn-secondary btn-sm" onclick="printConsignmentSuratJalan(\'' + t.id + '\')" style="margin-right:4px;" title="Cetak Surat Jalan A4 Langsung">🖨️ Cetak</button>';
-    const pdfBtn = t.pdf_url ?
-      ('<a href="' + escapeHtml(t.pdf_url) + '" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📄 PDF</a>') :
-      ('<button type="button" class="btn btn-secondary btn-sm" onclick="openTransferSuratJalan(\'' + t.id + '\')">📄 PDF</button>');
+    const docBtn = t.pdf_url ?
+      ('<button type="button" class="btn btn-secondary btn-sm" onclick="printConsignmentSuratJalan(\'' + t.id + '\')" style="margin-right:4px;" title="Cetak Surat Jalan A4 Langsung">🖨️ Cetak</button>' +
+        '<a href="' + escapeHtml(t.pdf_url) + '" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">📄 PDF</a>') :
+      ('<button type="button" class="btn btn-secondary btn-sm" onclick="printConsignmentSuratJalan(\'' + t.id + '\')" title="Cetak atau Simpan PDF Surat Jalan A4">🖨️ Cetak / PDF</button>');
 
     return '<tr class="sj-row">' +
       '<td>' + formatDate(t.sent_at) + '</td>' +
@@ -12226,7 +12249,7 @@ function renderTransfersTableRows(list) {
       '<td style="text-align:center;"><strong style="font-size:13px;">' + (t.total_pcs || 0) + '</strong> pcs</td>' +
       '<td>' + statusBadge + '</td>' +
       '<td>' + recipientInfo + '</td>' +
-      '<td style="text-align:right;white-space:nowrap;">' + actionBtn + printSjBtn + pdfBtn + '</td>' +
+      '<td style="text-align:right;white-space:nowrap;">' + actionBtn + docBtn + '</td>' +
       '</tr>';
   }).join('');
 
@@ -12273,8 +12296,18 @@ window.addEventListener('beforeunload', function (e) {
   }
 });
 
-function openConsignmentAuditModal(outletId) {
+async function openConsignmentAuditModal(outletId) {
   showToast('Menyiapkan formulir audit stok opname...');
+  if (!PRODUCTS_CACHE || PRODUCTS_CACHE.length === 0) {
+    try {
+      const pList = await api('getProducts', TOKEN);
+      if (Array.isArray(pList)) {
+        PRODUCTS_CACHE = pList;
+        if (!DATA_CACHE.products) DATA_CACHE.products = {};
+        DATA_CACHE.products.data = pList;
+      }
+    } catch (e) { }
+  }
   api('getOutletDetail', TOKEN, outletId).then(function (data) {
     const o = data.outlet || {};
     const stocks = Array.isArray(data.stocks) ? data.stocks : [];
@@ -12328,10 +12361,10 @@ function openConsignmentAuditModal(outletId) {
         '<input type="number" class="audit-qty-input" id="audit-ret-' + idx + '" value="' + it.qty_returned + '" min="0" oninput="recalcAuditRow(' + idx + ')">' +
         '</td>' +
         '<td style="text-align:center;">' +
-        '<input type="number" class="audit-qty-input" id="audit-missing-' + idx + '" value="' + (it.qty_missing || 0) + '" min="0" oninput="recalcAuditRow(' + idx + ')" style="border-color:#fca5a5;color:#dc2626;font-weight:700;">' +
+        '<input type="number" class="audit-qty-input" id="audit-missing-' + idx + '" value="' + (it.qty_missing || 0) + '" min="0" oninput="recalcAuditRow(' + idx + ')" style="border-color:rgba(239,68,68,0.5);color:var(--danger);font-weight:700;">' +
         '</td>' +
         '<td>' +
-        '<select id="audit-chargeable-' + idx + '" onchange="recalcAuditRow(' + idx + ')" style="width:100%;min-width:140px;padding:4px 6px;font-size:10.5px;border:1px solid var(--border);border-radius:var(--radius-xs);background:#fff;font-weight:600;">' +
+        '<select id="audit-chargeable-' + idx + '" class="field-input" onchange="recalcAuditRow(' + idx + ')" style="width:100%;min-width:140px;padding:4px 6px;font-size:10.5px;border:1px solid var(--border);border-radius:var(--radius-xs);font-weight:600;">' +
         '<option value="true"' + (it.missing_chargeable ? ' selected' : '') + '>Ditagihkan ke Mitra (Kelalaian Toko)</option>' +
         '<option value="false"' + (!it.missing_chargeable ? ' selected' : '') + '>Write-off Toko (Beban Toko)</option>' +
         '</select>' +
@@ -12346,13 +12379,13 @@ function openConsignmentAuditModal(outletId) {
         '<strong style="color:var(--primary);font-size:12px;" id="audit-balance-' + idx + '">' + it.qty_balance + '</strong>' +
         '</td>' +
         '<td>' +
-        '<input type="text" placeholder="Kondisi rak / display..." id="audit-notes-' + idx + '" oninput="updateAuditItemNotes(' + idx + ', this.value)" style="width:100%;padding:4px 8px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+        '<input type="text" class="field-input" placeholder="Kondisi rak / display..." id="audit-notes-' + idx + '" oninput="updateAuditItemNotes(' + idx + ', this.value)" style="width:100%;padding:4px 8px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
         '</td>' +
         '</tr>';
     }).join('');
 
     const bodyHtml =
-      '<div style="margin-bottom:14px;background:#F8FAFC;border:1px solid #E2E8F0;padding:12px 14px;border-radius:var(--radius-sm);">' +
+      '<div style="margin-bottom:14px;background:var(--surface-muted);border:1px solid var(--border);border-left:4px solid var(--primary);padding:12px 14px;border-radius:var(--radius-sm);">' +
       '<div style="font-size:14px;font-weight:700;color:var(--primary);">' + escapeHtml(o.name) + '</div>' +
       '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">Audit Opname Lapangan, Penanganan Selisih Fisik, Mutasi Retur, Restock Baru di Rak &amp; Rekonsiliasi Berita Acara MOV Resmi</div>' +
       '</div>' +
@@ -12410,7 +12443,7 @@ function openConsignmentAuditModal(outletId) {
       // 3. Modul Kamera Bukti Display
       '<div class="audit-form-section">' +
       '<div class="audit-section-title"><span>📸 3. Bukti Foto Display / Penataan Rak Benih <span style="color:var(--danger)">*</span></span></div>' +
-      '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;">Ambil atau unggah foto rak pajangan benih di outlet. Foto otomatis dikompresi (maksimal 1000px) sebelum diunggah ke Google Drive.</div>' +
+      '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px;">Ambil atau unggah foto rak pajangan benih di outlet. Foto otomatis dikompresi (maksimal 1000px) sebelum diunggah ke penyimpanan cloud.</div>' +
       '<div class="audit-photo-box" onclick="document.getElementById(\'audit-photo-input\').click()">' +
       '<input type="file" id="audit-photo-input" accept="image/*" capture="environment" onchange="handleAuditPhotoUpload(this)" style="display:none;">' +
       '<div id="audit-photo-placeholder">' +
@@ -12586,13 +12619,17 @@ function initSignaturePad(type) {
   if (!canvas) return;
 
   canvas.style.touchAction = 'none';
+  if (canvas._auditSigCleanup) {
+    canvas._auditSigCleanup();
+  }
 
   const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width || 320;
-  canvas.height = rect.height || 140;
+  canvas.width = Math.max(260, Math.round(rect.width || 320));
+  canvas.height = Math.max(130, Math.round(rect.height || 140));
 
   const ctx = canvas.getContext('2d');
-  ctx.strokeStyle = '#1e293b';
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = '#0f172a';
   ctx.lineWidth = 2.2;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -12604,20 +12641,23 @@ function initSignaturePad(type) {
     const cRect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / (cRect.width || 1);
     const scaleY = canvas.height / (cRect.height || 1);
+    let clientX = e.clientX;
+    let clientY = e.clientY;
     if (e.touches && e.touches.length > 0) {
-      return {
-        x: (e.touches[0].clientX - cRect.left) * scaleX,
-        y: (e.touches[0].clientY - cRect.top) * scaleY
-      };
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
     }
     return {
-      x: (e.clientX - cRect.left) * scaleX,
-      y: (e.clientY - cRect.top) * scaleY
+      x: (clientX - cRect.left) * scaleX,
+      y: (clientY - cRect.top) * scaleY
     };
   }
 
   function startDraw(e) {
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
     drawing = true;
     const pos = getPos(e);
     ctx.beginPath();
@@ -12626,14 +12666,14 @@ function initSignaturePad(type) {
 
   function moveDraw(e) {
     if (!drawing) return;
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
     hasDrawn = true;
     const pos = getPos(e);
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
   }
 
-  function endDraw(e) {
+  function endDraw() {
     if (!drawing) return;
     drawing = false;
   }
@@ -12645,6 +12685,17 @@ function initSignaturePad(type) {
   canvas.addEventListener('touchstart', startDraw, { passive: false });
   canvas.addEventListener('touchmove', moveDraw, { passive: false });
   canvas.addEventListener('touchend', endDraw, { passive: false });
+  canvas.addEventListener('touchcancel', endDraw, { passive: false });
+
+  canvas._auditSigCleanup = function () {
+    canvas.onmousedown = null;
+    canvas.onmousemove = null;
+    window.removeEventListener('mouseup', endDraw);
+    canvas.removeEventListener('touchstart', startDraw);
+    canvas.removeEventListener('touchmove', moveDraw);
+    canvas.removeEventListener('touchend', endDraw);
+    canvas.removeEventListener('touchcancel', endDraw);
+  };
 
   window._sigPads[type] = {
     canvas: canvas,
@@ -12713,10 +12764,25 @@ function submitConsignmentAuditUI(outletId) {
     return;
   }
 
+  // Validasi ketersediaan stok gudang pusat bila ada restock baru di rak
+  const auditItemsList = window._currentAuditData.items || [];
+  for (let i = 0; i < auditItemsList.length; i++) {
+    const it = auditItemsList[i];
+    const restockQty = Number(it.qty_restock || 0);
+    if (restockQty > 0 && Array.isArray(PRODUCTS_CACHE) && PRODUCTS_CACHE.length > 0) {
+      const prod = PRODUCTS_CACHE.find(function (p) { return p.id === it.product_id; });
+      const avail = prod ? Number(prod.stock || 0) : 0;
+      if (prod && restockQty > avail) {
+        showToast('Stok gudang pusat untuk restock "' + prod.name + '" tidak mencukupi (' + avail + ' ' + (prod.unit || 'pcs') + ' tersedia, input restock ' + restockQty + ').', true);
+        return;
+      }
+    }
+  }
+
   const submitBtn = document.getElementById('btn-submit-audit');
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '⏳ Menyusun Berita Acara &amp; Mengunggah ke Drive...';
+    submitBtn.innerHTML = '⏳ Menyimpan Berita Acara Opname...';
   }
 
   const payload = {
@@ -12746,7 +12812,7 @@ function submitConsignmentAuditUI(outletId) {
     })
   };
 
-  showToast('Menyusun PDF Berita Acara & sinkronisasi Google Drive...');
+  showToast('Menyimpan Berita Acara Stok Opname...');
 
   api('submitConsignmentAudit', TOKEN, payload).then(function (res) {
     if (DATA_CACHE.outlets) DATA_CACHE.outlets.timestamp = 0;
@@ -12809,7 +12875,7 @@ function openAuditSuccessModal(res, payload, outletId) {
     '<div style="font-size:48px;margin-bottom:10px;">📋</div>' +
     '<h2 style="margin-bottom:6px;color:var(--primary);">Berita Acara Resmi Diterbitkan!</h2>' +
     '<p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px;">' +
-    'Stok opname untuk <strong>' + escapeHtml(storeName) + '</strong> berhasil diverifikasi dengan dual signature dan diarsipkan ke Google Drive.' +
+    'Stok opname untuk <strong>' + escapeHtml(storeName) + '</strong> berhasil diverifikasi dengan dual signature dan tersimpan di sistem.' +
     '</p>' +
     '<div style="background:var(--surface-muted);padding:14px;border-radius:var(--radius-sm);text-align:left;font-size:12px;margin-bottom:16px;">' +
     '<div>No. Berita Acara: <strong style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);">#' + res.audit_id + '</strong></div>' +
@@ -12883,7 +12949,7 @@ function printConsignmentAuditReport(auditId) {
       '</head><body>' +
       '<div style="border-bottom:2px solid #2563EB;padding-bottom:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;">' +
       '<div>' + logoHtml + '<div style="font-size:9.5px;color:#475569;">' + escapeHtml(storeAddress) + (storePhone ? (' | WA: ' + escapeHtml(storePhone)) : '') + '</div></div>' +
-      '<div style="text-align:right;"><div style="font-size:14pt;font-weight:800;color:#2563EB;">BERITA ACARA STOK OPNAME</div><div style="font-size:9px;color:#64748b;">No. Dokumen: #' + escapeHtml(a.id.slice(0, 8).toUpperCase()) + ' | Tanggal: ' + escapeHtml(a.audit_date || '-') + '</div></div>' +
+      '<div style="text-align:right;"><div style="font-size:14pt;font-weight:800;color:#2563EB;">BERITA ACARA STOK OPNAME</div><div style="font-size:9px;color:#64748b;">No. Dokumen: #' + escapeHtml(String(a.id || '').slice(0, 8).toUpperCase()) + ' | Tanggal: ' + escapeHtml(formatDate(a.audit_date)) + '</div></div>' +
       '</div>' +
       '<table style="margin-bottom:14px;background:#f8fafc;border:1px solid #e2e8f0;"><tr>' +
       '<td style="padding:8px 12px;width:50%;border-right:1px solid #e2e8f0;"><strong>Outlet Mitra:</strong> ' + escapeHtml(o.name || a.store_name || '-') + '<br/><strong>PIC Toko:</strong> ' + escapeHtml(a.outlet_pic || o.pic_name || '-') + ' (' + escapeHtml(a.outlet_phone || o.phone || '-') + ')</td>' +
@@ -20541,7 +20607,7 @@ if ('serviceWorker' in navigator) {
     }
   });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js?v=13.5', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=13.6', { updateViaCache: 'none' })
       .then(function (reg) {
         console.log('[PWA] Service Worker berhasil terdaftar:', reg.scope);
         try { if (reg.update) reg.update(); } catch (e) {}

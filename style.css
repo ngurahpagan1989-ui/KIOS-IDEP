@@ -2498,14 +2498,19 @@ tbody tr:hover {
   font-weight: 700;
   border: 1px solid var(--border);
   border-radius: var(--radius-xs);
-  background: #fff;
+  background: var(--bg-app);
+  color: var(--text-main);
   text-align: center;
+}
+
+body.theme-light .audit-qty-input {
+  background: #FFFFFF;
 }
 
 .audit-qty-input:focus {
   border-color: var(--primary);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 0 0 2px var(--primary-light);
 }
 
 .audit-sold-badge {
@@ -2533,7 +2538,7 @@ tbody tr:hover {
 
 .audit-photo-box:hover {
   border-color: var(--primary);
-  background: #fcfbfa;
+  background: var(--primary-light);
 }
 
 .audit-photo-preview-wrap {
@@ -2637,7 +2642,7 @@ tbody tr:hover {
   bottom: 8px;
   right: 12px;
   font-size: 9px;
-  color: var(--text-muted);
+  color: #64748B;
   pointer-events: none;
   font-style: italic;
 }
@@ -2685,7 +2690,7 @@ tbody tr:hover {
   border-radius: var(--radius-xs);
   border: 1px solid var(--border);
   object-fit: cover;
-  background: #eee;
+  background: var(--surface-muted);
 }
 
 .audit-hist-actions {
@@ -2703,10 +2708,16 @@ tbody tr:hover {
   border-radius: var(--radius-xs);
   font-size: 11px;
   font-weight: 700;
+  background: rgba(16, 185, 129, 0.16);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  white-space: nowrap;
+}
+
+body.theme-light .badge-visit-safe {
   background: #ecfdf5;
   color: #065f46;
-  border: 1px solid #a7f3d0;
-  white-space: nowrap;
+  border-color: #a7f3d0;
 }
 
 .badge-visit-warn {
@@ -2717,10 +2728,16 @@ tbody tr:hover {
   border-radius: var(--radius-xs);
   font-size: 11px;
   font-weight: 700;
+  background: rgba(245, 158, 11, 0.16);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  white-space: nowrap;
+}
+
+body.theme-light .badge-visit-warn {
   background: #fffbeb;
   color: #92400e;
-  border: 1px solid #fde68a;
-  white-space: nowrap;
+  border-color: #fde68a;
 }
 
 .badge-visit-urgent {
@@ -2731,11 +2748,17 @@ tbody tr:hover {
   border-radius: var(--radius-xs);
   font-size: 11px;
   font-weight: 700;
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  background: rgba(239, 68, 68, 0.18);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
   white-space: nowrap;
   animation: pulse-border 2s infinite ease-in-out;
+}
+
+body.theme-light .badge-visit-urgent {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
 }
 
 @keyframes pulse-border {
@@ -2746,11 +2769,13 @@ tbody tr:hover {
 
 /* Modal Faktur Tagihan Konsinyasi */
 .invoice-summary-box {
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
   border-radius: var(--radius-sm);
   padding: 14px 16px;
   margin-bottom: 14px;
+  color: var(--text-main);
 }
 
 .invoice-summary-row {
@@ -2766,7 +2791,7 @@ tbody tr:hover {
   font-size: 15px;
   font-weight: 800;
   color: var(--primary);
-  border-top: 1px solid #E4D8CE;
+  border-top: 1px solid var(--border);
   padding-top: 8px;
   margin-top: 8px;
 }
@@ -2892,7 +2917,7 @@ tbody tr:hover {
 
 /* ===================== OUTLET MITRA 360° MODAL & TABS ===================== */
 .outlet-profile-card {
-  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+  background: var(--surface-muted);
   border: 1px solid var(--border);
   border-left: 4px solid var(--primary);
   border-radius: var(--radius-sm);
@@ -2905,6 +2930,10 @@ tbody tr:hover {
   gap: 14px;
 }
 
+body.theme-light .outlet-profile-card {
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+}
+
 .outlet-profile-info {
   display: flex;
   flex-direction: column;
@@ -2914,10 +2943,11 @@ tbody tr:hover {
 .outlet-profile-title {
   font-size: 17px;
   font-weight: 800;
-  color: var(--primary-dark);
+  color: var(--primary);
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .outlet-profile-meta {
@@ -3006,9 +3036,15 @@ tbody tr:hover {
   font-size: 11px;
   font-weight: 700;
   border-radius: var(--radius-xs);
+  background: rgba(245, 158, 11, 0.16);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+body.theme-light .outlet-price-tier-tag {
   background: #FEF3C7;
   color: #92400E;
-  border: 1px solid #FDE68A;
+  border-color: #FDE68A;
 }
 
 /* Multi-Tier Preset & Pricing Styling */
@@ -3344,8 +3380,9 @@ tbody tr:hover {
 
 /* Ringkasan Pengiriman & Outlet */
 .pod-summary-card {
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
   border-radius: var(--radius-sm);
   padding: 14px 16px;
   margin-bottom: 16px;
@@ -3365,10 +3402,10 @@ tbody tr:hover {
   font-size: 12px;
   font-weight: 700;
   color: var(--primary);
-  background: #FFFFFF;
+  background: var(--primary-light);
   padding: 3px 8px;
   border-radius: var(--radius-xs);
-  border: 1px solid #D6C7BA;
+  border: 1px solid rgba(6, 182, 212, 0.35);
   display: inline-block;
 }
 
@@ -3384,14 +3421,20 @@ tbody tr:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #EFF6FF;
-  border: 1px solid #BFDBFE;
-  color: #1D4ED8;
+  background: var(--accent-light);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #93C5FD;
   padding: 5px 10px;
   border-radius: var(--radius-xs);
   font-size: 11.5px;
   font-weight: 600;
   margin-top: 6px;
+}
+
+body.theme-light .pic-reference-badge {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #1D4ED8;
 }
 
 .pic-reference-badge .icon {
@@ -3418,8 +3461,8 @@ tbody tr:hover {
 .pod-items-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11.5px;
-  background: #FFFFFF;
+  font-size: 12px;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xs);
   overflow: hidden;
@@ -3428,16 +3471,16 @@ tbody tr:hover {
 .pod-items-table th {
   background: var(--surface-muted);
   color: var(--text-secondary);
-  padding: 7px 10px;
-  font-weight: 600;
+  padding: 8px 12px;
+  font-weight: 700;
   font-size: 10.5px;
   text-transform: uppercase;
   border-bottom: 1px solid var(--border);
 }
 
 .pod-items-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border-light);
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
   color: var(--text-main);
 }
 
@@ -3446,7 +3489,8 @@ tbody tr:hover {
 }
 
 .pod-items-table tfoot td {
-  background: #F8FAFC;
+  background: var(--surface-muted);
+  color: var(--text-main);
   font-weight: 700;
   border-top: 1px solid var(--border);
 }
@@ -3538,22 +3582,34 @@ tbody tr:hover {
 }
 
 #signature-status-badge.badge-unsigned {
-  background: #F1F5F9;
-  color: #64748B;
-  border: 1px solid #CBD5E1;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 #signature-status-badge.badge-drafting {
+  background: rgba(245, 158, 11, 0.16);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.38);
+}
+
+body.theme-light #signature-status-badge.badge-drafting {
   background: #FEF3C7;
   color: #B45309;
-  border: 1px solid #FCD34D;
+  border-color: #FCD34D;
 }
 
 #signature-status-badge.badge-locked {
+  background: rgba(16, 185, 129, 0.16);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.38);
+  font-weight: 700;
+}
+
+body.theme-light #signature-status-badge.badge-locked {
   background: #E8F5E9;
   color: #2E7D32;
-  border: 1px solid #A5D6A7;
-  font-weight: 700;
+  border-color: #A5D6A7;
 }
 
 /* Tombol Outline Khusus */
@@ -3595,39 +3651,51 @@ tbody tr:hover {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.16);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.38);
+}
+
+body.theme-light .badge-in-transit {
   background: #FEF3C7;
   color: #92400E;
-  border: 1px solid #FCD34D;
+  border-color: #FCD34D;
 }
 
 .badge-delivered {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.16);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.38);
+}
+
+body.theme-light .badge-delivered {
   background: #D1FAE5;
   color: #065F46;
-  border: 1px solid #6EE7B7;
+  border-color: #6EE7B7;
 }
 
 .badge-draft-delivery {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  background: #F1F5F9;
-  color: #475569;
-  border: 1px solid #CBD5E1;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 /* Tab Navigasi Surat Jalan Konsinyasi */
@@ -7561,6 +7629,11 @@ body:not(.theme-light) textarea {
   color: #F8FAFC !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   color-scheme: dark !important;
+}
+
+body:not(.theme-light) select option {
+  background: #0F172A;
+  color: #F8FAFC;
 }
 
 body:not(.theme-light) input[type="date"]::-webkit-calendar-picker-indicator,

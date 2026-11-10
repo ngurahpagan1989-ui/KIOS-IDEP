@@ -2306,17 +2306,21 @@ async function dispatchApiCall(fnName, args) {
     // G. KONSINYASI CABANG (OUTLETS, AUDITS, TRANSFERS)
     // --------------------------------------------------------------------------
     case 'getOutlets': {
-      const [outletsRes, stocksRes, auditsRes] = await Promise.all([
+      const [outletsRes, stocksRes, auditsRes, transfersRes] = await Promise.all([
         supabase.from('outlets').select('*').order('name', { ascending: true }),
         supabase.from('outlet_stocks').select('outlet_id, product_id, qty_current, updated_at').order('updated_at', { ascending: false }),
-        supabase.from('consignment_audits').select('outlet_id, audit_date, created_at').order('audit_date', { ascending: false })
+        supabase.from('consignment_audits').select('outlet_id, audit_date, created_at').order('audit_date', { ascending: false }),
+        supabase.from('consignment_transfers').select('outlet_id, total_pcs')
       ]);
       if (outletsRes.error) throw outletsRes.error;
+      if (stocksRes.error) console.warn('[getOutlets] Peringatan query outlet_stocks:', stocksRes.error);
 
       const stockSumMap = {};
+      const hasStockRowOutlet = new Set();
       const seenOutletProd = new Set();
       (stocksRes.data || []).forEach(s => {
         if (!s || !s.outlet_id) return;
+        hasStockRowOutlet.add(s.outlet_id);
         const key = `${s.outlet_id}__${s.product_id || ''}`;
         if (s.product_id && seenOutletProd.has(key)) return;
         if (s.product_id) seenOutletProd.add(key);
@@ -2324,6 +2328,12 @@ async function dispatchApiCall(fnName, args) {
         if (qty > 0) {
           stockSumMap[s.outlet_id] = (stockSumMap[s.outlet_id] || 0) + qty;
         }
+      });
+
+      const transferSumMap = {};
+      (transfersRes.data || []).forEach(tr => {
+        if (!tr || !tr.outlet_id) return;
+        transferSumMap[tr.outlet_id] = (transferSumMap[tr.outlet_id] || 0) + Number(tr.total_pcs || 0);
       });
 
       const lastAuditMap = {};
@@ -2347,10 +2357,11 @@ async function dispatchApiCall(fnName, args) {
           }
         }
         const auditStatus = daysSinceAudit > 30 ? 'red' : (daysSinceAudit > 14 ? 'yellow' : 'green');
+        const fallbackPcs = (!hasStockRowOutlet.has(o.id) && !lastAuditMap[o.id]) ? (transferSumMap[o.id] || 0) : 0;
         return {
           ...o,
           status: isInactive ? 'inactive' : 'active',
-          total_stock_pcs: stockSumMap[o.id] || 0,
+          total_stock_pcs: stockSumMap[o.id] || fallbackPcs,
           last_audit_date: lastAuditMap[o.id] || null,
           days_since_audit: daysSinceAudit,
           audit_status: auditStatus
@@ -3905,10 +3916,18 @@ async function dispatchApiCall(fnName, args) {
         status: isInactive ? 'INACTIVE' : 'ACTIVE',
         updated_at: new Date().toISOString()
       };
+      let data = null;
+      let error = null;
       if (payload.id) {
-        outletObj.id = payload.id;
+        const resUpd = await supabase.from('outlets').update(outletObj).eq('id', payload.id).select().single();
+        data = resUpd.data;
+        error = resUpd.error;
+      } else {
+        outletObj.id = crypto.randomUUID();
+        const resIns = await supabase.from('outlets').insert(outletObj).select().single();
+        data = resIns.data;
+        error = resIns.error;
       }
-      const { data, error } = await supabase.from('outlets').upsert(outletObj).select().single();
       if (error) throw error;
       return { success: true, id: data.id, outlet: data };
     }
@@ -3936,14 +3955,21 @@ async function dispatchApiCall(fnName, args) {
 
     case 'getOutletDetail': {
       const [, outletId] = args;
-      const [outletRes, stocksRes, transfersRes, auditsRes, tiersRes] = await Promise.all([
+      const [outletRes, stocksRes, transfersRes, auditsRes, tiersRes, prodsRes] = await Promise.all([
         supabase.from('outlets').select('*').eq('id', outletId).single(),
-        supabase.from('outlet_stocks').select('*, products(name, unit, sku)').eq('outlet_id', outletId).order('updated_at', { ascending: false }),
-        supabase.from('consignment_transfers').select('*').eq('outlet_id', outletId).order('sent_at', { ascending: false }).limit(30),
-        supabase.from('consignment_audits').select('*').eq('outlet_id', outletId).order('audit_date', { ascending: false }).limit(30),
-        supabase.from('price_tiers').select('product_id, tier_name, price')
+        supabase.from('outlet_stocks').select('*').eq('outlet_id', outletId).order('updated_at', { ascending: false }),
+        supabase.from('consignment_transfers').select('*').eq('outlet_id', outletId).order('sent_at', { ascending: false }).limit(50),
+        supabase.from('consignment_audits').select('*').eq('outlet_id', outletId).order('audit_date', { ascending: false }).limit(50),
+        supabase.from('price_tiers').select('product_id, tier_name, price'),
+        supabase.from('products').select('id, name, unit, sku')
       ]);
       if (outletRes.error) throw outletRes.error;
+      if (stocksRes.error) console.warn('[getOutletDetail] Peringatan query outlet_stocks:', stocksRes.error);
+
+      const prodMap = {};
+      (prodsRes.data || []).forEach(p => {
+        if (p && p.id) prodMap[p.id] = p;
+      });
 
       const outletRow = outletRes.data || {};
       const outletTierName = String(outletRow.price_tier || 'Outlet').trim().toLowerCase();
@@ -3970,6 +3996,27 @@ async function dispatchApiCall(fnName, args) {
           });
         } catch (e) {
           console.warn('[getOutletDetail] Gagal memuat consignment_audit_items:', e);
+        }
+      }
+
+      const transfersList = transfersRes.data || [];
+      const transferIds = transfersList.map(tr => tr.id).filter(Boolean);
+      let transferItemsAll = [];
+      const lastTransferPriceByProd = {};
+      if (transferIds.length > 0) {
+        try {
+          const { data: tItems } = await supabase
+            .from('consignment_transfer_items')
+            .select('*')
+            .in('transfer_id', transferIds);
+          transferItemsAll = tItems || [];
+          transferItemsAll.forEach(ti => {
+            if (ti && ti.product_id && Number(ti.unit_price || 0) > 0 && !lastTransferPriceByProd[ti.product_id]) {
+              lastTransferPriceByProd[ti.product_id] = Number(ti.unit_price);
+            }
+          });
+        } catch (e) {
+          console.warn('[getOutletDetail] Gagal memuat consignment_transfer_items:', e);
         }
       }
 
@@ -4007,7 +4054,7 @@ async function dispatchApiCall(fnName, args) {
         };
       });
 
-      // Deduplikasi outlet_stocks per product_id (jika ada baris ganda lama)
+      // Deduplikasi outlet_stocks per product_id
       const uniqueStocks = [];
       const seenProdIds = new Set();
       (stocksRes.data || []).forEach(s => {
@@ -4019,9 +4066,34 @@ async function dispatchApiCall(fnName, args) {
         }
       });
 
+      // Self-healing fallback: jika outlet_stocks kosong padahal ada riwayat transfer
+      if (uniqueStocks.length === 0 && seenProdIds.size === 0 && transferItemsAll.length > 0) {
+        const netByProd = {};
+        transferItemsAll.forEach(ti => {
+          if (!ti || !ti.product_id) return;
+          netByProd[ti.product_id] = (netByProd[ti.product_id] || 0) + Number(ti.qty || 0);
+        });
+        enrichedAudits.forEach(a => {
+          (a.consignment_audit_items || []).forEach(ai => {
+            if (!ai || !ai.product_id) return;
+            const delta = Number(ai.qty_restock || 0) - (Number(ai.qty_sold || 0) + Number(ai.qty_returned || 0) + Number(ai.qty_missing || 0));
+            netByProd[ai.product_id] = (netByProd[ai.product_id] || 0) + delta;
+          });
+        });
+        Object.keys(netByProd).forEach(pid => {
+          if (netByProd[pid] > 0) {
+            uniqueStocks.push({
+              id: `reconstructed-${outletId}-${pid}`,
+              outlet_id: outletId,
+              product_id: pid,
+              qty_current: netByProd[pid]
+            });
+          }
+        });
+      }
+
       // Lookup kode batch asal dari stock_mutations berdasarkan riwayat transfer outlet ini
       const batchByProdId = {};
-      const transfersList = transfersRes.data || [];
       if (uniqueStocks.length > 0 && transfersList.length > 0) {
         try {
           const refNos = [];
@@ -4057,18 +4129,21 @@ async function dispatchApiCall(fnName, args) {
       return {
         outlet: normalizedOutlet,
         stocks: uniqueStocks.map(s => {
+          const prod = prodMap[s.product_id] || s.products || {};
           const pTiers = tiersByProd[s.product_id] || [];
           const exactTier = pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === outletTierName)
             || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'outlet')
             || pTiers.find(t => String(t.tier_name || '').trim().toLowerCase() === 'reguler')
             || pTiers[0];
-          const unitPrice = exactTier ? Number(exactTier.price || 0) : 0;
+          const unitPrice = (exactTier && Number(exactTier.price || 0) > 0)
+            ? Number(exactTier.price)
+            : (lastTransferPriceByProd[s.product_id] || 0);
           const qtyCur = Number(s.qty_current || 0);
           return {
             ...s,
-            product_name: s.products ? s.products.name : 'Produk',
-            unit: s.products ? s.products.unit : 'pcs',
-            sku: s.products ? (s.products.sku || '') : '',
+            product_name: prod.name || 'Produk',
+            unit: prod.unit || 'pcs',
+            sku: prod.sku || '',
             batch_id: s.batch_id || batchByProdId[s.product_id] || '',
             tier_price: unitPrice,
             subtotal: qtyCur * unitPrice

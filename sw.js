@@ -1,11 +1,11 @@
-const CACHE_NAME = 'pos-app-v13.5';
+const CACHE_NAME = 'pos-app-v13.6';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './style.css?v=13.4',
+  './style.css?v=13.6',
   './i18n.js?v=3.3',
-  './app.js?v=13.5',
-  './supabaseClient.js?v=6.7',
+  './app.js?v=13.6',
+  './supabaseClient.js?v=6.8',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
   './manifest.json',
   './icon-192.png',
@@ -51,8 +51,12 @@ self.addEventListener('fetch', (event) => {
   if (req.url.includes('supabase.co') || req.url.includes('telegram.org')) return;
   if (!req.url.startsWith('http')) return;
 
+  const fetchOpts = (req.mode === 'navigate' || req.destination === 'script' || req.destination === 'style')
+    ? { cache: 'reload' }
+    : { cache: 'no-cache' };
+
   event.respondWith(
-    fetch(req, { cache: 'no-cache' })
+    fetch(req, fetchOpts)
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();

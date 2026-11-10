@@ -5229,6 +5229,12 @@ window.renderModalAuditTable = renderModalAuditTable;
 
 function openBatchDetailModal(productId, productName) {
   openModal('📋 Rincian Antrean Batch FIFO: ' + escapeHtml(productName), '<div class="empty-state" style="padding:28px;"><span class="sync-spinner" style="display:inline-block;width:24px;height:24px;margin-bottom:8px;"></span><br>Mengaudit antrean lot batch FIFO...</div>', '', true);
+  const loadingDialog = document.getElementById('modal-dialog');
+  if (loadingDialog) {
+    loadingDialog.classList.add('modal-dialog-xl');
+    loadingDialog.style.width = '94vw';
+    loadingDialog.style.maxWidth = '1180px';
+  }
 
   Promise.all([
     api('getStockBatches', TOKEN, productId),
@@ -5331,6 +5337,13 @@ function openBatchDetailModal(productId, productName) {
         '</tr>';
     }).join('');
 
+    const batchCodeMap = {};
+    batches.forEach(function (b) {
+      if (b && b.id) {
+        batchCodeMap[b.id] = b.batch_code || b.id;
+      }
+    });
+
     const mutRows = mutations.slice(0, 30).map(function (m) {
       const qVal = Number(m.qty !== undefined && m.qty !== null ? m.qty : (m.qty_change || 0));
       const sign = qVal > 0 ? '+' : '';
@@ -5351,12 +5364,19 @@ function openBatchDetailModal(productId, productName) {
       const refCode = m.reference_no || m.batch_code || m.ref_id || '-';
       const uText = m.unit || unitText;
 
+      let noteDisplay = m.notes || '-';
+      // Sinkronisasi dinamis nomor batch di keterangan transaksi mutasi
+      if (m.batch_id && batchCodeMap[m.batch_id]) {
+        const liveBatch = batchCodeMap[m.batch_id];
+        noteDisplay = noteDisplay.replace(/\(Batch:[^)]+\)/gi, '(Batch: ' + liveBatch + ')');
+      }
+
       return '<tr>' +
-        '<td style="font-size:12px;">' + dateDisplay + '</td>' +
-        '<td>' + badge + '</td>' +
-        '<td style="text-align:right;"><strong style="color:' + color + ';font-family:\'JetBrains Mono\',monospace;font-size:12.5px;">' + sign + qVal.toLocaleString('id-ID') + ' ' + uText + '</strong></td>' +
-        '<td><span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;background:var(--surface-muted);padding:3px 7px;border-radius:4px;border:1px solid var(--border);color:var(--text-primary);">' + escapeHtml(refCode) + '</span></td>' +
-        '<td><span style="font-size:11.5px;color:var(--text-secondary);">' + escapeHtml(m.notes || '-') + '</span></td>' +
+        '<td style="font-size:12px;white-space:nowrap;">' + dateDisplay + '</td>' +
+        '<td style="white-space:nowrap;">' + badge + '</td>' +
+        '<td style="text-align:right;white-space:nowrap;"><strong style="color:' + color + ';font-family:\'JetBrains Mono\',monospace;font-size:12.5px;">' + sign + qVal.toLocaleString('id-ID') + ' ' + uText + '</strong></td>' +
+        '<td style="white-space:nowrap;"><span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;background:var(--surface-muted);padding:3px 7px;border-radius:4px;border:1px solid var(--border);color:var(--text-primary);">' + escapeHtml(refCode) + '</span></td>' +
+        '<td><span style="font-size:11.5px;color:var(--text-secondary);">' + escapeHtml(noteDisplay) + '</span></td>' +
         '</tr>';
     }).join('');
 
@@ -5415,6 +5435,8 @@ function openBatchDetailModal(productId, productName) {
     const dialog = document.getElementById('modal-dialog');
     if (dialog) {
       dialog.classList.add('modal-dialog-xl');
+      dialog.style.width = '94vw';
+      dialog.style.maxWidth = '1180px';
     }
   }).catch(function (err) {
     showToast('Gagal memuat batch: ' + (err.message || err), true);
@@ -5431,6 +5453,8 @@ function promptEditBatchCode(batchId, currentCode, productId, productName) {
   api('updateStockBatchCode', TOKEN, batchId, cleanNewCode).then(function () {
     invalidateCache('batches');
     invalidateCache('products');
+    invalidateCache('mutations');
+    invalidateCache('stock_mutations');
     showToast('Kode batch berhasil diubah menjadi: ' + cleanNewCode);
     openBatchDetailModal(productId, productName);
   }).catch(function (err) {

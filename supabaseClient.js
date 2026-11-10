@@ -3783,6 +3783,24 @@ async function dispatchApiCall(fnName, args) {
         .eq('id', batchId);
       if (updErr) throw updErr;
 
+      // Update referensi di purchase_items jika ada
+      try {
+        await supabase.from('purchase_items').update({ batch_no: trimmedCode }).eq('batch_id', batchId);
+      } catch (e) {}
+
+      // Update catatan di stock_mutations agar teks keterangan transaksi juga sinkron
+      try {
+        const { data: muts } = await supabase.from('stock_mutations').select('id, notes').eq('batch_id', batchId);
+        if (Array.isArray(muts)) {
+          for (const m of muts) {
+            if (m.notes && m.notes.includes('(Batch:')) {
+              const updatedNote = m.notes.replace(/\(Batch:[^)]+\)/gi, `(Batch: ${trimmedCode})`);
+              await supabase.from('stock_mutations').update({ notes: updatedNote }).eq('id', m.id);
+            }
+          }
+        }
+      } catch (e) {}
+
       return { success: true, message: 'Kode batch berhasil diperbarui menjadi ' + trimmedCode };
     }
 

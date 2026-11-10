@@ -102,8 +102,9 @@ async function fetchCatalogData() {
     const { data: settingsData } = await supabaseClient
       .from('settings')
       .select('key, value')
-      .in('key', ['store_name', 'store_phone', 'store_address', 'store_tagline', 'catalog_title', 'catalog_notes', 'catalog_promo_config']);
+      .in('key', ['store_name', 'store_phone', 'store_address', 'store_tagline', 'catalog_title', 'catalog_notes', 'catalog_promo_config', 'catalog_hidden_product_ids']);
 
+    let catalogHiddenProductIds = [];
     if (Array.isArray(settingsData)) {
       settingsData.forEach(s => {
         if (s.key === 'store_name' && s.value) storeConfig.name = s.value;
@@ -119,6 +120,15 @@ async function fetchCatalogData() {
             activePromoConfig = Object.assign({}, DEFAULT_PROMO_CONFIG, parsed);
           } catch (e) {
             console.warn('Gagal mem-parse catalog_promo_config:', e);
+          }
+        }
+
+        if (s.key === 'catalog_hidden_product_ids' && s.value) {
+          try {
+            const parsed = JSON.parse(s.value);
+            if (Array.isArray(parsed)) catalogHiddenProductIds = parsed;
+          } catch (e) {
+            console.warn('Gagal mem-parse catalog_hidden_product_ids:', e);
           }
         }
       });
@@ -139,6 +149,9 @@ async function fetchCatalogData() {
         unit,
         photo_url,
         stock,
+        is_seed,
+        product_type,
+        inventory_type,
         price_tiers (
           tier_name,
           price
@@ -148,6 +161,29 @@ async function fetchCatalogData() {
       .order('name', { ascending: true });
 
     if (prodsErr) throw prodsErr;
+
+    // B.1 Filter Produk untuk Katalog Online:
+    // - Hanya tampilkan produk BENIH DALAM KEMASAN (pcs) dan produk NON-BENIH
+    // - Sembunyikan benih curah mentah / toples (gr / gram / product_type CURAH)
+    // - Sembunyikan produk yang dinonaktifkan manual via pengaturan (catalog_hidden_product_ids)
+    const catalogEligibleProds = (prodsData || []).filter(p => {
+      if (catalogHiddenProductIds.includes(p.id)) return false;
+
+      const pType = String(p.product_type || '').toUpperCase().trim();
+      const invType = String(p.inventory_type || '').toUpperCase().trim();
+      const unit = String(p.unit || '').toLowerCase().trim();
+      const cat = String(p.category || '').toUpperCase().trim();
+
+      const isSeed = Boolean(p.is_seed) || pType === 'BENIH' || pType === 'CURAH' || cat === 'BENIH';
+
+      if (isSeed) {
+        const isCurah = (pType === 'CURAH' || invType === 'CURAH' || ['gr', 'gram', 'g'].includes(unit));
+        if (isCurah) return false;
+        return true;
+      }
+
+      return true;
+    });
 
     // B.2 Ambil Stok Fisik Riil dari Lot Batch Aktif (FIFO)
     let batchStockMap = {};
@@ -167,7 +203,7 @@ async function fetchCatalogData() {
     }
 
     // Normalisasi Produk
-    allProducts = (prodsData || []).map(p => {
+    allProducts = catalogEligibleProds.map(p => {
       const finalStock = (batchStockMap[p.id] !== undefined) ? batchStockMap[p.id] : Number(p.stock || 0);
       // Cari harga reguler
       let price = 0;
@@ -182,10 +218,17 @@ async function fetchCatalogData() {
         }
       }
 
+      const rawCat = p.category ? p.category.trim() : 'Umum';
+      let displayCat = rawCat;
+      if (rawCat === rawCat.toUpperCase() && rawCat.length > 1) {
+        displayCat = rawCat.charAt(0).toUpperCase() + rawCat.slice(1).toLowerCase();
+      }
+
       return {
         id: p.id,
         name: p.name || 'Produk Tanpa Nama',
-        category: p.category ? p.category.trim() : 'Umum',
+        category: displayCat,
+        rawCategory: rawCat,
         variant: p.variant || '',
         unit: p.unit || 'pcs',
         photo_url: p.photo_url || '',
@@ -194,7 +237,7 @@ async function fetchCatalogData() {
       };
     });
 
-    // Ekstrak Kategori Unik
+    // Ekstrak Kategori Unik dari produk yang aktif tampil di katalog
     const catSet = new Set(['Semua']);
     allProducts.forEach(p => {
       if (p.category) catSet.add(p.category);
@@ -477,7 +520,9 @@ function applyFilterAndRender() {
   const q = searchQuery.toLowerCase().trim();
 
   filteredProducts = allProducts.filter(p => {
-    const matchCat = (activeCategory === 'Semua') || (p.category === activeCategory);
+    const matchCat = (activeCategory === 'Semua') ||
+      (p.category && p.category.toLowerCase() === activeCategory.toLowerCase()) ||
+      (p.rawCategory && p.rawCategory.toLowerCase() === activeCategory.toLowerCase());
     const matchSearch = !q || p.name.toLowerCase().includes(q) || (p.variant && p.variant.toLowerCase().includes(q));
     const matchReady = !filterOnlyReady || (p.stock > 0);
     return matchCat && matchSearch && matchReady;
@@ -523,17 +568,28 @@ function renderProductsGrid() {
       `<img src="${escapeHtml(p.photo_url)}" alt="${escapeHtml(p.name)}" class="product-thumb" loading="lazy" onerror="this.outerHTML='<div class=\\'product-thumb-placeholder\\'><i class=\\'fas fa-seedling\\'></i><span>${escapeHtml(p.category)}</span></div>'">` :
       `<div class="product-thumb-placeholder"><i class="fas fa-seedling"></i><span>${escapeHtml(p.category)}</span></div>`;
 
-    const actionHtml = inCartQty > 0 ? `
-      <div class="card-qty-control">
-        <button type="button" class="qty-btn" onclick="updateCartQty('${p.id}', -1)" title="Kurangi">&minus;</button>
-        <span class="qty-val">${inCartQty}</span>
-        <button type="button" class="qty-btn" onclick="updateCartQty('${p.id}', 1)" title="Tambah">&plus;</button>
-      </div>
-    ` : `
-      <button type="button" class="btn-add-cart" onclick="addToCart('${p.id}')">
-        <i class="fas fa-cart-plus"></i> + Keranjang
-      </button>
-    `;
+    let actionHtml = '';
+    if (!isAvailable) {
+      actionHtml = `
+        <button type="button" class="btn-add-cart btn-out-of-stock" disabled title="Stok saat ini kosong">
+          <i class="fas fa-ban"></i> Stok Habis
+        </button>
+      `;
+    } else if (inCartQty > 0) {
+      actionHtml = `
+        <div class="card-qty-control">
+          <button type="button" class="qty-btn" onclick="updateCartQty('${p.id}', -1)" title="Kurangi">&minus;</button>
+          <span class="qty-val">${inCartQty}</span>
+          <button type="button" class="qty-btn" onclick="updateCartQty('${p.id}', 1)" title="Tambah">&plus;</button>
+        </div>
+      `;
+    } else {
+      actionHtml = `
+        <button type="button" class="btn-add-cart" onclick="addToCart('${p.id}')">
+          <i class="fas fa-cart-plus"></i> + Keranjang
+        </button>
+      `;
+    }
 
     let promoBadgeHtml = '';
     const nameLower = (p.name || '').toLowerCase();
@@ -549,12 +605,12 @@ function renderProductsGrid() {
     }
 
     return `
-      <div class="product-card" data-id="${p.id}">
+      <div class="product-card ${isAvailable ? '' : 'out-of-stock'}" data-id="${p.id}">
         <div class="product-thumb-wrap">
           ${thumbHtml}
           ${promoBadgeHtml}
           <span class="badge-stock ${isAvailable ? 'available' : 'out'}">
-            ${isAvailable ? 'Tersedia' : 'Hubungi Toko'}
+            ${isAvailable ? 'Tersedia' : 'Stok Habis'}
           </span>
         </div>
         <div class="product-body">
@@ -657,6 +713,16 @@ function clearCart() {
 function updateSingleCardAction(productId) {
   const wrap = document.getElementById(`action-wrap-${productId}`);
   if (!wrap) return;
+
+  const product = allProducts.find(p => p.id === productId);
+  if (product && product.stock <= 0) {
+    wrap.innerHTML = `
+      <button type="button" class="btn-add-cart btn-out-of-stock" disabled title="Stok saat ini kosong">
+        <i class="fas fa-ban"></i> Stok Habis
+      </button>
+    `;
+    return;
+  }
 
   const item = cart.find(ci => ci.id === productId);
   if (item && item.qty > 0) {

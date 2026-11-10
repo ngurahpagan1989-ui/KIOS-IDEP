@@ -3991,6 +3991,34 @@ function onProductTypeSelectChange(val) {
   }
 }
 
+function updateProductCatalogVisibility(productId, isVisible) {
+  if (!productId) return;
+  try {
+    let hiddenIds = [];
+    const raw = (window.APP_SETTINGS && window.APP_SETTINGS['catalog_hidden_product_ids']) || '[]';
+    hiddenIds = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
+    if (!Array.isArray(hiddenIds)) hiddenIds = [];
+
+    const idx = hiddenIds.indexOf(productId);
+    if (!isVisible && idx === -1) {
+      hiddenIds.push(productId);
+    } else if (isVisible && idx !== -1) {
+      hiddenIds.splice(idx, 1);
+    }
+
+    if (!window.APP_SETTINGS) window.APP_SETTINGS = {};
+    window.APP_SETTINGS['catalog_hidden_product_ids'] = JSON.stringify(hiddenIds);
+
+    api('saveSettings', TOKEN, {
+      catalog_hidden_product_ids: JSON.stringify(hiddenIds)
+    }).catch(function (err) {
+      console.warn('Gagal sinkron visibilitas katalog produk:', err);
+    });
+  } catch (e) {
+    console.warn('Error updateProductCatalogVisibility:', e);
+  }
+}
+
 function openProductModal(productId) {
   const product = productId ? PRODUCTS_CACHE.filter(function (p) { return p.id === productId; })[0] : null;
   const presets = getDefaultPriceTierPresets();
@@ -4011,6 +4039,27 @@ function openProductModal(productId) {
     : (isMedia ? 'Buku' : (CURRENT_PRODUCT_TAB === 'media' ? 'Media Tanam' : 'Benih'));
   const isSeedType = defaultProductType.toLowerCase() === 'benih';
   const currentPhoto = (product && product.photo_url) ? product.photo_url : '';
+
+  let hiddenProductIds = [];
+  try {
+    const rawHidden = (window.APP_SETTINGS && window.APP_SETTINGS['catalog_hidden_product_ids']) || '[]';
+    hiddenProductIds = typeof rawHidden === 'string' ? JSON.parse(rawHidden) : (Array.isArray(rawHidden) ? rawHidden : []);
+  } catch (e) {
+    hiddenProductIds = [];
+  }
+  const isCurrentlyHiddenInCatalog = product ? hiddenProductIds.includes(product.id) : false;
+  const showInCatalogChecked = !isCurrentlyHiddenInCatalog;
+
+  const catalogToggleHtml =
+    '<div class="field-group" style="background:#F0FDF4;border:1px solid #BBF7D0;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:14px;">' +
+    '  <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;font-weight:700;color:#166534;font-size:12.5px;">' +
+    '    <input type="checkbox" id="pf-show-catalog"' + (showInCatalogChecked ? ' checked' : '') + ' style="width:17px;height:17px;accent-color:#16A34A;cursor:pointer;">' +
+    '    <span>🌐 Tampilkan di Katalog Online (Publik)</span>' +
+    '  </label>' +
+    '  <div style="font-size:11px;color:#15803D;margin-top:3px;margin-left:27px;">' +
+    '    Centang agar produk dapat dilihat oleh pelanggan di katalog publik. (Benih curah mentah/toples otomatis disaring oleh sistem).' +
+    '  </div>' +
+    '</div>';
 
   const bundledSectionHtml = isCreateNew ?
     '<div id="pf-bundled-toggle-wrap" style="display:' + (isDefaultRaw && !isMedia ? 'block' : 'none') + ';margin-bottom:14px;background:#F8FAFC;border:1px dashed #2563EB;padding:10px 14px;border-radius:var(--radius-sm);">' +
@@ -4053,6 +4102,7 @@ function openProductModal(productId) {
 
   const bodyHtml =
     photoSectionHtml +
+    catalogToggleHtml +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">' +
     '<div>' +
     '<label class="field-label">Nama Produk ' + (isCreateNew ? '<span id="pf-name-type-hint" style="font-weight:normal;color:var(--text-muted);font-size:11px;">(Bahan Baku Curah)</span>' : '') + '</label>' +
@@ -4498,6 +4548,7 @@ function submitProduct(productId) {
   const harvestDays = Number((document.getElementById('pf-harvest-days') && document.getElementById('pf-harvest-days').value) || 0);
   const weightGrams = Number((document.getElementById('pf-weight-grams') && document.getElementById('pf-weight-grams').value) || 0);
   const finalVariant = variant || (weightGrams > 0 ? (weightGrams + 'g') : '');
+  const showInCatalog = document.getElementById('pf-show-catalog') ? document.getElementById('pf-show-catalog').checked : true;
 
   api('saveProduct', TOKEN, {
     id: productId || null,
@@ -4510,7 +4561,11 @@ function submitProduct(productId) {
     photo_url: photoUrl,
     harvest_days: harvestDays,
     priceTiers: tiers
-  }).then(function () {
+  }).then(function (res) {
+    const savedId = productId || (res && res.id);
+    if (savedId) {
+      updateProductCatalogVisibility(savedId, showInCatalog);
+    }
     invalidateCache('products');
     showToast('Produk berhasil disimpan.');
     closeModal();

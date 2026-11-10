@@ -504,6 +504,71 @@ function isRawProduct(unit) {
   return u === 'gr' || u === 'gram' || u === 'g' || u === 'kg';
 }
 
+/**
+ * Pembersih dan penyingkat kode varietas benih untuk format batch universal
+ * Contoh: "Bayam Hijau" -> "BYM", "Kangkung Lombok" -> "KNG" (atau SKU: "KGL")
+ */
+function cleanProductCodeForBatch(nameOrCode) {
+  if (!nameOrCode) return 'BENIH';
+  let str = String(nameOrCode).trim();
+  str = str.split('(')[0].trim();
+  str = str.replace(/^[^a-zA-Z0-9]+/, '').trim();
+  if (!str) return 'BENIH';
+
+  // Jika kode pendek/SKU sudah berupa huruf kapital 2-4 karakter (misal BYM, KGL, CBR, TMT)
+  const cleanCode = str.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  if (cleanCode.length >= 2 && cleanCode.length <= 4 && /^[A-Z]+$/.test(cleanCode)) {
+    return cleanCode;
+  }
+
+  const words = str.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    const firstWord = words[0].replace(/[^a-zA-Z]/g, '').toUpperCase();
+    const consonants = firstWord.replace(/[AEIOU]/g, '');
+    if (consonants.length >= 3) {
+      return consonants.slice(0, 3);
+    } else if (consonants.length === 2 && words[1]) {
+      const secondConsonants = words[1].replace(/[^a-zA-Z]/g, '').toUpperCase().replace(/[AEIOU]/g, '');
+      return consonants + (secondConsonants[0] || words[1][0] || 'X').toUpperCase();
+    } else if (firstWord.length >= 3) {
+      return firstWord.slice(0, 3);
+    }
+  }
+
+  const singleClean = str.replace(/[^a-zA-Z]/g, '').toUpperCase();
+  const cons = singleClean.replace(/[AEIOU]/g, '');
+  if (cons.length >= 3) {
+    return cons.slice(0, 3);
+  }
+  if (singleClean.length >= 3) {
+    return singleClean.slice(0, 3);
+  }
+  return singleClean.padEnd(3, 'X').slice(0, 3);
+}
+window.cleanProductCodeForBatch = cleanProductCodeForBatch;
+
+/**
+ * Ekstraksi Tahun-Bulan (YYMM) kadaluarsa untuk rotasi FIFO benih
+ */
+function extractYYMMClient(expiryDate) {
+  if (expiryDate) {
+    const parts = String(expiryDate).trim().split(/[-/]/);
+    if (parts.length >= 2) {
+      if (parts[0].length === 4) {
+        return parts[0].slice(2, 4) + String(parts[1]).padStart(2, '0');
+      } else if (parts.length >= 3 && parts[2].length === 4) {
+        return parts[2].slice(2, 4) + String(parts[1]).padStart(2, '0');
+      }
+    }
+  }
+  const future = new Date();
+  future.setFullYear(future.getFullYear() + 1);
+  const yy = String(future.getFullYear()).slice(2, 4);
+  const mm = String(future.getMonth() + 1).padStart(2, '0');
+  return yy + mm;
+}
+window.extractYYMMClient = extractYYMMClient;
+
 const FALLBACK_PRICE_TIER_PRESETS = [
   { name: 'Reguler', price: 25000, default: true },
   { name: 'Outlet', price: 20000 },
@@ -5366,7 +5431,7 @@ function openStockAdjustmentModal(defaultProductId, defaultBatchId) {
     '<div class="field-group" style="margin-bottom:10px;">' +
     '<label class="field-label" style="font-size:12px;font-weight:600;">Nomor / Kode Batch Baru</label>' +
     '<div style="display:flex;gap:6px;">' +
-    '<input type="text" id="adj-new-batch-code" placeholder="Misal: BATCH-INIT-001" style="flex:1;padding:6px 10px;font-size:12.5px;font-family:\'JetBrains Mono\',monospace;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '<input type="text" id="adj-new-batch-code" placeholder="Misal: BATCH-BYM-2611-001" style="flex:1;padding:6px 10px;font-size:12.5px;font-family:\'JetBrains Mono\',monospace;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="generateAdjustmentBatchCode()" style="padding:4px 8px;font-size:11px;">⚡ Auto</button>' +
     '</div>' +
     '</div>' +
@@ -5576,17 +5641,21 @@ function generateAdjustmentBatchCode() {
   const codeInput = document.getElementById('adj-new-batch-code');
   if (!codeInput) return;
 
-  let prodNameSlug = 'BENIH';
+  let prodTerm = 'BENIH';
   if (pSelect && pSelect.selectedIndex >= 0) {
-    const rawName = pSelect.options[pSelect.selectedIndex].text || '';
-    const clean = rawName.replace(/^[^w]+/, '').split('(')[0].trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (clean) prodNameSlug = clean.slice(0, 6);
+    prodTerm = pSelect.options[pSelect.selectedIndex].text || '';
   }
 
-  const d = new Date();
-  const yymm = String(d.getFullYear()).slice(-2) + String(d.getMonth() + 1).padStart(2, '0');
-  const rand4 = Math.floor(1000 + Math.random() * 9000);
-  codeInput.value = 'BATCH-' + prodNameSlug + '-' + yymm + '-' + rand4;
+  const expInput = document.getElementById('adj-new-exp-date');
+  const expVal = expInput ? expInput.value : '';
+  const yymm = typeof extractYYMMClient === 'function' ? extractYYMMClient(expVal) : (function () {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 1);
+    return String(d.getFullYear()).slice(-2) + String(d.getMonth() + 1).padStart(2, '0');
+  })();
+  const prodCode = typeof cleanProductCodeForBatch === 'function' ? cleanProductCodeForBatch(prodTerm) : 'BENIH';
+
+  codeInput.value = 'BATCH-' + prodCode + '-' + yymm + '-001';
 }
 window.generateAdjustmentBatchCode = generateAdjustmentBatchCode;
 
@@ -5645,10 +5714,13 @@ function submitStockAdjustment() {
     const expEl = document.getElementById('adj-new-exp-date');
     const prodEl = document.getElementById('adj-new-prod-date');
     const costEl = document.getElementById('adj-new-cost');
-    newBatchCode = (codeEl ? codeEl.value.trim() : '') || ('BATCH-INIT-' + Date.now().toString().slice(-6));
     newExpDate = expEl ? expEl.value : '';
     newProdDate = prodEl ? prodEl.value : '';
     newCost = Number(costEl ? costEl.value : 0);
+    const prodTerm = (pSelect && pSelect.selectedIndex >= 0) ? pSelect.options[pSelect.selectedIndex].text : '';
+    const prodCode = typeof cleanProductCodeForBatch === 'function' ? cleanProductCodeForBatch(prodTerm) : 'BENIH';
+    const yymm = typeof extractYYMMClient === 'function' ? extractYYMMClient(newExpDate) : '2611';
+    newBatchCode = (codeEl ? codeEl.value.trim() : '') || ('BATCH-' + prodCode + '-' + yymm + '-001');
   }
 
   const payload = {
@@ -7717,40 +7789,49 @@ function renumberPurchaseBatchSequences() {
   });
 }
 
-function generateClientBatchCode(farmerIdOrName, expiryDate, itemIndex) {
-  const template = (APP_SETTINGS && (APP_SETTINGS['batch_format_template'] || APP_SETTINGS['batch_format'])) || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}';
+function generateClientBatchCode(productOrFarmer, expiryDate, itemIndex, extraProduct) {
+  let template = (APP_SETTINGS && (APP_SETTINGS['batch_format_template'] || APP_SETTINGS['batch_format'])) || 'BATCH-{CODE}-{YYMM}-{SEQ}';
 
-  // 1. Token {FARMER}
-  let farmerCode = '';
-  if (farmerIdOrName && String(farmerIdOrName).trim()) {
-    const term = String(farmerIdOrName).trim();
-    const list = FARMERS_CACHE || [];
-    const f = list.find(function (x) {
-      return String(x.id) === term || String(x.name).toLowerCase() === term.toLowerCase();
-    });
-    if (f && f.code && String(f.code).trim()) {
-      farmerCode = String(f.code).trim().toUpperCase();
-    } else if (f && f.name) {
-      farmerCode = cleanFarmerInitialClient(f.name);
-    } else {
-      farmerCode = cleanFarmerInitialClient(term);
-    }
+  // Jika masih memakai template lama dengan {FARMER}, otomatis alihkan ke format standar {CODE}
+  if (template === 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}' || (template.includes('{FARMER}') && !template.includes('{CODE}'))) {
+    template = 'BATCH-{CODE}-{YYMM}-{SEQ}';
   }
-  if (!farmerCode || (farmerCode === 'ID01' && !farmerIdOrName)) {
-    farmerCode = 'GEN';
+
+  // 1. Ekstrak Kode Produk {CODE}
+  let productCode = '';
+  const allProds = (DATA_CACHE && DATA_CACHE.products && DATA_CACHE.products.data) || PRODUCTS_CACHE || [];
+  const candidate = extraProduct || productOrFarmer;
+
+  let foundProd = allProds.find(function (p) {
+    return p && (String(p.id) === String(candidate) || String(p.name).toLowerCase() === String(candidate).toLowerCase());
+  });
+  if (!foundProd && productOrFarmer) {
+    foundProd = allProds.find(function (p) {
+      return p && (String(p.id) === String(productOrFarmer) || String(p.name).toLowerCase() === String(productOrFarmer).toLowerCase());
+    });
+  }
+
+  if (foundProd) {
+    productCode = cleanProductCodeForBatch(foundProd.code || foundProd.name);
+  } else if (candidate && typeof candidate === 'string') {
+    productCode = cleanProductCodeForBatch(candidate);
+  } else if (productOrFarmer && typeof productOrFarmer === 'string') {
+    productCode = cleanProductCodeForBatch(productOrFarmer);
+  }
+  if (!productCode || productCode === 'BENIH') {
+    productCode = 'BENIH';
   }
 
   // 2. Token {YYMM}
-  const yymm = extractYYMMClient(expiryDate);
+  const yymm = typeof extractYYMMClient === 'function' ? extractYYMMClient(expiryDate) : '2611';
 
-  // 3. Token {RAND4}
-  const rand4 = Math.random().toString(36).substring(2, 6).toUpperCase();
-
-  // 4. Token {SEQ}
+  // 3. Token {SEQ} (3-digit urut: 001, 002, dst)
   const seqNum = Number(itemIndex) || 1;
-  const seq = String(seqNum).padStart(2, '0');
+  const seq3 = String(seqNum).padStart(3, '0');
+  const seq2 = String(seqNum).padStart(2, '0');
 
-  // Token legacy
+  // 4. Token pelengkap backward-compatibility
+  const rand4 = Math.random().toString(36).substring(2, 6).toUpperCase();
   const today = new Date();
   const yy = String(today.getFullYear()).slice(2, 4);
   const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -7758,20 +7839,23 @@ function generateClientBatchCode(farmerIdOrName, expiryDate, itemIndex) {
   const ymd = yy + mm + dd;
 
   let code = template
-    .replace(/\{FARMER\}/g, farmerCode)
+    .replace(/\{CODE\}/g, productCode)
+    .replace(/\{PROD\}/g, productCode)
+    .replace(/\{FARMER\}/g, productCode)
     .replace(/\{YYMM\}/g, yymm)
+    .replace(/\{SEQ\}/g, seq3)
+    .replace(/\{SEQ2\}/g, seq2)
     .replace(/\{RAND4\}/g, rand4)
-    .replace(/\{SEQ\}/g, seq)
-    .replace(/\{PREFIX\}/g, 'RAW')
+    .replace(/\{PREFIX\}/g, 'BATCH')
     .replace(/\{YMD\}/g, ymd)
-    .replace(/\{LOT\}/g, farmerCode + '-' + rand4);
+    .replace(/\{LOT\}/g, productCode + '-' + seq3);
 
   code = code.replace(/[-_]{2,}/g, '-').replace(/^[-_]+|[-_]+$/g, '');
   return code;
 }
 
 function generateBatchCodeClient(farmerName, expiryDate, productId, customPrefix) {
-  return generateClientBatchCode(farmerName, expiryDate, 1);
+  return generateClientBatchCode(productId || farmerName, expiryDate, 1);
 }
 
 function autoFillPurchaseRowBatch(row, forceNewRandom) {
@@ -7782,24 +7866,23 @@ function autoFillPurchaseRowBatch(row, forceNewRandom) {
     return;
   }
 
-  const farmerEl = document.getElementById('purchase-farmer') || document.getElementById('pur-farmer');
-  let farmerIdOrName = '';
-  if (farmerEl) {
-    if (farmerEl.tagName === 'SELECT') {
-      farmerIdOrName = farmerEl.value;
-      if (!farmerIdOrName && farmerEl.selectedIndex > 0) {
-        const opt = farmerEl.options[farmerEl.selectedIndex];
-        farmerIdOrName = opt.dataset.code || opt.dataset.name || opt.text;
-      }
-    } else {
-      farmerIdOrName = farmerEl.value.trim();
+  const prodSelect = row.querySelector('.pi-product, .pur-item-product');
+  let productTerm = '';
+  if (prodSelect) {
+    const prodId = prodSelect.value;
+    const allProds = (DATA_CACHE && DATA_CACHE.products && DATA_CACHE.products.data) || PRODUCTS_CACHE || [];
+    const prodObj = allProds.find(function (p) { return p && String(p.id) === String(prodId); });
+    if (prodObj) {
+      productTerm = prodObj.code || prodObj.name;
+    } else if (prodSelect.selectedIndex >= 0) {
+      productTerm = prodSelect.options[prodSelect.selectedIndex].text;
     }
   }
 
   const expiry = (row.querySelector('.pi-expiry') ? row.querySelector('.pi-expiry').value : '').trim();
   const itemIndex = getPurchaseRowIndex(row);
 
-  const batchCode = generateClientBatchCode(farmerIdOrName, expiry, itemIndex);
+  const batchCode = generateClientBatchCode(productTerm, expiry, itemIndex);
   lotInput.value = batchCode;
   flashInputHighlight(lotInput);
 
@@ -8113,21 +8196,22 @@ function submitPurchase() {
   rows.forEach(function (row, idx) {
     const lotInput = row.querySelector('.pi-lot');
     if (lotInput && !lotInput.value.trim()) {
+      const prodSelect = row.querySelector('.pi-product, .pur-item-product');
+      const prodId = prodSelect ? prodSelect.value : '';
       const expVal = row.querySelector('.pi-expiry') ? row.querySelector('.pi-expiry').value : '';
-      lotInput.value = generateClientBatchCode(farmerId || farmerName, expVal, idx + 1);
+      lotInput.value = generateClientBatchCode(prodId, expVal, idx + 1);
     }
   });
 
   const items = rows.map(function (row, idx) {
     const prodDateVal = row.querySelector('.pi-prod-date') ? row.querySelector('.pi-prod-date').value : '';
     const lotInput = row.querySelector('.pi-lot');
+    const prodId = row.querySelector('.pi-product').value;
     let batchNo = lotInput ? lotInput.value.trim() : '';
     if (!batchNo) {
       const expVal = row.querySelector('.pi-expiry') ? row.querySelector('.pi-expiry').value : '';
-      batchNo = generateClientBatchCode(farmerId || farmerName, expVal, idx + 1);
+      batchNo = generateClientBatchCode(prodId, expVal, idx + 1);
     }
-
-    const prodId = row.querySelector('.pi-product').value;
     const allProds = (DATA_CACHE.products && DATA_CACHE.products.data) || PRODUCTS_CACHE || [];
     const prodObj = allProds.find(function (p) { return p && String(p.id) === String(prodId); });
     const isCurah = isCurahInventoryProduct(prodObj);
@@ -17469,7 +17553,7 @@ function drawPengaturanUI(settings) {
     '<div class="card" style="margin-bottom:16px;">' +
     '<h3 style="margin-bottom:6px;">Format Kode Batch FIFO</h3>' +
     '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Template otomatis untuk menghasilkan kode lot/batch benih saat pembelian atau produksi.</p>' +
-    '<div class="field-group"><label class="field-label">Template Format Kode Batch</label><div class="input-wrapper"><input type="text" id="set-batch-format" value="' + escapeHtml(settings['batch_format_template'] || settings['batch_format'] || 'BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}') + '" style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Gunakan token dinamis: <code>{FARMER}</code>, <code>{YYMM}</code>, <code>{RAND4}</code>, <code>{SEQ}</code>. Contoh: <code>BATCH-{FARMER}-{YYMM}-{RAND4}-{SEQ}</code>.</small></div>' +
+    '<div class="field-group"><label class="field-label">Template Format Kode Batch</label><div class="input-wrapper"><input type="text" id="set-batch-format" value="' + escapeHtml(settings['batch_format_template'] || settings['batch_format'] || 'BATCH-{CODE}-{YYMM}-{SEQ}') + '" style="padding-left:14px;font-family:\'JetBrains Mono\',monospace;"></div><small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">Format standar: <code>BATCH-{CODE}-{YYMM}-{SEQ}</code>. Token dinamis: <code>{CODE}</code> (singkatan varietas, misal BYM/KGL), <code>{YYMM}</code> (tahun-bulan kadaluarsa), <code>{SEQ}</code> (urutan 001). Contoh: <code>BATCH-BYM-2611-001</code>.</small></div>' +
     '</div>' +
     '<div class="card">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">' +

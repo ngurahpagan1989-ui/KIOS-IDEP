@@ -1435,7 +1435,9 @@ async function dispatchApiCall(fnName, args) {
       // 2. Simpan Item-Item menjadi Purchase Items, Stock Batches, dan Stock Movements
       for (const item of (purchase.items || [])) {
         const batchId = crypto.randomUUID();
-        const batchCode = item.batch_no ? String(item.batch_no).trim() : `B-${Date.now().toString().slice(-6)}`;
+        const d = new Date();
+        const yymm = String(d.getFullYear()).slice(-2) + String(d.getMonth() + 1).padStart(2, '0');
+        const batchCode = item.batch_no ? String(item.batch_no).trim() : `BATCH-BENIH-${yymm}-001`;
         const qtyIn = Number(item.qty || 0);
         const buyPrice = Number(item.buy_price || 0);
 
@@ -1685,7 +1687,9 @@ async function dispatchApiCall(fnName, args) {
       // 2. Buat batch baru untuk produk kemasan jadi (stock_batches)
       // Hormati prinsip lot traceability 1:1 mengikuti nomor batch bahan mentah
       const targetBatchId = crypto.randomUUID();
-      const targetBatchCode = payload.lot_no || payload.source_batch_code || srcBatch.batch_code || `PK-${Date.now().toString().slice(-6)}`;
+      const dProd = new Date();
+      const yymmProd = String(dProd.getFullYear()).slice(-2) + String(dProd.getMonth() + 1).padStart(2, '0');
+      const targetBatchCode = payload.lot_no || payload.source_batch_code || srcBatch.batch_code || `BATCH-PROD-${yymmProd}-001`;
 
       await supabase.from('stock_batches').insert({
         id: targetBatchId,
@@ -3742,7 +3746,9 @@ async function dispatchApiCall(fnName, args) {
       // Jika inisiasi batch baru (Stok Awal)
       if (isNewBatch) {
         batchId = crypto.randomUUID();
-        const batchCode = String(payload.batch_code || `BATCH-INIT-${Date.now().toString().slice(-6)}`).trim();
+        const dAdj = new Date();
+        const yymmAdj = String(dAdj.getFullYear()).slice(-2) + String(dAdj.getMonth() + 1).padStart(2, '0');
+        const batchCode = String(payload.batch_code || `BATCH-BENIH-${yymmAdj}-001`).trim();
         const hppCost = Number(payload.cost_per_unit || payload.buy_price || 0);
         const prodDate = payload.production_date || new Date().toISOString().split('T')[0];
         const expDate = payload.expiry_date || null;

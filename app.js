@@ -1354,7 +1354,7 @@ function printModuleSOP(moduleKey) {
     ) : '') +
     '</div>' +
 
-    '<div style="display:flex;justify-content:space-between;margin-top:20px;padding:0 20px;font-size:10px;page-break-inside:avoid;">' +
+    '<div style="display:flex;justify-content:space-between;margin-top:20px;padding:0 20px;font-size:10px;color:#111827;page-break-inside:avoid;">' +
     '<div style="text-align:center;width:180px;">' +
     '<div>Disusun Oleh:</div>' +
     '<div style="margin-top:35px;border-top:1px solid #444;font-weight:bold;padding-top:2px;">Staf Pelaksana Unit</div>' +
@@ -16104,7 +16104,7 @@ function printReportSummary() {
     '<div style="text-align:center;border-bottom:2.5px solid #333;padding-bottom:12px;margin-bottom:16px;">' +
     reportLogoHeaderHtml +
     '<div style="font-size:11px;color:#555;margin-top:2px;">' + escapeHtml(storeAddress) + (storePhone ? ' • Telp/WA: ' + escapeHtml(storePhone) : '') + '</div>' +
-    '<div style="margin-top:8px;display:inline-block;padding:4px 14px;background:#f0f0f0;border-radius:4px;font-size:12px;font-weight:700;">' +
+    '<div style="margin-top:8px;display:inline-block;padding:4px 14px;background:#f0f0f0;color:#111827;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;font-weight:700;">' +
     'REKAPITULASI LAPORAN PENJUALAN &amp; MARGIN FIFO' +
     '</div>' +
     '<div style="font-size:11px;color:#666;margin-top:4px;">' +
@@ -16113,7 +16113,7 @@ function printReportSummary() {
     '</div>' +
 
     '<!-- 1. RINGKASAN FINANSIAL -->' +
-    '<h4 style="font-size:12px;margin-bottom:6px;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:3px;">1. Ringkasan Kinerja Penjualan &amp; Laba FIFO</h4>' +
+    '<h4 style="font-size:12px;margin-bottom:6px;text-transform:uppercase;color:#111827;border-bottom:1px solid #ccc;padding-bottom:3px;">1. Ringkasan Kinerja Penjualan &amp; Laba FIFO</h4>' +
     '<table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px;">' +
     '<tr>' +
     '<td style="padding:4px 8px;border:1px solid #ddd;width:25%;background:#f9f9f9;">Total Omzet Bersih:</td>' +
@@ -16130,7 +16130,7 @@ function printReportSummary() {
     '</table>' +
 
     '<!-- 2. TABEL RINCIAN TRANSAKSI PER NOTA -->' +
-    '<h4 style="font-size:12px;margin-bottom:6px;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:3px;">2. Rincian Transaksi Belanja &amp; Laba Kotor FIFO</h4>' +
+    '<h4 style="font-size:12px;margin-bottom:6px;text-transform:uppercase;color:#111827;border-bottom:1px solid #ccc;padding-bottom:3px;">2. Rincian Transaksi Belanja &amp; Laba Kotor FIFO</h4>' +
     '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:10px;">' +
     '<thead>' +
     '<tr style="background:#f0f0f0;">' +
@@ -16163,7 +16163,7 @@ function printReportSummary() {
     '</table>' +
 
     '<!-- 3. TANDA TANGAN PENGESAHAN -->' +
-    '<div style="display:flex;justify-content:space-between;margin-top:28px;padding:0 24px;font-size:11px;page-break-inside:avoid;">' +
+    '<div style="display:flex;justify-content:space-between;margin-top:28px;padding:0 24px;font-size:11px;color:#111827;page-break-inside:avoid;">' +
     '<div style="text-align:center;width:200px;">' +
     '<div>Disusun Oleh,</div>' +
     '<div style="font-weight:700;margin-top:2px;">Petugas / Kasir Toko</div>' +
@@ -16525,7 +16525,7 @@ function printStockValuationA4() {
     '<div style="text-align:center;border-bottom:2.5px solid #333;padding-bottom:12px;margin-bottom:14px;">' +
     logoHtml +
     '<div style="font-size:11px;color:#555;margin-top:2px;">' + escapeHtml(storeAddress) + (storePhone ? ' • Telp/WA: ' + escapeHtml(storePhone) : '') + '</div>' +
-    '<div style="margin-top:8px;display:inline-block;padding:4px 14px;background:#f0f0f0;border-radius:4px;font-size:13px;font-weight:700;letter-spacing:0.5px;">' +
+    '<div style="margin-top:8px;display:inline-block;padding:4px 14px;background:#f0f0f0;color:#111827;border:1px solid #cbd5e1;border-radius:4px;font-size:13px;font-weight:700;letter-spacing:0.5px;">' +
     'LAPORAN VALUASI ASET &amp; POSISI STOK BENIH' +
     '</div>' +
     '<div style="font-size:10.5px;color:#666;margin-top:4px;">' +
@@ -16576,7 +16576,7 @@ function printStockValuationA4() {
     '</table>' +
 
     '<!-- 2 KOLOM TANDA TANGAN PENGESAHAN -->' +
-    '<div style="display:flex;justify-content:space-between;margin-top:28px;padding:0 24px;font-size:11px;page-break-inside:avoid;">' +
+    '<div style="display:flex;justify-content:space-between;margin-top:28px;padding:0 24px;font-size:11px;color:#111827;page-break-inside:avoid;">' +
     '<div style="text-align:center;width:220px;">' +
     '<div>Dibuat Oleh,</div>' +
     '<div style="font-weight:700;margin-top:2px;">Kasir / Pengelola Persediaan</div>' +
@@ -16662,7 +16662,7 @@ function printStockOpnameSheetA4() {
     '<div style="text-align:center;border-bottom:2.5px solid #333;padding-bottom:12px;margin-bottom:12px;">' +
     logoHtml +
     '<div style="font-size:11px;color:#555;margin-top:2px;">' + escapeHtml(storeAddress) + (storePhone ? ' • Telp/WA: ' + escapeHtml(storePhone) : '') + '</div>' +
-    '<div style="margin-top:8px;display:inline-block;padding:4px 14px;background:#f0f0f0;border-radius:4px;font-size:13px;font-weight:700;letter-spacing:0.5px;">' +
+    '<div style="margin-top:8px;display:inline-block;padding:4px 14px;background:#f0f0f0;color:#111827;border:1px solid #cbd5e1;border-radius:4px;font-size:13px;font-weight:700;letter-spacing:0.5px;">' +
     'LEMBAR STOCK OPNAME FISIK PERSEDIAAN BENIH' +
     '</div>' +
     '<div style="font-size:10.5px;color:#666;margin-top:4px;">' +
@@ -16694,7 +16694,7 @@ function printStockOpnameSheetA4() {
     '</table>' +
 
     '<!-- 2 KOLOM TANDA TANGAN AUDIT OPNAME -->' +
-    '<div style="display:flex;justify-content:space-between;margin-top:24px;padding:0 30px;font-size:11px;page-break-inside:avoid;">' +
+    '<div style="display:flex;justify-content:space-between;margin-top:24px;padding:0 30px;font-size:11px;color:#111827;page-break-inside:avoid;">' +
     '<div style="text-align:center;width:220px;">' +
     '<div>Petugas Hitung Lapangan,</div>' +
     '<div style="font-weight:700;margin-top:2px;">Checker Fisik Opname</div>' +
@@ -17343,6 +17343,7 @@ function printPeriodMinutes(periodId) {
 
   const printContainer = document.createElement('div');
   printContainer.id = 'print-period-minutes-container';
+  printContainer.className = 'print-report-area';
   printContainer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;z-index:999999;padding:25mm 20mm;font-family:Inter,sans-serif;color:#111;overflow-y:auto;box-sizing:border-box;';
 
   printContainer.innerHTML =

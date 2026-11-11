@@ -55,6 +55,23 @@ function saveMutationToLocalBackup(item) {
 }
 window.saveMutationToLocalBackup = saveMutationToLocalBackup;
 
+function removePurchaseMutationsFromLocalBackup(batchIds, invoiceNo) {
+  try {
+    const idSet = new Set((batchIds || []).map(x => String(x)));
+    const inv = invoiceNo ? String(invoiceNo).trim() : '';
+    const backup = JSON.parse(localStorage.getItem('idep_stock_mutations_backup') || '[]');
+    const filtered = backup.filter(m => {
+      if (!m) return false;
+      const matchBatch = m.batch_id && idSet.has(String(m.batch_id)) && (!m.mutation_type || m.mutation_type === 'MASUK_PEMBELIAN');
+      const matchInv = inv && m.reference_no && String(m.reference_no).trim() === inv && m.mutation_type === 'MASUK_PEMBELIAN';
+      return !matchBatch && !matchInv;
+    });
+    localStorage.setItem('idep_stock_mutations_backup', JSON.stringify(filtered));
+  } catch (e) {
+    console.warn('[LocalBackup] Gagal membersihkan mutasi pembelian:', e);
+  }
+}
+
 /**
  * Generator Penomoran Dokumen Otomatis Terpusat (Sequential Counter Bulanan)
  * Format Baku Standar: [PREFIX]-[YYMM]-[URUT_4_DIGIT]
@@ -1463,18 +1480,120 @@ async function dispatchApiCall(fnName, args) {
     // D. PENGADAAN (PURCHASES, SUPPLIERS, FARMERS)
     // --------------------------------------------------------------------------
     case 'getPurchases': {
-      const { data, error } = await supabase
-        .from('purchases')
-        .select('*, suppliers(name), farmers(name)')
-        .order('created_at', { ascending: false });
+      const [purRes, batchesRes, itemsRes, prodsRes] = await Promise.all([
+        supabase
+          .from('purchases')
+          .select('*, suppliers(name), farmers(name)')
+          .order('created_at', { ascending: false }),
+        supabase.from('stock_batches').select('*').not('purchase_id', 'is', null),
+        supabase.from('purchase_items').select('*'),
+        supabase.from('products').select('id, name, unit, category, inventory_type')
+      ]);
 
-      if (error) throw error;
+      if (purRes.error) throw purRes.error;
 
-      return (data || []).map(p => ({
-        ...p,
-        supplier_name: p.suppliers ? p.suppliers.name : '(tidak diketahui)',
-        farmer_name: p.farmers ? p.farmers.name : (p.farmer_name || '-')
-      }));
+      const prodMap = {};
+      (prodsRes.data || []).forEach(pr => { prodMap[pr.id] = pr; });
+
+      const batchesByPur = {};
+      (batchesRes.data || []).forEach(b => {
+        if (!b || !b.purchase_id) return;
+        if (!batchesByPur[b.purchase_id]) batchesByPur[b.purchase_id] = [];
+        batchesByPur[b.purchase_id].push(b);
+      });
+
+      const itemsByPur = {};
+      if (!itemsRes.error && Array.isArray(itemsRes.data)) {
+        itemsRes.data.forEach(it => {
+          if (!it || !it.purchase_id) return;
+          if (!itemsByPur[it.purchase_id]) itemsByPur[it.purchase_id] = [];
+          itemsByPur[it.purchase_id].push(it);
+        });
+      }
+
+      return (purRes.data || []).map(p => {
+        const supplierName = p.suppliers ? p.suppliers.name : (p.supplier_name || '(tidak diketahui)');
+        const farmerName = p.farmers ? p.farmers.name : (p.farmer_name || '-');
+        const batches = batchesByPur[p.id] || [];
+        const rawItems = itemsByPur[p.id] || [];
+
+        const detailItems = batches.length > 0
+          ? batches.map((b, idx) => {
+            const prod = prodMap[b.product_id] || {};
+            const matchedItem = rawItems.find(it =>
+              String(it.product_id) === String(b.product_id) &&
+              (!it.batch_no || !b.batch_code || String(it.batch_no) === String(b.batch_code))
+            ) || rawItems[idx] || {};
+
+            const qtyIn = Number(b.qty_in !== undefined && b.qty_in !== null ? b.qty_in : (matchedItem.qty || 0));
+            const qtyRem = Number(b.qty_remaining !== undefined && b.qty_remaining !== null ? b.qty_remaining : qtyIn);
+            const buyPrice = Number(b.buy_price !== undefined && b.buy_price !== null ? b.buy_price : (matchedItem.buy_price || 0));
+            const costUnit = Number(b.cost_per_unit !== undefined && b.cost_per_unit !== null ? b.cost_per_unit : (matchedItem.cost_per_unit || buyPrice));
+            const addCost = Number(matchedItem.additional_cost !== undefined && matchedItem.additional_cost !== null ? matchedItem.additional_cost : Math.max(0, costUnit - buyPrice));
+            return {
+              batch_id: b.id,
+              batch_code: b.batch_code || matchedItem.batch_no || b.id,
+              product_id: b.product_id,
+              product_name: prod.name || ('Produk ' + b.product_id),
+              unit: prod.unit || 'pcs',
+              qty_in: qtyIn,
+              qty_remaining: qtyRem,
+              buy_price: buyPrice,
+              additional_cost: addCost,
+              cost_per_unit: costUnit,
+              subtotal: matchedItem.subtotal ? Number(matchedItem.subtotal) : (qtyIn * costUnit),
+              production_date: b.production_date || matchedItem.production_date || null,
+              expiry_date: b.expiry_date || matchedItem.expiry_date || null,
+              qc_status: b.qc_status || 'APPROVED',
+              quality_status: b.quality_status || 'NORMAL'
+            };
+          })
+          : rawItems.map(it => {
+            const prod = prodMap[it.product_id] || {};
+            const qtyIn = Number(it.qty || 0);
+            const buyPrice = Number(it.buy_price || 0);
+            const addCost = Number(it.additional_cost || 0);
+            const costUnit = Number(it.cost_per_unit !== undefined ? it.cost_per_unit : (buyPrice + addCost));
+            return {
+              batch_id: null,
+              batch_code: it.batch_no || '-',
+              product_id: it.product_id,
+              product_name: prod.name || ('Produk ' + it.product_id),
+              unit: prod.unit || 'pcs',
+              qty_in: qtyIn,
+              qty_remaining: qtyIn,
+              buy_price: buyPrice,
+              additional_cost: addCost,
+              cost_per_unit: costUnit,
+              subtotal: it.subtotal ? Number(it.subtotal) : (qtyIn * costUnit),
+              production_date: it.production_date || null,
+              expiry_date: it.expiry_date || null,
+              qc_status: 'APPROVED',
+              quality_status: 'NORMAL'
+            };
+          });
+
+        const usedBatch = batches.find(b => Number(b.qty_remaining || 0) !== Number(b.qty_in || 0));
+        const invStr = String(p.invoice_no || '').toUpperCase();
+        const isStokAwal = invStr.startsWith('INV-STO') ||
+          invStr.startsWith('SA-') ||
+          String(supplierName).toUpperCase().includes('STOK AWAL') ||
+          String(farmerName).toUpperCase().includes('STOK AWAL') ||
+          String(p.notes || '').toUpperCase().includes('STOK AWAL');
+
+        return {
+          ...p,
+          supplier_name: supplierName,
+          farmer_name: farmerName,
+          is_stok_awal: isStokAwal,
+          can_delete: !usedBatch,
+          locked_reason: usedBatch
+            ? ('Batch "' + (usedBatch.batch_code || usedBatch.id) + '" sudah terpakai/berubah stoknya (' + usedBatch.qty_remaining + '/' + usedBatch.qty_in + ')')
+            : '',
+          items: detailItems,
+          item_count: detailItems.length
+        };
+      });
     }
 
     case 'createPurchase': {
@@ -1603,13 +1722,70 @@ async function dispatchApiCall(fnName, args) {
 
     case 'deletePurchase': {
       const [, purchaseId] = args;
+
+      // 1. Verifikasi keamanan: cek header faktur & batch terkait
+      const [{ data: purHeader }, { data: purBatches, error: bCheckErr }] = await Promise.all([
+        supabase.from('purchases').select('id, invoice_no').eq('id', purchaseId).maybeSingle(),
+        supabase.from('stock_batches').select('id, batch_code, qty_in, qty_remaining').eq('purchase_id', purchaseId)
+      ]);
+      if (bCheckErr) throw bCheckErr;
+
+      const batchList = purBatches || [];
+      const changedBatch = batchList.find(b => Number(b.qty_remaining || 0) !== Number(b.qty_in || 0));
+      if (changedBatch) {
+        throw new Error(`Faktur tidak dapat dihapus karena batch "${changedBatch.batch_code || changedBatch.id}" sudah terpakai atau stoknya berubah (${changedBatch.qty_remaining}/${changedBatch.qty_in}).`);
+      }
+
+      const batchIds = batchList.map(b => b.id);
+      if (batchIds.length > 0) {
+        // Cegah hapus bila ada aktivitas produksi Kemas Mandiri atau mutasi di luar MASUK_PEMBELIAN
+        const { data: prodUsed } = await supabase
+          .from('productions')
+          .select('id')
+          .in('source_batch_id', batchIds)
+          .limit(1);
+        if (prodUsed && prodUsed.length > 0) {
+          throw new Error('Faktur tidak dapat dihapus karena batch bahan bakunya sudah tercatat di modul Kemas Mandiri.');
+        }
+
+        const { data: otherMut } = await supabase
+          .from('stock_mutations')
+          .select('id, mutation_type')
+          .in('batch_id', batchIds)
+          .neq('mutation_type', 'MASUK_PEMBELIAN')
+          .limit(1);
+        if (otherMut && otherMut.length > 0) {
+          throw new Error(`Faktur tidak dapat dihapus karena batch sudah memiliki riwayat mutasi (${otherMut[0].mutation_type}).`);
+        }
+      }
+
+      // 2. Bersihkan seluruh jejak log terkait secara berurutan
+      const invNo = purHeader ? purHeader.invoice_no : '';
+      if (batchIds.length > 0) {
+        try { await supabase.from('seed_qc_logs').delete().in('batch_id', batchIds); } catch (e) {}
+        try { await supabase.from('stock_mutations').delete().in('batch_id', batchIds); } catch (e) {}
+        try { await supabase.from('stock_movements').delete().in('batch_id', batchIds); } catch (e) {}
+      }
+      if (invNo) {
+        try {
+          await supabase.from('stock_mutations').delete().eq('reference_no', invNo).eq('mutation_type', 'MASUK_PEMBELIAN');
+        } catch (e) {}
+      }
       try {
         await supabase.from('purchase_items').delete().eq('purchase_id', purchaseId);
-      } catch (e) { }
-      await supabase.from('stock_batches').delete().eq('purchase_id', purchaseId);
-      await supabase.from('stock_movements').delete().eq('ref_id', purchaseId);
+      } catch (e) {}
+
+      const { error: delBatchErr } = await supabase.from('stock_batches').delete().eq('purchase_id', purchaseId);
+      if (delBatchErr) throw delBatchErr;
+
+      try {
+        await supabase.from('stock_movements').delete().eq('ref_id', purchaseId);
+      } catch (e) {}
+
       const { error } = await supabase.from('purchases').delete().eq('id', purchaseId);
       if (error) throw error;
+
+      removePurchaseMutationsFromLocalBackup(batchIds, invNo);
       return { success: true };
     }
 

@@ -5368,17 +5368,7 @@ function openBatchDetailModal(productId, productName) {
       const qtyRem = Number(b.qty_remaining || 0);
       const pct = Math.min(100, Math.max(0, Math.round((qtyRem / qtyIn) * 100)));
 
-      const qcUp = String(b.qc_status || '').toUpperCase().trim();
-      const qUp = String(b.quality_status || '').toUpperCase().trim();
-      const qcBadge = (qcUp === 'APPROVED' || qcUp === 'OK' || qcUp === 'PASSED')
-        ? '<span class="badge badge-success" style="font-size:10px;padding:1px 5px;">QC Lulus</span>'
-        : ((qcUp === 'REJECTED' || qUp === 'QUARANTINE')
-          ? '<span class="badge badge-danger" style="font-size:10px;padding:1px 5px;">QC Ditolak / Karantina</span>'
-          : (qcUp === 'IN_PROGRESS'
-            ? '<span class="badge badge-warning" style="font-size:10px;padding:1px 5px;">Proses QC / DHT</span>'
-            : (qcUp === 'PENDING_QC'
-              ? '<span class="badge badge-warning" style="font-size:10px;padding:1px 5px;">Menunggu QC</span>'
-              : '<span class="badge badge-neutral" style="font-size:10px;padding:1px 5px;">Normal</span>')));
+      const qcBadge = formatBatchQCStatusBadge(b.qc_status, b.quality_status);
 
       const farmerText = escapeHtml(b.farmer_name || 'Mitra Penangkaran');
 
@@ -7488,6 +7478,387 @@ function openQCHistoryModal(batchId) {
 }
 
 // ========================= PEMBELIAN (PENGADAAN) =========================
+let CURRENT_PURCHASES = [];
+let PURCHASE_FILTERS = { search: '', supplier: 'all', period: 'all', dateFrom: '', dateTo: '' };
+
+function formatBatchQCStatusBadge(qcStatus, qualityStatus) {
+  const qcUp = String(qcStatus || '').toUpperCase().trim();
+  const qUp = String(qualityStatus || '').toUpperCase().trim();
+  if (qcUp === 'APPROVED' || qcUp === 'OK' || qcUp === 'PASSED') {
+    return '<span class="badge badge-success" style="font-size:10px;padding:1px 6px;">QC Lulus</span>';
+  }
+  if (qcUp === 'REJECTED' || qUp === 'QUARANTINE') {
+    return '<span class="badge badge-danger" style="font-size:10px;padding:1px 6px;">QC Ditolak / Karantina</span>';
+  }
+  if (qcUp === 'IN_PROGRESS') {
+    return '<span class="badge badge-warning" style="font-size:10px;padding:1px 6px;">Proses QC / DHT</span>';
+  }
+  if (qcUp === 'PENDING_QC') {
+    return '<span class="badge badge-warning" style="font-size:10px;padding:1px 6px;">Menunggu QC</span>';
+  }
+  return '<span class="badge badge-neutral" style="font-size:10px;padding:1px 6px;">Normal</span>';
+}
+
+function getPurchaseLocalDateYMD(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return String(dateStr).slice(0, 10);
+  const pad = function (n) { return (n < 10 ? '0' : '') + n; };
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
+function getFilteredPurchases() {
+  const kw = String(PURCHASE_FILTERS.search || '').toLowerCase().trim();
+  const supFilter = PURCHASE_FILTERS.supplier || 'all';
+  const period = PURCHASE_FILTERS.period || 'all';
+  const todayStr = getPurchaseLocalDateYMD(new Date().toISOString());
+  const currentMonthPrefix = todayStr.slice(0, 7);
+  const thirtyDaysAgoMs = Date.now() - (30 * 24 * 60 * 60 * 1000);
+
+  return (CURRENT_PURCHASES || []).filter(function (p) {
+    if (!p) return false;
+    if (supFilter !== 'all' && String(p.supplier_name || '') !== supFilter) {
+      return false;
+    }
+
+    const rowDateStr = getPurchaseLocalDateYMD(p.created_at);
+    if (period === 'today' && rowDateStr !== todayStr) return false;
+    if (period === 'this_month' && rowDateStr.slice(0, 7) !== currentMonthPrefix) return false;
+    if (period === '30d') {
+      const rowMs = p.created_at ? new Date(p.created_at).getTime() : NaN;
+      if (isNaN(rowMs) || rowMs < thirtyDaysAgoMs) return false;
+    }
+    if (period === 'custom') {
+      if (PURCHASE_FILTERS.dateFrom && rowDateStr && rowDateStr < PURCHASE_FILTERS.dateFrom) return false;
+      if (PURCHASE_FILTERS.dateTo && rowDateStr && rowDateStr > PURCHASE_FILTERS.dateTo) return false;
+    }
+
+    if (kw) {
+      const items = Array.isArray(p.items) ? p.items : [];
+      const inHeader =
+        String(p.invoice_no || '').toLowerCase().indexOf(kw) !== -1 ||
+        String(p.supplier_name || '').toLowerCase().indexOf(kw) !== -1 ||
+        String(p.farmer_name || '').toLowerCase().indexOf(kw) !== -1 ||
+        String(p.notes || '').toLowerCase().indexOf(kw) !== -1;
+      const inItems = items.some(function (it) {
+        return String(it.product_name || '').toLowerCase().indexOf(kw) !== -1 ||
+          String(it.batch_code || '').toLowerCase().indexOf(kw) !== -1;
+      });
+      if (!inHeader && !inItems) return false;
+    }
+
+    return true;
+  });
+}
+
+function buildPurchaseKPICardsHTML(filteredList, allList) {
+  const totalFilteredVal = filteredList.reduce(function (s, p) { return s + Number(p.total || 0); }, 0);
+  const currentMonthPrefix = getPurchaseLocalDateYMD(new Date().toISOString()).slice(0, 7);
+  const monthPurchases = (allList || []).filter(function (p) {
+    return getPurchaseLocalDateYMD(p.created_at).slice(0, 7) === currentMonthPrefix;
+  });
+  const monthTotalVal = monthPurchases.reduce(function (s, p) { return s + Number(p.total || 0); }, 0);
+
+  let totalBatches = 0;
+  let pendingQcItems = 0;
+  filteredList.forEach(function (p) {
+    const items = Array.isArray(p.items) ? p.items : [];
+    totalBatches += items.length;
+    items.forEach(function (it) {
+      const qcUp = String(it.qc_status || '').toUpperCase();
+      if (qcUp === 'PENDING_QC' || qcUp === 'IN_PROGRESS') pendingQcItems++;
+    });
+  });
+
+  return '<div class="stat-card cyber-stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Total Pengadaan (Terfilter)</span><span class="stat-icon" style="color:#22D3EE;">🧾</span></div>' +
+    '<div class="stat-value" style="font-size:22px;color:#22D3EE;font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(totalFilteredVal) + '</div>' +
+    '<div class="stat-meta">' + filteredList.length + ' faktur pengadaan tampil</div>' +
+    '</div>' +
+    '<div class="stat-card cyber-stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Pengadaan Bulan Ini</span><span class="stat-icon" style="color:#34D399;">📅</span></div>' +
+    '<div class="stat-value" style="font-size:22px;color:#34D399;font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(monthTotalVal) + '</div>' +
+    '<div class="stat-meta">' + monthPurchases.length + ' faktur tercatat bulan ini</div>' +
+    '</div>' +
+    '<div class="stat-card cyber-stat-card">' +
+    '<div class="stat-header"><span class="stat-label">Total Batch Masuk</span><span class="stat-icon" style="color:#FBBF24;">🌾</span></div>' +
+    '<div class="stat-value" style="font-size:22px;color:#FBBF24;font-family:\'JetBrains Mono\',monospace;">' + totalBatches + ' Batch</div>' +
+    '<div class="stat-meta">' + (pendingQcItems > 0 ? (pendingQcItems + ' batch masih antre/proses QC') : 'Semua batch terfilter sudah lulus / siap') + '</div>' +
+    '</div>';
+}
+
+function buildPurchaseRowSummary(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return '<span style="font-size:11px;color:var(--text-secondary);">Rincian batch tidak tersedia</span>';
+  }
+  const preview = items.slice(0, 2).map(function (it) {
+    const qtyText = Number(it.qty_in || 0).toLocaleString('id-ID') + ' ' + escapeHtml(it.unit || 'pcs');
+    return escapeHtml(it.product_name || '-') + ' (' + qtyText + ')';
+  }).join(', ');
+  const extra = items.length > 2 ? (' +' + (items.length - 2) + ' item lainnya') : '';
+  return '<div style="font-size:11.5px;color:var(--text-secondary);margin-top:3px;line-height:1.35;">' + preview + escapeHtml(extra) + '</div>';
+}
+
+function buildPurchaseQCSummaryBadge(items) {
+  if (!Array.isArray(items) || items.length === 0) return '';
+  let pendingCount = 0;
+  let rejectedCount = 0;
+  items.forEach(function (it) {
+    const qcUp = String(it.qc_status || '').toUpperCase();
+    const qUp = String(it.quality_status || '').toUpperCase();
+    if (qcUp === 'REJECTED' || qUp === 'QUARANTINE') rejectedCount++;
+    else if (qcUp === 'PENDING_QC' || qcUp === 'IN_PROGRESS') pendingCount++;
+  });
+  if (rejectedCount > 0) {
+    return '<span class="badge badge-danger" style="font-size:10px;padding:1px 6px;">' + rejectedCount + ' Karantina QC</span>';
+  }
+  if (pendingCount > 0) {
+    return '<span class="badge badge-warning" style="font-size:10px;padding:1px 6px;">' + pendingCount + ' Menunggu/Proses QC</span>';
+  }
+  return '<span class="badge badge-success" style="font-size:10px;padding:1px 6px;">Semua QC Lulus</span>';
+}
+
+function renderPembelianTableRows(filteredList) {
+  if (!filteredList || filteredList.length === 0) {
+    return '<tr><td colspan="5"><div class="empty-state" style="padding:28px 16px;">Tidak ada faktur pembelian yang sesuai dengan filter.</div></td></tr>';
+  }
+
+  return filteredList.map(function (p) {
+    const items = Array.isArray(p.items) ? p.items : [];
+    const stokAwalBadge = p.is_stok_awal
+      ? '<span class="badge badge-info" style="font-size:10px;padding:1px 6px;margin-left:6px;">🏷️ Stok Awal</span>'
+      : '';
+    const qcSummaryBadge = buildPurchaseQCSummaryBadge(items);
+    const notesHtml = p.notes
+      ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">📝 ' + escapeHtml(p.notes) + '</div>'
+      : '';
+    const farmerLine = (p.farmer_name && p.farmer_name !== '-')
+      ? '<div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px;">🌾 ' + escapeHtml(p.farmer_name) + '</div>'
+      : '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">-</div>';
+
+    const actionHtml = '<button type="button" class="btn btn-secondary btn-sm" onclick="openPurchaseDetailModal(\'' + escapeHtml(p.id) + '\')" style="margin-right:6px;">Detail</button>' +
+      (p.can_delete !== false
+        ? '<button type="button" class="btn btn-danger btn-sm" onclick="deletePurchaseUI(\'' + escapeHtml(p.id) + '\')">Hapus</button>'
+        : '<span class="badge badge-neutral" title="' + escapeHtml(p.locked_reason || 'Batch sudah terpakai di stok/produksi') + '" style="font-size:11px;padding:5px 8px;cursor:help;">🔒 Terpakai</span>');
+
+    return '<tr>' +
+      '<td style="white-space:nowrap;"><strong>' + formatDate(p.created_at) + '</strong></td>' +
+      '<td>' +
+      '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">' +
+      '<strong style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);font-size:12.5px;">' + escapeHtml(p.invoice_no || '-') + '</strong>' +
+      stokAwalBadge +
+      qcSummaryBadge +
+      '</div>' +
+      buildPurchaseRowSummary(items) +
+      notesHtml +
+      '</td>' +
+      '<td><strong>' + escapeHtml(p.supplier_name || '(tidak diketahui)') + '</strong>' + farmerLine + '</td>' +
+      '<td style="text-align:right;white-space:nowrap;">' +
+      '<strong style="font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(p.total) + '</strong>' +
+      '<div style="font-size:11px;color:var(--text-secondary);">' + items.length + ' item batch</div>' +
+      '</td>' +
+      '<td style="text-align:right;white-space:nowrap;">' + actionHtml + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+function updatePembelianFilteredView() {
+  const filtered = getFilteredPurchases();
+  const kpiGrid = document.getElementById('pembelian-kpi-grid');
+  const tbody = document.getElementById('pembelian-table-body');
+  const countBadge = document.getElementById('pembelian-count-badge');
+  const dateRangeWrap = document.getElementById('purchase-date-range-wrap');
+  const resetBtn = document.getElementById('purchase-reset-btn');
+
+  if (kpiGrid) kpiGrid.innerHTML = buildPurchaseKPICardsHTML(filtered, CURRENT_PURCHASES);
+  if (tbody) tbody.innerHTML = renderPembelianTableRows(filtered);
+  if (countBadge) countBadge.textContent = 'Menampilkan ' + filtered.length + ' dari ' + CURRENT_PURCHASES.length + ' faktur';
+  if (dateRangeWrap) dateRangeWrap.style.display = PURCHASE_FILTERS.period === 'custom' ? 'flex' : 'none';
+  if (resetBtn) {
+    const hasFilter = Boolean(PURCHASE_FILTERS.search || PURCHASE_FILTERS.supplier !== 'all' || PURCHASE_FILTERS.period !== 'all');
+    resetBtn.style.display = hasFilter ? 'inline-flex' : 'none';
+  }
+}
+
+function onPurchaseFilterChange() {
+  const searchEl = document.getElementById('purchase-search-input');
+  const supEl = document.getElementById('purchase-filter-supplier');
+  const periodEl = document.getElementById('purchase-filter-period');
+  const fromEl = document.getElementById('purchase-date-from');
+  const toEl = document.getElementById('purchase-date-to');
+
+  if (searchEl) PURCHASE_FILTERS.search = searchEl.value || '';
+  if (supEl) PURCHASE_FILTERS.supplier = supEl.value || 'all';
+  if (periodEl) PURCHASE_FILTERS.period = periodEl.value || 'all';
+  if (fromEl) PURCHASE_FILTERS.dateFrom = fromEl.value || '';
+  if (toEl) PURCHASE_FILTERS.dateTo = toEl.value || '';
+
+  updatePembelianFilteredView();
+}
+
+function resetPurchaseFilters() {
+  PURCHASE_FILTERS = { search: '', supplier: 'all', period: 'all', dateFrom: '', dateTo: '' };
+  const searchEl = document.getElementById('purchase-search-input');
+  const supEl = document.getElementById('purchase-filter-supplier');
+  const periodEl = document.getElementById('purchase-filter-period');
+  const fromEl = document.getElementById('purchase-date-from');
+  const toEl = document.getElementById('purchase-date-to');
+
+  if (searchEl) searchEl.value = '';
+  if (supEl) supEl.value = 'all';
+  if (periodEl) periodEl.value = 'all';
+  if (fromEl) fromEl.value = '';
+  if (toEl) toEl.value = '';
+
+  updatePembelianFilteredView();
+}
+
+function openPurchaseDetailModal(purchaseId) {
+  const p = (CURRENT_PURCHASES || []).find(function (x) { return String(x.id) === String(purchaseId); });
+  if (!p) {
+    showToast('Data faktur pembelian tidak ditemukan.', true);
+    return;
+  }
+
+  const items = Array.isArray(p.items) ? p.items : [];
+  const rowsHtml = items.length > 0
+    ? items.map(function (it, idx) {
+      const qtyIn = Number(it.qty_in || 0).toLocaleString('id-ID');
+      const qtyRem = Number(it.qty_remaining || 0).toLocaleString('id-ID');
+      const unitStr = escapeHtml(it.unit || 'pcs');
+      const prodDate = it.production_date ? formatDateIndo(it.production_date) : '-';
+      const expDate = it.expiry_date ? formatDateIndo(it.expiry_date) : '-';
+      return '<tr>' +
+        '<td style="text-align:center;">' + (idx + 1) + '</td>' +
+        '<td><strong>' + escapeHtml(it.product_name || '-') + '</strong></td>' +
+        '<td><code style="font-family:\'JetBrains Mono\',monospace;font-size:11.5px;">' + escapeHtml(it.batch_code || '-') + '</code></td>' +
+        '<td style="text-align:right;white-space:nowrap;"><strong>' + qtyIn + '</strong> / ' + qtyRem + ' ' + unitStr + '</td>' +
+        '<td style="text-align:right;white-space:nowrap;">' + formatRupiah(it.buy_price) + '</td>' +
+        '<td style="text-align:right;white-space:nowrap;">' + formatRupiah(it.additional_cost) + '</td>' +
+        '<td style="text-align:right;white-space:nowrap;"><strong>' + formatRupiah(it.cost_per_unit) + '</strong></td>' +
+        '<td style="font-size:11px;white-space:nowrap;">Panen: ' + prodDate + '<br>Exp: ' + expDate + '</td>' +
+        '<td style="text-align:center;">' + formatBatchQCStatusBadge(it.qc_status, it.quality_status) + '</td>' +
+        '</tr>';
+    }).join('')
+    : '<tr><td colspan="9"><div class="empty-state" style="padding:18px;">Tidak ada rincian item batch pada faktur ini.</div></td></tr>';
+
+  const bodyHtml =
+    '<div style="background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;">' +
+    '<div><div style="font-size:11px;color:var(--text-secondary);">No. Faktur</div><strong style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);">' + escapeHtml(p.invoice_no || '-') + '</strong>' + (p.is_stok_awal ? ' <span class="badge badge-info" style="font-size:10px;">Stok Awal</span>' : '') + '</div>' +
+    '<div><div style="font-size:11px;color:var(--text-secondary);">Tanggal Pengadaan</div><strong>' + formatDate(p.created_at) + '</strong></div>' +
+    '<div><div style="font-size:11px;color:var(--text-secondary);">Supplier</div><strong>' + escapeHtml(p.supplier_name || '-') + '</strong></div>' +
+    '<div><div style="font-size:11px;color:var(--text-secondary);">Petani / Penangkar</div><strong>' + escapeHtml(p.farmer_name || '-') + '</strong></div>' +
+    '<div><div style="font-size:11px;color:var(--text-secondary);">Total Pengadaan</div><strong style="color:var(--success);font-family:\'JetBrains Mono\',monospace;">' + formatRupiah(p.total) + '</strong></div>' +
+    '<div><div style="font-size:11px;color:var(--text-secondary);">Catatan</div><span style="font-size:12px;">' + escapeHtml(p.notes || '-') + '</span></div>' +
+    '</div>' +
+    '<div class="table-container">' +
+    '<table class="table">' +
+    '<thead>' +
+    '<tr>' +
+    '<th style="width:36px;text-align:center;">No</th>' +
+    '<th>Varietas / Produk</th>' +
+    '<th>Kode Batch FIFO</th>' +
+    '<th style="text-align:right;">Masuk / Sisa</th>' +
+    '<th style="text-align:right;">Harga Beli</th>' +
+    '<th style="text-align:right;">Biaya Ekstra</th>' +
+    '<th style="text-align:right;">HPP Final</th>' +
+    '<th>Panen &amp; Exp</th>' +
+    '<th style="text-align:center;">Status QC</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody>' + rowsHtml + '</tbody>' +
+    '</table>' +
+    '</div>' +
+    (p.can_delete === false
+      ? '<div style="margin-top:12px;padding:10px 14px;border-radius:var(--radius-xs);background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);font-size:12px;color:var(--text-main);">🔒 <strong>Faktur Terkunci:</strong> ' + escapeHtml(p.locked_reason || 'Sebagian batch sudah terpakai sehingga faktur tidak dapat dihapus.') + '</div>'
+      : '');
+
+  const footerHtml = '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>';
+  openModal('Detail Faktur Pengadaan: ' + (p.invoice_no || '-'), bodyHtml, footerHtml, true);
+}
+
+function exportPurchasesExcel() {
+  const list = getFilteredPurchases();
+  if (list.length === 0) {
+    showToast('Tidak ada data riwayat pembelian sesuai filter untuk diekspor.', true);
+    return;
+  }
+
+  showToast('Menyiapkan file Excel riwayat pengadaan...');
+  ensureXlsxLoaded().then(function (XLSX) {
+    const wb = XLSX.utils.book_new();
+
+    const summaryRows = [[
+      'Tanggal', 'No_Faktur', 'Tipe_Pengadaan', 'Supplier', 'Petani_Penangkar',
+      'Jumlah_Batch', 'Total_Pengadaan', 'Status_Kunci', 'Catatan'
+    ]];
+    const itemRows = [[
+      'Tanggal', 'No_Faktur', 'Supplier', 'Petani_Penangkar', 'Kode_Batch',
+      'Nama_Produk', 'Satuan', 'Qty_Masuk', 'Sisa_Stok', 'Harga_Beli',
+      'Biaya_Ekstra', 'HPP_Final', 'Subtotal', 'Tgl_Panen', 'Tgl_Kedaluwarsa', 'Status_QC'
+    ]];
+
+    list.forEach(function (p) {
+      const items = Array.isArray(p.items) ? p.items : [];
+      const ymd = getPurchaseLocalDateYMD(p.created_at);
+      summaryRows.push([
+        ymd,
+        p.invoice_no || '',
+        p.is_stok_awal ? 'Stok Awal' : 'Pengadaan Reguler',
+        p.supplier_name || '',
+        p.farmer_name || '-',
+        items.length,
+        Number(p.total || 0),
+        p.can_delete !== false ? 'Dapat Dihapus' : 'Terkunci (Terpakai)',
+        p.notes || ''
+      ]);
+
+      items.forEach(function (it) {
+        itemRows.push([
+          ymd,
+          p.invoice_no || '',
+          p.supplier_name || '',
+          p.farmer_name || '-',
+          it.batch_code || '',
+          it.product_name || '',
+          it.unit || 'pcs',
+          Number(it.qty_in || 0),
+          Number(it.qty_remaining || 0),
+          Number(it.buy_price || 0),
+          Number(it.additional_cost || 0),
+          Number(it.cost_per_unit || 0),
+          Number(it.subtotal || 0),
+          it.production_date || '',
+          it.expiry_date || '',
+          it.qc_status || 'APPROVED'
+        ]);
+      });
+    });
+
+    const wsSum = XLSX.utils.aoa_to_sheet(summaryRows);
+    wsSum['!cols'] = [
+      { wch: 13 }, { wch: 18 }, { wch: 18 }, { wch: 24 },
+      { wch: 24 }, { wch: 13 }, { wch: 18 }, { wch: 20 }, { wch: 30 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsSum, 'Ringkasan_Faktur');
+
+    const wsItems = XLSX.utils.aoa_to_sheet(itemRows);
+    wsItems['!cols'] = [
+      { wch: 13 }, { wch: 18 }, { wch: 22 }, { wch: 22 }, { wch: 22 },
+      { wch: 26 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 14 },
+      { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 13 }, { wch: 15 }, { wch: 14 }
+    ];
+    XLSX.utils.book_append_sheet(wb, wsItems, 'Rincian_Item_Batch');
+
+    const dateStr = getPurchaseLocalDateYMD(new Date().toISOString());
+    const fileName = 'riwayat_pembelian_' + dateStr + '.xlsx';
+    XLSX.writeFile(wb, fileName);
+    showToast('Riwayat pembelian berhasil diekspor ke ' + fileName + '.');
+  }).catch(function (err) {
+    showToast('Gagal mengekspor Excel: ' + (err.message || err), true);
+  });
+}
+
 function renderPembelian(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
@@ -7537,53 +7908,90 @@ function renderPembelian(forceRefresh) {
 function drawPembelianUI(purchases) {
   const content = document.getElementById('content');
   if (!content) return;
+
+  CURRENT_PURCHASES = Array.isArray(purchases) ? purchases : [];
+  const filtered = getFilteredPurchases();
+
+  const supplierOptions = Array.from(new Set(CURRENT_PURCHASES.map(function (p) {
+    return String(p.supplier_name || '(tidak diketahui)');
+  }))).sort().map(function (supName) {
+    const sel = PURCHASE_FILTERS.supplier === supName ? ' selected' : '';
+    return '<option value="' + escapeHtml(supName) + '"' + sel + '>' + escapeHtml(supName) + '</option>';
+  }).join('');
+
+  const hasFilter = Boolean(PURCHASE_FILTERS.search || PURCHASE_FILTERS.supplier !== 'all' || PURCHASE_FILTERS.period !== 'all');
+
   content.innerHTML =
     '<div class="page-header">' +
     '<div>' +
     '<h1 class="page-title">Pembelian &amp; Pengadaan</h1>' +
     '<p class="page-subtitle">Pencatatan faktur masuk dari supplier dan mitra penangkar benih.</p>' +
     '</div>' +
-    '<div class="page-actions" style="display:flex;gap:8px;align-items:center;">' +
+    '<div class="page-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
     '<button type="button" class="btn btn-secondary btn-sm" onclick="openModuleGuide(\'pembelian\')" title="Buka Panduan Pengadaan Benih">📖 Panduan Pengadaan</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="exportPurchasesExcel()" title="Ekspor data riwayat pembelian ke Excel">📥 Export Excel</button>' +
     '<button type="button" class="btn btn-primary" onclick="openPurchaseModal()">+ Pembelian Baru</button>' +
     '</div>' +
     '</div>' +
+
+    '<div class="stat-grid" id="pembelian-kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:16px;">' +
+    buildPurchaseKPICardsHTML(filtered, CURRENT_PURCHASES) +
+    '</div>' +
+
+    '<div class="card" style="padding:14px 16px;margin-bottom:16px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">' +
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:260px;">' +
+    '<input type="text" id="purchase-search-input" value="' + escapeHtml(PURCHASE_FILTERS.search) + '" placeholder="🔍 Cari no. faktur, supplier, petani, produk, atau kode batch..." oninput="onPurchaseFilterChange()" style="padding:7px 12px;font-size:12.5px;border:1px solid var(--border);border-radius:var(--radius-sm);flex:1;min-width:220px;max-width:340px;">' +
+    '<select id="purchase-filter-supplier" onchange="onPurchaseFilterChange()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
+    '<option value="all">Semua Supplier</option>' +
+    supplierOptions +
+    '</select>' +
+    '<select id="purchase-filter-period" onchange="onPurchaseFilterChange()" style="padding:7px 10px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
+    '<option value="all"' + (PURCHASE_FILTERS.period === 'all' ? ' selected' : '') + '>Semua Periode</option>' +
+    '<option value="this_month"' + (PURCHASE_FILTERS.period === 'this_month' ? ' selected' : '') + '>Bulan Ini</option>' +
+    '<option value="30d"' + (PURCHASE_FILTERS.period === '30d' ? ' selected' : '') + '>30 Hari Terakhir</option>' +
+    '<option value="today"' + (PURCHASE_FILTERS.period === 'today' ? ' selected' : '') + '>Hari Ini</option>' +
+    '<option value="custom"' + (PURCHASE_FILTERS.period === 'custom' ? ' selected' : '') + '>Pilih Tanggal</option>' +
+    '</select>' +
+    '<div id="purchase-date-range-wrap" style="display:' + (PURCHASE_FILTERS.period === 'custom' ? 'flex' : 'none') + ';align-items:center;gap:6px;">' +
+    '<input type="date" id="purchase-date-from" value="' + escapeHtml(PURCHASE_FILTERS.dateFrom) + '" onchange="onPurchaseFilterChange()" style="padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
+    '<span style="font-size:12px;color:var(--text-secondary);">s/d</span>' +
+    '<input type="date" id="purchase-date-to" value="' + escapeHtml(PURCHASE_FILTERS.dateTo) + '" onchange="onPurchaseFilterChange()" style="padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);">' +
+    '</div>' +
+    '<button type="button" id="purchase-reset-btn" class="btn btn-secondary btn-sm" onclick="resetPurchaseFilters()" style="display:' + (hasFilter ? 'inline-flex' : 'none') + ';">Reset</button>' +
+    '</div>' +
+    '<span id="pembelian-count-badge" class="badge badge-neutral" style="font-size:11.5px;padding:6px 10px;">Menampilkan ' + filtered.length + ' dari ' + CURRENT_PURCHASES.length + ' faktur</span>' +
+    '</div>' +
+    '</div>' +
+
     '<div class="table-container">' +
     '<table>' +
     '<thead>' +
     '<tr>' +
     '<th>Tanggal</th>' +
-    '<th>Supplier</th>' +
-    '<th>Nama Petani / Penangkar</th>' +
-    '<th>No. Faktur</th>' +
-    '<th>Total Pengadaan</th>' +
+    '<th>No. Faktur &amp; Rincian Item</th>' +
+    '<th>Supplier &amp; Petani / Penangkar</th>' +
+    '<th style="text-align:right;">Total Pengadaan</th>' +
     '<th style="text-align:right;">Aksi</th>' +
     '</tr>' +
     '</thead>' +
-    '<tbody>' +
-    (purchases.length ? purchases.map(function (p) {
-      return '<tr>' +
-        '<td>' + formatDate(p.created_at) + '</td>' +
-        '<td><strong>' + escapeHtml(p.supplier_name) + '</strong></td>' +
-        '<td>' + escapeHtml(p.farmer_name || '-') + '</td>' +
-        '<td>' + escapeHtml(p.invoice_no || '-') + '</td>' +
-        '<td><strong>' + formatRupiah(p.total) + '</strong></td>' +
-        '<td style="text-align:right;">' +
-        '<button type="button" class="btn btn-danger btn-sm" onclick="deletePurchaseUI(\'' + p.id + '\')">Hapus</button>' +
-        '</td>' +
-        '</tr>';
-    }).join('') : '<tr><td colspan="6"><div style="text-align:center;padding:24px;">Belum ada pembelian tercatat.</div></td></tr>') +
+    '<tbody id="pembelian-table-body">' +
+    renderPembelianTableRows(filtered) +
     '</tbody>' +
     '</table>' +
     '</div>';
 }
 
 function deletePurchaseUI(purchaseId) {
-  showConfirmDialog('Hapus Pembelian', 'Hapus faktur pengadaan ini? Seluruh batch stok dan mutasi yang masuk akan dibersihkan.', function () {
+  showConfirmDialog('Hapus Pembelian', 'Hapus faktur pengadaan ini? Seluruh batch stok dan mutasi yang masuk (yang belum terpakai) akan dibersihkan.', function () {
     api('deletePurchase', TOKEN, purchaseId).then(function () {
       invalidateCache('purchases');
       invalidateCache('products');
+      invalidateCache('batches');
       invalidateCache('qc_records');
+      invalidateCache('mutations');
+      invalidateCache('stock_mutations');
+      invalidateCache('dashboard');
       showToast('Pembelian berhasil dihapus.');
       renderPembelian(true);
     }).catch(function (err) { showToast('Gagal: ' + (err.message || err), true); });

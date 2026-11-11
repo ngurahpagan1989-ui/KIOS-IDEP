@@ -26,3 +26,4 @@ COMMENT ON COLUMN public.transactions.change_amount IS 'Nominal uang kembalian k
 
 -- Paksa PostgREST memuat ulang schema cache agar kolom baru langsung terbaca
 NOTIFY pgrst, 'reload schema';
+

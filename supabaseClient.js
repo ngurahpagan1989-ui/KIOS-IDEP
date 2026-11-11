@@ -557,6 +557,93 @@ async function resolveQCLogContext(payload) {
 }
 
 /**
+ * Konversi string tanggal YYYY-MM-DD (atau ISO) menjadi timestamp lokal yang akurat
+ */
+function parseLocalTransactionCreatedAt(dateStr) {
+  if (!dateStr) return null;
+  const raw = String(dateStr).trim();
+  if (!raw) return null;
+  const ymdMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (ymdMatch) {
+    const y = Number(ymdMatch[1]);
+    const m = Number(ymdMatch[2]) - 1;
+    const d = Number(ymdMatch[3]);
+    const now = new Date();
+    const localDt = new Date(y, m, d, now.getHours(), now.getMinutes(), now.getSeconds());
+    return isNaN(localDt.getTime()) ? null : localDt.toISOString();
+  }
+  const parsedD = new Date(raw);
+  return isNaN(parsedD.getTime()) ? null : parsedD.toISOString();
+}
+
+/**
+ * Bangun rincian biaya tambahan (ongkir, QRIS MDR, uang tunai/kembalian) & total akhir transaksi
+ */
+function buildTransactionFeeRecord(payload, subtotal, tax) {
+  const shippingCost = Math.max(0, Math.round(Number(payload?.shipping_cost || 0) || 0));
+  const feeNote = String(payload?.fee_note || '').trim();
+  const qrisFee = Math.max(0, Math.round(Number(payload?.qris_fee || 0) || 0));
+  const cashReceivedRaw = Number(payload?.cash_received || 0) || 0;
+  const cashReceived = cashReceivedRaw > 0 ? Math.round(cashReceivedRaw) : 0;
+  const changeAmount = Math.max(0, Math.round(Number(payload?.change_amount || 0) || 0));
+  const customerQrisAddition = payload?.qris_charged_to_customer ? qrisFee : 0;
+  const defaultTotal = subtotal + tax + shippingCost + customerQrisAddition;
+  const hasExplicitTotal = payload?.total !== undefined && payload?.total !== null && payload?.total !== '';
+  const total = hasExplicitTotal ? Number(payload.total) : defaultTotal;
+
+  return {
+    shippingCost,
+    feeNote,
+    qrisFee,
+    cashReceived,
+    changeAmount,
+    total,
+    extraColumns: {
+      shipping_cost: shippingCost,
+      fee_note: feeNote,
+      qris_fee: qrisFee,
+      cash_received: cashReceived,
+      change_amount: changeAmount
+    }
+  };
+}
+
+/**
+ * Simpan / update transaksi ke Supabase dengan fallback otomatis jika kolom biaya tambahan belum dimigrasi
+ */
+async function persistTransactionWithFallback(mode, rowData, extraColumns, matchId) {
+  const withExtras = Object.assign({}, rowData, extraColumns || {});
+  const runQuery = async (payloadObj) => {
+    if (mode === 'insert') {
+      return await supabase.from('transactions').insert(payloadObj).select().single();
+    }
+    return await supabase.from('transactions').update(payloadObj).eq('id', matchId);
+  };
+
+  let res = await runQuery(withExtras);
+  if (!res.error) {
+    return { data: res.data || null, error: null, usedFallback: false };
+  }
+
+  const errMsg = String(res.error.message || res.error.details || res.error.hint || '').toLowerCase();
+  const errCode = String(res.error.code || '');
+  const extraKeys = Object.keys(extraColumns || {});
+  const isMissingSchemaColumn =
+    errCode === 'PGRST204' ||
+    errCode === '42703' ||
+    errMsg.includes('schema cache') ||
+    errMsg.includes('column') && extraKeys.some(k => errMsg.includes(k));
+
+  if (!isMissingSchemaColumn) {
+    return { data: null, error: res.error, usedFallback: false };
+  }
+
+  console.warn('[POS] Kolom biaya tambahan belum tersedia di database, menyimpan dengan fallback schema dasar:', res.error.message);
+  res = await runQuery(rowData);
+  return { data: res.data || null, error: res.error || null, usedFallback: true };
+}
+
+/**
  * Helper Pemotongan Stok FIFO Multi-Batch Tanpa Ketergantungan RPC Database
  */
 async function consumeStockFIFOClient(productId, qtyNeeded, refId, refNo, mutationType = 'KELUAR_PENJUALAN', preferredBatchId = null) {
@@ -1315,7 +1402,7 @@ async function dispatchApiCall(fnName, args) {
       const txId = crypto.randomUUID();
       const invoiceNo = payload.invoice_no || await generateSequentialDocNo('INV', 'transactions', 'invoice_no');
 
-      // Hitung subtotal, tax, dan total
+      // Hitung subtotal, tax, ongkir/biaya tambahan, dan total akhir
       let calcSubtotal = 0;
       for (const item of (payload.items || [])) {
         calcSubtotal += Number(item.qty || 0) * Number(item.price || 0);
@@ -1323,7 +1410,8 @@ async function dispatchApiCall(fnName, args) {
       const subtotal = payload.subtotal !== undefined ? Number(payload.subtotal) : calcSubtotal;
       const taxRate = Number(payload.taxRate || 0);
       const tax = payload.tax !== undefined ? Number(payload.tax) : Math.round(subtotal * taxRate);
-      const total = payload.total !== undefined ? Number(payload.total) : (subtotal + tax);
+      const feeRec = buildTransactionFeeRecord(payload, subtotal, tax);
+      const total = feeRec.total;
 
       // Pendaftaran pelanggan otomatis jika opsi save_as_member aktif
       let customerId = (payload.customer_id && String(payload.customer_id).trim() !== '') ? payload.customer_id : null;
@@ -1392,15 +1480,13 @@ async function dispatchApiCall(fnName, args) {
       };
 
       if (payload.transaction_date) {
-        try {
-          const parsedD = new Date(payload.transaction_date);
-          if (!isNaN(parsedD.getTime())) {
-            txInsertData.created_at = parsedD.toISOString();
-          }
-        } catch (e) {}
+        const parsedIso = parseLocalTransactionCreatedAt(payload.transaction_date);
+        if (parsedIso) {
+          txInsertData.created_at = parsedIso;
+        }
       }
 
-      const { data: txRecord, error: txErr } = await supabase.from('transactions').insert(txInsertData).select().single();
+      const { data: txRecord, error: txErr } = await persistTransactionWithFallback('insert', txInsertData, feeRec.extraColumns);
       if (txErr) throw txErr;
 
       const { error: itemsErr } = await supabase.from('transaction_items').insert(consumedItems);
@@ -1449,8 +1535,13 @@ async function dispatchApiCall(fnName, args) {
         invoice_no: invoiceNo,
         subtotal: subtotal,
         tax: tax,
+        shipping_cost: feeRec.shippingCost,
+        fee_note: feeRec.feeNote,
+        qris_fee: feeRec.qrisFee,
+        cash_received: feeRec.cashReceived,
+        change_amount: feeRec.changeAmount,
         total: total,
-        date: txRecord?.created_at || new Date().toISOString(),
+        date: txRecord?.created_at || txInsertData.created_at || new Date().toISOString(),
         message: 'Transaksi berhasil disimpan!'
       };
     }
@@ -4743,6 +4834,13 @@ async function dispatchApiCall(fnName, args) {
       const [, transactionId, payload] = args;
       if (!transactionId) throw new Error('Transaction ID wajib diisi untuk pembaruan nota.');
 
+      const { data: existingTxRow } = await supabase
+        .from('transactions')
+        .select('invoice_no')
+        .eq('id', transactionId)
+        .maybeSingle();
+      const preservedInvoiceNo = payload?.invoice_no || existingTxRow?.invoice_no || '';
+
       // 1. Ambil transaction_items lama untuk di-rollback stoknya ke stock_batches
       const { data: oldItems } = await supabase
         .from('transaction_items')
@@ -4823,7 +4921,7 @@ async function dispatchApiCall(fnName, args) {
       await supabase.from('transaction_items').delete().eq('transaction_id', transactionId);
       await supabase.from('receivables').delete().eq('transaction_id', transactionId);
 
-      // 3. Hitung subtotal, tax, dan total baru
+      // 3. Hitung subtotal, tax, ongkir/biaya tambahan, dan total akhir baru
       let calcSubtotal = 0;
       for (const it of (payload?.items || [])) {
         calcSubtotal += Number(it.qty || 0) * Number(it.price || 0);
@@ -4831,10 +4929,11 @@ async function dispatchApiCall(fnName, args) {
       const subtotal = payload?.subtotal !== undefined ? Number(payload.subtotal) : calcSubtotal;
       const taxRate = Number(payload?.taxRate || 0);
       const tax = payload?.tax !== undefined ? Number(payload.tax) : Math.round(subtotal * taxRate);
-      const total = payload?.total !== undefined ? Number(payload.total) : (subtotal + tax);
+      const feeRec = buildTransactionFeeRecord(payload, subtotal, tax);
+      const total = feeRec.total;
 
       // 4. Potong ulang stok menggunakan consumeStockFIFOClient
-      const invoiceNo = payload?.invoice_no || `INV-${Date.now().toString().slice(-6)}`;
+      const invoiceNo = preservedInvoiceNo || `INV-${Date.now().toString().slice(-6)}`;
       const consumedItems = [];
       for (const item of (payload?.items || [])) {
         const prefBatch = item.batch_id || item.selected_batch_id || null;
@@ -4874,10 +4973,17 @@ async function dispatchApiCall(fnName, args) {
         payment_type: payload?.payment_type || 'cash',
         status: txStatus
       };
-      if (payload?.customer_id) txUpdateData.customer_id = payload.customer_id;
+      if (payload?.customer_id !== undefined) {
+        txUpdateData.customer_id = (payload.customer_id && String(payload.customer_id).trim() !== '') ? payload.customer_id : null;
+      }
       if (payload?.customer_name) txUpdateData.customer_name = payload.customer_name;
+      if (payload?.source) txUpdateData.source = payload.source;
+      if (payload?.transaction_date) {
+        const parsedIso = parseLocalTransactionCreatedAt(payload.transaction_date);
+        if (parsedIso) txUpdateData.created_at = parsedIso;
+      }
 
-      const { error: txErr } = await supabase.from('transactions').update(txUpdateData).eq('id', transactionId);
+      const { error: txErr } = await persistTransactionWithFallback('update', txUpdateData, feeRec.extraColumns, transactionId);
       if (txErr) throw txErr;
 
       // Jika installment, buat receivables baru
@@ -4888,7 +4994,7 @@ async function dispatchApiCall(fnName, args) {
         await supabase.from('receivables').insert({
           id: crypto.randomUUID(),
           transaction_id: transactionId,
-          customer_id: payload.customer_id || null,
+          customer_id: txUpdateData.customer_id || null,
           total: totalAmount,
           paid: paidAmount,
           remaining: remainingAmount,
@@ -4909,10 +5015,15 @@ async function dispatchApiCall(fnName, args) {
         success: true,
         id: transactionId,
         invoice_no: invoiceNo,
-        total: total,
         subtotal: subtotal,
         tax: tax,
-        date: new Date().toISOString()
+        shipping_cost: feeRec.shippingCost,
+        fee_note: feeRec.feeNote,
+        qris_fee: feeRec.qrisFee,
+        cash_received: feeRec.cashReceived,
+        change_amount: feeRec.changeAmount,
+        total: total,
+        date: txUpdateData.created_at || new Date().toISOString()
       };
     }
 

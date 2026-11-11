@@ -9575,6 +9575,269 @@ function updatePOSMobileCartIndicators(totalQty, totalAmount) {
   }
 }
 
+function addDaysLocalYMD(baseDateStr, days) {
+  const baseYmd = getPurchaseLocalDateYMD(baseDateStr || new Date().toISOString()) || getPurchaseLocalDateYMD(new Date().toISOString());
+  const parts = String(baseYmd).split('-');
+  if (parts.length !== 3) return '';
+  const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]) + Number(days || 0));
+  if (isNaN(dt.getTime())) return '';
+  return getPurchaseLocalDateYMD(dt.toISOString());
+}
+
+function getCheckoutPricingState(baseTotalOverride) {
+  const ctx = window._CHECKOUT_CONTEXT || {};
+  const baseTotal = Number(baseTotalOverride !== undefined ? baseTotalOverride : (ctx.baseTotal !== undefined ? ctx.baseTotal : 0)) || 0;
+  const subtotal = Number(ctx.subtotal !== undefined ? ctx.subtotal : baseTotal) || 0;
+  const tax = Number(ctx.tax !== undefined ? ctx.tax : Math.max(0, baseTotal - subtotal)) || 0;
+
+  const shippingEl = document.getElementById('chk-shipping');
+  const feeNoteEl = document.getElementById('chk-fee-note');
+  const methodEl = document.getElementById('chk-method');
+  const typeEl = document.getElementById('chk-type');
+  const cashEl = document.getElementById('chk-cash-received');
+  const dpEl = document.getElementById('chk-dp');
+
+  const shippingCost = Math.max(0, Math.round(Number(shippingEl ? shippingEl.value : 0) || 0));
+  const feeNote = feeNoteEl ? feeNoteEl.value.trim() : '';
+  const method = methodEl ? methodEl.value : 'Tunai';
+  const type = typeEl ? typeEl.value : 'full';
+
+  const preQrisTotal = baseTotal + shippingCost;
+  const qrisCfg = typeof getQrisConfig === 'function' ? getQrisConfig() : { mdr_rate: 0, mdr_payer: 'merchant' };
+  const mdrRate = Number(qrisCfg.mdr_rate || 0);
+  const isQris = method === 'QRIS';
+  const isQrisCustomer = isQris && qrisCfg.mdr_payer === 'customer' && mdrRate > 0;
+  const qrisFee = (isQris && mdrRate > 0) ? Math.round(preQrisTotal * (mdrRate / 100)) : 0;
+  const customerQrisFee = isQrisCustomer ? qrisFee : 0;
+  const grandTotal = preQrisTotal + customerQrisFee;
+
+  const rawCashStr = cashEl ? String(cashEl.value || '').trim() : '';
+  const hasExplicitCash = rawCashStr !== '';
+  const parsedCash = hasExplicitCash ? Number(rawCashStr) : grandTotal;
+  const cashReceived = isNaN(parsedCash) ? 0 : Math.round(parsedCash);
+  const changeAmount = cashReceived - grandTotal;
+
+  const dp = Math.max(0, Math.round(Number(dpEl ? dpEl.value : 0) || 0));
+  const remainingTempo = Math.max(0, grandTotal - dp);
+
+  return {
+    subtotal: subtotal,
+    tax: tax,
+    baseTotal: baseTotal,
+    shippingCost: shippingCost,
+    feeNote: feeNote,
+    preQrisTotal: preQrisTotal,
+    mdrRate: mdrRate,
+    isQris: isQris,
+    isQrisCustomer: isQrisCustomer,
+    qrisFee: qrisFee,
+    customerQrisFee: customerQrisFee,
+    grandTotal: grandTotal,
+    rawCashStr: rawCashStr,
+    hasExplicitCash: hasExplicitCash,
+    cashReceived: cashReceived,
+    changeAmount: changeAmount,
+    dp: dp,
+    remainingTempo: remainingTempo,
+    method: method,
+    type: type
+  };
+}
+
+function updateCheckoutModalTotalsUI(baseTotalOverride) {
+  const st = getCheckoutPricingState(baseTotalOverride);
+  window._CURRENT_CHECKOUT_QRIS_FEE = st.qrisFee;
+
+  const totalEl = document.getElementById('chk-grand-total-display');
+  if (totalEl) totalEl.textContent = formatRupiah(st.grandTotal);
+
+  const breakdownEl = document.getElementById('chk-breakdown-display');
+  if (breakdownEl) {
+    const parts = ['<span>Produk: <strong>' + formatRupiah(st.subtotal) + '</strong></span>'];
+    if (st.tax > 0) parts.push('<span>Pajak: <strong>' + formatRupiah(st.tax) + '</strong></span>');
+    if (st.shippingCost > 0) {
+      const feeLbl = st.feeNote ? escapeHtml(st.feeNote) : 'Ongkir/Biaya';
+      parts.push('<span style="color:var(--primary);">+ ' + feeLbl + ': <strong>' + formatRupiah(st.shippingCost) + '</strong></span>');
+    }
+    if (st.customerQrisFee > 0) {
+      parts.push('<span style="color:var(--primary);">+ QRIS (' + st.mdrRate + '%): <strong>' + formatRupiah(st.customerQrisFee) + '</strong></span>');
+    }
+    breakdownEl.innerHTML = parts.join(' <span style="opacity:0.4;">•</span> ');
+  }
+
+  const qrisBox = document.getElementById('chk-qris-fee-box');
+  if (qrisBox) {
+    if (!st.isQris) {
+      qrisBox.style.display = 'none';
+      qrisBox.innerHTML = '';
+    } else {
+      qrisBox.style.display = 'block';
+      if (st.mdrRate <= 0) {
+        qrisBox.innerHTML = '<span style="color:var(--text-muted);"><i class="fas fa-info-circle"></i> Biaya MDR QRIS diatur 0% (Bebas biaya transaksi).</span>';
+      } else if (st.isQrisCustomer) {
+        qrisBox.innerHTML =
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
+          '<span><i class="fas fa-qrcode"></i> Biaya Admin QRIS (' + st.mdrRate + '%):</span>' +
+          '<strong style="color:var(--primary);font-size:13px;">' + formatRupiah(st.qrisFee) + '</strong>' +
+          '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);">' +
+          'Biaya MDR dibebankan ke pelanggan. Total wajib dibayar: <strong>' + formatRupiah(st.grandTotal) + '</strong>.' +
+          '</div>';
+      } else {
+        const netReceived = Math.max(0, st.grandTotal - st.qrisFee);
+        qrisBox.innerHTML =
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
+          '<span><i class="fas fa-qrcode"></i> Biaya MDR QRIS (' + st.mdrRate + '%):</span>' +
+          '<strong style="color:#d97706;font-size:13px;">' + formatRupiah(st.qrisFee) + '</strong>' +
+          '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);">' +
+          'Biaya MDR ditanggung toko. Estimasi penerimaan bersih: <strong>' + formatRupiah(netReceived) + '</strong> (Tagihan pelanggan tetap ' + formatRupiah(st.grandTotal) + ').' +
+          '</div>';
+      }
+    }
+  }
+
+  const cashBox = document.getElementById('chk-cash-box');
+  if (cashBox) {
+    const showCash = st.method === 'Tunai' && st.type === 'full';
+    cashBox.style.display = showCash ? 'block' : 'none';
+    const changeEl = document.getElementById('chk-cash-change-display');
+    if (changeEl && showCash) {
+      if (!st.hasExplicitCash) {
+        changeEl.innerHTML = '<span style="color:#16a34a;font-weight:600;">Uang Pas (' + formatRupiah(st.grandTotal) + ') &bull; Kembalian: <strong>Rp 0</strong></span>';
+      } else if (st.cashReceived >= st.grandTotal) {
+        changeEl.innerHTML = '<span style="color:#16a34a;font-weight:700;">Kembalian: ' + formatRupiah(st.changeAmount) + '</span>';
+      } else {
+        changeEl.innerHTML = '<span style="color:#ef4444;font-weight:700;">⚠️ Kurang Bayar: ' + formatRupiah(Math.abs(st.changeAmount)) + '</span>';
+      }
+    }
+  }
+
+  const tempoBox = document.getElementById('chk-tempo-box');
+  if (tempoBox) {
+    const showTempo = st.type === 'installment';
+    tempoBox.style.display = showTempo ? 'block' : 'none';
+    if (showTempo) {
+      const dueEl = document.getElementById('chk-due');
+      if (dueEl && !dueEl.value) {
+        const txDateEl = document.getElementById('chk-date');
+        dueEl.value = addDaysLocalYMD(txDateEl ? txDateEl.value : '', 14);
+      }
+      const remEl = document.getElementById('chk-tempo-remaining-display');
+      if (remEl) {
+        if (st.dp >= st.grandTotal && st.grandTotal > 0) {
+          remEl.innerHTML = '<span style="color:#d97706;font-weight:600;">⚠️ Uang muka &ge; Total tagihan. Ubah ke Lunas Seketika atau kurangi DP.</span>';
+        } else {
+          remEl.innerHTML = 'Sisa Piutang: <strong style="color:#d97706;">' + formatRupiah(st.remainingTempo) + '</strong>';
+        }
+      }
+    }
+  }
+}
+
+function setCheckoutShippingQuick(amount) {
+  const inp = document.getElementById('chk-shipping');
+  if (!inp) return;
+  inp.value = Number(amount || 0) > 0 ? String(amount) : '';
+  updateCheckoutModalTotalsUI();
+}
+
+function setCheckoutCashQuick(amount) {
+  const inp = document.getElementById('chk-cash-received');
+  if (!inp) return;
+  if (amount === 'exact') {
+    const st = getCheckoutPricingState();
+    inp.value = String(st.grandTotal);
+  } else {
+    inp.value = String(amount);
+  }
+  updateCheckoutModalTotalsUI();
+}
+
+function resolveTxExtraFeeSummary(tx) {
+  const src = tx || {};
+  const subtotal = Number(src.subtotal !== undefined ? src.subtotal : (src.total || 0)) || 0;
+  const tax = Number(src.tax || 0) || 0;
+  const total = Number(src.total || 0) || 0;
+  let shippingCost = Math.max(0, Math.round(Number(src.shipping_cost || 0) || 0));
+  const feeNote = String(src.fee_note || '').trim();
+  const rawQrisFee = Math.max(0, Math.round(Number(src.qris_fee || 0) || 0));
+  const basePlusShip = subtotal + tax + shippingCost;
+  let customerQrisFee = 0;
+  if (rawQrisFee > 0 && total > basePlusShip) {
+    customerQrisFee = Math.min(rawQrisFee, Math.max(0, Math.round(total - basePlusShip)));
+  }
+  const accounted = basePlusShip + customerQrisFee;
+  let unitemizedExtra = Math.max(0, Math.round(total - accounted));
+  if (unitemizedExtra > 0 && shippingCost === 0 && customerQrisFee === 0) {
+    shippingCost = unitemizedExtra;
+    unitemizedExtra = 0;
+  }
+  const shippingLabel = feeNote ? ('Biaya Tambahan (' + feeNote + ')') : 'Ongkir / Biaya Tambahan';
+  const cashReceived = Math.max(0, Math.round(Number(src.cash_received || 0) || 0));
+  const changeAmount = Math.max(0, Math.round(Number(src.change_amount || 0) || 0));
+  return {
+    subtotal: subtotal,
+    tax: tax,
+    total: total,
+    shippingCost: shippingCost,
+    feeNote: feeNote,
+    shippingLabel: shippingLabel,
+    rawQrisFee: rawQrisFee,
+    customerQrisFee: customerQrisFee,
+    unitemizedExtra: unitemizedExtra,
+    cashReceived: cashReceived,
+    changeAmount: changeAmount,
+    hasBreakdown: (tax > 0 || shippingCost > 0 || customerQrisFee > 0 || unitemizedExtra > 0)
+  };
+}
+
+function buildTxExtraFeeHTML(summary, mode) {
+  const rows = [];
+  if (summary.tax > 0) rows.push({ label: 'Pajak', value: formatRupiah(summary.tax) });
+  if (summary.shippingCost > 0) rows.push({ label: escapeHtml(summary.shippingLabel), value: formatRupiah(summary.shippingCost) });
+  if (summary.customerQrisFee > 0) rows.push({ label: 'Biaya Admin QRIS', value: formatRupiah(summary.customerQrisFee) });
+  if (summary.unitemizedExtra > 0) rows.push({ label: 'Biaya Lainnya', value: formatRupiah(summary.unitemizedExtra) });
+
+  return rows.map(function (r) {
+    if (mode === 'thermal') {
+      return '<div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>' + r.label + ':</span><span>' + r.value + '</span></div>';
+    }
+    if (mode === 'minimalist') {
+      return '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#64748B;"><span>' + r.label + ':</span><span>' + r.value + '</span></div>';
+    }
+    if (mode === 'formal') {
+      return '<tr><td colspan="4" style="text-align:right;padding:4px 12px;color:#475569;font-weight:500;border:1px solid #E2E8F0;">' + r.label + ':</td><td style="text-align:right;padding:4px 12px;font-weight:600;border:1px solid #E2E8F0;">' + r.value + '</td></tr>';
+    }
+    if (mode === 'standalone') {
+      return '<tr><td colspan="4" style="text-align:right;padding:6px 12px;font-weight:600;">' + r.label + ':</td><td style="text-align:right;padding:6px 12px;font-weight:600;">' + r.value + '</td></tr>';
+    }
+    return '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>' + r.label + ':</span><span>' + r.value + '</span></div>';
+  }).join('');
+}
+
+function buildTxCashHTML(summary, mode) {
+  if (!summary || summary.cashReceived <= 0) return '';
+  if (mode === 'thermal') {
+    return '<div style="display:flex;justify-content:space-between;font-size:10.5px;margin-top:3px;color:#333;"><span>Bayar Tunai:</span><span>' + formatRupiah(summary.cashReceived) + '</span></div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:10.5px;color:#333;"><span>Kembalian:</span><span>' + formatRupiah(summary.changeAmount) + '</span></div>';
+  }
+  if (mode === 'minimalist') {
+    return '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:11.5px;color:#475569;"><span>Bayar Tunai:</span><span>' + formatRupiah(summary.cashReceived) + '</span></div>' +
+      '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:11.5px;color:#16A34A;font-weight:600;"><span>Kembalian:</span><span>' + formatRupiah(summary.changeAmount) + '</span></div>';
+  }
+  if (mode === 'formal') {
+    return '<tr><td colspan="4" style="text-align:right;padding:4px 12px;color:#475569;border:1px solid #E2E8F0;">Bayar Tunai:</td><td style="text-align:right;padding:4px 12px;border:1px solid #E2E8F0;">' + formatRupiah(summary.cashReceived) + '</td></tr>' +
+      '<tr><td colspan="4" style="text-align:right;padding:4px 12px;color:#15803D;font-weight:600;border:1px solid #E2E8F0;">Kembalian:</td><td style="text-align:right;padding:4px 12px;color:#15803D;font-weight:600;border:1px solid #E2E8F0;">' + formatRupiah(summary.changeAmount) + '</td></tr>';
+  }
+  if (mode === 'standalone') {
+    return '<tr><td colspan="4" style="text-align:right;padding:6px 12px;color:#4B5563;">Bayar Tunai:</td><td style="text-align:right;padding:6px 12px;">' + formatRupiah(summary.cashReceived) + '</td></tr>' +
+      '<tr><td colspan="4" style="text-align:right;padding:6px 12px;color:#15803D;font-weight:600;">Kembalian:</td><td style="text-align:right;padding:6px 12px;color:#15803D;font-weight:600;">' + formatRupiah(summary.changeAmount) + '</td></tr>';
+  }
+  return '<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11.5px;color:var(--text-secondary);"><span>Bayar Tunai:</span><span>' + formatRupiah(summary.cashReceived) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;font-size:11.5px;color:#16a34a;font-weight:600;"><span>Kembalian:</span><span>' + formatRupiah(summary.changeAmount) + '</span></div>';
+}
+
 function openCheckoutModal(total) {
   const custInput = document.getElementById('pos-customer-input');
   const enteredName = custInput ? custInput.value.trim() : (SELECTED_CUSTOMER ? SELECTED_CUSTOMER.name : '');
@@ -9585,18 +9848,35 @@ function openCheckoutModal(total) {
     return;
   }
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const taxRate = Number(APP_SETTINGS['tax_rate'] || 0) / 100;
+  const subtotalCart = CART.reduce(function (s, i) { return s + (Number(i.qty || 0) * Number(i.price || 0)); }, 0);
+  const taxCart = Math.round(subtotalCart * taxRate);
+  window._CHECKOUT_CONTEXT = { subtotal: subtotalCart, tax: taxCart, baseTotal: Number(total || (subtotalCart + taxCart)) };
+  window._CURRENT_CHECKOUT_QRIS_FEE = 0;
+
+  const todayStr = getPurchaseLocalDateYMD(new Date().toISOString());
   const custName = enteredName;
 
-  const curDate = (EDITING_TRANSACTION && EDITING_TRANSACTION.created_at) ? String(EDITING_TRANSACTION.created_at).split(' ')[0] : todayStr;
+  const curDate = (EDITING_TRANSACTION && EDITING_TRANSACTION.created_at)
+    ? (getPurchaseLocalDateYMD(EDITING_TRANSACTION.created_at) || todayStr)
+    : todayStr;
   const curSource = (EDITING_TRANSACTION && EDITING_TRANSACTION.source) ? EDITING_TRANSACTION.source : 'Offline';
   const curMethod = (EDITING_TRANSACTION && EDITING_TRANSACTION.payment_method) ? EDITING_TRANSACTION.payment_method : 'Tunai';
   const curType = (EDITING_TRANSACTION && EDITING_TRANSACTION.payment_type) ? EDITING_TRANSACTION.payment_type : 'full';
+  const curShipping = (EDITING_TRANSACTION && Number(EDITING_TRANSACTION.shipping_cost || 0) > 0) ? Number(EDITING_TRANSACTION.shipping_cost) : '';
+  const curFeeNote = (EDITING_TRANSACTION && EDITING_TRANSACTION.fee_note) ? String(EDITING_TRANSACTION.fee_note) : '';
+  const curCashReceived = (EDITING_TRANSACTION && Number(EDITING_TRANSACTION.cash_received || 0) > 0) ? Number(EDITING_TRANSACTION.cash_received) : '';
+  const curDueDate = (EDITING_TRANSACTION && EDITING_TRANSACTION.due_date)
+    ? (getPurchaseLocalDateYMD(EDITING_TRANSACTION.due_date) || addDaysLocalYMD(curDate, 14))
+    : addDaysLocalYMD(curDate, 14);
+
+  const chipBtnStyle = 'padding:3px 8px;font-size:11px;border-radius:6px;border:1px solid var(--border);background:var(--surface-card,var(--surface-muted));color:var(--text-main);cursor:pointer;';
 
   const bodyHtml =
-    '<div style="text-align:center;padding:8px 0 16px;">' +
-    '<div style="font-size:12px;color:var(--text-secondary);">TOTAL TAGIHAN</div>' +
-    '<div style="font-size:32px;font-weight:800;color:var(--primary);font-family:\'Plus Jakarta Sans\',sans-serif;">' + formatRupiah(total) + '</div>' +
+    '<div style="text-align:center;padding:8px 0 14px;">' +
+    '<div style="font-size:12px;color:var(--text-secondary);">TOTAL TAGIHAN AKHIR</div>' +
+    '<div id="chk-grand-total-display" style="font-size:32px;font-weight:800;color:var(--primary);font-family:\'Plus Jakarta Sans\',sans-serif;">' + formatRupiah(total) + '</div>' +
+    '<div id="chk-breakdown-display" style="font-size:11.5px;color:var(--text-secondary);margin-top:4px;"></div>' +
     '<div style="font-size:13px;color:var(--text-main);margin-top:4px;">Nota Atas Nama: <strong>' + escapeHtml(custName) + '</strong></div>' +
     '</div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">' +
@@ -9619,9 +9899,26 @@ function openCheckoutModal(total) {
     '</div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">' +
     '<div>' +
+    '<label class="field-label">Ongkir / Biaya Tambahan (Rp)</label>' +
+    '<div class="input-wrapper"><input type="number" min="0" id="chk-shipping" value="' + curShipping + '" placeholder="0" oninput="updateCheckoutModalTotalsUI()" style="padding-left:14px;"></div>' +
+    '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">' +
+    '<button type="button" style="' + chipBtnStyle + '" onclick="setCheckoutShippingQuick(0)">Rp 0</button>' +
+    '<button type="button" style="' + chipBtnStyle + '" onclick="setCheckoutShippingQuick(10000)">10rb</button>' +
+    '<button type="button" style="' + chipBtnStyle + '" onclick="setCheckoutShippingQuick(15000)">15rb</button>' +
+    '<button type="button" style="' + chipBtnStyle + '" onclick="setCheckoutShippingQuick(20000)">20rb</button>' +
+    '<button type="button" style="' + chipBtnStyle + '" onclick="setCheckoutShippingQuick(25000)">25rb</button>' +
+    '</div>' +
+    '</div>' +
+    '<div>' +
+    '<label class="field-label">Keterangan Biaya (Opsional)</label>' +
+    '<div class="input-wrapper"><input type="text" id="chk-fee-note" value="' + escapeHtml(curFeeNote) + '" placeholder="Misal: Ongkir JNE / Packing" oninput="updateCheckoutModalTotalsUI()" style="padding-left:14px;"></div>' +
+    '</div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">' +
+    '<div>' +
     '<label class="field-label">Metode Pembayaran</label>' +
     '<div class="input-wrapper">' +
-    '<select id="chk-method" onchange="handleCheckoutQrisFeeChange(this.value, ' + total + ')" style="padding-left:14px;">' +
+    '<select id="chk-method" onchange="updateCheckoutModalTotalsUI()" style="padding-left:14px;">' +
     '<option value="Tunai"' + (curMethod === 'Tunai' ? ' selected' : '') + '>Tunai / Cash</option>' +
     '<option value="Transfer Bank"' + (curMethod === 'Transfer Bank' ? ' selected' : '') + '>Transfer Bank</option>' +
     '<option value="QRIS"' + (curMethod === 'QRIS' ? ' selected' : '') + '>QRIS</option>' +
@@ -9632,36 +9929,55 @@ function openCheckoutModal(total) {
     '<div>' +
     '<label class="field-label">Tipe Pembayaran</label>' +
     '<div class="input-wrapper">' +
-    '<select id="chk-type" onchange="document.getElementById(\'chk-tempo-box\').style.display=this.value===\'installment\'?\'grid\':\'none\'" style="padding-left:14px;">' +
+    '<select id="chk-type" onchange="updateCheckoutModalTotalsUI()" style="padding-left:14px;">' +
     '<option value="full"' + (curType === 'full' ? ' selected' : '') + '>Lunas Seketika</option>' +
     '<option value="installment"' + (curType === 'installment' ? ' selected' : '') + '>Cicilan / Tempo (Piutang)</option>' +
     '</select>' +
     '</div>' +
     '</div>' +
     '</div>' +
-    '<div id="chk-qris-fee-box" style="display:' + (curMethod === 'QRIS' ? 'block' : 'none') + ';margin-bottom:12px;padding:12px;background:var(--surface-muted);border-radius:var(--radius-sm);border-left:4px solid var(--primary);font-size:12px;"></div>' +
-    '<div id="chk-tempo-box" style="display:' + (curType === 'installment' ? 'grid' : 'none') + ';grid-template-columns:1fr 1fr;gap:12px;padding:12px;background:var(--surface-muted);border-radius:var(--radius-sm);margin-bottom:12px;">' +
+    '<div id="chk-qris-fee-box" style="display:none;margin-bottom:12px;padding:12px;background:var(--surface-muted);border-radius:var(--radius-sm);border-left:4px solid var(--primary);font-size:12px;"></div>' +
+    '<div id="chk-cash-box" style="display:none;margin-bottom:12px;padding:12px;background:var(--surface-muted);border-radius:var(--radius-sm);border-left:4px solid #16a34a;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">' +
+    '<label class="field-label" style="margin:0;">Uang Diterima / Tunai (Rp)</label>' +
+    '<span style="font-size:11px;color:var(--text-secondary);">Kosongkan = Uang Pas</span>' +
+    '</div>' +
+    '<div class="input-wrapper"><input type="number" min="0" id="chk-cash-received" value="' + curCashReceived + '" placeholder="Otomatis Uang Pas..." oninput="updateCheckoutModalTotalsUI()" style="padding-left:14px;"></div>' +
+    '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;">' +
+    '<button type="button" style="' + chipBtnStyle + 'font-weight:600;color:#16a34a;" onclick="setCheckoutCashQuick(\'exact\')">Uang Pas</button>' +
+    '<button type="button" style="' + chipBtnStyle + '" onclick="setCheckoutCashQuick(50000)">Rp 50rb</button>' +
+    '<button type="button" style="' + chipBtnStyle + '" onclick="setCheckoutCashQuick(100000)">Rp 100rb</button>' +
+    '<button type="button" style="' + chipBtnStyle + '" onclick="setCheckoutCashQuick(200000)">Rp 200rb</button>' +
+    '<button type="button" style="' + chipBtnStyle + '" onclick="setCheckoutCashQuick(500000)">Rp 500rb</button>' +
+    '</div>' +
+    '<div id="chk-cash-change-display" style="margin-top:8px;font-size:13px;"></div>' +
+    '</div>' +
+    '<div id="chk-tempo-box" style="display:none;padding:12px;background:var(--surface-muted);border-radius:var(--radius-sm);border-left:4px solid #d97706;margin-bottom:12px;">' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
     '<div>' +
     '<label class="field-label">Uang Muka (DP)</label>' +
-    '<div class="input-wrapper"><input type="number" id="chk-dp" placeholder="0" style="padding-left:14px;"></div>' +
+    '<div class="input-wrapper"><input type="number" min="0" id="chk-dp" placeholder="0" oninput="updateCheckoutModalTotalsUI()" style="padding-left:14px;"></div>' +
     '</div>' +
     '<div>' +
     '<label class="field-label">Jatuh Tempo Tagihan</label>' +
-    '<div class="input-wrapper"><input type="date" id="chk-due" style="padding-left:14px;"></div>' +
+    '<div class="input-wrapper"><input type="date" id="chk-due" value="' + curDueDate + '" style="padding-left:14px;"></div>' +
     '</div>' +
+    '</div>' +
+    '<div id="chk-tempo-remaining-display" style="margin-top:8px;font-size:12.5px;"></div>' +
     '</div>';
 
   const footerHtml =
     '<button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>' +
-    '<button type="button" class="btn btn-primary" onclick="submitCheckout()">' + (EDITING_TRANSACTION ? 'Simpan Revisi Nota' : 'Selesaikan Transaksi') + '</button>';
+    '<button type="button" id="btn-submit-checkout" class="btn btn-primary" onclick="submitCheckout()">' + (EDITING_TRANSACTION ? 'Simpan Revisi Nota' : 'Selesaikan Transaksi') + '</button>';
 
   openModal('Checkout Pembayaran', bodyHtml, footerHtml);
-  if (curMethod === 'QRIS') {
-    handleCheckoutQrisFeeChange('QRIS', total);
-  }
+  updateCheckoutModalTotalsUI();
 }
 
 function submitCheckout() {
+  const submitBtn = document.getElementById('btn-submit-checkout');
+  if (submitBtn && submitBtn.disabled) return;
+
   const custInput = document.getElementById('pos-customer-input');
   const enteredName = custInput ? custInput.value.trim() : (SELECTED_CUSTOMER ? SELECTED_CUSTOMER.name : '');
 
@@ -9691,6 +10007,39 @@ function submitCheckout() {
   if (type === 'installment' && !phoneVal && (!SELECTED_CUSTOMER || !SELECTED_CUSTOMER.phone)) {
     showToast('Transaksi cicilan / piutang tempo wajib memiliki nomor kontak pelanggan!', true);
     return;
+  }
+
+  // Hitung rincian total (Subtotal Produk + Pajak + Ongkir/Biaya Tambahan + Admin QRIS)
+  const subtotalCart = CART.reduce(function (sum, item) {
+    return sum + (Number(item.qty || 0) * Number(item.price || 0));
+  }, 0);
+  const taxCart = Math.round(subtotalCart * taxRate);
+  const pricing = getCheckoutPricingState(subtotalCart + taxCart);
+
+  if (method === 'Tunai' && type === 'full' && pricing.hasExplicitCash && pricing.cashReceived < pricing.grandTotal) {
+    showToast('Nominal uang tunai diterima kurang dari Total Tagihan (' + formatRupiah(pricing.grandTotal) + ').', true);
+    const cashEl = document.getElementById('chk-cash-received');
+    if (cashEl) cashEl.focus();
+    return;
+  }
+
+  let dpVal = 0;
+  let dueDateVal = '';
+  if (type === 'installment') {
+    dpVal = Math.round(Number(document.getElementById('chk-dp').value || 0) || 0);
+    dueDateVal = document.getElementById('chk-due').value;
+    if (dpVal < 0) {
+      showToast('Uang muka (DP) tidak boleh negatif.', true);
+      return;
+    }
+    if (dpVal >= pricing.grandTotal && pricing.grandTotal > 0) {
+      showToast('DP sudah mencapai Total Tagihan! Ubah tipe pembayaran menjadi Lunas Seketika.', true);
+      return;
+    }
+    if (!dueDateVal) {
+      showToast('Tanggal jatuh tempo piutang wajib diisi.', true);
+      return;
+    }
   }
 
   // Validasi Restriksi Mutu Kasir POS:
@@ -9727,11 +10076,8 @@ function submitCheckout() {
     }
   }
 
-  const subtotalCart = CART.reduce(function (sum, item) {
-    return sum + (Number(item.qty || 0) * Number(item.price || 0));
-  }, 0);
-  const taxCart = Math.round(subtotalCart * taxRate);
-  const totalCart = subtotalCart + taxCart;
+  const finalCashReceived = (method === 'Tunai' && type === 'full') ? pricing.cashReceived : 0;
+  const finalChangeAmount = (method === 'Tunai' && type === 'full') ? Math.max(0, pricing.cashReceived - pricing.grandTotal) : 0;
 
   const payload = {
     items: CART.map(function (c) {
@@ -9754,13 +10100,29 @@ function submitCheckout() {
     taxRate: taxRate,
     subtotal: subtotalCart,
     tax: taxCart,
-    total: totalCart
+    shipping_cost: pricing.shippingCost,
+    fee_note: pricing.feeNote,
+    qris_fee: pricing.qrisFee,
+    qris_charged_to_customer: pricing.isQrisCustomer,
+    cash_received: finalCashReceived,
+    change_amount: finalChangeAmount,
+    total: pricing.grandTotal
   };
 
+  if (EDITING_TRANSACTION && EDITING_TRANSACTION.invoice_no) {
+    payload.invoice_no = EDITING_TRANSACTION.invoice_no;
+  }
+
   if (type === 'installment') {
-    payload.downPayment = Number(document.getElementById('chk-dp').value || 0);
-    payload.paid_amount = payload.downPayment;
-    payload.due_date = document.getElementById('chk-due').value;
+    payload.downPayment = dpVal;
+    payload.paid_amount = dpVal;
+    payload.due_date = dueDateVal;
+  }
+
+  const origBtnText = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Memproses...';
   }
 
   showToast('Memproses transaksi FIFO/FEFO...');
@@ -9780,18 +10142,33 @@ function submitCheckout() {
 
     window._lastTxReceipt = {
       id: res.id,
+      invoice_no: res.invoice_no || payload.invoice_no || res.id,
       name: enteredName,
       phone: phoneVal,
-      total: res.total,
-      subtotal: res.subtotal || 0,
-      tax: res.tax || 0,
+      total: res.total !== undefined ? res.total : pricing.grandTotal,
+      subtotal: res.subtotal !== undefined ? res.subtotal : subtotalCart,
+      tax: res.tax !== undefined ? res.tax : taxCart,
+      shipping_cost: res.shipping_cost !== undefined ? res.shipping_cost : pricing.shippingCost,
+      fee_note: res.fee_note !== undefined ? res.fee_note : pricing.feeNote,
+      qris_fee: res.qris_fee !== undefined ? res.qris_fee : pricing.qrisFee,
+      cash_received: res.cash_received !== undefined ? res.cash_received : finalCashReceived,
+      change_amount: res.change_amount !== undefined ? res.change_amount : finalChangeAmount,
       method: method,
-      date: res.date || formatDate(new Date()),
+      payment_type: type,
+      status: type === 'installment' ? 'tempo' : 'paid',
+      down_payment: type === 'installment' ? dpVal : 0,
+      remaining_receivable: type === 'installment' ? Math.max(0, (res.total !== undefined ? res.total : pricing.grandTotal) - dpVal) : 0,
+      due_date: type === 'installment' ? dueDateVal : '',
+      date: formatDate(res.date || new Date()),
+      created_at: res.date || new Date().toISOString(),
       items: CART.map(function (c) {
         return {
           name: c.name,
+          product_name: c.name,
           qty: c.qty,
           price: c.price,
+          subtotal: Number(c.qty || 0) * Number(c.price || 0),
+          batch_id: c.selected_batch_id || '',
           selected_expiry: c.selected_expiry,
           selected_batch_id: c.selected_batch_id
         };
@@ -9810,21 +10187,47 @@ function submitCheckout() {
     CART = [];
     updateGlobalReceivableBadge();
   }).catch(function (err) {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = origBtnText || 'Selesaikan Transaksi';
+    }
     showToast('Gagal memproses transaksi: ' + (err.message || err), true);
   });
 }
 
 function openTxSuccessModal(res, payload) {
   const custName = payload.customer_name || (SELECTED_CUSTOMER ? SELECTED_CUSTOMER.name : 'Umum');
-  const custPhone = payload.customer_phone || (SELECTED_CUSTOMER ? SELECTED_CUSTOMER.phone : '');
+  const displayNo = (res && res.invoice_no) || (payload && payload.invoice_no) || res.id;
+  const shippingVal = Number((res && res.shipping_cost !== undefined) ? res.shipping_cost : (payload.shipping_cost || 0));
+  const feeNote = (res && res.fee_note !== undefined) ? res.fee_note : (payload.fee_note || '');
+  const qrisCustomerVal = payload.qris_charged_to_customer ? Number((res && res.qris_fee !== undefined) ? res.qris_fee : (payload.qris_fee || 0)) : 0;
+  const cashVal = Number((res && res.cash_received !== undefined) ? res.cash_received : (payload.cash_received || 0));
+  const changeVal = Number((res && res.change_amount !== undefined) ? res.change_amount : (payload.change_amount || 0));
+
+  let extraLines = '';
+  if (shippingVal > 0) {
+    extraLines += '<div>' + escapeHtml(feeNote ? ('Biaya (' + feeNote + ')') : 'Ongkir / Biaya Tambahan') + ': <strong>' + formatRupiah(shippingVal) + '</strong></div>';
+  }
+  if (qrisCustomerVal > 0) {
+    extraLines += '<div>Biaya Admin QRIS: <strong>' + formatRupiah(qrisCustomerVal) + '</strong></div>';
+  }
+  if (cashVal > 0) {
+    extraLines += '<div>Uang Tunai: <strong>' + formatRupiah(cashVal) + '</strong> &bull; Kembalian: <strong style="color:#16a34a;">' + formatRupiah(changeVal) + '</strong></div>';
+  }
+  if (payload.payment_type === 'installment') {
+    const dpVal = Number(payload.downPayment || 0);
+    const sisaVal = Math.max(0, Number(res.total || 0) - dpVal);
+    extraLines += '<div>Tipe: <strong style="color:#d97706;">Tempo / Piutang</strong> (DP: ' + formatRupiah(dpVal) + ' &bull; Sisa: <strong>' + formatRupiah(sisaVal) + '</strong>)</div>';
+  }
 
   const bodyHtml =
     '<div style="text-align:center;padding:20px 0;">' +
     '<div style="font-size:48px;margin-bottom:12px;">✅</div>' +
     '<h2 style="margin-bottom:6px;">Transaksi Berhasil!</h2>' +
-    '<p style="color:var(--text-secondary);font-size:13px;">Nota <strong>#' + res.id + '</strong> tercatat rapi dalam database.</p>' +
-    '<div style="background:var(--surface-muted);padding:14px;border-radius:var(--radius-sm);text-align:left;margin-top:16px;font-size:13px;">' +
+    '<p style="color:var(--text-secondary);font-size:13px;">Nota <strong>#' + escapeHtml(displayNo) + '</strong> tercatat rapi dalam database.</p>' +
+    '<div style="background:var(--surface-muted);padding:14px;border-radius:var(--radius-sm);text-align:left;margin-top:16px;font-size:13px;line-height:1.6;">' +
     '<div>Total Pembayaran: <strong style="color:var(--primary);">' + formatRupiah(res.total) + '</strong></div>' +
+    extraLines +
     '<div>Nota Atas Nama: <strong>' + escapeHtml(custName) + '</strong></div>' +
     '<div>Metode Bayar: <strong>' + escapeHtml(payload.payment_method) + '</strong></div>' +
     '</div>' +
@@ -9833,7 +10236,7 @@ function openTxSuccessModal(res, payload) {
   const footerHtml =
     '<button type="button" class="btn btn-secondary" onclick="closeModal();renderPOS(true);">Transaksi Baru</button>' +
     '<button type="button" class="btn btn-secondary" onclick="printMiniReceipt(window._lastTxReceipt)">🖨️ Cetak Struk (PDF)</button>' +
-    '<button type="button" class="btn btn-primary" onclick="sendReceiptToWhatsApp(\'' + res.id + '\', \'' + custName + '\', \'' + custPhone + '\', ' + res.total + ', \'' + payload.payment_method + '\')">💬 Kirim WA</button>';
+    '<button type="button" class="btn btn-primary" onclick="sendReceiptToWhatsApp(window._lastTxReceipt)">💬 Kirim WA</button>';
 
   openModal('Transaksi Selesai', bodyHtml, footerHtml);
 }
@@ -9865,8 +10268,7 @@ function generateMiniReceiptHTML(data) {
       '</tr>';
   });
 
-  const subtotal = data.subtotal !== undefined ? data.subtotal : data.total;
-  const tax = Number(data.tax || 0);
+  const feeSummary = resolveTxExtraFeeSummary(data);
 
   // Logo di tengah proporsional, hilangkan teks nama toko jika gambar logo sudah disetel
   let headerLogoHtml = '';
@@ -9905,7 +10307,7 @@ function generateMiniReceiptHTML(data) {
     '</div>' +
     voidWatermark +
     '<div style="border-top:1px dashed #222;border-bottom:1px dashed #222;padding:6px 0;margin:8px 0;font-size:10px;">' +
-    '<div style="display:flex;justify-content:space-between;"><span>No. Nota:</span><span style="font-weight:bold;">#' + escapeHtml(data.id || '-') + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;"><span>No. Nota:</span><span style="font-weight:bold;">#' + escapeHtml(data.invoice_no || data.id || '-') + '</span></div>' +
     '<div style="display:flex;justify-content:space-between;"><span>Tanggal:</span><span>' + (data.date || formatDate(new Date())) + '</span></div>' +
     '<div style="display:flex;justify-content:space-between;"><span>Pelanggan:</span><span>' + escapeHtml(data.name || 'Umum') + '</span></div>' +
     '<div style="display:flex;justify-content:space-between;"><span>Metode:</span><span>' + escapeHtml(data.method || 'Tunai') + '</span></div>' +
@@ -9914,9 +10316,11 @@ function generateMiniReceiptHTML(data) {
     itemRows +
     '</table>' +
     '<div style="border-top:1px dashed #222;padding-top:6px;font-size:11px;">' +
-    (tax > 0 ? '<div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Subtotal:</span><span>' + formatRupiah(subtotal) + '</span></div>' +
-      '<div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Pajak:</span><span>' + formatRupiah(tax) + '</span></div>' : '') +
+    (feeSummary.hasBreakdown ? '<div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Subtotal:</span><span>' + formatRupiah(feeSummary.subtotal) + '</span></div>' +
+      buildTxExtraFeeHTML(feeSummary, 'thermal') : '') +
     '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px;"><span>TOTAL:</span><span>' + formatRupiah(data.total) + '</span></div>' +
+    buildTxCashHTML(feeSummary, 'thermal') +
+    ((data.payment_type === 'installment' && Number(data.remaining_receivable || 0) > 0) ? '<div style="display:flex;justify-content:space-between;font-size:10.5px;color:#DC2626;margin-top:2px;"><span>Sisa Piutang:</span><span>' + formatRupiah(data.remaining_receivable) + '</span></div>' : '') +
     '</div>' +
     '<div style="border-top:1px dashed #222;margin-top:10px;padding-top:8px;text-align:center;font-size:10px;color:#444;">' +
     escapeHtml(footerText) +
@@ -9940,7 +10344,7 @@ function printMiniReceipt(receiptData) {
 
   printWindow.document.write(
     '<!DOCTYPE html><html><head><meta charset="utf-8">' +
-    '<title>Struk-' + (receiptData.id || 'POS') + '</title>' +
+    '<title>Struk-' + escapeHtml(receiptData.invoice_no || receiptData.id || 'POS') + '</title>' +
     '<style>' +
     '@page { size: auto; margin: 0; }' +
     '@media print { html, body { width: 100%; margin: 0; padding: 0; } }' +
@@ -9960,6 +10364,7 @@ function printMiniReceipt(receiptData) {
 function printMiniReceiptFromInvoice(invoiceData) {
   if (!invoiceData || !invoiceData.transaction) return;
   const tx = invoiceData.transaction;
+  const rec = invoiceData.receivable || null;
   const isVoid = String(tx.status).toUpperCase() === 'VOID';
   const items = (invoiceData.items || []).map(function (i) {
     return {
@@ -9973,10 +10378,18 @@ function printMiniReceiptFromInvoice(invoiceData) {
 
   const receiptData = {
     id: tx.id,
+    invoice_no: tx.invoice_no || tx.id,
     name: invoiceData.customer ? invoiceData.customer.name : tx.customer_name,
     total: tx.total,
     subtotal: tx.subtotal,
     tax: tx.tax,
+    shipping_cost: tx.shipping_cost,
+    fee_note: tx.fee_note,
+    qris_fee: tx.qris_fee,
+    cash_received: tx.cash_received,
+    change_amount: tx.change_amount,
+    payment_type: tx.payment_type,
+    remaining_receivable: rec ? rec.remaining : 0,
     method: tx.payment_method,
     date: formatDate(tx.created_at),
     status: tx.status,
@@ -10368,10 +10781,12 @@ function printInvoiceA4(invoiceData) {
 
   const statusColor = isVoid ? '#DC2626' : (tx.status === 'paid' ? '#16A34A' : '#D97706');
   const statusLabel = isVoid ? 'DIBATALKAN (VOID)' : (tx.status === 'paid' ? 'LUNAS' : 'TEMPO / PIUTANG');
+  const feeSummary = resolveTxExtraFeeSummary(tx);
+  const displayInvoiceNo = tx.invoice_no || tx.id;
 
   printWindow.document.write(
     '<!DOCTYPE html><html><head><meta charset="utf-8">' +
-    '<title>Faktur-' + escapeHtml(tx.id) + '</title>' +
+    '<title>Faktur-' + escapeHtml(displayInvoiceNo) + '</title>' +
     '<style>' +
     '@page { size: A4 portrait; margin: 12mm 15mm; }' +
     'body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 10pt; color: #1F2937; margin: 0; padding: 0; position: relative; line-height: 1.4; }' +
@@ -10394,7 +10809,7 @@ function printInvoiceA4(invoiceData) {
     '<div style="text-align:right;min-width:220px;">' +
     '<div style="font-size:20pt;font-weight:800;color:#2563EB;letter-spacing:1px;line-height:1.1;">FAKTUR PENJUALAN</div>' +
     '<table style="margin-top:6px;margin-left:auto;border-collapse:collapse;font-size:9.5pt;width:auto;">' +
-    '<tr><td style="padding:1.5px 6px;text-align:right;color:#4B5563;border:none;">No. Faktur:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;font-weight:700;font-family:monospace;color:#2563EB;border:none;">#' + escapeHtml(tx.id) + '</td></tr>' +
+    '<tr><td style="padding:1.5px 6px;text-align:right;color:#4B5563;border:none;">No. Faktur:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;font-weight:700;font-family:monospace;color:#2563EB;border:none;">#' + escapeHtml(displayInvoiceNo) + '</td></tr>' +
     '<tr><td style="padding:1.5px 6px;text-align:right;color:#4B5563;border:none;">Tanggal:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;color:#111827;border:none;">' + formatDate(tx.created_at) + '</td></tr>' +
     '<tr><td style="padding:1.5px 6px;text-align:right;color:#4B5563;border:none;">Status:</td><td style="padding:1.5px 0 1.5px 6px;text-align:right;font-weight:700;color:' + statusColor + ';border:none;">' + statusLabel + '</td></tr>' +
     '</table>' +
@@ -10425,9 +10840,10 @@ function printInvoiceA4(invoiceData) {
     '</thead>' +
     '<tbody>' + rowsHtml + '</tbody>' +
     '<tfoot>' +
-    '<tr><td colspan="4" style="text-align:right;padding:8px 12px;font-weight:600;">Subtotal:</td><td style="text-align:right;padding:8px 12px;font-weight:600;">' + formatRupiah(tx.subtotal) + '</td></tr>' +
-    (Number(tx.tax) > 0 ? '<tr><td colspan="4" style="text-align:right;padding:6px 12px;font-weight:600;">Pajak:</td><td style="text-align:right;padding:6px 12px;font-weight:600;">' + formatRupiah(tx.tax) + '</td></tr>' : '') +
+    '<tr><td colspan="4" style="text-align:right;padding:8px 12px;font-weight:600;">Subtotal:</td><td style="text-align:right;padding:8px 12px;font-weight:600;">' + formatRupiah(feeSummary.subtotal) + '</td></tr>' +
+    buildTxExtraFeeHTML(feeSummary, 'standalone') +
     '<tr style="font-size:15px;font-weight:800;background:#F3F4F6;"><td colspan="4" style="text-align:right;padding:10px 12px;">TOTAL PEMBAYARAN:</td><td style="text-align:right;padding:10px 12px;color:#2563EB;">' + formatRupiah(tx.total) + '</td></tr>' +
+    buildTxCashHTML(feeSummary, 'standalone') +
     '</tfoot>' +
     '</table>' +
 
@@ -10450,25 +10866,69 @@ function printInvoiceA4(invoiceData) {
   printWindow.document.close();
 }
 
-function sendReceiptToWhatsApp(txId, name, phone, total, method) {
+function sendReceiptToWhatsApp(txIdOrData, name, phone, total, method) {
   let data = window._curInv;
-  if (typeof txId === 'object' && txId !== null) {
-    data = txId;
-    txId = (data.transaction && data.transaction.id) ? data.transaction.id : '';
-    name = (data.customer ? data.customer.name : (data.transaction ? data.transaction.customer_name : '')) || '';
-    phone = (data.customer ? data.customer.phone : '') || '';
-    total = data.transaction ? data.transaction.total : 0;
-    method = data.transaction ? data.transaction.payment_method : 'Tunai';
+  let tx = null;
+  let items = [];
+  let receivable = null;
+  let custName = name || '';
+  let custPhone = phone || '';
+
+  if (typeof txIdOrData === 'object' && txIdOrData !== null) {
+    data = txIdOrData;
+    if (data.transaction) {
+      tx = data.transaction;
+      items = data.items || [];
+      receivable = data.receivable || null;
+      custName = (data.customer ? data.customer.name : tx.customer_name) || custName;
+      custPhone = (data.customer ? data.customer.phone : '') || custPhone;
+    } else {
+      // Bentuk objek dari window._lastTxReceipt
+      tx = {
+        id: data.id || '',
+        invoice_no: data.invoice_no || data.id || '',
+        total: Number(data.total || 0),
+        subtotal: Number(data.subtotal !== undefined ? data.subtotal : (data.total || 0)),
+        tax: Number(data.tax || 0),
+        shipping_cost: Number(data.shipping_cost || 0),
+        fee_note: data.fee_note || '',
+        qris_fee: Number(data.qris_fee || 0),
+        cash_received: Number(data.cash_received || 0),
+        change_amount: Number(data.change_amount || 0),
+        payment_method: data.method || data.payment_method || 'Tunai',
+        payment_type: data.payment_type || 'cash',
+        customer_name: data.name || data.customer_name || 'Pelanggan',
+        status: data.status || 'paid',
+        created_at: data.created_at || new Date().toISOString()
+      };
+      items = data.items || [];
+      receivable = data.payment_type === 'installment'
+        ? { paid: data.down_payment || 0, remaining: data.remaining_receivable || 0, due_date: data.due_date || '' }
+        : null;
+      custName = data.name || data.customer_name || custName;
+      custPhone = data.phone || custPhone;
+    }
+  } else {
+    const matchedCur = (data && data.transaction && (data.transaction.id === txIdOrData || data.transaction.invoice_no === txIdOrData));
+    tx = matchedCur ? data.transaction : { id: txIdOrData, invoice_no: txIdOrData, total: total, payment_method: method, customer_name: name, status: 'paid' };
+    items = matchedCur ? (data.items || []) : [];
+    receivable = matchedCur ? (data.receivable || null) : null;
+    custName = custName || (matchedCur && data.customer ? data.customer.name : tx.customer_name) || '';
+    custPhone = custPhone || (matchedCur && data.customer ? data.customer.phone : '') || '';
   }
 
-  const tx = (data && data.transaction) ? data.transaction : { id: txId, total: total, payment_method: method, customer_name: name, status: 'paid' };
-  const items = (data && data.items) || [];
-  const custName = name || (data && data.customer ? data.customer.name : tx.customer_name) || 'Kak/Bli';
-  const custPhone = phone || (data && data.customer ? data.customer.phone : '') || '';
+  custName = custName || tx.customer_name || 'Kak/Bli';
+  const displayNo = tx.invoice_no || tx.id || '-';
 
   if (!custPhone) {
     showPromptDialog('Kirim Struk via WhatsApp', 'Masukkan nomor WhatsApp pelanggan (misal: 08123456789):', '', function (val) {
-      sendReceiptToWhatsApp(txId, custName, val, total, method);
+      const nextPayload = {
+        transaction: tx,
+        items: items,
+        receivable: receivable,
+        customer: { name: custName, phone: val }
+      };
+      sendReceiptToWhatsApp(nextPayload);
     });
     return;
   }
@@ -10481,32 +10941,51 @@ function sendReceiptToWhatsApp(txId, name, phone, total, method) {
   }
 
   const dateStr = formatDate(tx.created_at || new Date());
-  const statusLabel = tx.status === 'paid' ? 'LUNAS' : (tx.status === 'VOID' ? 'DIBATALKAN (VOID)' : 'TEMPO / CICILAN');
+  const statusUpper = String(tx.status || '').toUpperCase();
+  const statusLabel = statusUpper === 'PAID' ? 'LUNAS' : (statusUpper === 'VOID' ? 'DIBATALKAN (VOID)' : 'TEMPO / CICILAN');
+  const feeSummary = resolveTxExtraFeeSummary(tx);
 
   let itemLines = '';
   if (items.length > 0) {
     itemLines = items.map(function (it) {
+      const pName = it.product_name || it.name || 'Produk';
       const batchTag = it.batch_id ? (' (' + it.batch_id + ')') : '';
-      return it.qty + 'x ' + it.product_name + batchTag + ' = ' + formatRupiah(it.subtotal);
+      const lineSub = it.subtotal !== undefined ? it.subtotal : (Number(it.qty || 0) * Number(it.price || 0));
+      return it.qty + 'x ' + pName + batchTag + ' = ' + formatRupiah(lineSub);
     }).join('\n');
   } else {
-    itemLines = '1x Pembelian Produk = ' + formatRupiah(tx.total);
+    itemLines = '1x Pembelian Produk = ' + formatRupiah(feeSummary.subtotal);
   }
 
   let text = '*Faktur Pembelian*\n';
-  text += 'No: #' + tx.id + '\n';
+  text += 'No: #' + displayNo + '\n';
   text += 'Tgl: ' + dateStr + '\n';
   text += 'Pelanggan: ' + custName + '\n';
   text += '--------------------------------\n';
   text += itemLines + '\n';
   text += '--------------------------------\n';
+  if (feeSummary.hasBreakdown) {
+    text += 'Subtotal Produk: ' + formatRupiah(feeSummary.subtotal) + '\n';
+    if (feeSummary.tax > 0) text += 'Pajak: ' + formatRupiah(feeSummary.tax) + '\n';
+    if (feeSummary.shippingCost > 0) text += feeSummary.shippingLabel + ': ' + formatRupiah(feeSummary.shippingCost) + '\n';
+    if (feeSummary.customerQrisFee > 0) text += 'Biaya Admin QRIS: ' + formatRupiah(feeSummary.customerQrisFee) + '\n';
+    if (feeSummary.unitemizedExtra > 0) text += 'Biaya Lainnya: ' + formatRupiah(feeSummary.unitemizedExtra) + '\n';
+  }
   text += 'Total: *' + formatRupiah(tx.total) + '* (' + (tx.payment_method || 'Tunai') + ')\n';
+  if (feeSummary.cashReceived > 0) {
+    text += 'Bayar Tunai: ' + formatRupiah(feeSummary.cashReceived) + '\n';
+    text += 'Kembalian: ' + formatRupiah(feeSummary.changeAmount) + '\n';
+  }
+  if (receivable && statusUpper !== 'VOID' && statusUpper !== 'PAID' && Number(receivable.remaining || 0) > 0) {
+    text += 'DP Dibayar: ' + formatRupiah(receivable.paid || 0) + '\n';
+    text += 'Sisa Piutang: *' + formatRupiah(receivable.remaining) + '*\n';
+  }
   text += 'Status: ' + statusLabel + '\n\n';
   text += 'Terima kasih telah berbelanja bersama kami. Salam sukses! 🙏';
 
   const url = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(text);
   window.open(url, '_blank');
-  showToast('Membuka WhatsApp untuk mengirim struk #' + tx.id);
+  showToast('Membuka WhatsApp untuk mengirim struk #' + displayNo);
 }
 
 function promptVoidTransaction(txId, custName) {
@@ -10733,11 +11212,14 @@ function openTransactionDetailModal(transactionId) {
 
     const adminHeaderCols = userIsAdmin ? '<th style="text-align:right;" class="th-admin-cost">HPP/Modal</th><th style="text-align:right;" class="th-admin-cost">Laba Kotor</th>' : '';
 
+    const displayNo = tx.invoice_no || tx.id;
+    const feeSummary = resolveTxExtraFeeSummary(tx);
+
     const bodyHtml =
       voidBannerHtml +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--surface-muted);padding:12px 14px;border-radius:var(--radius-sm);margin-bottom:14px;font-size:12px;">' +
       '<div>' +
-      '<div>No. Nota: <strong style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);font-size:14px;">#' + escapeHtml(tx.id) + '</strong></div>' +
+      '<div>No. Nota: <strong style="font-family:\'JetBrains Mono\',monospace;color:var(--primary);font-size:14px;">#' + escapeHtml(displayNo) + '</strong></div>' +
       '<div style="color:var(--text-secondary);margin-top:2px;">Waktu: ' + formatDate(tx.created_at) + '</div>' +
       '<div style="margin-top:4px;">Kanal: <span class="badge badge-neutral">' + escapeHtml(tx.source || 'Offline') + '</span></div>' +
       '</div>' +
@@ -10756,11 +11238,12 @@ function openTransactionDetailModal(transactionId) {
       '</table>' +
       '</div>' +
       '<div style="background:var(--surface-muted);padding:12px 14px;border-radius:var(--radius-sm);font-size:12px;">' +
-      '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Subtotal:</span><span>' + formatRupiah(tx.subtotal) + '</span></div>' +
-      (Number(tx.tax) > 0 ? '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Pajak:</span><span>' + formatRupiah(tx.tax) + '</span></div>' : '') +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Subtotal:</span><span>' + formatRupiah(feeSummary.subtotal) + '</span></div>' +
+      buildTxExtraFeeHTML(feeSummary, 'detail') +
       '<div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;color:var(--primary);border-top:1px dashed var(--border);padding-top:6px;">' +
       '<span>Total Pembayaran:</span><span>' + formatRupiah(tx.total) + '</span>' +
       '</div>' +
+      buildTxCashHTML(feeSummary, 'detail') +
       adminProfitSummary +
       '<div style="margin-top:4px;font-size:11px;color:var(--text-secondary);">Metode Pembayaran: <strong>' + escapeHtml(tx.payment_method || 'Tunai') + '</strong></div>' +
       '</div>' +
@@ -10776,7 +11259,7 @@ function openTransactionDetailModal(transactionId) {
       '<button type="button" class="btn btn-tx-formal btn-sm" onclick="openInvoiceModal(\'' + tx.id + '\', \'formal\')">🏛️ Faktur Formal (A4)</button>' +
       '<button type="button" class="btn btn-secondary btn-sm" onclick="openInvoiceModal(\'' + tx.id + '\', \'minimalist\')">📄 Faktur Minimalis</button>' +
       '<button type="button" class="btn btn-tx-thermal btn-sm" onclick="openInvoiceModal(\'' + tx.id + '\', \'thermal\')">🧾 Struk Termal (58mm)</button>' +
-      '<button type="button" class="btn btn-tx-wa btn-sm" onclick="sendReceiptToWhatsApp(\'' + tx.id + '\', \'' + escapeHtml(cust.name) + '\', \'' + escapeHtml(cust.phone || '') + '\', ' + tx.total + ', \'' + escapeHtml(tx.payment_method) + '\')">📲 Kirim WA</button>' +
+      '<button type="button" class="btn btn-tx-wa btn-sm" onclick="sendReceiptToWhatsApp(window._curInv)">📲 Kirim WA</button>' +
       '</div>' +
       '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">' +
       voidBtnHtml +
@@ -10784,7 +11267,7 @@ function openTransactionDetailModal(transactionId) {
       '</div>' +
       '</div>';
 
-    openModal('Rincian Transaksi #' + tx.id, bodyHtml, footerHtml, true);
+    openModal('Rincian Transaksi #' + escapeHtml(displayNo), bodyHtml, footerHtml, true);
   }).catch(function (err) {
     showToast('Gagal memuat rincian: ' + (err.message || err), true);
   });
@@ -10902,8 +11385,7 @@ function renderThermalReceiptHTML(data, isActive) {
       '</tr>';
   });
 
-  const subtotal = tx.subtotal !== undefined ? tx.subtotal : tx.total;
-  const tax = Number(tx.tax || 0);
+  const feeSummary = resolveTxExtraFeeSummary(tx);
 
   let headerLogoHtml = '';
   if (logoPrimary) {
@@ -10937,7 +11419,7 @@ function renderThermalReceiptHTML(data, isActive) {
     '</div>' +
     voidWatermarkReceipt +
     '<div style="border-top:1px dashed #222;border-bottom:1px dashed #222;padding:6px 0;margin:8px 0;font-size:10px;">' +
-    '<div style="display:flex;justify-content:space-between;"><span>No. Nota:</span><span style="font-weight:bold;">#' + escapeHtml(tx.id || '-') + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;"><span>No. Nota:</span><span style="font-weight:bold;">#' + escapeHtml(tx.invoice_no || tx.id || '-') + '</span></div>' +
     '<div style="display:flex;justify-content:space-between;"><span>Tanggal:</span><span>' + formatDate(tx.created_at) + '</span></div>' +
     '<div style="display:flex;justify-content:space-between;"><span>Pelanggan:</span><span>' + escapeHtml((c && c.name) ? c.name : (tx.customer_name || 'Umum')) + '</span></div>' +
     '<div style="display:flex;justify-content:space-between;"><span>Metode:</span><span>' + escapeHtml(tx.payment_method || 'Tunai') + ' (' + (isVoid ? 'VOID' : (tx.status === 'paid' ? 'LUNAS' : 'TEMPO')) + ')</span></div>' +
@@ -10946,9 +11428,10 @@ function renderThermalReceiptHTML(data, isActive) {
     receiptItemRows +
     '</table>' +
     '<div style="border-top:1px dashed #222;padding-top:6px;font-size:11px;">' +
-    (tax > 0 ? '<div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Subtotal:</span><span>' + formatRupiah(subtotal) + '</span></div>' +
-      '<div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Pajak:</span><span>' + formatRupiah(tax) + '</span></div>' : '') +
+    (feeSummary.hasBreakdown ? '<div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Subtotal:</span><span>' + formatRupiah(feeSummary.subtotal) + '</span></div>' +
+      buildTxExtraFeeHTML(feeSummary, 'thermal') : '') +
     '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px;"><span>TOTAL:</span><span>' + formatRupiah(tx.total) + '</span></div>' +
+    buildTxCashHTML(feeSummary, 'thermal') +
     (rec && !isVoid ? '<div style="display:flex;justify-content:space-between;font-size:11px;color:#DC2626;margin-top:2px;"><span>Sisa Piutang:</span><span>' + formatRupiah(rec.remaining) + '</span></div>' : '') +
     '</div>' +
     '<div style="border-top:1px dashed #222;margin-top:10px;padding-top:8px;text-align:center;font-size:10px;color:#444;">' +
@@ -10989,6 +11472,7 @@ function renderMinimalistInvoiceHTML(data, isActive) {
 
   const statusColor = isVoid ? '#DC2626' : (tx.status === 'paid' ? '#16A34A' : '#D97706');
   const statusLabel = isVoid ? 'VOID' : (tx.status === 'paid' ? 'LUNAS' : 'TEMPO');
+  const feeSummary = resolveTxExtraFeeSummary(tx);
 
   return '<div id="view-minimalist" class="paper-canvas minimalist-mode ' + (isActive ? 'active-doc' : '') + '">' +
     watermarkHtml +
@@ -11002,7 +11486,7 @@ function renderMinimalistInvoiceHTML(data, isActive) {
     '</div>' +
     '<div style="text-align:right;">' +
     '<div style="font-size:18px;font-weight:800;letter-spacing:0.5px;color:#2563EB;">FAKTUR PENJUALAN</div>' +
-    '<div style="font-size:12px;font-family:monospace;font-weight:700;color:#334155;margin-top:2px;">#' + escapeHtml(tx.id) + '</div>' +
+    '<div style="font-size:12px;font-family:monospace;font-weight:700;color:#334155;margin-top:2px;">#' + escapeHtml(tx.invoice_no || tx.id) + '</div>' +
     '<div style="font-size:11.5px;color:#64748B;margin-top:2px;">' + formatDate(tx.created_at) + '</div>' +
     '<div style="margin-top:4px;"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:10.5px;font-weight:700;background:' + (isVoid ? '#FEE2E2' : (tx.status === 'paid' ? '#DCFCE7' : '#FEF3C7')) + ';color:' + statusColor + ';">' + statusLabel + '</span></div>' +
     '</div>' +
@@ -11032,11 +11516,12 @@ function renderMinimalistInvoiceHTML(data, isActive) {
     '</table>' +
     '<div style="display:flex;justify-content:flex-end;margin-top:12px;">' +
     '<div style="width:260px;">' +
-    '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#64748B;"><span>Subtotal:</span><span>' + formatRupiah(tx.subtotal !== undefined ? tx.subtotal : tx.total) + '</span></div>' +
-    (Number(tx.tax) > 0 ? '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#64748B;"><span>Pajak:</span><span>' + formatRupiah(tx.tax) + '</span></div>' : '') +
+    '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#64748B;"><span>Subtotal:</span><span>' + formatRupiah(feeSummary.subtotal) + '</span></div>' +
+    buildTxExtraFeeHTML(feeSummary, 'minimalist') +
     '<div style="display:flex;justify-content:space-between;padding:8px 0 4px 0;border-top:2px solid #E2E8F0;margin-top:4px;font-size:15px;font-weight:800;color:#2563EB;">' +
     '<span>Total:</span><span>' + formatRupiah(tx.total) + '</span>' +
     '</div>' +
+    buildTxCashHTML(feeSummary, 'minimalist') +
     (rec && !isVoid ? '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:12px;color:#DC2626;font-weight:700;"><span>Sisa Piutang:</span><span>' + formatRupiah(rec.remaining) + '</span></div>' : '') +
     '</div>' +
     '</div>' +
@@ -11086,6 +11571,7 @@ function renderFormalInvoiceHTML(data, isActive) {
   }
 
   const terbilangText = angkaTerbilang(tx.total);
+  const feeSummary = resolveTxExtraFeeSummary(tx);
 
   return '<div id="view-formal" class="paper-canvas formal-mode ' + (isActive ? 'active-doc' : '') + '">' +
     watermarkHtml +
@@ -11132,9 +11618,10 @@ function renderFormalInvoiceHTML(data, isActive) {
     '</thead>' +
     '<tbody>' + rowsFormal + '</tbody>' +
     '<tfoot>' +
-    '<tr><td colspan="4" style="text-align:right;padding:6px 12px;color:#475569;font-weight:500;border:1px solid #E2E8F0;">Subtotal:</td><td style="text-align:right;padding:6px 12px;font-weight:600;border:1px solid #E2E8F0;">' + formatRupiah(tx.subtotal !== undefined ? tx.subtotal : tx.total) + '</td></tr>' +
-    (Number(tx.tax) > 0 ? '<tr><td colspan="4" style="text-align:right;padding:4px 12px;color:#475569;font-weight:500;border:1px solid #E2E8F0;">Pajak:</td><td style="text-align:right;padding:4px 12px;font-weight:600;border:1px solid #E2E8F0;">' + formatRupiah(tx.tax) + '</td></tr>' : '') +
+    '<tr><td colspan="4" style="text-align:right;padding:6px 12px;color:#475569;font-weight:500;border:1px solid #E2E8F0;">Subtotal:</td><td style="text-align:right;padding:6px 12px;font-weight:600;border:1px solid #E2E8F0;">' + formatRupiah(feeSummary.subtotal) + '</td></tr>' +
+    buildTxExtraFeeHTML(feeSummary, 'formal') +
     '<tr style="font-size:15px;font-weight:800;color:#2563EB;background:#EFF6FF !important;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;"><td colspan="4" style="text-align:right;padding:8px 12px;border:1px solid #E2E8F0;">TOTAL FAKTUR:</td><td style="text-align:right;padding:8px 12px;border:1px solid #E2E8F0;">' + formatRupiah(tx.total) + '</td></tr>' +
+    buildTxCashHTML(feeSummary, 'formal') +
     (rec && !isVoid ? '<tr style="color:#B91C1C;font-weight:700;"><td colspan="4" style="text-align:right;padding:6px 12px;border:1px solid #E2E8F0;">Sisa Piutang:</td><td style="text-align:right;padding:6px 12px;border:1px solid #E2E8F0;">' + formatRupiah(rec.remaining) + '</td></tr>' : '') +
     '</tfoot>' +
     '</table>' +
@@ -20151,57 +20638,11 @@ function saveQrisConfig(config) {
 }
 
 function handleCheckoutQrisFeeChange(method, baseTotal) {
-  const box = document.getElementById('chk-qris-fee-box');
-  const titleTotalEl = document.querySelector('#modal-body [style*="font-size:32px"]');
-  if (!box) return;
-
-  if (method !== 'QRIS') {
-    box.style.display = 'none';
-    box.innerHTML = '';
-    if (titleTotalEl) titleTotalEl.textContent = formatRupiah(baseTotal);
-    window._CURRENT_CHECKOUT_QRIS_FEE = 0;
-    return;
+  const methodEl = document.getElementById('chk-method');
+  if (methodEl && method && methodEl.value !== method) {
+    methodEl.value = method;
   }
-
-  const qrisCfg = getQrisConfig();
-  const rate = Number(qrisCfg.mdr_rate || 0);
-  const isCustomer = qrisCfg.mdr_payer === 'customer';
-
-  if (rate <= 0) {
-    box.style.display = 'block';
-    box.innerHTML = '<span style="color:var(--text-muted);"><i class="fas fa-info-circle"></i> Biaya MDR QRIS diatur 0% (Bebas biaya transaksi).</span>';
-    if (titleTotalEl) titleTotalEl.textContent = formatRupiah(baseTotal);
-    window._CURRENT_CHECKOUT_QRIS_FEE = 0;
-    return;
-  }
-
-  const mdrFee = Math.round(baseTotal * (rate / 100));
-  window._CURRENT_CHECKOUT_QRIS_FEE = mdrFee;
-
-  box.style.display = 'block';
-  if (isCustomer) {
-    const grandTotal = baseTotal + mdrFee;
-    box.innerHTML =
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
-      '<span><i class="fas fa-qrcode"></i> Biaya Transaksi QRIS (' + rate + '%):</span>' +
-      '<strong style="color:var(--primary);font-size:13px;">' + formatRupiah(mdrFee) + '</strong>' +
-      '</div>' +
-      '<div style="font-size:11px;color:var(--text-muted);">' +
-      'Biaya MDR dibebankan ke pelanggan. Total yang wajib dibayar: <strong>' + formatRupiah(grandTotal) + '</strong>.' +
-      '</div>';
-    if (titleTotalEl) titleTotalEl.textContent = formatRupiah(grandTotal);
-  } else {
-    const netReceived = Math.max(0, baseTotal - mdrFee);
-    box.innerHTML =
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
-      '<span><i class="fas fa-qrcode"></i> Biaya MDR QRIS (' + rate + '%):</span>' +
-      '<strong style="color:#d97706;font-size:13px;">' + formatRupiah(mdrFee) + '</strong>' +
-      '</div>' +
-      '<div style="font-size:11px;color:var(--text-muted);">' +
-      'Biaya MDR ditanggung toko. Estimasi penerimaan bersih kasir: <strong>' + formatRupiah(netReceived) + '</strong> (Total pelanggan tetap ' + formatRupiah(baseTotal) + ').' +
-      '</div>';
-    if (titleTotalEl) titleTotalEl.textContent = formatRupiah(baseTotal);
-  }
+  updateCheckoutModalTotalsUI(baseTotal);
 }
 
 // State Internal Modul Expenses
@@ -21099,6 +21540,10 @@ window.deleteExpenseCategory = deleteExpenseCategory;
 window.resetDefaultExpenseCategories = resetDefaultExpenseCategories;
 window.handleCheckoutQrisFeeChange = handleCheckoutQrisFeeChange;
 window.getQrisConfig = getQrisConfig;
+window.getCheckoutPricingState = getCheckoutPricingState;
+window.updateCheckoutModalTotalsUI = updateCheckoutModalTotalsUI;
+window.setCheckoutShippingQuick = setCheckoutShippingQuick;
+window.setCheckoutCashQuick = setCheckoutCashQuick;
 
 // ========================= INITIALIZATION & GLOBAL LISTENERS =========================
 document.addEventListener('DOMContentLoaded', function () {
@@ -21359,7 +21804,7 @@ if ('serviceWorker' in navigator) {
     }
   });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js?v=14.5', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=14.6', { updateViaCache: 'none' })
       .then(function (reg) {
         console.log('[PWA] Service Worker berhasil terdaftar:', reg.scope);
         try { if (reg.update) reg.update(); } catch (e) { }

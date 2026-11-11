@@ -1,11 +1,11 @@
-const CACHE_NAME = 'pos-app-v14.5';
+const CACHE_NAME = 'pos-app-v14.6';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './style.css?v=13.8',
   './i18n.js?v=3.3',
-  './app.js?v=14.5',
-  './supabaseClient.js?v=7.5',
+  './app.js?v=14.6',
+  './supabaseClient.js?v=7.6',
   'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
   './manifest.json',
   './icon-192.png',
@@ -125,7 +125,7 @@ self.addEventListener('push', (event) => {
     } catch (err) {
       try {
         payload.body = event.data.text() || payload.body;
-      } catch (e) {}
+      } catch (e) { }
     }
   }
 
@@ -142,7 +142,7 @@ self.addEventListener('push', (event) => {
               type: 'SW_PUSH_RECEIVED',
               payload: Object.assign({}, options.data, { title: title })
             });
-          } catch (e) {}
+          } catch (e) { }
         });
       })
     ])
@@ -188,7 +188,7 @@ self.addEventListener('notificationclick', (event) => {
                 route: targetRoute,
                 notifId: data.id || ''
               });
-            } catch (e) {}
+            } catch (e) { }
             return focusedClient || client;
           });
         }

@@ -2831,6 +2831,10 @@ function renderDashboard(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
 
+  if (typeof checkOnlineOrdersBadge === 'function') {
+    checkOnlineOrdersBadge(true);
+  }
+
   const cached = getCachedData('dashboard');
   if (!forceRefresh && cached) {
     drawDashboardUI(cached);
@@ -2970,7 +2974,7 @@ function drawDashboardUI(data) {
     '  <div class="page-actions" style="display:flex;gap:10px;align-items:center;">' +
     '    <button type="button" class="btn btn-primary" onclick="openOnlineOrderQueueModal(\'pending\')" style="display:inline-flex;align-items:center;gap:8px;box-shadow:0 0 18px rgba(6,182,212,0.35);">' +
     '      <i class="fas fa-boxes"></i> Antrean Online' +
-    (onlinePendingCount > 0 ? ' <span style="background:#EF4444;color:#fff;border-radius:12px;padding:1px 7px;font-size:11px;font-weight:800;box-shadow:0 0 8px rgba(239,68,68,0.7);">' + onlinePendingCount + '</span>' : '') +
+    ' <span id="dash-online-order-badge" style="background:#EF4444;color:#fff;border-radius:12px;padding:1px 7px;font-size:11px;font-weight:800;box-shadow:0 0 8px rgba(239,68,68,0.7);display:' + (onlinePendingCount > 0 ? 'inline-block' : 'none') + ';">' + onlinePendingCount + '</span>' +
     '    </button>' +
     '    <button type="button" class="btn btn-secondary btn-sm" onclick="openModuleGuide(\'dashboard\')" title="Buka Panduan Operasional Sistem"><i class="fas fa-book"></i> Panduan</button>' +
     '    <button type="button" class="btn btn-secondary btn-sm" onclick="renderDashboard(true)" title="Segarkan Data Real-Time"><i class="fas fa-sync-alt"></i> Refresh</button>' +
@@ -3004,7 +3008,7 @@ function drawDashboardUI(data) {
     '      <span class="stat-label">Pesanan Online Masuk</span>' +
     '      <div style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;color:#FBBF24;box-shadow:0 0 12px rgba(245,158,11,0.25);"><i class="fas fa-boxes"></i></div>' +
     '    </div>' +
-    '    <div class="stat-value" style="color:#FBBF24;text-shadow:0 0 20px rgba(245,158,11,0.35);">' + onlinePendingCount + ' Pesanan</div>' +
+    '    <div class="stat-value" id="dash-online-order-count" style="color:#FBBF24;text-shadow:0 0 20px rgba(245,158,11,0.35);">' + onlinePendingCount + ' Pesanan</div>' +
     '    <div class="stat-meta" style="color:#F59E0B;font-weight:600;"><i class="fas fa-columns"></i> Buka Papan Kanban &rarr;</div>' +
     '    <svg class="cyber-stat-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,20 Q20,28 50,12 T100,18 L100,30 L0,30 Z" fill="rgba(245,158,11,0.15)"></path><path d="M0,20 Q20,28 50,12 T100,18" fill="none" stroke="#F59E0B" stroke-width="2"></path></svg>' +
     '  </div>' +
@@ -8982,7 +8986,7 @@ function renderPOS(forceRefresh) {
     '<strong>' + (EDITING_TRANSACTION ? 'Koreksi Nota' : 'Keranjang Penjualan') + '</strong>' +
     '<div style="display:flex;gap:6px;align-items:center;">' +
     '<button type="button" class="btn btn-secondary btn-sm pos-mobile-back-catalog-btn" onclick="switchPOSMobilePane(\'catalog\')">+ Produk</button>' +
-    '<button type="button" class="btn btn-secondary btn-sm" onclick="CART=[];renderCart();">Kosongkan</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="CART=[];SELECTED_CUSTOMER=null;window.ACTIVE_ONLINE_ORDER_ID=null;window.ACTIVE_ONLINE_ORDER_NO=null;window.ACTIVE_ONLINE_ORDER_DATA=null;clearCustomerInput();renderCart();">Kosongkan</button>' +
     '</div>' +
     '</div>' +
     '<div style="padding:10px 14px;background:var(--surface-muted);border-bottom:1px solid var(--border);">' +
@@ -8997,13 +9001,13 @@ function renderPOS(forceRefresh) {
     '<datalist id="pos-customer-datalist"></datalist>' +
     '<div id="pos-customer-match-badge" style="margin-top:6px;font-size:11px;display:none;"></div>' +
     '<div id="pos-customer-new-box" style="display:none;margin-top:8px;background:#fff;padding:8px 10px;border-radius:var(--radius-xs);border:1px dashed var(--border);">' +
+    '<div id="pos-member-phone-wrap" style="margin-bottom:6px;">' +
+    '<input type="text" id="pos-customer-phone-input" oninput="syncPosCustomerPhone(this.value)" placeholder="No. WhatsApp (untuk struk WA / piutang, misal: 08123...)" style="width:100%;padding:5px 8px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
+    '</div>' +
     '<label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;font-weight:600;color:var(--primary);">' +
     '<input type="checkbox" id="pos-save-member-chk" onchange="toggleSaveMemberPhone(this.checked)">' +
     'Simpan ke Database Member CRM' +
     '</label>' +
-    '<div id="pos-member-phone-wrap" style="display:none;margin-top:6px;">' +
-    '<input type="text" id="pos-customer-phone-input" placeholder="Nomor WhatsApp (misal: 08123456789)" style="width:100%;padding:5px 8px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius-xs);">' +
-    '</div>' +
     '</div>' +
     '</div>' +
     '<div class="pos-cart-items" id="pos-cart-items"></div>' +
@@ -9019,13 +9023,22 @@ function renderPOS(forceRefresh) {
     '</div>';
 
   populateCustomerDatalist();
+  renderCart();
 
   if (SELECTED_CUSTOMER && SELECTED_CUSTOMER.name) {
     const custInput = document.getElementById('pos-customer-input');
+    const phoneInput = document.getElementById('pos-customer-phone-input');
     if (custInput) {
       custInput.value = SELECTED_CUSTOMER.name;
       handleCustomerInput(SELECTED_CUSTOMER.name);
     }
+    if (phoneInput && SELECTED_CUSTOMER.phone) {
+      phoneInput.value = SELECTED_CUSTOMER.phone;
+    }
+  }
+  if (window.PENDING_POS_ONLINE_CART) {
+    window.PENDING_POS_ONLINE_CART = false;
+    if (typeof switchPOSMobilePane === 'function') switchPOSMobilePane('cart');
   }
 
   const cachedProds = getCachedData('products');
@@ -9106,11 +9119,25 @@ function populateCustomerDatalist() {
   }).join('');
 }
 
+function syncPosCustomerPhone(val) {
+  const cleanPhone = (val || '').trim();
+  if (SELECTED_CUSTOMER) {
+    SELECTED_CUSTOMER.phone = cleanPhone;
+  } else {
+    const inp = document.getElementById('pos-customer-input');
+    const custName = inp ? inp.value.trim() : '';
+    if (custName) {
+      SELECTED_CUSTOMER = { id: '', name: custName, phone: cleanPhone, category: 'Reguler' };
+    }
+  }
+}
+
 function handleCustomerInput(val) {
   val = (val || '').trim();
   const clearBtn = document.getElementById('pos-customer-clear');
   const matchBadge = document.getElementById('pos-customer-match-badge');
   const newBox = document.getElementById('pos-customer-new-box');
+  const phoneInput = document.getElementById('pos-customer-phone-input');
 
   if (clearBtn) clearBtn.style.display = val ? 'block' : 'none';
 
@@ -9127,30 +9154,44 @@ function handleCustomerInput(val) {
 
   if (matched) {
     SELECTED_CUSTOMER = matched;
+    if (phoneInput && matched.phone) phoneInput.value = matched.phone;
     if (matchBadge) {
       matchBadge.style.display = 'block';
       matchBadge.innerHTML = '<span class="badge badge-success" style="font-size:10px;">✓ Terdaftar di CRM: ' + escapeHtml(matched.category || 'Member') + (matched.phone ? ' (' + escapeHtml(matched.phone) + ')' : '') + '</span>';
     }
     if (newBox) newBox.style.display = 'none';
   } else {
-    SELECTED_CUSTOMER = { id: '', name: val, phone: '', category: 'Reguler' };
+    const existingPhone = (SELECTED_CUSTOMER && SELECTED_CUSTOMER.name && SELECTED_CUSTOMER.name.toLowerCase() === val.toLowerCase()) ? (SELECTED_CUSTOMER.phone || '') : '';
+    const onlinePhone = (window.ACTIVE_ONLINE_ORDER_DATA && window.ACTIVE_ONLINE_ORDER_DATA.customer_name && window.ACTIVE_ONLINE_ORDER_DATA.customer_name.toLowerCase() === val.toLowerCase()) ? (window.ACTIVE_ONLINE_ORDER_DATA.customer_phone || '') : '';
+    const preservedPhone = (phoneInput && phoneInput.value.trim()) ? phoneInput.value.trim() : (existingPhone || onlinePhone);
+
+    SELECTED_CUSTOMER = { id: '', name: val, phone: preservedPhone, category: 'Reguler' };
+    if (phoneInput && preservedPhone && !phoneInput.value.trim()) phoneInput.value = preservedPhone;
     if (matchBadge) {
       matchBadge.style.display = 'block';
       matchBadge.innerHTML = '<span class="badge badge-neutral" style="font-size:10px;">✍️ Pelanggan Baru (Sekali Transaksi)</span>';
     }
     if (newBox) newBox.style.display = 'block';
+    const phoneWrap = document.getElementById('pos-member-phone-wrap');
+    if (phoneWrap) phoneWrap.style.display = 'block';
   }
 }
 
 function clearCustomerInput() {
   const inp = document.getElementById('pos-customer-input');
+  const phoneInp = document.getElementById('pos-customer-phone-input');
   if (inp) inp.value = '';
+  if (phoneInp) phoneInp.value = '';
   handleCustomerInput('');
 }
 
 function toggleSaveMemberPhone(checked) {
   const wrap = document.getElementById('pos-member-phone-wrap');
-  if (wrap) wrap.style.display = checked ? 'block' : 'none';
+  if (wrap) wrap.style.display = 'block';
+  if (checked) {
+    const phoneInp = document.getElementById('pos-customer-phone-input');
+    if (phoneInp) phoneInp.focus();
+  }
 }
 
 function selectCustomer(customerId) {
@@ -9860,7 +9901,10 @@ function openCheckoutModal(total) {
   const curDate = (EDITING_TRANSACTION && EDITING_TRANSACTION.created_at)
     ? (getPurchaseLocalDateYMD(EDITING_TRANSACTION.created_at) || todayStr)
     : todayStr;
-  const curSource = (EDITING_TRANSACTION && EDITING_TRANSACTION.source) ? EDITING_TRANSACTION.source : 'Offline';
+  const onlineOrder = (!EDITING_TRANSACTION && window.ACTIVE_ONLINE_ORDER_DATA) ? window.ACTIVE_ONLINE_ORDER_DATA : null;
+  const curSource = (EDITING_TRANSACTION && EDITING_TRANSACTION.source)
+    ? EDITING_TRANSACTION.source
+    : (onlineOrder ? (onlineOrder.source || 'WhatsApp') : 'Offline');
   const curMethod = (EDITING_TRANSACTION && EDITING_TRANSACTION.payment_method) ? EDITING_TRANSACTION.payment_method : 'Tunai';
   const curType = (EDITING_TRANSACTION && EDITING_TRANSACTION.payment_type) ? EDITING_TRANSACTION.payment_type : 'full';
   const curShipping = (EDITING_TRANSACTION && Number(EDITING_TRANSACTION.shipping_cost || 0) > 0) ? Number(EDITING_TRANSACTION.shipping_cost) : '';
@@ -9871,6 +9915,13 @@ function openCheckoutModal(total) {
     : addDaysLocalYMD(curDate, 14);
 
   const chipBtnStyle = 'padding:3px 8px;font-size:11px;border-radius:6px;border:1px solid var(--border);background:var(--surface-card,var(--surface-muted));color:var(--text-main);cursor:pointer;';
+  const onlineBannerHtml = onlineOrder ? (
+    '<div style="margin:0 0 12px;padding:10px 12px;border-radius:10px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.28);font-size:12px;text-align:left;line-height:1.5;">' +
+    '<div style="font-weight:700;color:#059669;">📦 Pesanan Online #' + escapeHtml(onlineOrder.order_no || '') + '</div>' +
+    (onlineOrder.delivery_method ? '<div>🚚 Pengambilan: <strong>' + escapeHtml(onlineOrder.delivery_method) + '</strong></div>' : '') +
+    (onlineOrder.notes ? '<div>📝 Catatan: <em>' + escapeHtml(onlineOrder.notes) + '</em></div>' : '') +
+    '</div>'
+  ) : '';
 
   const bodyHtml =
     '<div style="text-align:center;padding:8px 0 14px;">' +
@@ -9879,6 +9930,7 @@ function openCheckoutModal(total) {
     '<div id="chk-breakdown-display" style="font-size:11.5px;color:var(--text-secondary);margin-top:4px;"></div>' +
     '<div style="font-size:13px;color:var(--text-main);margin-top:4px;">Nota Atas Nama: <strong>' + escapeHtml(custName) + '</strong></div>' +
     '</div>' +
+    onlineBannerHtml +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">' +
     '<div>' +
     '<label class="field-label">Tgl Transaksi</label>' +
@@ -10002,7 +10054,13 @@ function submitCheckout() {
   const saveMemberChk = document.getElementById('pos-save-member-chk');
   const isSaveMember = saveMemberChk ? saveMemberChk.checked : false;
   const phoneInput = document.getElementById('pos-customer-phone-input');
-  const phoneVal = phoneInput ? phoneInput.value.trim() : (SELECTED_CUSTOMER ? (SELECTED_CUSTOMER.phone || '') : '');
+  const phoneVal = (phoneInput && phoneInput.value.trim())
+    ? phoneInput.value.trim()
+    : ((SELECTED_CUSTOMER && SELECTED_CUSTOMER.phone)
+      ? String(SELECTED_CUSTOMER.phone).trim()
+      : ((window.ACTIVE_ONLINE_ORDER_DATA && window.ACTIVE_ONLINE_ORDER_DATA.customer_phone)
+        ? String(window.ACTIVE_ONLINE_ORDER_DATA.customer_phone).trim()
+        : ''));
 
   if (type === 'installment' && !phoneVal && (!SELECTED_CUSTOMER || !SELECTED_CUSTOMER.phone)) {
     showToast('Transaksi cicilan / piutang tempo wajib memiliki nomor kontak pelanggan!', true);
@@ -10180,6 +10238,7 @@ function submitCheckout() {
       updateOnlineOrderStatus(orderTarget, 'completed');
       window.ACTIVE_ONLINE_ORDER_ID = null;
       window.ACTIVE_ONLINE_ORDER_NO = null;
+      window.ACTIVE_ONLINE_ORDER_DATA = null;
     }
     closeModal();
     openTxSuccessModal(res, payload);
@@ -21544,6 +21603,8 @@ window.getCheckoutPricingState = getCheckoutPricingState;
 window.updateCheckoutModalTotalsUI = updateCheckoutModalTotalsUI;
 window.setCheckoutShippingQuick = setCheckoutShippingQuick;
 window.setCheckoutCashQuick = setCheckoutCashQuick;
+window.syncPosCustomerPhone = syncPosCustomerPhone;
+window.updateOnlineOrderBadgesUI = updateOnlineOrderBadgesUI;
 
 // ========================= INITIALIZATION & GLOBAL LISTENERS =========================
 document.addEventListener('DOMContentLoaded', function () {
@@ -21804,7 +21865,7 @@ if ('serviceWorker' in navigator) {
     }
   });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js?v=14.6', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=14.7', { updateViaCache: 'none' })
       .then(function (reg) {
         console.log('[PWA] Service Worker berhasil terdaftar:', reg.scope);
         try { if (reg.update) reg.update(); } catch (e) { }
@@ -23604,21 +23665,36 @@ async function fetchOnlineOrdersList() {
   return [];
 }
 
-async function checkOnlineOrdersBadge(silent) {
-  const orders = await fetchOnlineOrdersList();
-  window.ONLINE_ORDERS_CACHE = orders;
-  const pendingOrders = orders.filter(function (o) { return o.status === 'pending'; });
+function updateOnlineOrderBadgesUI(orders) {
+  const list = Array.isArray(orders) ? orders : [];
+  const pendingOrders = list.filter(function (o) { return o && o.status === 'pending'; });
   const count = pendingOrders.length;
 
   const badge = document.getElementById('pos-online-order-badge');
   if (badge) {
-    if (count > 0) {
-      badge.textContent = count;
-      badge.style.display = 'inline-block';
-    } else {
-      badge.style.display = 'none';
-    }
+    badge.textContent = count;
+    badge.style.display = count > 0 ? 'inline-block' : 'none';
   }
+
+  const dashBadge = document.getElementById('dash-online-order-badge');
+  if (dashBadge) {
+    dashBadge.textContent = count;
+    dashBadge.style.display = count > 0 ? 'inline-block' : 'none';
+  }
+
+  const dashCountEl = document.getElementById('dash-online-order-count');
+  if (dashCountEl) {
+    dashCountEl.textContent = count + ' Pesanan';
+  }
+
+  return pendingOrders;
+}
+
+async function checkOnlineOrdersBadge(silent) {
+  const orders = await fetchOnlineOrdersList();
+  window.ONLINE_ORDERS_CACHE = orders;
+  const pendingOrders = updateOnlineOrderBadgesUI(orders);
+  const count = pendingOrders.length;
 
   if (!silent && window.LAST_ONLINE_PENDING_COUNT !== undefined && window.LAST_ONLINE_PENDING_COUNT !== -1 && count > window.LAST_ONLINE_PENDING_COUNT) {
     playOnlineOrderDing();
@@ -23635,7 +23711,7 @@ function startOnlineOrdersPolling() {
   if (window.ONLINE_ORDERS_POLL_TIMER) clearInterval(window.ONLINE_ORDERS_POLL_TIMER);
   window.ONLINE_ORDERS_POLL_TIMER = setInterval(function () {
     const currentRoute = (typeof getCurrentRoute === 'function') ? getCurrentRoute() : '';
-    if (currentRoute === 'penjualan' || document.getElementById('btn-pos-online-orders')) {
+    if (currentRoute === 'pos' || currentRoute === 'dashboard' || document.getElementById('btn-pos-online-orders') || document.getElementById('dash-online-order-count')) {
       checkOnlineOrdersBadge(false);
     }
   }, 25000);
@@ -23652,6 +23728,7 @@ function openOnlineOrderQueueModal(activeTab) {
 
   fetchOnlineOrdersList().then(function (orders) {
     window.ONLINE_ORDERS_CACHE = orders;
+    updateOnlineOrderBadgesUI(orders);
     renderOnlineOrderQueueModalContent(orders, activeTab);
   }).catch(function (err) {
     openModal(
@@ -23978,7 +24055,9 @@ function loadOnlineOrderToPosCart(orderId) {
     return;
   }
 
-  const prods = window.PRODUCTS_CACHE || [];
+  const prods = (typeof PRODUCTS_CACHE !== 'undefined' && PRODUCTS_CACHE && PRODUCTS_CACHE.length)
+    ? PRODUCTS_CACHE
+    : (getCachedData('products') || []);
 
   CART = [];
   order.items.forEach(function (it) {
@@ -24037,25 +24116,54 @@ function loadOnlineOrderToPosCart(orderId) {
     }
   });
 
-  const custInput = document.getElementById('pos-customer-input');
-  const phoneInput = document.getElementById('pos-customer-phone-input');
-  if (custInput) {
-    custInput.value = order.customer_name || '';
-  }
-  if (phoneInput && order.customer_phone) {
-    phoneInput.value = order.customer_phone;
-    const phoneWrap = document.getElementById('pos-member-phone-wrap');
-    const saveChk = document.getElementById('pos-save-member-chk');
-    if (phoneWrap) phoneWrap.style.display = 'block';
-    if (saveChk) saveChk.checked = true;
+  const custList = (typeof CUSTOMERS_CACHE !== 'undefined' && CUSTOMERS_CACHE && CUSTOMERS_CACHE.length)
+    ? CUSTOMERS_CACHE
+    : (getCachedData('customers') || []);
+  const orderCustName = (order.customer_name || '').trim();
+  const orderCustPhone = (order.customer_phone || '').trim();
+  const matchedCust = orderCustName
+    ? custList.find(function (c) { return c.name && c.name.toLowerCase() === orderCustName.toLowerCase(); })
+    : null;
+
+  if (matchedCust) {
+    SELECTED_CUSTOMER = Object.assign({}, matchedCust, {
+      phone: matchedCust.phone || orderCustPhone
+    });
+  } else if (orderCustName) {
+    SELECTED_CUSTOMER = { id: '', name: orderCustName, phone: orderCustPhone, category: 'Reguler' };
+  } else {
+    SELECTED_CUSTOMER = null;
   }
 
   window.ACTIVE_ONLINE_ORDER_ID = order.id || order.order_no;
   window.ACTIVE_ONLINE_ORDER_NO = order.order_no || '';
+  window.ACTIVE_ONLINE_ORDER_DATA = order;
 
-  closeModal();
-  renderCart();
-  switchPOSMobilePane('cart');
+  const custInput = document.getElementById('pos-customer-input');
+  const phoneInput = document.getElementById('pos-customer-phone-input');
+  if (custInput) {
+    custInput.value = orderCustName;
+    if (phoneInput && orderCustPhone) {
+      phoneInput.value = orderCustPhone;
+      syncPosCustomerPhone(orderCustPhone);
+    } else if (phoneInput && SELECTED_CUSTOMER && SELECTED_CUSTOMER.phone) {
+      phoneInput.value = SELECTED_CUSTOMER.phone;
+    }
+    if (typeof handleCustomerInput === 'function') handleCustomerInput(orderCustName);
+    const phoneWrap = document.getElementById('pos-member-phone-wrap');
+    if (phoneWrap) phoneWrap.style.display = 'block';
+    closeModal();
+    renderCart();
+    switchPOSMobilePane('cart');
+  } else {
+    closeModal();
+    window.PENDING_POS_ONLINE_CART = true;
+    if (location.hash === '#pos' && typeof renderPOS === 'function') {
+      renderPOS(false);
+    } else {
+      location.hash = '#pos';
+    }
+  }
   showToast('Pesanan #' + order.order_no + ' berhasil dimuat ke kasir! Silakan pilih metode bayar dan selesaikan transaksi.');
 }
 
@@ -24086,12 +24194,7 @@ async function updateOnlineOrderStatus(orderId, newStatus) {
 
   // Perbarui tampilan badge dan modal seketika
   const activeOrders = window.ONLINE_ORDERS_CACHE || [];
-  const pendingCount = activeOrders.filter(function (o) { return o.status === 'pending'; }).length;
-  const badgeEl = document.getElementById('pos-online-order-badge');
-  if (badgeEl) {
-    badgeEl.textContent = pendingCount;
-    badgeEl.style.display = pendingCount > 0 ? 'inline-block' : 'none';
-  }
+  updateOnlineOrderBadgesUI(activeOrders);
   const modalTitle = document.querySelector('#modal-title');
   if (modalTitle && modalTitle.textContent.includes('Pesanan')) {
     renderOnlineOrderQueueModalContent(activeOrders, 'pending');

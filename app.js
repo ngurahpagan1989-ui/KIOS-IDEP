@@ -5368,9 +5368,17 @@ function openBatchDetailModal(productId, productName) {
       const qtyRem = Number(b.qty_remaining || 0);
       const pct = Math.min(100, Math.max(0, Math.round((qtyRem / qtyIn) * 100)));
 
-      const qcBadge = (b.qc_status === 'APPROVED' || b.qc_status === 'OK')
+      const qcUp = String(b.qc_status || '').toUpperCase().trim();
+      const qUp = String(b.quality_status || '').toUpperCase().trim();
+      const qcBadge = (qcUp === 'APPROVED' || qcUp === 'OK' || qcUp === 'PASSED')
         ? '<span class="badge badge-success" style="font-size:10px;padding:1px 5px;">QC Lulus</span>'
-        : (b.qc_status === 'REJECTED' ? '<span class="badge badge-danger" style="font-size:10px;padding:1px 5px;">QC Ditolak</span>' : '<span class="badge badge-neutral" style="font-size:10px;padding:1px 5px;">Normal</span>');
+        : ((qcUp === 'REJECTED' || qUp === 'QUARANTINE')
+          ? '<span class="badge badge-danger" style="font-size:10px;padding:1px 5px;">QC Ditolak / Karantina</span>'
+          : (qcUp === 'IN_PROGRESS'
+            ? '<span class="badge badge-warning" style="font-size:10px;padding:1px 5px;">Proses QC / DHT</span>'
+            : (qcUp === 'PENDING_QC'
+              ? '<span class="badge badge-warning" style="font-size:10px;padding:1px 5px;">Menunggu QC</span>'
+              : '<span class="badge badge-neutral" style="font-size:10px;padding:1px 5px;">Normal</span>')));
 
       const farmerText = escapeHtml(b.farmer_name || 'Mitra Penangkaran');
 
@@ -6529,6 +6537,16 @@ let CURRENT_QC_RECORDS = [];
 let CURRENT_QC_FILTER = 'Semua';
 let currentQCPhotoBase64 = '';
 
+function getQCBatchDisplayCode(batchOrId) {
+  if (batchOrId && typeof batchOrId === 'object') {
+    return batchOrId.batch_code || batchOrId.batch_id || '-';
+  }
+  const match = (CURRENT_QC_RECORDS || []).filter(function (r) {
+    return r && String(r.batch_id) === String(batchOrId);
+  })[0];
+  return match ? (match.batch_code || match.batch_id) : (batchOrId || '-');
+}
+
 function renderQC(forceRefresh) {
   const content = document.getElementById('content');
   if (!content) return;
@@ -6707,8 +6725,9 @@ function renderDHTTimer(startTimeStr, isFinished) {
     '</span>';
 }
 
-function actionCompleteDHT(batchId) {
+function actionCompleteDHT(batchId, batchCode) {
   if (!batchId) return;
+  const displayCode = batchCode || getQCBatchDisplayCode(batchId);
   const modal = document.getElementById('confirm-modal');
   const titleEl = document.getElementById('confirm-title');
   const msgEl = document.getElementById('confirm-message');
@@ -6717,7 +6736,7 @@ function actionCompleteDHT(batchId) {
 
   if (modal && titleEl && msgEl && okBtn && cancelBtn) {
     titleEl.textContent = 'Keluarkan Benih dari Oven DHT?';
-    msgEl.textContent = 'Apakah Anda yakin proses pengeringan oven selama 24 jam untuk batch "' + batchId + '" telah selesai dan benih siap dipindahkan ke tahap Uji Semai Pasca-DHT?';
+    msgEl.textContent = 'Apakah Anda yakin proses pengeringan oven selama 24 jam untuk batch "' + displayCode + '" telah selesai dan benih siap dipindahkan ke tahap Uji Semai Pasca-DHT?';
     modal.style.display = 'flex';
     document.body.classList.add('modal-open');
 
@@ -6732,22 +6751,26 @@ function actionCompleteDHT(batchId) {
     okBtn.onclick = function () {
       cleanup();
       showToast('Memperbarui status pengeluaran oven DHT...');
-      api('completeDHTSession', TOKEN, { batch_id: batchId, notes: 'Dikeluarkan dari oven tepat waktu.' }).then(function (res) {
+      api('completeDHTSession', TOKEN, { batch_id: batchId, batch_code: displayCode, notes: 'Dikeluarkan dari oven tepat waktu.' }).then(function (res) {
         showToast(res.message || 'Proses oven DHT selesai! Batch siap untuk Uji Semai Pasca-DHT.');
         invalidateCache('qc_records');
         invalidateCache('products');
+        invalidateCache('batches');
+        invalidateCache('dashboard');
         renderQC(true);
       }).catch(function (err) {
         showToast('Gagal menyelesaikan DHT: ' + (err.message || err), true);
       });
     };
   } else {
-    if (confirm('Keluarkan batch "' + batchId + '" dari oven DHT dan lanjutkan ke Uji Semai Pasca-DHT?')) {
+    if (confirm('Keluarkan batch "' + displayCode + '" dari oven DHT dan lanjutkan ke Uji Semai Pasca-DHT?')) {
       showToast('Memperbarui status pengeluaran oven DHT...');
-      api('completeDHTSession', TOKEN, { batch_id: batchId, notes: 'Dikeluarkan dari oven tepat waktu.' }).then(function (res) {
+      api('completeDHTSession', TOKEN, { batch_id: batchId, batch_code: displayCode, notes: 'Dikeluarkan dari oven tepat waktu.' }).then(function (res) {
         showToast(res.message || 'Proses oven DHT selesai! Batch siap untuk Uji Semai Pasca-DHT.');
         invalidateCache('qc_records');
         invalidateCache('products');
+        invalidateCache('batches');
+        invalidateCache('dashboard');
         renderQC(true);
       }).catch(function (err) {
         showToast('Gagal menyelesaikan DHT: ' + (err.message || err), true);
@@ -6763,10 +6786,12 @@ function renderQCTableRows(records, filterCategory, searchKeyword) {
       return false;
     }
     if (kw) {
-      const matchBatch = String(r.batch_id || '').toLowerCase().indexOf(kw) !== -1;
+      const matchBatchCode = String(r.batch_code || '').toLowerCase().indexOf(kw) !== -1;
+      const matchBatchId = String(r.batch_id || '').toLowerCase().indexOf(kw) !== -1;
       const matchProd = String(r.product_name || '').toLowerCase().indexOf(kw) !== -1;
       const matchStage = String(r.last_stage || '').toLowerCase().indexOf(kw) !== -1;
-      if (!matchBatch && !matchProd && !matchStage) return false;
+      const matchFarmer = String(r.farmer_name || '').toLowerCase().indexOf(kw) !== -1;
+      if (!matchBatchCode && !matchBatchId && !matchProd && !matchStage && !matchFarmer) return false;
     }
     return true;
   });
@@ -6776,6 +6801,8 @@ function renderQCTableRows(records, filterCategory, searchKeyword) {
   }
 
   return filtered.map(function (b, index) {
+    const displayCode = getQCBatchDisplayCode(b);
+
     // 1. Daya Tumbuh / Status Oven DHT
     let rateHtml = '-';
     if (b.category === 'Proses DHT' || (b.dht_info && !b.dht_info.is_finished)) {
@@ -6806,7 +6833,7 @@ function renderQCTableRows(records, filterCategory, searchKeyword) {
     // 2. Foto Baki Thumbnail
     let photoHtml = '<span class="qc-photo-placeholder" title="Belum ada foto baki"><i class="fas fa-camera"></i></span>';
     if (b.last_photo_url) {
-      const safeTitle = escapeHtml(b.batch_id + ' - ' + b.product_name);
+      const safeTitle = escapeHtml(displayCode + ' - ' + b.product_name);
       const safeMeta = escapeHtml(getQCStageLabel(b.last_stage) + ' | Daya Tumbuh: ' + (b.last_germination_rate !== null ? b.last_germination_rate + '%' : '-'));
       photoHtml = '<img src="' + escapeHtml(b.last_photo_url) + '" alt="Foto Baki" class="qc-photo-thumbnail" title="Klik untuk memperbesar foto baki" onclick="openQCPhotoViewer(\'' + escapeHtml(b.last_photo_url) + '\', \'' + safeTitle + '\', \'' + safeMeta + '\')">';
     }
@@ -6815,11 +6842,17 @@ function renderQCTableRows(records, filterCategory, searchKeyword) {
     let statusBadge = '<span class="badge badge-qc-waiting">⚠️ Menunggu Uji</span>';
     if (b.category === 'Lolos Mutu') {
       statusBadge = '<span class="badge badge-qc-passed"><i class="fas fa-check-circle"></i> Lolos Mutu</span>';
+    } else if (b.category === 'Butuh Uji Berkala') {
+      statusBadge = '<span class="badge badge-qc-waiting">⏰ Butuh Uji Berkala</span>';
     } else if (b.category === 'Karantina/Gagal') {
       statusBadge = '<span class="badge badge-qc-failed"><i class="fas fa-times-circle"></i> Karantina / Gagal</span>';
     } else if (b.category === 'Proses DHT') {
       const ovenBadgeLabel = b.dht_info ? (b.dht_info.oven_no + ' (' + b.dht_info.target_temp + '°C)') : 'Proses DHT';
       statusBadge = '<span class="badge-qc-oven-running"><span class="flame-icon">🔥</span> ' + escapeHtml(ovenBadgeLabel) + '</span>';
+    } else if (b.last_stage === 'DHT_24JAM' && b.dht_info && b.dht_info.is_finished) {
+      statusBadge = '<span class="badge badge-qc-waiting">⏳ Siap Uji Pasca-DHT</span>';
+    } else if (b.last_status === 'PASSED' && (b.last_stage === 'UJI_1_PETANI' || b.last_stage === 'UJI_2_LAB')) {
+      statusBadge = '<span class="badge badge-qc-waiting">🧪 Pra-DHT Lulus (Lanjut Uji)</span>';
     }
 
     // 4. Tahap Terakhir
@@ -6830,7 +6863,7 @@ function renderQCTableRows(records, filterCategory, searchKeyword) {
     let actionButtons = '';
     if (b.category === 'Proses DHT' || (b.dht_info && !b.dht_info.is_finished)) {
       actionButtons =
-        '<button type="button" class="btn btn-sm btn-success" onclick="actionCompleteDHT(\'' + escapeHtml(b.batch_id) + '\')" title="Keluarkan dari Oven &amp; Selesaikan Tahap DHT" style="margin-right:4px;">' +
+        '<button type="button" class="btn btn-sm btn-success" onclick="actionCompleteDHT(\'' + escapeHtml(b.batch_id) + '\', \'' + escapeHtml(displayCode) + '\')" title="Keluarkan dari Oven &amp; Selesaikan Tahap DHT" style="margin-right:4px;">' +
         '<i class="fas fa-door-open mr-1"></i> Keluarkan' +
         '</button>' +
         '<button type="button" class="btn btn-sm btn-primary" onclick="openQCEntryModal(\'' + escapeHtml(b.batch_id) + '\')" title="Input uji tahapan lanjutan" style="margin-right:4px;">' +
@@ -6849,7 +6882,7 @@ function renderQCTableRows(records, filterCategory, searchKeyword) {
     return '<tr>' +
       '<td style="text-align:center;font-size:12px;color:var(--text-secondary);">' + (index + 1) + '</td>' +
       '<td>' +
-      '<span style="font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--primary);font-size:12px;">' + escapeHtml(b.batch_id) + '</span>' +
+      '<span style="font-family:\'JetBrains Mono\',monospace;font-weight:700;color:var(--primary);font-size:12px;">' + escapeHtml(displayCode) + '</span>' +
       '<div style="font-size:10.5px;color:var(--text-secondary);margin-top:2px;">Sisa: ' + b.qty_remaining + ' ' + escapeHtml(b.unit) + '</div>' +
       '</td>' +
       '<td>' +
@@ -6956,8 +6989,9 @@ function openQCEntryModal(preselectedBatchId, preselectedStage) {
     records.forEach(function (b) {
       const isSelected = preselectedBatchId && String(b.batch_id) === String(preselectedBatchId);
       const catLabel = b.category || b.qc_status || 'Menunggu Uji';
+      const displayCode = getQCBatchDisplayCode(b);
       optionsHtml += '<option value="' + escapeHtml(b.batch_id) + '"' + (isSelected ? ' selected' : '') + '>' +
-        escapeHtml(b.batch_id) + ' — ' + escapeHtml(b.product_name) + ' (' + escapeHtml(catLabel) + ')' +
+        escapeHtml(displayCode) + ' — ' + escapeHtml(b.product_name) + ' (' + escapeHtml(catLabel) + ')' +
         '</option>';
     });
     batchSelect.innerHTML = optionsHtml;
@@ -7039,11 +7073,13 @@ function onQCBatchSelected() {
 
   // Rekomendasikan tahapan berikutnya secara cerdas
   if (stageSelect) {
-    if (!batch.last_stage || batch.last_stage === '-') {
+    if (batch.needs_retest) {
+      stageSelect.value = 'UJI_BERKALA';
+    } else if (!batch.last_stage || batch.last_stage === '-') {
       stageSelect.value = 'UJI_1_PETANI';
     } else if (batch.last_stage === 'UJI_1_PETANI') {
       stageSelect.value = 'UJI_2_LAB';
-    } else if ((batch.last_stage === 'UJI_2_LAB' || (batch.last_stage === 'UJI_2_LAB' || String(batch.last_stage).includes('_2_')))) {
+    } else if ((batch.last_stage === 'UJI_2_LAB' || String(batch.last_stage).includes('_2_'))) {
       stageSelect.value = 'DHT_24JAM';
     } else {
       stageSelect.value = 'UJI_3_PASCA_DHT';
@@ -7086,11 +7122,11 @@ function onQCStageChanged() {
     if (val === 'UJI_BERKALA') {
       if (stageNote) stageNote.innerHTML = '🔬 <strong>Uji Berkala / Semai Ulang:</strong> Uji semai ulang 100 butir duplo untuk mengecek vitalitas toples benih yang disimpan lama. Standar kelulusan tetap minimal 80%.';
     } else if (val === 'UJI_3_PASCA_DHT') {
-      if (stageNote) stageNote.innerHTML = '⭐ <strong>Uji penentu mutu akhir:</strong> Jika total daya tumbuh ≥ 80%, batch otomatis berstatus APPROVED dan terbuka untuk kasir POS &amp; Kemas Mandiri.';
-    } else if ((val === 'UJI_2_LAB' || (val === 'UJI_2_LAB' || String(val).includes('_2_')))) {
-      if (stageNote) stageNote.innerHTML = 'Uji verifikasi daya tumbuh di laboratorium/kantor sebelum benih dimasukkan ke lemari pengering DHT.';
+      if (stageNote) stageNote.innerHTML = '⭐ <strong>Uji penentu mutu akhir:</strong> Jika total daya tumbuh ≥ 80%, batch otomatis berstatus APPROVED dan terbuka untuk kasir POS &amp; Kemas Mandiri; jika &lt; 80%, masuk Karantina.';
+    } else if ((val === 'UJI_2_LAB' || String(val).includes('_2_'))) {
+      if (stageNote) stageNote.innerHTML = '🧪 <strong>Uji Pra-DHT (Lab/Kantor):</strong> Jika ≥ 80% berlanjut ke tahap Oven DHT 24 Jam (belum membuka kunci stok). Jika &lt; 80% langsung masuk Karantina/Gagal.';
     } else {
-      if (stageNote) stageNote.innerHTML = 'Uji semai awal di lahan petani mitra saat panen benih selesai dirontokkan.';
+      if (stageNote) stageNote.innerHTML = '🌱 <strong>Uji Awal Petani:</strong> Jika ≥ 80% tercatat lulus pra-DHT (belum membuka kunci stok, lanjut ke Lab &amp; DHT). Jika &lt; 80% langsung masuk Karantina/Gagal.';
     }
   }
   calculateQCGermination();
@@ -7242,7 +7278,7 @@ function zoomQCPreview() {
   if (!currentQCPhotoBase64) return;
   const batchId = document.getElementById('qc-batch-id') ? document.getElementById('qc-batch-id').value : '';
   const stage = document.getElementById('qc-stage') ? document.getElementById('qc-stage').value : '';
-  openQCPhotoViewer(currentQCPhotoBase64, 'Pratinjau Foto Baki Semai', 'Batch: ' + escapeHtml(batchId || '-') + ' | Tahap: ' + getQCStageLabel(stage));
+  openQCPhotoViewer(currentQCPhotoBase64, 'Pratinjau Foto Baki Semai', 'Batch: ' + escapeHtml(getQCBatchDisplayCode(batchId)) + ' | Tahap: ' + getQCStageLabel(stage));
 }
 
 // ========================= PENGIRIMAN DATA FORM QC =========================
@@ -7267,6 +7303,7 @@ function submitQCForm() {
   }
 
   const batchId = batchSelect.value;
+  const batchCode = getQCBatchDisplayCode(batchId);
   const stage = stageSelect.value;
   const notes = notesEl ? notesEl.value.trim() : '';
 
@@ -7290,6 +7327,7 @@ function submitQCForm() {
 
     api('startDHTSession', TOKEN, {
       batch_id: batchId,
+      batch_code: batchCode,
       oven_no: ovenNo,
       target_temp: targetTemp,
       start_time: startTimeVal,
@@ -7301,6 +7339,8 @@ function submitQCForm() {
       closeQCEntryModal();
       invalidateCache('qc_records');
       invalidateCache('products');
+      invalidateCache('batches');
+      invalidateCache('dashboard');
       renderQC(true);
     }).catch(function (err) {
       if (statusBox) statusBox.style.display = 'none';
@@ -7321,6 +7361,7 @@ function submitQCForm() {
 
   const payload = {
     batch_id: batchId,
+    batch_code: batchCode,
     stage: stage,
     tray_a: trayA,
     tray_b: trayB,
@@ -7340,6 +7381,8 @@ function submitQCForm() {
     closeQCEntryModal();
     invalidateCache('qc_records');
     invalidateCache('products');
+    invalidateCache('batches');
+    invalidateCache('dashboard');
     renderQC(true);
   }).catch(function (err) {
     if (statusBox) statusBox.style.display = 'none';
@@ -7386,11 +7429,12 @@ function openQCHistoryModal(batchId) {
   const batch = CURRENT_QC_RECORDS.filter(function (r) { return String(r.batch_id) === String(batchId); })[0];
   if (!batch) return;
 
+  const displayCode = getQCBatchDisplayCode(batch);
   const history = batch.history || [];
   let bodyHtml =
     '<div style="margin-bottom:14px;padding:10px 14px;background:var(--surface-muted);border-radius:8px;">' +
     '<div style="font-weight:700;font-size:14px;color:var(--text-main);">' + escapeHtml(batch.product_name) + '</div>' +
-    '<div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px;">Kode Batch: <code>' + escapeHtml(batch.batch_id) + '</code> | Sisa Stok: ' + batch.qty_remaining + ' ' + escapeHtml(batch.unit) + ' | Status Mutu: <strong>' + escapeHtml(batch.qc_status) + '</strong></div>' +
+    '<div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px;">Kode Batch: <code>' + escapeHtml(displayCode) + '</code> | Sisa Stok: ' + batch.qty_remaining + ' ' + escapeHtml(batch.unit) + ' | Status Mutu: <strong>' + escapeHtml(batch.qc_status) + '</strong></div>' +
     '</div>';
 
   if (history.length === 0) {
@@ -7413,10 +7457,13 @@ function openQCHistoryModal(batchId) {
       history.map(function (h) {
         const stageLabel = getQCStageLabel(h.stage);
         const rate = Number(h.germination_rate || 0);
-        const isPass = h.status === 'PASSED';
+        const hStatusUp = String(h.status || '').toUpperCase();
+        const badgeCls = (hStatusUp === 'PASSED' || hStatusUp === 'COMPLETED')
+          ? 'badge-success'
+          : (hStatusUp === 'FAILED' ? 'badge-danger' : 'badge-warning');
         const rateDisplay = h.stage === 'DHT_24JAM' ? 'Oven DHT 24J' : (rate + '% (A:' + (h.tray_a_count || 0) + ' B:' + (h.tray_b_count || 0) + ')');
         const photoLink = h.photo_drive_url
-          ? '<a href="#" onclick="openQCPhotoViewer(\'' + escapeHtml(h.photo_drive_url) + '\', \'' + escapeHtml(batch.batch_id + ' - ' + stageLabel) + '\', \'Daya Tumbuh: ' + rateDisplay + '\'); return false;" style="color:#2563EB;font-weight:600;">📷 Lihat Foto</a>'
+          ? '<a href="#" onclick="openQCPhotoViewer(\'' + escapeHtml(h.photo_drive_url) + '\', \'' + escapeHtml(displayCode + ' - ' + stageLabel) + '\', \'Daya Tumbuh: ' + rateDisplay + '\'); return false;" style="color:#2563EB;font-weight:600;">📷 Lihat Foto</a>'
           : '<span style="color:var(--text-secondary);font-size:11px;">-</span>';
 
         return '<tr>' +
@@ -7424,7 +7471,7 @@ function openQCHistoryModal(batchId) {
           '<td>' + stageLabel + '</td>' +
           '<td><strong>' + rateDisplay + '</strong></td>' +
           '<td>' + photoLink + '</td>' +
-          '<td><span class="badge ' + (isPass ? 'badge-success' : 'badge-danger') + '">' + escapeHtml(h.status) + '</span></td>' +
+          '<td><span class="badge ' + badgeCls + '">' + escapeHtml(h.status) + '</span></td>' +
           '<td style="font-size:11.5px;color:var(--text-secondary);max-width:180px;">' + escapeHtml(h.notes || '-') + '</td>' +
           '</tr>';
       }).join('') +
@@ -7437,7 +7484,7 @@ function openQCHistoryModal(batchId) {
     '<button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>' +
     '<button type="button" class="btn btn-primary" onclick="closeModal(); openQCEntryModal(\'' + escapeHtml(batch.batch_id) + '\')">+ Input Uji Baru</button>';
 
-  openModal('Riwayat Uji QC: ' + batch.batch_id, bodyHtml, footerHtml, true);
+  openModal('Riwayat Uji QC: ' + displayCode, bodyHtml, footerHtml, true);
 }
 
 // ========================= PEMBELIAN (PENGADAAN) =========================
@@ -9251,7 +9298,7 @@ function submitCheckout() {
         if (targetB) {
           const qcUpper = String(targetB.qc_status || '').toUpperCase();
           if (qcUpper !== 'APPROVED' && qcUpper !== 'PASSED') {
-            showToast('Gagal: Batch "' + targetB.id + '" pada produk benih "' + prod.name + '" belum lolos Quality Control (Status: ' + targetB.qc_status + ').', true);
+            showToast('Gagal: Batch "' + (targetB.batch_code || targetB.id) + '" pada produk benih "' + prod.name + '" belum lolos Quality Control (Status: ' + targetB.qc_status + ').', true);
             return;
           }
           if (Number(targetB.qty_remaining || 0) < item.qty) {

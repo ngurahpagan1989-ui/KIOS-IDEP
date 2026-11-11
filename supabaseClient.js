@@ -472,6 +472,34 @@ async function checkSupabaseSession() {
 }
 
 /**
+ * Helper kelayakan batch untuk penjualan, pengurangan FIFO, dan Kemas Mandiri.
+ * Mengizinkan batch lama tanpa nilai qc_status (dianggap APPROVED/NORMAL),
+ * serta memblokir batch berstatus QUARANTINE, REJECTED, PENDING_QC, atau IN_PROGRESS.
+ */
+function isBatchEligibleForSale(b) {
+  if (!b) return false;
+  const qStatus = String(b.quality_status || 'NORMAL').toUpperCase().trim();
+  const qcStatus = String(b.qc_status || 'APPROVED').toUpperCase().trim();
+  if (qStatus === 'QUARANTINE') return false;
+  if (qcStatus === 'REJECTED' || qcStatus === 'PENDING_QC' || qcStatus === 'IN_PROGRESS') return false;
+  return true;
+}
+
+/**
+ * Helper menyelesaikan kode batch terbaca (batch_code) dari payload atau lookup stock_batches.
+ */
+async function resolveBatchCodeDisplay(payload) {
+  let code = (payload && payload.batch_code) ? String(payload.batch_code).trim() : '';
+  if (!code && payload && payload.batch_id) {
+    try {
+      const { data: meta } = await supabase.from('stock_batches').select('batch_code').eq('id', payload.batch_id).maybeSingle();
+      if (meta && meta.batch_code) code = meta.batch_code;
+    } catch (e) {}
+  }
+  return code || (payload && payload.batch_id ? String(payload.batch_id) : '-');
+}
+
+/**
  * Helper Pemotongan Stok FIFO Multi-Batch Tanpa Ketergantungan RPC Database
  */
 async function consumeStockFIFOClient(productId, qtyNeeded, refId, refNo, mutationType = 'KELUAR_PENJUALAN', preferredBatchId = null) {
@@ -481,7 +509,7 @@ async function consumeStockFIFOClient(productId, qtyNeeded, refId, refNo, mutati
     return { total_cost: 0, batch_codes: [], primary_batch_id: null, primary_expiry: null };
   }
 
-  // 1. Ambil daftar stock_batches untuk productId yang qty_remaining > 0
+  // 1. Ambil daftar stock_batches untuk productId yang qty_remaining > 0 & lolos QC
   const { data: batches, error } = await supabase
     .from('stock_batches')
     .select('*')
@@ -491,7 +519,7 @@ async function consumeStockFIFOClient(productId, qtyNeeded, refId, refNo, mutati
     .order('production_date', { ascending: true });
 
   if (error) throw error;
-  let batchList = batches ? [...batches] : [];
+  let batchList = (batches ? [...batches] : []).filter(isBatchEligibleForSale);
 
   // Jika preferredBatchId diisi, dahulukan batch tersebut
   if (preferredBatchId) {
@@ -860,9 +888,7 @@ async function dispatchApiCall(fnName, args) {
       const batchMap = {};
       const stockMap = {};
       (batchesRes.data || []).forEach(b => {
-        const qStatus = String(b.quality_status || 'NORMAL').toUpperCase();
-        const qcStatus = String(b.qc_status || 'APPROVED').toUpperCase();
-        if (qStatus !== 'QUARANTINE' && qcStatus !== 'REJECTED') {
+        if (isBatchEligibleForSale(b)) {
           if (!batchMap[b.product_id]) batchMap[b.product_id] = [];
           batchMap[b.product_id].push(b);
           stockMap[b.product_id] = (stockMap[b.product_id] || 0) + Number(b.qty_remaining || 0);
@@ -1183,9 +1209,7 @@ async function dispatchApiCall(fnName, args) {
       const batchMap = {};
       const stockMap = {};
       (batchesRes.data || []).forEach(b => {
-        const qStatus = String(b.quality_status || 'NORMAL').toUpperCase();
-        const qcStatus = String(b.qc_status || 'APPROVED').toUpperCase();
-        if (qStatus !== 'QUARANTINE' && qcStatus !== 'REJECTED') {
+        if (isBatchEligibleForSale(b)) {
           if (!batchMap[b.product_id]) batchMap[b.product_id] = [];
           batchMap[b.product_id].push(b);
           stockMap[b.product_id] = (stockMap[b.product_id] || 0) + Number(b.qty_remaining || 0);
@@ -1465,6 +1489,7 @@ async function dispatchApiCall(fnName, args) {
         invoice_no: invoiceNo,
         supplier_id: purchase.supplier_id || null,
         farmer_id: purchase.farmer_id || null,
+        farmer_name: purchase.farmer_name || null,
         total: Number(purchase.total || 0),
         notes: purchase.notes || ''
       });
@@ -1487,12 +1512,14 @@ async function dispatchApiCall(fnName, args) {
         const additionalCost = isCurah ? 0 : Number(item.additional_cost || 0);
         const costPerUnit = isCurah ? buyPrice : Number(item.cost_per_unit !== undefined ? item.cost_per_unit : (buyPrice + additionalCost));
 
-        // Hanya benih mentah curah yang masuk ke antrean PENDING_QC (butuh uji semai lab & oven DHT);
-        // Barang kemasan sachet siap jual, non-curah, dan produk non-benih (buku, media, dsb) langsung APPROVED & NORMAL
+        // Hanya benih mentah curah yang masuk ke antrean PENDING_QC (butuh uji lab & oven DHT);
+        // Status quality_status tetap NORMAL (QUARANTINE hanya jika gagal uji < 80% atau komplain >= 3),
+        // sementara stok/Kemas Mandiri/POS tetap terkunci karena qc_status = 'PENDING_QC'.
+        // Barang kemasan sachet siap jual, non-curah, dan produk non-benih langsung APPROVED & NORMAL.
         const isSeed = item.is_seed !== false && String(item.category || '').toLowerCase() !== 'non-benih' && String(item.product_type || '').toLowerCase() !== 'buku';
         const needsQC = isCurah && isSeed;
         const qcStatus = needsQC ? 'PENDING_QC' : 'APPROVED';
-        const qualityStatus = needsQC ? 'QUARANTINE' : 'NORMAL';
+        const qualityStatus = 'NORMAL';
 
         // 2a. Simpan ke purchase_items jika tabel tersedia
         try {
@@ -1518,6 +1545,7 @@ async function dispatchApiCall(fnName, args) {
           batch_code: batchCode,
           product_id: item.product_id,
           purchase_id: purchaseId,
+          farmer_name: item.farmer_name || purchase.farmer_name || null,
           qty_in: qtyIn,
           qty_remaining: qtyIn,
           buy_price: buyPrice,
@@ -1684,6 +1712,9 @@ async function dispatchApiCall(fnName, args) {
         .single();
 
       if (srcErr || !srcBatch) throw new Error('Batch asal bahan curah tidak ditemukan.');
+      if (!isBatchEligibleForSale(srcBatch)) {
+        throw new Error(`Batch "${srcBatch.batch_code || srcBatch.id}" belum lolos Quality Control (Status: ${srcBatch.qc_status || srcBatch.quality_status}). Selesaikan pengujian hingga Pasca-DHT terlebih dahulu.`);
+      }
       if (Number(srcBatch.qty_remaining) < grams) {
         throw new Error(`Stok batch asal tidak mencukupi (${srcBatch.qty_remaining} gr tersedia, butuh ${grams} gr).`);
       }
@@ -2071,7 +2102,7 @@ async function dispatchApiCall(fnName, args) {
         supabase.from('stock_batches').select('*'),
         supabase.from('products').select('*'),
         supabase.from('seed_qc_logs').select('*').order('created_at', { ascending: false }),
-        supabase.from('purchases').select('id, farmer_name, created_at')
+        supabase.from('purchases').select('id, farmer_name, farmer_id, created_at, farmers(name)')
       ]);
 
       const batches = batchesRes.data || [];
@@ -2092,12 +2123,14 @@ async function dispatchApiCall(fnName, args) {
         logsByBatch[bId].push(l);
       });
 
-      // Filter toples benih curah/baku (unit gram atau product_type raw_seed atau category Benih)
+      // Filter toples benih curah/baku (unit gr/gram/g/kg, inventory_type curah, atau product_type raw_seed)
       const seedBatches = batches.filter(b => {
         const p = prodMap[b.product_id];
         if (!p) return false;
         const isSeed = String(p.category || '').toLowerCase().includes('benih');
-        const isRaw = p.product_type === 'raw_seed' || p.unit === 'gram' || p.unit === 'gr' || p.unit === 'kg';
+        const uLower = String(p.unit || '').toLowerCase().trim();
+        const invLower = String(p.inventory_type || '').toLowerCase().trim();
+        const isRaw = p.product_type === 'raw_seed' || uLower === 'gram' || uLower === 'gr' || uLower === 'g' || uLower === 'kg' || invLower.includes('curah');
         return isSeed && isRaw;
       });
 
@@ -2112,20 +2145,25 @@ async function dispatchApiCall(fnName, args) {
         const bLogs = logsByBatch[b.id] || [];
         const lastLog = bLogs.length > 0 ? bLogs[0] : null;
 
-        const dhtLog = bLogs.find(l => l.stage === 'DHT_24JAM') || null;
+        const dhtIdx = bLogs.findIndex(l => l.stage === 'DHT_24JAM');
+        const pascaIdx = bLogs.findIndex(l => l.stage === 'UJI_3_PASCA_DHT' || l.stage === 'PASCA_DHT');
+        const dhtLog = dhtIdx !== -1 ? bLogs[dhtIdx] : null;
         let dhtInfo = null;
         if (dhtLog) {
+          const dhtStatusUpper = String(dhtLog.status || '').toUpperCase();
+          const finishedByStatus = dhtStatusUpper === 'PASSED' || dhtStatusUpper === 'COMPLETED';
+          const finishedByPasca = pascaIdx !== -1 && pascaIdx < dhtIdx;
           dhtInfo = {
             oven_no: dhtLog.dht_oven_no || 'Oven 1',
             target_temp: Number(dhtLog.dht_target_temp || 50),
             start_time: dhtLog.dht_start_time || dhtLog.tested_at || '',
             end_time: dhtLog.dht_end_time || '',
-            is_finished: String(dhtLog.status || '').toUpperCase() === 'PASSED' || String(dhtLog.status || '').toUpperCase() === 'COMPLETED'
+            is_finished: finishedByStatus || finishedByPasca
           };
         }
 
-        let qcStatus = String(b.qc_status || '').toUpperCase();
-        const qualityStatus = String(b.quality_status || 'NORMAL').toUpperCase();
+        let qcStatus = String(b.qc_status || '').toUpperCase().trim();
+        const qualityStatus = String(b.quality_status || 'NORMAL').toUpperCase().trim();
 
         const entryDate = b.received_at ? String(b.received_at).split('T')[0] : (purch.created_at ? String(purch.created_at).split('T')[0] : '');
         const lastDateStr = (lastLog && lastLog.tested_at) ? lastLog.tested_at : (b.received_at || b.production_date || entryDate);
@@ -2140,17 +2178,25 @@ async function dispatchApiCall(fnName, args) {
           }
         }
 
+        const hasActiveDHT = Boolean(dhtInfo && !dhtInfo.is_finished);
+        const lastLogStatus = lastLog ? String(lastLog.status || '').toUpperCase().trim() : '';
+        const isQuarantinedFailure = qcStatus === 'REJECTED' ||
+          lastLogStatus === 'FAILED' ||
+          (qualityStatus === 'QUARANTINE' && qcStatus !== 'PENDING_QC' && qcStatus !== 'IN_PROGRESS');
+
         let category = 'Menunggu Uji';
-        if (isNeedsRetest) {
+        if (hasActiveDHT) {
+          category = 'Proses DHT';
+        } else if (isQuarantinedFailure) {
+          category = 'Karantina/Gagal';
+          if (!qcStatus || qcStatus === 'PENDING_QC' || qcStatus === 'IN_PROGRESS') {
+            qcStatus = 'REJECTED';
+          }
+        } else if (isNeedsRetest) {
           category = 'Butuh Uji Berkala';
         } else if (qcStatus === 'APPROVED' || qualityStatus === 'APPROVED') {
           category = 'Lolos Mutu';
           qcStatus = 'APPROVED';
-        } else if (qcStatus === 'REJECTED' || qualityStatus === 'QUARANTINE' || (lastLog && lastLog.status === 'FAILED')) {
-          category = 'Karantina/Gagal';
-          if (!qcStatus) qcStatus = 'REJECTED';
-        } else if ((dhtInfo && !dhtInfo.is_finished) || qcStatus === 'IN_PROGRESS' || (lastLog && (lastLog.stage === 'DHT_24JAM' || lastLog.stage === 'UJI_2_IDEP'))) {
-          category = 'Proses DHT';
         } else if (lastLog && (lastLog.stage === 'UJI_3_PASCA_DHT' || lastLog.stage === 'PASCA_DHT') && Number(lastLog.germination_rate || 0) >= 80) {
           category = 'Lolos Mutu';
           qcStatus = 'APPROVED';
@@ -2162,13 +2208,15 @@ async function dispatchApiCall(fnName, args) {
           qcStatus = category === 'Lolos Mutu' ? 'APPROVED' : (category === 'Karantina/Gagal' ? 'REJECTED' : 'PENDING_QC');
         }
 
+        const farmerNameResolved = (purch.farmers && purch.farmers.name) || purch.farmer_name || b.farmer_name || (lastLog ? lastLog.farmer_name : '') || '-';
+
         return {
           batch_id: b.id,
           batch_code: b.batch_code || b.id,
           product_id: b.product_id,
           product_name: prod.name || ('Produk ' + b.product_id),
           product_category: prod.category || 'Benih',
-          farmer_name: purch.farmer_name || (lastLog ? lastLog.farmer_name : '') || '-',
+          farmer_name: farmerNameResolved,
           entry_date: entryDate,
           unit: prod.unit || 'gr',
           qty_in: Number(b.qty_in || 0),
@@ -2203,11 +2251,14 @@ async function dispatchApiCall(fnName, args) {
     case 'saveQCStageWithPhoto': {
       const [, payload] = args;
       const user = window.CURRENT_USER_PROFILE;
+      const stageCode = String(payload.stage || 'RUTIN').toUpperCase().trim();
+      const isFinalReleaseStage = stageCode === 'UJI_3_PASCA_DHT' || stageCode === 'PASCA_DHT' || stageCode === 'UJI_BERKALA';
+      const batchCodeDisplay = await resolveBatchCodeDisplay(payload);
 
       let photoUrl = payload.photo_url || '';
       if (payload.imageBase64 && payload.imageBase64.startsWith('data:image')) {
         try {
-          const fileName = `qc_${payload.batch_id}_${payload.stage || 'STAGE'}.jpg`;
+          const fileName = `qc_${payload.batch_id}_${stageCode}.jpg`;
           photoUrl = await uploadToSupabaseStorage('qc-photos', fileName, payload.imageBase64, payload.imageMimeType || 'image/jpeg');
         } catch (uploadErr) {
           console.warn('[QC Upload Storage Fallback] Menggunakan base64 sebagai fallback photo_url:', uploadErr);
@@ -2222,13 +2273,15 @@ async function dispatchApiCall(fnName, args) {
 
       let qcStatus = 'IN_PROGRESS';
       let batchQuality = 'NORMAL';
-      let batchQcStatus = 'PENDING_QC';
+      let batchQcStatus = 'IN_PROGRESS';
 
       if (germRate !== null) {
         if (germRate >= 80) {
           qcStatus = 'PASSED';
           batchQuality = 'NORMAL';
-          batchQcStatus = 'APPROVED';
+          // Hanya Tahap 4 (Pasca-DHT) dan Tahap 5 (Uji Berkala) yang membuka kunci APPROVED;
+          // Tahap 1 & 2 (Pra-DHT) tetap berstatus IN_PROGRESS hingga selesai Oven DHT & Pasca-DHT.
+          batchQcStatus = isFinalReleaseStage ? 'APPROVED' : 'IN_PROGRESS';
         } else {
           qcStatus = 'FAILED';
           batchQuality = 'QUARANTINE';
@@ -2240,7 +2293,7 @@ async function dispatchApiCall(fnName, args) {
       const { data: qcRecord, error: qcErr } = await supabase.from('seed_qc_logs').insert({
         qc_code: qcCode,
         batch_id: payload.batch_id,
-        stage: payload.stage || 'RUTIN',
+        stage: stageCode,
         germination_rate: germRate,
         tray_a_count: Number(payload.tray_a || 0),
         tray_b_count: Number(payload.tray_b || 0),
@@ -2256,6 +2309,16 @@ async function dispatchApiCall(fnName, args) {
 
       if (qcErr) throw qcErr;
 
+      // Pastikan log DHT yang masih IN_PROGRESS ikut ditandai COMPLETED bila sudah lanjut ke Pasca-DHT
+      if (stageCode === 'UJI_3_PASCA_DHT' || stageCode === 'PASCA_DHT') {
+        await supabase
+          .from('seed_qc_logs')
+          .update({ status: 'COMPLETED' })
+          .eq('batch_id', payload.batch_id)
+          .eq('stage', 'DHT_24JAM')
+          .eq('status', 'IN_PROGRESS');
+      }
+
       if (germRate !== null) {
         await supabase.from('stock_batches').update({
           quality_status: batchQuality,
@@ -2267,15 +2330,23 @@ async function dispatchApiCall(fnName, args) {
       if (batchQuality === 'QUARANTINE' || qcStatus === 'FAILED') {
         emitOperationalNotification({
           title: '🚨 Karantina QC Lot Benih!',
-          body: 'Batch ' + (payload.batch_code || payload.batch_id) + ' gagal standar mutu' + (germRate !== null ? ' (Daya tumbuh ' + germRate + '%)' : '') + ' dan masuk status KARANTINA.',
+          body: 'Batch ' + batchCodeDisplay + ' gagal standar mutu' + (germRate !== null ? ' (Daya tumbuh ' + germRate + '%)' : '') + ' dan masuk status KARANTINA.',
           category: 'qc',
           route: '#qc',
           urgent: true
         });
+      } else if (batchQcStatus === 'APPROVED') {
+        emitOperationalNotification({
+          title: '✅ Lot Benih Lolos Uji Mutu Final',
+          body: 'Batch ' + batchCodeDisplay + ' lolos uji mutu (' + germRate + '%). Kunci stok Kemas Mandiri & Kasir telah dibuka.',
+          category: 'qc',
+          route: '#qc',
+          urgent: false
+        });
       } else if (qcStatus === 'PASSED') {
         emitOperationalNotification({
-          title: '✅ Lot Benih Lolos Uji QC',
-          body: 'Batch ' + (payload.batch_code || payload.batch_id) + ' lolos uji mutu dengan daya tumbuh ' + germRate + '%.',
+          title: '🧪 Uji Pra-DHT Lolos (' + germRate + '%)',
+          body: 'Batch ' + batchCodeDisplay + ' lolos uji awal (' + germRate + '%). Silakan lanjut ke tahapan berikutnya hingga Uji Pasca-DHT.',
           category: 'qc',
           route: '#qc',
           urgent: false
@@ -2284,7 +2355,11 @@ async function dispatchApiCall(fnName, args) {
 
       return {
         success: true,
-        message: 'Catatan pengujian mutu QC berhasil disimpan!',
+        message: batchQcStatus === 'APPROVED'
+          ? 'Lot benih lolos uji mutu final (' + germRate + '%) dan kunci stok telah dibuka!'
+          : (qcStatus === 'FAILED'
+            ? 'Hasil uji di bawah 80% (' + germRate + '%). Batch masuk status Karantina/Gagal.'
+            : 'Catatan uji pra-DHT (' + germRate + '%) berhasil disimpan. Lanjutkan hingga Pasca-DHT untuk membuka kunci stok.'),
         photo_url: photoUrl,
         qc_record: qcRecord
       };
@@ -2295,6 +2370,7 @@ async function dispatchApiCall(fnName, args) {
       const user = window.CURRENT_USER_PROFILE;
       const startDate = payload.start_time ? new Date(payload.start_time) : new Date();
       const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
+      const batchCodeDisplay = await resolveBatchCodeDisplay(payload);
 
       const qcCode = await generateSequentialDocNo('DHT', 'seed_qc_logs', 'qc_code');
       const { data, error } = await supabase.from('seed_qc_logs').insert({
@@ -2311,9 +2387,16 @@ async function dispatchApiCall(fnName, args) {
       }).select().single();
 
       if (error) throw error;
+
+      await supabase.from('stock_batches').update({
+        qc_status: 'IN_PROGRESS',
+        quality_status: 'NORMAL',
+        updated_at: new Date().toISOString()
+      }).eq('id', payload.batch_id);
+
       emitOperationalNotification({
         title: '🔥 Oven DHT 24 Jam Dimulai',
-        body: 'Batch ' + (payload.batch_code || payload.batch_id) + ' masuk ' + (payload.oven_no || 'Oven 1') + ' (' + Number(payload.target_temp || 50) + '°C).',
+        body: 'Batch ' + batchCodeDisplay + ' masuk ' + (payload.oven_no || 'Oven 1') + ' (' + Number(payload.target_temp || 50) + '°C).',
         category: 'qc',
         route: '#qc',
         urgent: false
@@ -2323,6 +2406,8 @@ async function dispatchApiCall(fnName, args) {
 
     case 'completeDHTSession': {
       const [, payload] = args;
+      const batchCodeDisplay = await resolveBatchCodeDisplay(payload);
+
       const { data, error } = await supabase
         .from('seed_qc_logs')
         .update({
@@ -2336,7 +2421,7 @@ async function dispatchApiCall(fnName, args) {
       if (error) throw error;
       emitOperationalNotification({
         title: '✅ Sesi Oven DHT Selesai',
-        body: 'Pengeringan DHT 24 jam untuk Batch ' + (payload.batch_code || payload.batch_id) + ' telah dituntaskan.',
+        body: 'Pengeringan DHT 24 jam untuk Batch ' + batchCodeDisplay + ' telah dituntaskan. Siap untuk Uji Semai Pasca-DHT.',
         category: 'qc',
         route: '#qc',
         urgent: false
@@ -3308,9 +3393,7 @@ async function dispatchApiCall(fnName, args) {
       // 4. Hitung stok per produk untuk daftar stok menipis (<= 5)
       const stockPerProd = {};
       allBatches.forEach(b => {
-        const qStatus = String(b.quality_status || 'NORMAL').toUpperCase();
-        const qcStatus = String(b.qc_status || 'APPROVED').toUpperCase();
-        if (qStatus !== 'QUARANTINE' && qcStatus !== 'REJECTED') {
+        if (isBatchEligibleForSale(b)) {
           stockPerProd[b.product_id] = (stockPerProd[b.product_id] || 0) + Number(b.qty_remaining || 0);
         }
       });
@@ -4850,10 +4933,12 @@ async function dispatchApiCall(fnName, args) {
 
       const list = (batchesRes.data || []).map(b => {
         const cCount = claimCounts[b.batch_no] || claimCounts[b.id] || 0;
-        const qualityStatus = (cCount >= 3 || b.quality_status === 'QUARANTINE') ? 'QUARANTINE' : (b.quality_status || 'NORMAL');
+        const qcUpper = String(b.qc_status || '').toUpperCase();
+        const isPendingPreQC = qcUpper === 'PENDING_QC' || qcUpper === 'IN_PROGRESS';
+        const qualityStatus = (cCount >= 3 || (String(b.quality_status || '').toUpperCase() === 'QUARANTINE' && !isPendingPreQC)) ? 'QUARANTINE' : (b.quality_status || 'NORMAL');
         return {
-          id: b.batch_no || b.id,
-          batch_id: b.batch_no || b.id,
+          id: b.batch_code || b.batch_no || b.id,
+          batch_id: b.batch_code || b.batch_no || b.id,
           product_id: b.product_id,
           product_name: b.products?.name || b.product_name || 'Benih',
           quality_status: qualityStatus,

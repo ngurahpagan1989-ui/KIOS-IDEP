@@ -34,14 +34,14 @@ function toggleAppTheme() {
   const newTheme = isLight ? 'light' : 'dark';
   try {
     localStorage.setItem('app_theme', newTheme);
-  } catch (e) {}
+  } catch (e) { }
   updateThemeToggleBtnUI(newTheme);
   showToast(newTheme === 'light' ? 'Beralih ke Mode Terang' : 'Beralih ke Cyber Glass Dark');
 }
 
 window.initAppTheme = initAppTheme;
 window.toggleAppTheme = toggleAppTheme;
-try { initAppTheme(); } catch (e) {}
+try { initAppTheme(); } catch (e) { }
 
 // ========================= PENYIMPANAN AMAN & SESI BROWSER =========================
 function getSafeSession(key) {
@@ -1669,7 +1669,7 @@ const VaultAudio = {
       gain.connect(this.ctx.destination);
       osc.start();
       osc.stop(this.ctx.currentTime + 0.04);
-    } catch (e) {}
+    } catch (e) { }
   },
   playWheelRatchet: function () {
     if (!this.enabled) return;
@@ -1687,7 +1687,7 @@ const VaultAudio = {
       gain.connect(this.ctx.destination);
       osc.start();
       osc.stop(this.ctx.currentTime + 0.06);
-    } catch (e) {}
+    } catch (e) { }
   },
   playSuccess: function () {
     if (!this.enabled) return;
@@ -1710,7 +1710,7 @@ const VaultAudio = {
         osc.start(now + i * 0.08);
         osc.stop(now + i * 0.08 + 0.45);
       });
-    } catch (e) {}
+    } catch (e) { }
   },
   playError: function () {
     if (!this.enabled) return;
@@ -1730,7 +1730,7 @@ const VaultAudio = {
         osc.start(now);
         osc.stop(now + 0.35);
       });
-    } catch (e) {}
+    } catch (e) { }
   }
 };
 window.VaultAudio = VaultAudio;
@@ -1859,7 +1859,7 @@ window.toggleVaultSFX = function () {
   VaultAudio.enabled = !VaultAudio.enabled;
   try {
     localStorage.setItem('vault_sfx_enabled', VaultAudio.enabled ? '1' : '0');
-  } catch (e) {}
+  } catch (e) { }
   updateVaultSFXUI();
 };
 
@@ -1889,7 +1889,7 @@ window.setVaultTheme = function (theme) {
   }
   try {
     localStorage.setItem('vault_theme', theme);
-  } catch (e) {}
+  } catch (e) { }
   VaultAudio.playClick();
 };
 
@@ -2107,7 +2107,7 @@ function syncGlobalRolePermissions() {
     if (roleContainer) {
       renderRoleMatrixUI();
     }
-  }).catch(function () {});
+  }).catch(function () { });
 }
 
 function updateSidebarVisibility() {
@@ -4909,7 +4909,7 @@ function filterStokTable() {
           const daysLeft = Math.ceil((new Date(topBatch.expiry_date) - today) / (1000 * 60 * 60 * 24));
           const expCls = daysLeft < 30 ? 'badge-danger' : daysLeft < 90 ? 'badge-warning' : 'badge-success';
           expInfo = ' <span class="badge ' + expCls + '" style="font-size:10px;padding:1px 5px;" title="' + daysLeft + ' hari lagi">' + formatDateIndo(topBatch.expiry_date) + '</span>';
-        } catch (e) {}
+        } catch (e) { }
       }
       fifoPriorityHTML =
         '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' +
@@ -5249,7 +5249,7 @@ function renderModalAuditTable() {
         if (!isNaN(dt.getTime())) {
           timeText = dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     const dateTimeHTML = '<div><strong style="color:var(--text-primary);">' + tglText + '</strong>' +
       (timeText ? '<br><span style="font-size:10.5px;color:var(--text-muted);">' + timeText + ' WITA</span>' : '') + '</div>';
@@ -5359,7 +5359,7 @@ function openBatchDetailModal(productId, productName) {
           const days = Math.ceil((new Date(b.expiry_date) - today) / (1000 * 60 * 60 * 24));
           const cls = days < 7 ? 'badge-danger' : days < 30 ? 'badge-warning' : 'badge-success';
           expiryBadge = '<span class="badge ' + cls + '" title="' + days + ' hari lagi">' + formatDateIndo(b.expiry_date) + (days >= 0 ? ' (' + days + 'h)' : ' (Exp)') + '</span>';
-        } catch (e) {}
+        } catch (e) { }
       }
 
       const prodDateStr = b.production_date ? formatDateIndo(b.production_date) : (b.received_at ? formatDateIndo(b.received_at) : '-');
@@ -5411,7 +5411,7 @@ function openBatchDetailModal(productId, productName) {
           if (!isNaN(dt.getTime())) {
             timeStr = dt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
           }
-        } catch (e) {}
+        } catch (e) { }
       }
       const dateDisplay = '<div><strong>' + tglStr + '</strong>' + (timeStr ? '<br><span style="font-size:10.5px;color:var(--text-muted);">' + timeStr + ' WITA</span>' : '') + '</div>';
       const refCode = m.reference_no || m.batch_code || m.ref_id || '-';
@@ -6577,8 +6577,8 @@ function getQCStageLabel(stageCode) {
   const map = {
     'UJI_1_PETANI': '1. Uji Lapangan Petani',
     'UJI_2_LAB': '2. Uji Semai Lab / Kantor (Pre-DHT)',
-  [['UJI', '2', 'LAB'].join('_')]: '2. Uji Semai Lab / Kantor (Pre-DHT)',
-  [['UJI', '2', 'OLD'].join('_')]: '2. Uji Semai Lab / Kantor (Pre-DHT)',
+    [['UJI', '2', 'LAB'].join('_')]: '2. Uji Semai Lab / Kantor (Pre-DHT)',
+    [['UJI', '2', 'OLD'].join('_')]: '2. Uji Semai Lab / Kantor (Pre-DHT)',
     'DHT_24JAM': '3. Log DHT 1 Hari',
     'UJI_3_PASCA_DHT': '4. Uji Semai Pasca-DHT',
     'UJI_BERKALA': '5. Uji Berkala (Simpan > 6 Bulan)'
@@ -10005,7 +10005,7 @@ function getInvoiceSignatureData(tx) {
     try {
       const raw = localStorage.getItem('inv_sig_' + id);
       if (raw) return JSON.parse(raw);
-    } catch (e) {}
+    } catch (e) { }
   }
   return null;
 }
@@ -10287,7 +10287,7 @@ function showInvoiceSignaturePadDialog(data, signerUser) {
     api('signInvoice', TOKEN, txId, signPayload).then(function (res) {
       try {
         localStorage.setItem('inv_sig_' + txId, JSON.stringify(signPayload));
-      } catch (e) {}
+      } catch (e) { }
 
       tx.finance_signature = signatureDataUrl;
       tx.finance_signer_name = inputSigner;
@@ -16767,7 +16767,7 @@ function drawStockValuationUI(data) {
     '    <svg class="cyber-stat-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none"><path d="M0,18 Q35,28 70,8 T100,22 L100,30 L0,30 Z" fill="rgba(16,185,129,0.15)"></path><path d="M0,18 Q35,28 70,8 T100,22" fill="none" stroke="#10B981" stroke-width="2"></path></svg>' +
     '  </div>' +
     '</div>' +
-    <!-- BILAH FILTER & AKSI INTERAKTIF -->' +
+    '<!-- BILAH FILTER & AKSI INTERAKTIF -->' +
     '<div class="card" style="margin-bottom:20px;padding:16px;">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">' +
     '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:280px;">' +
@@ -17355,7 +17355,7 @@ function drawPeriodClosingUI() {
 function openPeriodClosingWizard() {
   const monthNamesIndo = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const now = new Date();
-  
+
   // Rekomendasi periode default: jika tanggal 1-5, rekomendasikan bulan lalu; jika > 5, bulan berjalan
   let targetMonth = now.getMonth();
   let targetYear = now.getFullYear();
@@ -17368,7 +17368,7 @@ function openPeriodClosingWizard() {
   }
 
   const defaultPeriodName = 'Tutup Buku Periode ' + monthNamesIndo[targetMonth] + ' ' + targetYear;
-  
+
   // Tanggal awal & akhir bulan target
   const startDay = new Date(targetYear, targetMonth, 1);
   const endDay = new Date(targetYear, targetMonth + 1, 0);
@@ -18382,7 +18382,7 @@ function drawPengaturanUI(settings) {
         AVAILABLE_ROLES = Object.keys(resolvedPerms);
         setSafeSession('ekasir_available_roles', JSON.stringify(AVAILABLE_ROLES));
       }
-    } catch (e) {}
+    } catch (e) { }
   }
   if (!CURRENT_ROLES_PERMISSIONS) {
     CURRENT_ROLES_PERMISSIONS = getDefaultRolesPermissions();
@@ -19037,8 +19037,8 @@ function executeDeleteUserAccount(userId, username) {
   api('deleteUser', TOKEN, userId, username).then(function () {
     CURRENT_USERS_LIST = (CURRENT_USERS_LIST || []).filter(function (u) {
       return String(u.id) !== String(userId) &&
-             String(u.username) !== String(userId) &&
-             String(u.username) !== String(username);
+        String(u.username) !== String(userId) &&
+        String(u.username) !== String(username);
     });
     renderUsersListUI();
     showToast('Akun pengguna berhasil dihapus.');
@@ -21359,10 +21359,10 @@ if ('serviceWorker' in navigator) {
     }
   });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js?v=13.6', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=14.5', { updateViaCache: 'none' })
       .then(function (reg) {
         console.log('[PWA] Service Worker berhasil terdaftar:', reg.scope);
-        try { if (reg.update) reg.update(); } catch (e) {}
+        try { if (reg.update) reg.update(); } catch (e) { }
       })
       .catch(function (err) {
         console.warn('[PWA] Registrasi Service Worker gagal:', err);
@@ -21399,7 +21399,7 @@ function initPwaInstall() {
 
   const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
   const isStandalone = ('standalone' in window.navigator && window.navigator.standalone) ||
-                       window.matchMedia('(display-mode: standalone)').matches;
+    window.matchMedia('(display-mode: standalone)').matches;
 
   // Jika dibuka di Safari iOS dan belum dalam mode standalone, tampilkan banner
   if (isIos && !isStandalone && banner) {
@@ -21478,14 +21478,14 @@ function getDeviceNotifPrefs() {
         return Object.assign(defaults, parsed);
       }
     }
-  } catch (e) {}
+  } catch (e) { }
   return defaults;
 }
 
 function saveDeviceNotifPrefs(prefs) {
   try {
     localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(prefs));
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function getEnabledNotifCategoriesArray() {
@@ -21507,7 +21507,7 @@ function getReadNotifIdsSet() {
   try {
     const raw = JSON.parse(localStorage.getItem(NOTIF_READ_IDS_KEY) || '[]');
     if (Array.isArray(raw)) return new Set(raw);
-  } catch (e) {}
+  } catch (e) { }
   return new Set();
 }
 
@@ -21515,14 +21515,14 @@ function saveReadNotifIdsSet(idSet) {
   try {
     const arr = Array.from(idSet).slice(-250);
     localStorage.setItem(NOTIF_READ_IDS_KEY, JSON.stringify(arr));
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function loadStoredNotifications() {
   try {
     const raw = JSON.parse(localStorage.getItem(NOTIF_STORAGE_KEY) || '[]');
     if (Array.isArray(raw)) return raw;
-  } catch (e) {}
+  } catch (e) { }
   return [];
 }
 
@@ -21530,7 +21530,7 @@ function persistNotificationsList() {
   try {
     const trimmed = APP_NOTIFICATIONS_LIST.slice(0, 80);
     localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(trimmed));
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function getNotifCategoryMeta(category, urgent) {
@@ -21582,9 +21582,9 @@ function playGentleNotifChime(isUrgent) {
     osc.start();
     osc.stop(ctx.currentTime + 0.33);
     setTimeout(function () {
-      try { ctx.close(); } catch (e) {}
+      try { ctx.close(); } catch (e) { }
     }, 500);
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function ringTopbarBellAnimation() {
@@ -21647,7 +21647,7 @@ function triggerNativePhoneNotification(notif, forceShow) {
           payload: Object.assign({ title: notif.title || '🔔 Notifikasi Toko' }, options.data)
         });
       }
-    }).catch(function () {});
+    }).catch(function () { });
   }
 }
 
@@ -22088,7 +22088,7 @@ async function disableDevicePushNotifications() {
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
         const ep = sub.endpoint;
-        try { await sub.unsubscribe(); } catch (e) {}
+        try { await sub.unsubscribe(); } catch (e) { }
         if (TOKEN && ep) {
           await api('removePushSubscription', TOKEN, ep);
         }
@@ -22130,7 +22130,7 @@ async function sendTestDeviceNotification() {
       category: 'general',
       route: '#dashboard',
       targetEndpoint: window.__CURRENT_PUSH_ENDPOINT
-    }).catch(function () {});
+    }).catch(function () { });
   }
 
   showToast('Notifikasi uji coba dikirim ke layar perangkat Anda!');
@@ -22276,7 +22276,7 @@ function getDailyEmittedAlertKeys() {
     if (parsed && parsed.date === todayStr && Array.isArray(parsed.keys)) {
       return { date: todayStr, set: new Set(parsed.keys) };
     }
-  } catch (e) {}
+  } catch (e) { }
   return { date: todayStr, set: new Set() };
 }
 
@@ -22286,7 +22286,7 @@ function saveDailyEmittedAlertKeys(dateStr, keySet) {
       date: dateStr,
       keys: Array.from(keySet)
     }));
-  } catch (e) {}
+  } catch (e) { }
 }
 
 async function runSmartOperationalAlertScan(isManual) {
@@ -22460,7 +22460,7 @@ function setupSupabaseRealtimeNotifChannel() {
   if (!window.supabase || typeof window.supabase.channel !== 'function') return;
   try {
     if (window.__LIVE_NOTIF_CHANNEL) {
-      try { window.supabase.removeChannel(window.__LIVE_NOTIF_CHANNEL); } catch (e) {}
+      try { window.supabase.removeChannel(window.__LIVE_NOTIF_CHANNEL); } catch (e) { }
       window.__LIVE_NOTIF_CHANNEL = null;
     }
 
@@ -22525,7 +22525,7 @@ function initAppNotifications() {
         ingestIncomingNotification(item, { silent: true, showOsBanner: false, playSound: false });
       });
     }
-  }).catch(function () {});
+  }).catch(function () { });
 
   if (_notifScanIntervalId) {
     clearInterval(_notifScanIntervalId);
@@ -22547,7 +22547,7 @@ function cleanupAppNotifications() {
     _notifScanIntervalId = null;
   }
   if (window.__LIVE_NOTIF_CHANNEL && window.supabase && typeof window.supabase.removeChannel === 'function') {
-    try { window.supabase.removeChannel(window.__LIVE_NOTIF_CHANNEL); } catch (e) {}
+    try { window.supabase.removeChannel(window.__LIVE_NOTIF_CHANNEL); } catch (e) { }
     window.__LIVE_NOTIF_CHANNEL = null;
   }
   _notifSystemInitialized = false;
@@ -22653,9 +22653,9 @@ function copyCatalogPublicUrl() {
   const url = input.value;
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(function() {
+    navigator.clipboard.writeText(url).then(function () {
       showToast('Tautan katalog publik berhasil disalin ke clipboard! 📋');
-    }).catch(function() {
+    }).catch(function () {
       fallbackCopyCatalogText(input);
     });
   } else {
@@ -22971,7 +22971,7 @@ function buildCatalogPromoSettingsHTML(settings) {
     '      </label>' +
     '      <span style="font-size:11px;color:var(--text-muted);">Maks. 3 Slide Banner</span>' +
     '    </div>' +
-         bannersHtml +
+    bannersHtml +
     '  </div>' +
 
     '  <!-- 3. Produk Pilihan / Paling Laris -->' +
@@ -23109,7 +23109,7 @@ function playOnlineOrderDing() {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.45);
-  } catch (e) {}
+  } catch (e) { }
 }
 
 async function fetchOnlineOrdersList() {
@@ -23128,7 +23128,7 @@ async function fetchOnlineOrdersList() {
       });
       return data;
     }
-  } catch (e) {}
+  } catch (e) { }
 
   // 2. Fallback otomatis ke tabel settings
   try {
@@ -23150,11 +23150,11 @@ async function fetchOnlineOrdersList() {
             }
             list.push(parsed);
           }
-        } catch (err) {}
+        } catch (err) { }
       });
       return list;
     }
-  } catch (e) {}
+  } catch (e) { }
 
   return [];
 }
@@ -23664,7 +23664,7 @@ async function updateOnlineOrderStatus(orderId, newStatus) {
       if (!rpcErr && rpcData && rpcData.success) {
         updated = true;
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // 3. Coba direct update ke tabel online_orders (aman tanpa UUID casting crash)
@@ -23712,7 +23712,7 @@ async function updateOnlineOrderStatus(orderId, newStatus) {
               updated = true;
               break;
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
     } catch (e) {
@@ -23880,7 +23880,7 @@ window.handleLoginWhatsAppSupport = function () {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.store_phone) phone = String(parsed.store_phone).trim();
     }
-  } catch (e) {}
+  } catch (e) { }
 
   if (!phone && typeof APP_SETTINGS !== 'undefined' && APP_SETTINGS && APP_SETTINGS.store_phone) {
     phone = String(APP_SETTINGS.store_phone).trim();
@@ -23918,7 +23918,7 @@ window.openLoginGuideModal = function () {
     return;
   }
 
-  const modalHtml = 
+  const modalHtml =
     '<div id="login-guide-modal-overlay" class="login-guide-modal-overlay" onclick="if(event.target===this) closeLoginGuideModal()">' +
     '  <div class="login-guide-modal-card">' +
     '    <div class="login-guide-modal-header">' +

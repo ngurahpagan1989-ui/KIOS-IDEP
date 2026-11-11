@@ -503,17 +503,57 @@ function isBatchEligibleForSale(b) {
 }
 
 /**
- * Helper menyelesaikan kode batch terbaca (batch_code) dari payload atau lookup stock_batches.
+ * Helper menyelesaikan konteks metadata QC terbaca (batch_code, product_name, farmer_name, tested_by)
+ * dari payload atau lookup stock_batches/products agar selaras dengan skema seed_qc_logs.
  */
-async function resolveBatchCodeDisplay(payload) {
-  let code = (payload && payload.batch_code) ? String(payload.batch_code).trim() : '';
-  if (!code && payload && payload.batch_id) {
+async function resolveQCLogContext(payload) {
+  const user = window.CURRENT_USER_PROFILE || window.CURRENT_USER || null;
+  const testedBy = (user && (user.full_name || user.name || user.username || user.email || user.id))
+    ? String(user.full_name || user.name || user.username || user.email || user.id).trim()
+    : 'Sistem';
+
+  let batchCode = (payload && payload.batch_code) ? String(payload.batch_code).trim() : '';
+  let productName = (payload && payload.product_name) ? String(payload.product_name).trim() : '';
+  let farmerName = (payload && payload.farmer_name) ? String(payload.farmer_name).trim() : '';
+
+  if (payload && payload.batch_id && (!batchCode || !productName || !farmerName)) {
     try {
-      const { data: meta } = await supabase.from('stock_batches').select('batch_code').eq('id', payload.batch_id).maybeSingle();
-      if (meta && meta.batch_code) code = meta.batch_code;
-    } catch (e) {}
+      let metaRes = await supabase
+        .from('stock_batches')
+        .select('batch_code, farmer_name, products(name), purchases(farmer_name, farmers(name))')
+        .eq('id', payload.batch_id)
+        .maybeSingle();
+
+      if (metaRes.error) {
+        metaRes = await supabase
+          .from('stock_batches')
+          .select('batch_code, farmer_name, products(name)')
+          .eq('id', payload.batch_id)
+          .maybeSingle();
+      }
+
+      const meta = metaRes.data;
+      if (meta) {
+        if (!batchCode && meta.batch_code) batchCode = String(meta.batch_code).trim();
+        if (!productName && meta.products && meta.products.name) productName = String(meta.products.name).trim();
+        if (!farmerName) {
+          farmerName = (meta.purchases && meta.purchases.farmers && meta.purchases.farmers.name) ||
+            (meta.purchases && meta.purchases.farmer_name) ||
+            meta.farmer_name ||
+            '';
+        }
+      }
+    } catch (e) {
+      console.warn('[QC] Gagal lookup konteks batch:', e);
+    }
   }
-  return code || (payload && payload.batch_id ? String(payload.batch_id) : '-');
+
+  return {
+    batch_code: batchCode || (payload && payload.batch_id ? String(payload.batch_id) : '-'),
+    product_name: productName || '',
+    farmer_name: farmerName || '',
+    tested_by: testedBy
+  };
 }
 
 /**
@@ -2409,14 +2449,15 @@ async function dispatchApiCall(fnName, args) {
           last_germination_rate: lastLog && lastLog.germination_rate !== null ? Number(lastLog.germination_rate) : null,
           last_tray_a: lastLog ? Number(lastLog.tray_a_count || 0) : null,
           last_tray_b: lastLog ? Number(lastLog.tray_b_count || 0) : null,
-          last_photo_url: lastLog ? (lastLog.photo_url || '') : '',
-          last_tested_at: lastLog ? lastLog.tested_at : '',
+          last_photo_url: lastLog ? (lastLog.photo_drive_url || lastLog.photo_url || '') : '',
+          last_tested_at: lastLog ? (lastLog.tested_at || lastLog.created_at || '') : '',
           last_tested_by: lastLog ? lastLog.tested_by : '',
           last_status: lastLog ? lastLog.status : 'PENDING',
           notes: lastLog ? (lastLog.notes || '') : '',
           history: bLogs.map(l => ({
             ...l,
-            photo_drive_url: l.photo_url || ''
+            photo_drive_url: l.photo_drive_url || l.photo_url || '',
+            tested_at: l.tested_at || l.created_at || ''
           }))
         };
       });
@@ -2426,10 +2467,11 @@ async function dispatchApiCall(fnName, args) {
 
     case 'saveQCStageWithPhoto': {
       const [, payload] = args;
-      const user = window.CURRENT_USER_PROFILE;
       const stageCode = String(payload.stage || 'RUTIN').toUpperCase().trim();
       const isFinalReleaseStage = stageCode === 'UJI_3_PASCA_DHT' || stageCode === 'PASCA_DHT' || stageCode === 'UJI_BERKALA';
-      const batchCodeDisplay = await resolveBatchCodeDisplay(payload);
+      const qcCtx = await resolveQCLogContext(payload);
+      const batchCodeDisplay = qcCtx.batch_code;
+      const nowIso = new Date().toISOString();
 
       let photoUrl = payload.photo_url || '';
       if (payload.imageBase64 && payload.imageBase64.startsWith('data:image')) {
@@ -2437,7 +2479,7 @@ async function dispatchApiCall(fnName, args) {
           const fileName = `qc_${payload.batch_id}_${stageCode}.jpg`;
           photoUrl = await uploadToSupabaseStorage('qc-photos', fileName, payload.imageBase64, payload.imageMimeType || 'image/jpeg');
         } catch (uploadErr) {
-          console.warn('[QC Upload Storage Fallback] Menggunakan base64 sebagai fallback photo_url:', uploadErr);
+          console.warn('[QC Upload Storage Fallback] Menggunakan base64 sebagai fallback photo_drive_url:', uploadErr);
           photoUrl = payload.imageBase64;
         }
       }
@@ -2465,20 +2507,23 @@ async function dispatchApiCall(fnName, args) {
         }
       }
 
-      const qcCode = await generateSequentialDocNo('QC', 'seed_qc_logs', 'qc_code');
+      const qcId = await generateSequentialDocNo('QC', 'seed_qc_logs', 'qc_id');
       const { data: qcRecord, error: qcErr } = await supabase.from('seed_qc_logs').insert({
-        qc_code: qcCode,
+        qc_id: qcId,
         batch_id: payload.batch_id,
+        product_name: qcCtx.product_name,
+        farmer_name: qcCtx.farmer_name,
         stage: stageCode,
         germination_rate: germRate,
         tray_a_count: Number(payload.tray_a || 0),
         tray_b_count: Number(payload.tray_b || 0),
-        photo_url: photoUrl,
+        photo_drive_url: photoUrl,
         dht_oven_no: payload.dht_oven_no || null,
         dht_target_temp: payload.dht_target_temp ? Number(payload.dht_target_temp) : null,
         dht_start_time: payload.dht_start_time || null,
         dht_end_time: payload.dht_end_time || null,
-        tested_by: user ? user.id : null,
+        tested_at: nowIso,
+        tested_by: qcCtx.tested_by,
         status: qcStatus,
         notes: payload.notes || ''
       }).select().single();
@@ -2496,11 +2541,12 @@ async function dispatchApiCall(fnName, args) {
       }
 
       if (germRate !== null) {
-        await supabase.from('stock_batches').update({
+        const { error: batchUpdErr } = await supabase.from('stock_batches').update({
           quality_status: batchQuality,
           qc_status: batchQcStatus,
-          updated_at: new Date().toISOString()
+          updated_at: nowIso
         }).eq('id', payload.batch_id);
+        if (batchUpdErr) throw batchUpdErr;
       }
 
       if (batchQuality === 'QUARANTINE' || qcStatus === 'FAILED') {
@@ -2543,32 +2589,37 @@ async function dispatchApiCall(fnName, args) {
 
     case 'startDHTSession': {
       const [, payload] = args;
-      const user = window.CURRENT_USER_PROFILE;
       const startDate = payload.start_time ? new Date(payload.start_time) : new Date();
       const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
-      const batchCodeDisplay = await resolveBatchCodeDisplay(payload);
+      const nowIso = new Date().toISOString();
+      const qcCtx = await resolveQCLogContext(payload);
+      const batchCodeDisplay = qcCtx.batch_code;
 
-      const qcCode = await generateSequentialDocNo('DHT', 'seed_qc_logs', 'qc_code');
+      const qcId = await generateSequentialDocNo('DHT', 'seed_qc_logs', 'qc_id');
       const { data, error } = await supabase.from('seed_qc_logs').insert({
-        qc_code: qcCode,
+        qc_id: qcId,
         batch_id: payload.batch_id,
+        product_name: qcCtx.product_name,
+        farmer_name: qcCtx.farmer_name,
         stage: 'DHT_24JAM',
         dht_oven_no: payload.oven_no || 'Oven 1',
         dht_target_temp: Number(payload.target_temp || 50),
         dht_start_time: startDate.toISOString(),
         dht_end_time: endDate.toISOString(),
-        tested_by: user ? user.id : null,
+        tested_at: nowIso,
+        tested_by: qcCtx.tested_by,
         status: 'IN_PROGRESS',
         notes: payload.notes || ''
       }).select().single();
 
       if (error) throw error;
 
-      await supabase.from('stock_batches').update({
+      const { error: dhtBatchErr } = await supabase.from('stock_batches').update({
         qc_status: 'IN_PROGRESS',
         quality_status: 'NORMAL',
-        updated_at: new Date().toISOString()
+        updated_at: nowIso
       }).eq('id', payload.batch_id);
+      if (dhtBatchErr) throw dhtBatchErr;
 
       emitOperationalNotification({
         title: '🔥 Oven DHT 24 Jam Dimulai',
@@ -2582,7 +2633,8 @@ async function dispatchApiCall(fnName, args) {
 
     case 'completeDHTSession': {
       const [, payload] = args;
-      const batchCodeDisplay = await resolveBatchCodeDisplay(payload);
+      const qcCtx = await resolveQCLogContext(payload);
+      const batchCodeDisplay = qcCtx.batch_code;
 
       const { data, error } = await supabase
         .from('seed_qc_logs')

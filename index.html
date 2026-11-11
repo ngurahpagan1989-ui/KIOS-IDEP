@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <base target="_self">
   <meta name="theme-color" content="#0B0F19">
   <title>POS Kasir &amp; Manajemen Stok</title>
@@ -16,18 +18,23 @@
   <!-- Tipografi Header & UI -->
   <link href="https://api.fontshare.com/v2/css?f[]=general-sans@500,600,700&display=swap" rel="stylesheet">
   <!-- Figtree untuk Sub-header & Konten Utama -->
-  <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css?v=13.8">
   <style>
     /* Critical Inline Dark Cyber Overrides (Prevents Flash & Browser UA Light Inputs) */
     @media screen {
-      html, body {
+
+      html,
+      body {
         background-color: #0B0F19 !important;
         color-scheme: dark !important;
       }
     }
+
     input:-webkit-autofill,
     input:-webkit-autofill:hover,
     input:-webkit-autofill:focus,
@@ -43,6 +50,7 @@
       transition: background-color 9999999s ease-in-out 0s !important;
       color-scheme: dark !important;
     }
+
     input[type="date"],
     input[type="month"],
     input[type="time"],
@@ -52,7 +60,7 @@
   </style>
   <!-- Session Restore Anti-Flash & Idle Timeout Pre-Check -->
   <script>
-    (function() {
+    (function () {
       try {
         var tok = sessionStorage.getItem('ekasir_token') || localStorage.getItem('ekasir_token');
         if (tok) {
@@ -71,12 +79,17 @@
             document.documentElement.classList.add('has-session');
           }
         }
-      } catch(e) {}
+      } catch (e) { }
     })();
   </script>
   <style>
-    html.has-session #login-screen { display: none !important; }
-    html.has-session #app-shell { display: flex !important; }
+    html.has-session #login-screen {
+      display: none !important;
+    }
+
+    html.has-session #app-shell {
+      display: flex !important;
+    }
   </style>
   <script src="i18n.js?v=3.3"></script>
   <script>
@@ -95,7 +108,7 @@
         regs.forEach(function (r) {
           r.update();
           if (r.waiting) {
-            try { r.waiting.postMessage({ type: 'SKIP_WAITING' }); } catch (e) {}
+            try { r.waiting.postMessage({ type: 'SKIP_WAITING' }); } catch (e) { }
           }
         });
       });
@@ -105,7 +118,7 @@
       if (window.i18n && typeof window.i18n.setLanguage === 'function') {
         window.i18n.setLanguage(lang);
       } else {
-        try { localStorage.setItem('pos_language', lang); } catch (e) {}
+        try { localStorage.setItem('pos_language', lang); } catch (e) { }
         document.querySelectorAll('.glassy-lang-btn, .lang-btn').forEach(function (b) {
           if (b.getAttribute('data-lang') === lang) b.classList.add('active');
           else b.classList.remove('active');
@@ -114,6 +127,7 @@
     };
   </script>
 </head>
+
 <body>
 
   <!-- Top Progress Bar (Loading State Indicator) -->
@@ -122,8 +136,8 @@
   <!-- ===================== LOGIN SCREEN OVERLAY (GLASSY LOGIN FORM V3) ===================== -->
   <div id="login-screen" class="login-screen" aria-modal="true" role="dialog">
     <div class="login-backdrop" aria-hidden="true">
-        <div class="glassy-ambient-wave" aria-hidden="true"></div>
-      </div>
+      <div class="glassy-ambient-wave" aria-hidden="true"></div>
+    </div>
 
     <div class="glassy-card-container">
       <!-- TOP MINIMAL UTILITY BAR -->
@@ -133,11 +147,13 @@
           <span class="glassy-security-text">TERMINAL AMAN</span>
         </div>
         <div class="glassy-top-actions">
-          <button type="button" id="vault-sfx-toggle" class="glassy-util-btn" title="Toggle Sound FX" onclick="toggleVaultSFX()">
+          <button type="button" id="vault-sfx-toggle" class="glassy-util-btn" title="Toggle Sound FX"
+            onclick="toggleVaultSFX()">
             <i class="fas fa-volume-up" id="vault-sfx-icon"></i> <span id="vault-sfx-text">SUARA ON</span>
           </button>
           <div class="glassy-lang-pills">
-            <button type="button" class="glassy-lang-btn active" data-lang="id" onclick="setAppLanguage('id')">ID</button>
+            <button type="button" class="glassy-lang-btn active" data-lang="id"
+              onclick="setAppLanguage('id')">ID</button>
             <button type="button" class="glassy-lang-btn" data-lang="en" onclick="setAppLanguage('en')">EN</button>
           </div>
         </div>
@@ -158,7 +174,9 @@
               <label class="glassy-field-label" for="login-username">Nama Pengguna / Email</label>
               <div class="glassy-input-wrap">
                 <span class="glassy-input-icon"><i class="far fa-envelope"></i></span>
-                <input type="text" id="login-username" name="username" placeholder="name@domain.com" required autocomplete="username" autofocus onfocus="setVaultActiveInput('login-username')" style="color-scheme:dark;">
+                <input type="text" id="login-username" name="username" placeholder="name@domain.com" required
+                  autocomplete="username" autofocus onfocus="setVaultActiveInput('login-username')"
+                  style="color-scheme:dark;">
               </div>
             </div>
 
@@ -166,12 +184,16 @@
             <div class="glassy-field-group">
               <div class="glassy-label-row">
                 <label class="glassy-field-label" for="login-password">Kata Sandi</label>
-                <a href="#" class="glassy-text-link" onclick="switchGlassyView('pin'); return false;">Lupa kata sandi?</a>
+                <a href="#" class="glassy-text-link" onclick="switchGlassyView('pin'); return false;">Lupa kata
+                  sandi?</a>
               </div>
               <div class="glassy-input-wrap">
                 <span class="glassy-input-icon"><i class="fas fa-lock"></i></span>
-                <input type="password" id="login-password" name="password" placeholder="••••••••••••" required autocomplete="current-password" onfocus="setVaultActiveInput('login-password')" oninput="window.updateGlassyPinDots && window.updateGlassyPinDots()" style="color-scheme:dark;">
-                <button type="button" id="toggle-password-visibility" class="glassy-pwd-toggle" title="Lihat password" aria-label="Lihat password">
+                <input type="password" id="login-password" name="password" placeholder="••••••••••••" required
+                  autocomplete="current-password" onfocus="setVaultActiveInput('login-password')"
+                  oninput="window.updateGlassyPinDots && window.updateGlassyPinDots()" style="color-scheme:dark;">
+                <button type="button" id="toggle-password-visibility" class="glassy-pwd-toggle" title="Lihat password"
+                  aria-label="Lihat password">
                   <i class="far fa-eye" id="toggle-password-icon"></i>
                 </button>
               </div>
@@ -200,7 +222,8 @@
             <button type="submit" class="glassy-btn-primary" id="login-submit">
               <span id="login-submit-text">Masuk ke Sistem</span>
               <i class="fas fa-arrow-right" style="font-size:14px;margin-left:6px;"></i>
-              <span id="login-spinner" class="spinner-border spinner-border-sm" style="display:none;margin-left:8px;" role="status" aria-hidden="true">
+              <span id="login-spinner" class="spinner-border spinner-border-sm" style="display:none;margin-left:8px;"
+                role="status" aria-hidden="true">
                 <i class="fas fa-circle-notch fa-spin"></i>
               </span>
             </button>
@@ -212,11 +235,13 @@
 
             <!-- Support / Help Buttons (WhatsApp & Panduan Kasir) -->
             <div class="glassy-alt-actions">
-              <button type="button" class="glassy-alt-btn glassy-btn-wa" onclick="handleLoginWhatsAppSupport()" title="Hubungi Admin via WhatsApp">
+              <button type="button" class="glassy-alt-btn glassy-btn-wa" onclick="handleLoginWhatsAppSupport()"
+                title="Hubungi Admin via WhatsApp">
                 <i class="fab fa-whatsapp" style="font-size:18px;color:#25D366;"></i>
                 <span>Bantuan WA</span>
               </button>
-              <button type="button" class="glassy-alt-btn glassy-btn-guide" onclick="openLoginGuideModal()" title="Buka Panduan Singkat Kasir">
+              <button type="button" class="glassy-alt-btn glassy-btn-guide" onclick="openLoginGuideModal()"
+                title="Buka Panduan Singkat Kasir">
                 <i class="fas fa-book-open" style="font-size:16px;color:#38BDF8;"></i>
                 <span>Panduan Kasir</span>
               </button>
@@ -224,7 +249,8 @@
 
             <!-- Footer: Switch to Sign Up (Create Account) -->
             <div class="glassy-card-footer" style="margin-top:16px;">
-              <a href="#" class="glassy-link-cyan" onclick="switchGlassyView('pin'); return false;">Masuk Cepat via Mode PIN Kasir 🔢</a>
+              <a href="#" class="glassy-link-cyan" onclick="switchGlassyView('pin'); return false;">Masuk Cepat via Mode
+                PIN Kasir 🔢</a>
             </div>
           </form>
         </div>
@@ -267,7 +293,8 @@
           </div>
 
           <div class="glassy-card-footer" style="margin-top:20px;">
-            <a href="#" class="glassy-link-cyan" onclick="switchGlassyView('login'); return false;">Kembali ke Login Nama Pengguna &amp; Kata Sandi</a>
+            <a href="#" class="glassy-link-cyan" onclick="switchGlassyView('login'); return false;">Kembali ke Login
+              Nama Pengguna &amp; Kata Sandi</a>
           </div>
         </div>
       </div>
@@ -294,7 +321,8 @@
           <div class="brand-title">POS Kasir &amp; Stok</div>
           <div class="brand-subtitle">Smart Inventory &amp; POS</div>
         </div>
-        <button type="button" id="sidebar-close-btn" class="sidebar-close-btn" title="Tutup Menu" aria-label="Tutup Menu">&times;</button>
+        <button type="button" id="sidebar-close-btn" class="sidebar-close-btn" title="Tutup Menu"
+          aria-label="Tutup Menu">&times;</button>
       </div>
 
       <div class="sidebar-role-badge">
@@ -365,7 +393,8 @@
         <a href="#purnajual" data-route="purnajual" class="nav-item">
           <span class="nav-icon" aria-hidden="true">&#128295;</span>
           <span class="nav-text">Purna Jual &amp; Kepuasan</span>
-          <span id="badge-purnajual-count" class="nav-badge" style="display:none;background:#16A34A;color:#fff;">0</span>
+          <span id="badge-purnajual-count" class="nav-badge"
+            style="display:none;background:#16A34A;color:#fff;">0</span>
         </a>
         <a href="#faktur" data-route="faktur" class="nav-item">
           <span class="nav-icon" aria-hidden="true">&#128196;</span>
@@ -379,17 +408,21 @@
           <span class="nav-icon" aria-hidden="true">&#9881;</span>
           <span class="nav-text">Pengaturan Toko</span>
         </a>
-        <a href="javascript:void(0)" onclick="openPublicCatalogManager()" class="nav-item" style="color:var(--primary);font-weight:700;background:rgba(37,99,235,0.06);margin-top:8px;border-radius:var(--radius-sm);">
+        <a href="javascript:void(0)" onclick="openPublicCatalogManager()" class="nav-item"
+          style="color:var(--primary);font-weight:700;background:rgba(37,99,235,0.06);margin-top:8px;border-radius:var(--radius-sm);">
           <span class="nav-icon" aria-hidden="true"><i class="fas fa-qrcode"></i></span>
           <span class="nav-text">Katalog &amp; QR Meja</span>
-          <span class="badge" style="background:var(--primary);color:#fff;font-size:10px;padding:2px 6px;margin-left:auto;">Publik</span>
+          <span class="badge"
+            style="background:var(--primary);color:#fff;font-size:10px;padding:2px 6px;margin-left:auto;">Publik</span>
         </a>
       </nav>
 
       <div class="sidebar-lang-switch">
         <div class="lang-switch-pill" role="group" aria-label="Language Selector">
-          <button type="button" class="lang-btn active" data-lang="id" onclick="window.i18n && window.i18n.setLanguage('id')">🇮🇩 ID</button>
-          <button type="button" class="lang-btn" data-lang="en" onclick="window.i18n && window.i18n.setLanguage('en')">🇬🇧 EN</button>
+          <button type="button" class="lang-btn active" data-lang="id"
+            onclick="window.i18n && window.i18n.setLanguage('id')">🇮🇩 ID</button>
+          <button type="button" class="lang-btn" data-lang="en"
+            onclick="window.i18n && window.i18n.setLanguage('en')">🇬🇧 EN</button>
         </div>
       </div>
 
@@ -412,7 +445,8 @@
     <div class="main-area">
       <header class="topbar">
         <div class="topbar-left">
-          <button type="button" id="sidebar-toggle-btn" class="topbar-btn sidebar-toggle" aria-label="Buka Menu Navigasi" aria-expanded="false" aria-controls="sidebar">
+          <button type="button" id="sidebar-toggle-btn" class="topbar-btn sidebar-toggle"
+            aria-label="Buka Menu Navigasi" aria-expanded="false" aria-controls="sidebar">
             <span class="hamburger-bar"></span>
             <span class="hamburger-bar"></span>
             <span class="hamburger-bar"></span>
@@ -424,23 +458,31 @@
 
         <div class="topbar-search-wrapper">
           <span class="search-icon" aria-hidden="true">&#128269;</span>
-          <input type="text" id="topbar-global-search" class="topbar-search" placeholder="Cari nota, produk, atau pelanggan..." autocomplete="off">
-          <button type="button" id="search-clear-btn" class="search-clear-btn" style="display:none;" title="Bersihkan pencarian">&times;</button>
+          <input type="text" id="topbar-global-search" class="topbar-search"
+            placeholder="Cari nota, produk, atau pelanggan..." autocomplete="off">
+          <button type="button" id="search-clear-btn" class="search-clear-btn" style="display:none;"
+            title="Bersihkan pencarian">&times;</button>
         </div>
 
         <div class="topbar-actions">
-          <button type="button" id="theme-toggle-btn" class="topbar-icon-btn" onclick="toggleAppTheme()" title="Ganti Tema (Cyber Dark / Light)" aria-label="Ganti Tema">
+          <button type="button" id="theme-toggle-btn" class="topbar-icon-btn" onclick="toggleAppTheme()"
+            title="Ganti Tema (Cyber Dark / Light)" aria-label="Ganti Tema">
             <i class="fas fa-moon" id="theme-toggle-icon"></i>
           </button>
 
           <div class="lang-switch-pill topbar-lang-pill" role="group" aria-label="Language Selector">
-            <button type="button" class="lang-btn active" data-lang="id" onclick="window.i18n && window.i18n.setLanguage('id')">ID</button>
-            <button type="button" class="lang-btn" data-lang="en" onclick="window.i18n && window.i18n.setLanguage('en')">EN</button>
+            <button type="button" class="lang-btn active" data-lang="id"
+              onclick="window.i18n && window.i18n.setLanguage('id')">ID</button>
+            <button type="button" class="lang-btn" data-lang="en"
+              onclick="window.i18n && window.i18n.setLanguage('en')">EN</button>
           </div>
 
-          <button type="button" id="mobile-search-toggle-btn" class="topbar-icon-btn mobile-search-toggle" title="Cari Cepat" aria-label="Cari Cepat">&#128269;</button>
+          <button type="button" id="mobile-search-toggle-btn" class="topbar-icon-btn mobile-search-toggle"
+            title="Cari Cepat" aria-label="Cari Cepat">&#128269;</button>
 
-          <button type="button" class="btn btn-sm btn-secondary topbar-catalog-btn" onclick="openPublicCatalogManager()" title="Katalog Pelanggan Publik &amp; QR Code Meja Kasir" style="display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--primary);border-color:rgba(37,99,235,0.3);">
+          <button type="button" class="btn btn-sm btn-secondary topbar-catalog-btn" onclick="openPublicCatalogManager()"
+            title="Katalog Pelanggan Publik &amp; QR Code Meja Kasir"
+            style="display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--primary);border-color:rgba(37,99,235,0.3);">
             <i class="fas fa-store"></i>
             <span class="btn-label">Katalog Online</span>
           </button>
@@ -449,16 +491,20 @@
             <span class="btn-label">Buka Kasir</span>
           </a>
 
-          <button type="button" id="topbar-guide-btn" class="topbar-icon-btn topbar-guide-btn" onclick="openCurrentPageGuide()" title="Buka Panduan SOP Fitur Ini (Bantuan)" aria-label="Buka Panduan SOP">
+          <button type="button" id="topbar-guide-btn" class="topbar-icon-btn topbar-guide-btn"
+            onclick="openCurrentPageGuide()" title="Buka Panduan SOP Fitur Ini (Bantuan)" aria-label="Buka Panduan SOP">
             <span class="icon-help" aria-hidden="true" style="font-size:15px;font-weight:700;">&#10068;</span>
           </button>
 
-          <button type="button" id="topbar-notif-btn" class="topbar-icon-btn topbar-notif-btn" onclick="toggleNotificationCenter(event)" title="Pusat Notifikasi" aria-label="Pusat Notifikasi" aria-expanded="false">
+          <button type="button" id="topbar-notif-btn" class="topbar-icon-btn topbar-notif-btn"
+            onclick="toggleNotificationCenter(event)" title="Pusat Notifikasi" aria-label="Pusat Notifikasi"
+            aria-expanded="false">
             <span class="icon-bell" aria-hidden="true">&#128276;</span>
             <span id="topbar-notif-badge" class="topbar-notif-badge" style="display:none;" data-no-i18n="true">0</span>
           </button>
 
-          <button type="button" id="topbar-refresh-btn" class="topbar-icon-btn" title="Muat Ulang Data" aria-label="Muat Ulang Data">
+          <button type="button" id="topbar-refresh-btn" class="topbar-icon-btn" title="Muat Ulang Data"
+            aria-label="Muat Ulang Data">
             <span class="icon-refresh">&#8635;</span>
           </button>
 
@@ -476,7 +522,8 @@
         <div class="view-only-banner-content">
           <span class="view-only-icon">&#8505;&#65039;</span>
           <div>
-            <strong>Mode Pantau Aktif:</strong> Anda masuk sebagai <span id="view-only-role-name">Koordinator</span> (Hak akses baca / view-only). Tombol input, aksi tambah, ubah, dan hapus dinonaktifkan.
+            <strong>Mode Pantau Aktif:</strong> Anda masuk sebagai <span id="view-only-role-name">Koordinator</span>
+            (Hak akses baca / view-only). Tombol input, aksi tambah, ubah, dan hapus dinonaktifkan.
           </div>
         </div>
       </div>
@@ -537,7 +584,8 @@
   </div>
 
   <!-- ===================== NON-BLOCKING CONFIRM & ALERT MODAL ===================== -->
-  <div id="confirm-modal" class="modal-overlay modal-overlay-alert" style="display:none;" role="alertdialog" aria-modal="true">
+  <div id="confirm-modal" class="modal-overlay modal-overlay-alert" style="display:none;" role="alertdialog"
+    aria-modal="true">
     <div class="modal-backdrop"></div>
     <div class="modal-dialog modal-dialog-sm">
       <div class="confirm-content">
@@ -553,7 +601,8 @@
   </div>
 
   <!-- ===================== CENTER ALERT & STATUS DIALOG MODAL ===================== -->
-  <div id="alert-modal" class="modal-overlay modal-overlay-alert" style="display:none; z-index: 2200;" role="alertdialog" aria-modal="true" aria-labelledby="alert-modal-title">
+  <div id="alert-modal" class="modal-overlay modal-overlay-alert" style="display:none; z-index: 2200;"
+    role="alertdialog" aria-modal="true" aria-labelledby="alert-modal-title">
     <div class="modal-backdrop" onclick="closeAlertDialog()"></div>
     <div class="modal-dialog modal-dialog-sm alert-modal-dialog">
       <div class="alert-modal-content">
@@ -564,7 +613,8 @@
         <div class="alert-modal-message" id="alert-modal-message">Pesan status sistem.</div>
       </div>
       <div class="modal-footer alert-modal-footer">
-        <button type="button" class="btn btn-primary alert-modal-btn" id="alert-modal-ok-btn" onclick="closeAlertDialog()">
+        <button type="button" class="btn btn-primary alert-modal-btn" id="alert-modal-ok-btn"
+          onclick="closeAlertDialog()">
           <span>Mengerti</span>
         </button>
       </div>
@@ -572,7 +622,8 @@
   </div>
 
   <!-- ===================== MODAL SERAH TERIMA SURAT JALAN / PROOF OF DELIVERY ===================== -->
-  <div id="delivery-signature-modal" class="modal-overlay modal-overlay-pod" style="display:none; z-index: 1060;" role="dialog" aria-modal="true" aria-labelledby="pod-modal-title">
+  <div id="delivery-signature-modal" class="modal-overlay modal-overlay-pod" style="display:none; z-index: 1060;"
+    role="dialog" aria-modal="true" aria-labelledby="pod-modal-title">
     <div class="modal-backdrop" onclick="closeDeliveryReceiptModal(true)"></div>
     <div class="modal-dialog modal-dialog-lg pod-dialog">
       <div class="modal-header pod-modal-header">
@@ -580,10 +631,12 @@
           <span style="font-size:20px;">✍️</span>
           <div>
             <h2 class="modal-title" id="pod-modal-title">Serah Terima Barang Konsinyasi</h2>
-            <div style="font-size:11px;color:var(--text-secondary);font-weight:400;" id="pod-modal-subtitle">Berita Acara Serah Terima Fisik Benih di Lokasi Toko Mitra</div>
+            <div style="font-size:11px;color:var(--text-secondary);font-weight:400;" id="pod-modal-subtitle">Berita
+              Acara Serah Terima Fisik Benih di Lokasi Toko Mitra</div>
           </div>
         </div>
-        <button type="button" class="modal-close-btn" onclick="closeDeliveryReceiptModal(true)" aria-label="Tutup Dialog">&times;</button>
+        <button type="button" class="modal-close-btn" onclick="closeDeliveryReceiptModal(true)"
+          aria-label="Tutup Dialog">&times;</button>
       </div>
       <div class="modal-body pod-modal-body" id="delivery-signature-modal-body">
         <!-- Konten ringkasan pengiriman, tabel benih, form, dan canvas di-render dinamis -->
@@ -600,7 +653,8 @@
     <div class="modal-dialog modal-dialog-lg">
       <div class="modal-header">
         <h2 class="modal-title" id="pod-view-modal-title">📄 Berita Acara &amp; Bukti Serah Terima</h2>
-        <button type="button" class="modal-close-btn" onclick="closePodViewModal()" aria-label="Tutup Dialog">&times;</button>
+        <button type="button" class="modal-close-btn" onclick="closePodViewModal()"
+          aria-label="Tutup Dialog">&times;</button>
       </div>
       <div class="modal-body" id="pod-view-modal-body">
         <!-- Konten detail POD dan tanda tangan -->
@@ -612,7 +666,8 @@
   </div>
 
   <!-- ===================== MODAL RESET DATA UJI COBA (DANGER ZONE) ===================== -->
-  <div id="modal-reset-data" class="modal-overlay modal-overlay-danger" style="display:none; z-index: 1060 !important;" role="dialog" aria-modal="true" aria-labelledby="reset-modal-title">
+  <div id="modal-reset-data" class="modal-overlay modal-overlay-danger" style="display:none; z-index: 1060 !important;"
+    role="dialog" aria-modal="true" aria-labelledby="reset-modal-title">
     <div class="modal-backdrop" onclick="closeResetDataModal()"></div>
     <div class="modal-dialog modal-dialog-sm danger-dialog modal-content">
       <div class="modal-header danger-header">
@@ -620,14 +675,17 @@
           <span style="font-size:22px;">⚠️</span>
           <div>
             <h2 class="modal-title" id="reset-modal-title" style="color:#b91c1c;margin:0;">Zona Bahaya: Reset Data</h2>
-            <div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px;">Pembersihan Khusus Riwayat Transaksi Uji Coba</div>
+            <div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px;">Pembersihan Khusus Riwayat
+              Transaksi Uji Coba</div>
           </div>
         </div>
-        <button type="button" class="modal-close-btn" onclick="closeResetDataModal()" aria-label="Tutup Dialog">&times;</button>
+        <button type="button" class="modal-close-btn" onclick="closeResetDataModal()"
+          aria-label="Tutup Dialog">&times;</button>
       </div>
       <div class="modal-body" style="padding:16px 20px;">
         <p style="font-size:12.5px;color:var(--text-main);margin-bottom:14px;line-height:1.5;">
-          Pilih modul riwayat simulasi yang ingin Anda kosongkan. Data master (produk, batch stok, outlet, kemasan, user, dan pengaturan toko) <strong>tidak akan terhapus</strong>:
+          Pilih modul riwayat simulasi yang ingin Anda kosongkan. Data master (produk, batch stok, outlet, kemasan,
+          user, dan pengaturan toko) <strong>tidak akan terhapus</strong>:
         </p>
 
         <!-- Checklist Modul yang Ingin Dikosongkan -->
@@ -637,11 +695,13 @@
             <span><strong>Riwayat Transaksi Kasir &amp; Detail Item</strong></span>
           </label>
           <label class="danger-check-item">
-            <input type="checkbox" id="reset-mod-consign" value="consign" checked onchange="validateResetConfirmInput()">
+            <input type="checkbox" id="reset-mod-consign" value="consign" checked
+              onchange="validateResetConfirmInput()">
             <span><strong>Mutasi Konsinyasi &amp; Laporan Audit Opname</strong></span>
           </label>
           <label class="danger-check-item">
-            <input type="checkbox" id="reset-mod-aftersales" value="aftersales" checked onchange="validateResetConfirmInput()">
+            <input type="checkbox" id="reset-mod-aftersales" value="aftersales" checked
+              onchange="validateResetConfirmInput()">
             <span><strong>Rekam Medis Kebun &amp; Klaim Purna Jual</strong></span>
           </label>
         </div>
@@ -650,14 +710,18 @@
         <div class="danger-confirmation-box">
           <div class="danger-warning-text">
             <span>⛔</span>
-            <span>Tindakan ini <strong>tidak dapat dibatalkan</strong>. Ketik kata <code>RESET</code> di bawah ini untuk melanjutkan:</span>
+            <span>Tindakan ini <strong>tidak dapat dibatalkan</strong>. Ketik kata <code>RESET</code> di bawah ini untuk
+              melanjutkan:</span>
           </div>
-          <input type="text" id="reset-confirmation-input" class="danger-input-text" placeholder="Ketik RESET di sini..." autocomplete="off" oninput="validateResetConfirmInput()">
+          <input type="text" id="reset-confirmation-input" class="danger-input-text"
+            placeholder="Ketik RESET di sini..." autocomplete="off" oninput="validateResetConfirmInput()">
         </div>
       </div>
-      <div class="modal-footer" style="padding:12px 20px;display:flex;justify-content:flex-end;gap:8px;background:var(--surface-muted);">
+      <div class="modal-footer"
+        style="padding:12px 20px;display:flex;justify-content:flex-end;gap:8px;background:var(--surface-muted);">
         <button type="button" class="btn btn-secondary" onclick="closeResetDataModal()">Batal</button>
-        <button type="button" id="btn-execute-reset" class="btn btn-danger" onclick="executeResetTestingData()" disabled style="opacity:0.5;cursor:not-allowed;" title="Ketik RESET dengan benar untuk mengaktifkan">
+        <button type="button" id="btn-execute-reset" class="btn btn-danger" onclick="executeResetTestingData()" disabled
+          style="opacity:0.5;cursor:not-allowed;" title="Ketik RESET dengan benar untuk mengaktifkan">
           🗑️ Hapus Permanen Data Terpilih
         </button>
       </div>
@@ -665,7 +729,8 @@
   </div>
 
   <!-- ===================== MODAL INPUT QC & DOKUMENTASI FOTO ===================== -->
-  <div id="modal-qc-entry" class="modal-overlay modal-overlay-qc" style="display:none; z-index: 1060;" role="dialog" aria-modal="true" aria-labelledby="qc-modal-title">
+  <div id="modal-qc-entry" class="modal-overlay modal-overlay-qc" style="display:none; z-index: 1060;" role="dialog"
+    aria-modal="true" aria-labelledby="qc-modal-title">
     <div class="modal-backdrop" onclick="closeQCEntryModal()"></div>
     <div class="modal-dialog modal-dialog-lg qc-dialog">
       <div class="modal-header qc-modal-header">
@@ -673,18 +738,23 @@
           <span style="font-size:22px;">🔬</span>
           <div>
             <h2 class="modal-title" id="qc-modal-title">Input Uji QC &amp; Dokumentasi Foto</h2>
-            <div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px;">Standardisasi Daya Tumbuh Duplo 100 Butir (Ambang Minimal Mutu 80%)</div>
+            <div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px;">Standardisasi Daya Tumbuh Duplo
+              100 Butir (Ambang Minimal Mutu 80%)</div>
           </div>
         </div>
-        <button type="button" class="modal-close-btn" onclick="closeQCEntryModal()" aria-label="Tutup Dialog">&times;</button>
+        <button type="button" class="modal-close-btn" onclick="closeQCEntryModal()"
+          aria-label="Tutup Dialog">&times;</button>
       </div>
       <div class="modal-body qc-modal-body" style="padding:18px 22px;">
         <form id="qc-entry-form" onsubmit="event.preventDefault(); submitQCForm();">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:12px;">
+          <div
+            style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:12px;">
             <div>
-              <label class="field-label" for="qc-batch-id">Kode Batch Toples Benih <span style="color:#ef4444;">*</span></label>
+              <label class="field-label" for="qc-batch-id">Kode Batch Toples Benih <span
+                  style="color:#ef4444;">*</span></label>
               <div class="input-wrapper">
-                <select id="qc-batch-id" required style="padding-left:14px;font-family:'JetBrains Mono',monospace;" onchange="onQCBatchSelected()">
+                <select id="qc-batch-id" required style="padding-left:14px;font-family:'JetBrains Mono',monospace;"
+                  onchange="onQCBatchSelected()">
                   <option value="">-- Pilih Batch Antrean QC --</option>
                 </select>
               </div>
@@ -708,8 +778,10 @@
           </div>
 
           <!-- Kartu Info Otomatis (Read-Only / Auto-Populate) Anti-Dobel Ketik -->
-          <div id="qc-batch-auto-card" class="qc-auto-card" style="display:none;margin-bottom:14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px 16px;">
-            <div style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <div id="qc-batch-auto-card" class="qc-auto-card"
+            style="display:none;margin-bottom:14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px 16px;">
+            <div
+              style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
               <span>📋</span> Identitas Batch Terpilih (Otomatis dari Pengadaan Tanpa Dobel Ketik)
             </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">
@@ -733,17 +805,23 @@
           </div>
 
           <!-- Bagian Khusus Dry Heat Treatment (DHT) 24 Jam Oven -->
-          <div id="qc-dht-section" style="display:none;background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:8px;padding:16px;margin-bottom:14px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #FEF3C7;padding-bottom:8px;">
+          <div id="qc-dht-section"
+            style="display:none;background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:8px;padding:16px;margin-bottom:14px;">
+            <div
+              style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #FEF3C7;padding-bottom:8px;">
               <div style="font-weight:700;font-size:13.5px;color:#92400E;display:flex;align-items:center;gap:6px;">
                 <span style="font-size:16px;">🔥</span> Parameter Oven Dry Heat Treatment (DHT) 24 Jam
               </div>
-              <span class="badge" style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;font-size:11px;">Durasi Tetap: 24 Jam</span>
+              <span class="badge"
+                style="background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;font-size:11px;">Durasi Tetap: 24
+                Jam</span>
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:12px;">
+            <div
+              style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:12px;">
               <div>
-                <label class="field-label" for="qc-dht-oven">Pilihan Unit Oven <span style="color:#ef4444;">*</span></label>
+                <label class="field-label" for="qc-dht-oven">Pilihan Unit Oven <span
+                    style="color:#ef4444;">*</span></label>
                 <div class="input-wrapper">
                   <select id="qc-dht-oven" style="padding-left:14px;font-weight:600;">
                     <option value="Oven 1">🔥 Oven 1 (Lab Utama)</option>
@@ -754,35 +832,46 @@
               </div>
 
               <div>
-                <label class="field-label" for="qc-dht-temp">Suhu Target (°C) <span style="color:#ef4444;">*</span></label>
+                <label class="field-label" for="qc-dht-temp">Suhu Target (°C) <span
+                    style="color:#ef4444;">*</span></label>
                 <div class="input-wrapper">
-                  <input type="number" id="qc-dht-temp" min="40" max="75" step="1" value="50" style="padding-left:14px;font-weight:700;" placeholder="Default: 50°C">
+                  <input type="number" id="qc-dht-temp" min="40" max="75" step="1" value="50"
+                    style="padding-left:14px;font-weight:700;" placeholder="Default: 50°C">
                 </div>
-                <small style="font-size:10.5px;color:#78350F;margin-top:2px;display:block;">Rentang aman: 40°C – 75°C (Standar: 50°C)</small>
+                <small style="font-size:10.5px;color:#78350F;margin-top:2px;display:block;">Rentang aman: 40°C – 75°C
+                  (Standar: 50°C)</small>
               </div>
 
               <div>
-                <label class="field-label" for="qc-dht-start-time">Jam Masuk Oven <span style="color:#ef4444;">*</span></label>
+                <label class="field-label" for="qc-dht-start-time">Jam Masuk Oven <span
+                    style="color:#ef4444;">*</span></label>
                 <div class="input-wrapper">
-                  <input type="datetime-local" id="qc-dht-start-time" onchange="checkWeekendWarning(this.value)" style="padding-left:10px;font-weight:600;font-size:12px;">
+                  <input type="datetime-local" id="qc-dht-start-time" onchange="checkWeekendWarning(this.value)"
+                    style="padding-left:10px;font-weight:600;font-size:12px;">
                 </div>
               </div>
             </div>
 
             <!-- Peringatan Akhir Pekan (Weekend Warning) Dinamis -->
-            <div id="qc-weekend-warning" style="display:none;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;padding:10px 14px;color:#991B1B;font-size:12px;margin-top:8px;line-height:1.4;">
-              <strong>⚠️ Perhatian:</strong> Durasi 24 jam akan berakhir di akhir pekan saat kantor/lab tutup. Disarankan memulai proses pada hari Senin–Kamis agar benih dapat dikeluarkan tepat waktu.
+            <div id="qc-weekend-warning"
+              style="display:none;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;padding:10px 14px;color:#991B1B;font-size:12px;margin-top:8px;line-height:1.4;">
+              <strong>⚠️ Perhatian:</strong> Durasi 24 jam akan berakhir di akhir pekan saat kantor/lab tutup.
+              Disarankan memulai proses pada hari Senin–Kamis agar benih dapat dikeluarkan tepat waktu.
             </div>
 
-            <div style="margin-top:10px;padding:8px 12px;background:#FEF3C7;border-radius:6px;font-size:11.5px;color:#92400E;display:flex;align-items:center;gap:6px;">
-              <span>ℹ️</span> <span>Setelah tombol <strong>Mulai Proses Oven</strong> ditekan, timer 24 jam akan berjalan otomatis dan terpantau secara realtime di tabel QC.</span>
+            <div
+              style="margin-top:10px;padding:8px 12px;background:#FEF3C7;border-radius:6px;font-size:11.5px;color:#92400E;display:flex;align-items:center;gap:6px;">
+              <span>ℹ️</span> <span>Setelah tombol <strong>Mulai Proses Oven</strong> ditekan, timer 24 jam akan
+                berjalan otomatis dan terpantau secara realtime di tabel QC.</span>
             </div>
           </div>
 
           <!-- Bagian Baki Semai Duplo -->
-          <div id="qc-germination-section" style="background:var(--surface-muted);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;">
+          <div id="qc-germination-section"
+            style="background:var(--surface-muted);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-              <span style="font-weight:600;font-size:13px;color:var(--text-main);">🌱 Pengamatan Baki Semai Duplo (100 Butir)</span>
+              <span style="font-weight:600;font-size:13px;color:var(--text-main);">🌱 Pengamatan Baki Semai Duplo (100
+                Butir)</span>
               <span style="font-size:11.5px;color:var(--text-secondary);">Maks. 50 butir per baki</span>
             </div>
 
@@ -790,19 +879,22 @@
               <div>
                 <label class="field-label" for="qc-tray-a">Baki A (Jumlah Tumbuh 0-50)</label>
                 <div class="input-wrapper">
-                  <input type="number" id="qc-tray-a" min="0" max="50" placeholder="0 - 50" value="0" oninput="calculateQCGermination()" style="padding-left:14px;font-weight:600;">
+                  <input type="number" id="qc-tray-a" min="0" max="50" placeholder="0 - 50" value="0"
+                    oninput="calculateQCGermination()" style="padding-left:14px;font-weight:600;">
                 </div>
               </div>
               <div>
                 <label class="field-label" for="qc-tray-b">Baki B (Jumlah Tumbuh 0-50)</label>
                 <div class="input-wrapper">
-                  <input type="number" id="qc-tray-b" min="0" max="50" placeholder="0 - 50" value="0" oninput="calculateQCGermination()" style="padding-left:14px;font-weight:600;">
+                  <input type="number" id="qc-tray-b" min="0" max="50" placeholder="0 - 50" value="0"
+                    oninput="calculateQCGermination()" style="padding-left:14px;font-weight:600;">
                 </div>
               </div>
             </div>
 
             <!-- Live Indicator Total Daya Tumbuh -->
-            <div id="qc-germination-indicator" class="qc-rate-indicator qc-rate-fail" style="margin-top:12px;padding:10px 14px;border-radius:6px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;">
+            <div id="qc-germination-indicator" class="qc-rate-indicator qc-rate-fail"
+              style="margin-top:12px;padding:10px 14px;border-radius:6px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;">
               <span id="qc-rate-text">Daya Tumbuh: 0% (Standar Mutu: Min 80%)</span>
               <span id="qc-rate-badge" class="badge badge-danger">BELUM MEMENUHI</span>
             </div>
@@ -811,23 +903,31 @@
           <!-- Area Kamera On-Site & Unggah Foto Baki -->
           <div class="qc-camera-section" style="margin-bottom:14px;">
             <label class="field-label">Dokumentasi Foto Baki On-Site</label>
-            <input type="file" id="qc-camera-input" accept="image/*" capture="environment" class="hidden" style="display:none;" onchange="handleQCCameraCapture(event)">
+            <input type="file" id="qc-camera-input" accept="image/*" capture="environment" class="hidden"
+              style="display:none;" onchange="handleQCCameraCapture(event)">
 
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-              <button type="button" class="btn btn-secondary" id="qc-camera-btn" onclick="triggerQCCamera()" style="display:inline-flex;align-items:center;gap:6px;">
+              <button type="button" class="btn btn-secondary" id="qc-camera-btn" onclick="triggerQCCamera()"
+                style="display:inline-flex;align-items:center;gap:6px;">
                 <i class="fas fa-camera"></i>
                 <span>📷 Buka Kamera &amp; Jepret Baki Semai</span>
               </button>
-              <span style="font-size:11.5px;color:var(--text-secondary);">Kompresi otomatis client-side (~150-300 KB) untuk upload kilat.</span>
+              <span style="font-size:11.5px;color:var(--text-secondary);">Kompresi otomatis client-side (~150-300 KB)
+                untuk upload kilat.</span>
             </div>
 
             <!-- Kotak Pratinjau Gambar -->
             <div id="qc-photo-preview" class="qc-photo-preview-box" style="display:none;margin-top:8px;">
-              <div class="qc-preview-wrapper" style="position:relative;display:inline-block;border-radius:8px;overflow:hidden;border:1px solid var(--border);max-width:280px;">
-                <img id="qc-preview-img" src="" alt="Pratinjau Foto Baki QC" style="display:block;width:100%;height:auto;max-height:180px;object-fit:cover;cursor:pointer;" onclick="zoomQCPreview()">
-                <div class="qc-preview-overlay" style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(0,0,0,0.7);color:#fff;font-size:11px;">
+              <div class="qc-preview-wrapper"
+                style="position:relative;display:inline-block;border-radius:8px;overflow:hidden;border:1px solid var(--border);max-width:280px;">
+                <img id="qc-preview-img" src="" alt="Pratinjau Foto Baki QC"
+                  style="display:block;width:100%;height:auto;max-height:180px;object-fit:cover;cursor:pointer;"
+                  onclick="zoomQCPreview()">
+                <div class="qc-preview-overlay"
+                  style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(0,0,0,0.7);color:#fff;font-size:11px;">
                   <span id="qc-file-size-info">0 KB</span>
-                  <button type="button" class="btn btn-sm btn-danger" onclick="removeQCPhoto()" style="padding:1px 6px;font-size:10.5px;">&times; Hapus Foto</button>
+                  <button type="button" class="btn btn-sm btn-danger" onclick="removeQCPhoto()"
+                    style="padding:1px 6px;font-size:10.5px;">&times; Hapus Foto</button>
                 </div>
               </div>
             </div>
@@ -836,16 +936,20 @@
           <!-- Catatan / Kondisi Media Semai -->
           <div style="margin-bottom:16px;">
             <label class="field-label" for="qc-notes">Catatan / Kondisi Media Semai &amp; Suhu</label>
-            <textarea id="qc-notes" rows="2" placeholder="Contoh: Media kokopit + kompos steril, kecambah serempak di hari ke-5, vigor sehat..." style="width:100%;border-radius:6px;border:1px solid var(--border);padding:8px 12px;font-size:12.5px;box-sizing:border-box;"></textarea>
+            <textarea id="qc-notes" rows="2"
+              placeholder="Contoh: Media kokopit + kompos steril, kecambah serempak di hari ke-5, vigor sehat..."
+              style="width:100%;border-radius:6px;border:1px solid var(--border);padding:8px 12px;font-size:12.5px;box-sizing:border-box;"></textarea>
           </div>
 
-          <div id="qc-upload-status" style="display:none;padding:10px 14px;background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF;border-radius:6px;font-size:12px;margin-bottom:12px;">
+          <div id="qc-upload-status"
+            style="display:none;padding:10px 14px;background:#EFF6FF;border:1px solid #BFDBFE;color:#1E40AF;border-radius:6px;font-size:12px;margin-bottom:12px;">
             <span class="sync-spinner" style="display:inline-block;vertical-align:middle;margin-right:6px;"></span>
             <span id="qc-upload-status-text">Menyimpan catatan dan mengunggah foto ke Drive...</span>
           </div>
         </form>
       </div>
-      <div class="modal-footer qc-modal-footer" style="padding:12px 22px;background:var(--surface-muted);display:flex;justify-content:flex-end;gap:10px;">
+      <div class="modal-footer qc-modal-footer"
+        style="padding:12px 22px;background:var(--surface-muted);display:flex;justify-content:flex-end;gap:10px;">
         <button type="button" class="btn btn-secondary" onclick="closeQCEntryModal()">Batal</button>
         <button type="button" class="btn btn-primary" id="btn-save-qc" onclick="submitQCForm()">
           <i class="fas fa-check-circle mr-1"></i> Simpan Catatan QC
@@ -855,25 +959,35 @@
   </div>
 
   <!-- ===================== MODAL PRATINJAU FOTO DOKUMENTASI (LIGHTBOX) ===================== -->
-  <div id="modal-qc-photo-viewer" class="modal-overlay qc-lightbox-overlay" style="display:none; z-index: 1070;" role="dialog" aria-modal="true">
+  <div id="modal-qc-photo-viewer" class="modal-overlay qc-lightbox-overlay" style="display:none; z-index: 1070;"
+    role="dialog" aria-modal="true">
     <div class="modal-backdrop" onclick="closeQCPhotoViewer()"></div>
     <div class="modal-dialog qc-lightbox-dialog" style="max-width:850px;width:95%;">
-      <div class="modal-header qc-lightbox-header" style="background:#18181B;color:#fff;border-bottom:1px solid #27272A;">
+      <div class="modal-header qc-lightbox-header"
+        style="background:#18181B;color:#fff;border-bottom:1px solid #27272A;">
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:18px;">📷</span>
           <div>
-            <h3 class="modal-title" id="qc-lightbox-title" style="color:#fff;font-size:14px;margin:0;">Dokumentasi Foto Baki Benih</h3>
-            <div id="qc-lightbox-subtitle" style="font-size:11px;color:#A1A1AA;margin-top:2px;">Bukti Keaslian &amp; Uji Semai On-Site</div>
+            <h3 class="modal-title" id="qc-lightbox-title" style="color:#fff;font-size:14px;margin:0;">Dokumentasi Foto
+              Baki Benih</h3>
+            <div id="qc-lightbox-subtitle" style="font-size:11px;color:#A1A1AA;margin-top:2px;">Bukti Keaslian &amp; Uji
+              Semai On-Site</div>
           </div>
         </div>
-        <button type="button" class="modal-close-btn" onclick="closeQCPhotoViewer()" style="color:#fff;" aria-label="Tutup Pratinjau">&times;</button>
+        <button type="button" class="modal-close-btn" onclick="closeQCPhotoViewer()" style="color:#fff;"
+          aria-label="Tutup Pratinjau">&times;</button>
       </div>
       <div class="modal-body qc-lightbox-body" style="background:#09090B;padding:16px;text-align:center;">
-        <img id="qc-lightbox-img" src="" alt="Dokumentasi QC Benih" style="max-height:70vh;max-width:100%;border-radius:6px;object-fit:contain;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
-        <div id="qc-lightbox-meta" style="color:#D4D4D8;font-size:12px;margin-top:12px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px;"></div>
+        <img id="qc-lightbox-img" src="" alt="Dokumentasi QC Benih"
+          style="max-height:70vh;max-width:100%;border-radius:6px;object-fit:contain;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+        <div id="qc-lightbox-meta"
+          style="color:#D4D4D8;font-size:12px;margin-top:12px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:8px;">
+        </div>
       </div>
-      <div class="modal-footer qc-lightbox-footer" style="background:#18181B;border-top:1px solid #27272A;display:flex;justify-content:space-between;padding:10px 16px;">
-        <a id="qc-lightbox-drive-link" href="#" target="_blank" class="btn btn-sm btn-secondary" style="color:#60A5FA;text-decoration:none;">
+      <div class="modal-footer qc-lightbox-footer"
+        style="background:#18181B;border-top:1px solid #27272A;display:flex;justify-content:space-between;padding:10px 16px;">
+        <a id="qc-lightbox-drive-link" href="#" target="_blank" class="btn btn-sm btn-secondary"
+          style="color:#60A5FA;text-decoration:none;">
           🔗 Buka di Google Drive
         </a>
         <button type="button" class="btn btn-sm btn-secondary" onclick="closeQCPhotoViewer()">Tutup</button>
@@ -882,12 +996,14 @@
   </div>
 
   <!-- ===================== MODAL FORM PENGGUNA (TAMBAH / EDIT AKUN) ===================== -->
-  <div id="modal-user-entry" class="modal-overlay" style="display:none; z-index: 1060;" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+  <div id="modal-user-entry" class="modal-overlay" style="display:none; z-index: 1060;" role="dialog" aria-modal="true"
+    aria-labelledby="user-modal-title">
     <div class="modal-backdrop" onclick="closeUserModal()"></div>
     <div class="modal-dialog" style="max-width:480px;width:95%;">
       <div class="modal-header">
         <h3 class="modal-title" id="user-modal-title">Tambah Akun Pengguna</h3>
-        <button type="button" class="modal-close-btn" onclick="closeUserModal()" aria-label="Tutup Form">&times;</button>
+        <button type="button" class="modal-close-btn" onclick="closeUserModal()"
+          aria-label="Tutup Form">&times;</button>
       </div>
       <form id="form-user-entry" onsubmit="return submitUserForm(event)">
         <input type="hidden" id="user-id">
@@ -895,17 +1011,20 @@
           <div class="field-group">
             <label class="field-label" for="user-username">Username <span style="color:#ef4444;">*</span></label>
             <div class="input-wrapper">
-              <input type="text" id="user-username" required placeholder="Contoh: koordinator_bali, kasir1" style="padding-left:14px;">
+              <input type="text" id="user-username" required placeholder="Contoh: koordinator_bali, kasir1"
+                style="padding-left:14px;">
             </div>
           </div>
           <div class="field-group">
             <label class="field-label" for="user-fullname">Nama Lengkap <span style="color:#ef4444;">*</span></label>
             <div class="input-wrapper">
-              <input type="text" id="user-fullname" required placeholder="Contoh: Budi Santoso" style="padding-left:14px;">
+              <input type="text" id="user-fullname" required placeholder="Contoh: Budi Santoso"
+                style="padding-left:14px;">
             </div>
           </div>
           <div class="field-group">
-            <label class="field-label" for="user-role-select">Peran / Hak Akses <span style="color:#ef4444;">*</span></label>
+            <label class="field-label" for="user-role-select">Peran / Hak Akses <span
+                style="color:#ef4444;">*</span></label>
             <div class="input-wrapper">
               <select id="user-role-select" required style="padding-left:14px;">
                 <!-- Opsi diisi dinamis dari daftar peran yang tersimpan di Settings -->
@@ -913,7 +1032,8 @@
             </div>
           </div>
           <div class="field-group">
-            <label class="field-label" for="user-password">Password <span id="user-pass-required-star" style="color:#ef4444;">*</span></label>
+            <label class="field-label" for="user-password">Password <span id="user-pass-required-star"
+                style="color:#ef4444;">*</span></label>
             <div class="input-wrapper">
               <input type="password" id="user-password" placeholder="Minimal 6 karakter" style="padding-left:14px;">
             </div>
@@ -931,19 +1051,22 @@
   </div>
 
   <!-- ===================== MODAL TAMBAH PERAN BARU ===================== -->
-  <div id="modal-role-entry" class="modal-overlay" style="display:none; z-index: 1060;" role="dialog" aria-modal="true" aria-labelledby="role-modal-title">
+  <div id="modal-role-entry" class="modal-overlay" style="display:none; z-index: 1060;" role="dialog" aria-modal="true"
+    aria-labelledby="role-modal-title">
     <div class="modal-backdrop" onclick="closeRoleModal()"></div>
     <div class="modal-dialog" style="max-width:440px;width:95%;">
       <div class="modal-header">
         <h3 class="modal-title" id="role-modal-title">Tambah Peran Hak Akses Baru</h3>
-        <button type="button" class="modal-close-btn" onclick="closeRoleModal()" aria-label="Tutup Form">&times;</button>
+        <button type="button" class="modal-close-btn" onclick="closeRoleModal()"
+          aria-label="Tutup Form">&times;</button>
       </div>
       <form id="form-role-entry" onsubmit="return submitRoleForm(event)">
         <div class="modal-body" style="padding:20px;">
           <div class="field-group">
             <label class="field-label" for="new-role-name">Nama Peran Baru <span style="color:#ef4444;">*</span></label>
             <div class="input-wrapper">
-              <input type="text" id="new-role-name" required placeholder="Contoh: Supervisor, Auditor, Relawan" style="padding-left:14px;">
+              <input type="text" id="new-role-name" required placeholder="Contoh: Supervisor, Auditor, Relawan"
+                style="padding-left:14px;">
             </div>
             <small style="color:var(--text-muted);font-size:11px;margin-top:4px;display:block;">
               Setelah peran dibuat, Anda dapat mengatur centang izin per modul pada tabel matriks.
@@ -959,14 +1082,16 @@
   </div>
 
   <!-- ===================== IDLE SESSION TIMEOUT WARNING MODAL ===================== -->
-  <div id="idle-timeout-modal" class="modal-overlay idle-timeout-overlay" style="display:none;" role="alertdialog" aria-modal="true" aria-labelledby="idle-modal-title">
+  <div id="idle-timeout-modal" class="modal-overlay idle-timeout-overlay" style="display:none;" role="alertdialog"
+    aria-modal="true" aria-labelledby="idle-modal-title">
     <div class="modal-backdrop"></div>
     <div class="modal-dialog idle-timeout-dialog">
       <div class="idle-timeout-icon-wrap" aria-hidden="true">
         <span class="idle-timeout-icon">&#9203;</span>
       </div>
       <h3 id="idle-modal-title" class="idle-timeout-title">Sesi Akan Berakhir Otomatis</h3>
-      <p class="idle-timeout-desc">Tidak ada aktivitas terdeteksi. Demi keamanan data akun Anda, sesi akan keluar otomatis dalam:</p>
+      <p class="idle-timeout-desc">Tidak ada aktivitas terdeteksi. Demi keamanan data akun Anda, sesi akan keluar
+        otomatis dalam:</p>
       <div class="idle-countdown-box">
         <span id="idle-countdown-number" class="idle-countdown-number" data-no-i18n="true">60</span>
         <span class="idle-countdown-unit">detik</span>
@@ -974,17 +1099,22 @@
       <div class="idle-progress-track" aria-hidden="true">
         <div id="idle-progress-bar" class="idle-progress-bar" style="width:100%;"></div>
       </div>
-      <p class="idle-timeout-hint">Klik <strong>Lanjutkan Sesi</strong> agar pekerjaan atau keranjang kasir Anda tetap tersimpan.</p>
+      <p class="idle-timeout-hint">Klik <strong>Lanjutkan Sesi</strong> agar pekerjaan atau keranjang kasir Anda tetap
+        tersimpan.</p>
       <div class="idle-timeout-actions">
-        <button type="button" id="idle-logout-now-btn" class="btn btn-secondary" onclick="handleLogout()">Keluar Sekarang</button>
-        <button type="button" id="idle-stay-logged-in-btn" class="btn btn-primary" onclick="extendActiveSession()">Lanjutkan Sesi</button>
+        <button type="button" id="idle-logout-now-btn" class="btn btn-secondary" onclick="handleLogout()">Keluar
+          Sekarang</button>
+        <button type="button" id="idle-stay-logged-in-btn" class="btn btn-primary"
+          onclick="extendActiveSession()">Lanjutkan Sesi</button>
       </div>
     </div>
   </div>
 
   <!-- ===================== PUSAT NOTIFIKASI OPERASIONAL & HANDPHONE ===================== -->
-  <div id="notif-center-overlay" class="notif-center-overlay" style="display:none;" onclick="closeNotificationCenter()"></div>
-  <aside id="notif-center-panel" class="notif-center-panel" style="display:none;" role="dialog" aria-modal="false" aria-labelledby="notif-center-title">
+  <div id="notif-center-overlay" class="notif-center-overlay" style="display:none;" onclick="closeNotificationCenter()">
+  </div>
+  <aside id="notif-center-panel" class="notif-center-panel" style="display:none;" role="dialog" aria-modal="false"
+    aria-labelledby="notif-center-title">
     <div class="notif-sheet-grabber" aria-hidden="true"></div>
     <div class="notif-center-header">
       <div class="notif-center-title-wrap">
@@ -992,22 +1122,32 @@
         <span id="notif-center-subtitle" class="notif-center-subtitle">Pemantauan operasional realtime</span>
       </div>
       <div class="notif-center-header-actions">
-        <button type="button" class="notif-link-btn" onclick="markAllNotificationsRead()" title="Tandai Semua Dibaca">&#10003; Dibaca</button>
-        <button type="button" class="notif-icon-action-btn" onclick="openNotificationSettingsTab()" title="Pengaturan Notifikasi HP" aria-label="Pengaturan Notifikasi HP">&#9881;</button>
-        <button type="button" class="notif-close-btn" onclick="closeNotificationCenter()" aria-label="Tutup Panel Notifikasi">&times;</button>
+        <button type="button" class="notif-link-btn" onclick="markAllNotificationsRead()"
+          title="Tandai Semua Dibaca">&#10003; Dibaca</button>
+        <button type="button" class="notif-icon-action-btn" onclick="openNotificationSettingsTab()"
+          title="Pengaturan Notifikasi HP" aria-label="Pengaturan Notifikasi HP">&#9881;</button>
+        <button type="button" class="notif-close-btn" onclick="closeNotificationCenter()"
+          aria-label="Tutup Panel Notifikasi">&times;</button>
       </div>
     </div>
 
     <div id="notif-device-status-bar" class="notif-device-status-bar"></div>
 
     <div id="notif-filter-bar" class="notif-filter-bar" role="tablist" aria-label="Filter Kategori Notifikasi">
-      <button type="button" class="notif-filter-pill active" data-filter="all" onclick="setNotificationFilter('all')">Semua</button>
-      <button type="button" class="notif-filter-pill" data-filter="urgent" onclick="setNotificationFilter('urgent')">&#128680; Penting</button>
-      <button type="button" class="notif-filter-pill" data-filter="sales" onclick="setNotificationFilter('sales')">&#128176; Kasir</button>
-      <button type="button" class="notif-filter-pill" data-filter="stock" onclick="setNotificationFilter('stock')">&#128230; Stok</button>
-      <button type="button" class="notif-filter-pill" data-filter="qc" onclick="setNotificationFilter('qc')">&#128300; QC &amp; DHT</button>
-      <button type="button" class="notif-filter-pill" data-filter="finance" onclick="setNotificationFilter('finance')">&#128179; Tagihan</button>
-      <button type="button" class="notif-filter-pill" data-filter="aftersales" onclick="setNotificationFilter('aftersales')">&#127793; Purna Jual</button>
+      <button type="button" class="notif-filter-pill active" data-filter="all"
+        onclick="setNotificationFilter('all')">Semua</button>
+      <button type="button" class="notif-filter-pill" data-filter="urgent"
+        onclick="setNotificationFilter('urgent')">&#128680; Penting</button>
+      <button type="button" class="notif-filter-pill" data-filter="sales"
+        onclick="setNotificationFilter('sales')">&#128176; Kasir</button>
+      <button type="button" class="notif-filter-pill" data-filter="stock"
+        onclick="setNotificationFilter('stock')">&#128230; Stok</button>
+      <button type="button" class="notif-filter-pill" data-filter="qc" onclick="setNotificationFilter('qc')">&#128300;
+        QC &amp; DHT</button>
+      <button type="button" class="notif-filter-pill" data-filter="finance"
+        onclick="setNotificationFilter('finance')">&#128179; Tagihan</button>
+      <button type="button" class="notif-filter-pill" data-filter="aftersales"
+        onclick="setNotificationFilter('aftersales')">&#127793; Purna Jual</button>
     </div>
 
     <div id="notif-center-list" class="notif-center-list">
@@ -1015,8 +1155,10 @@
     </div>
 
     <div class="notif-center-footer">
-      <button type="button" class="notif-footer-btn" onclick="runSmartOperationalAlertScan(true)">&#128269; Pindai Kondisi Toko</button>
-      <button type="button" class="notif-footer-btn notif-footer-btn-muted" onclick="clearNotificationHistory()">&#129529; Bersihkan</button>
+      <button type="button" class="notif-footer-btn" onclick="runSmartOperationalAlertScan(true)">&#128269; Pindai
+        Kondisi Toko</button>
+      <button type="button" class="notif-footer-btn notif-footer-btn-muted"
+        onclick="clearNotificationHistory()">&#129529; Bersihkan</button>
     </div>
   </aside>
 
@@ -1039,10 +1181,11 @@
   <!-- Supabase CDN Client Library (v2) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Supabase Client Adapter & API Bridge -->
-  <script src="supabaseClient.js?v=7.4"></script>
+  <script src="supabaseClient.js?v=7.5"></script>
   <!-- Multi-Language i18n Engine -->
   <script src="i18n.js?v=3.3"></script>
   <!-- Core Application Logic -->
-  <script src="app.js?v=14.4"></script>
+  <script src="app.js?v=14.5"></script>
 </body>
+
 </html>

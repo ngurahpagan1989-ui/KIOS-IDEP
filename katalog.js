@@ -70,7 +70,7 @@ let sliderAutoTimer = null;
 document.addEventListener('DOMContentLoaded', () => {
   initSupabase();
   loadCartFromStorage();
-  loadSavedCustomerInfo();
+  clearCustomerForm();
   setupEventListeners();
   fetchCatalogData();
 });
@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('pageshow', (event) => {
   if (event && event.persisted) {
     loadCartFromStorage();
+    if (cart.length === 0) clearCustomerForm();
     if (allProducts.length > 0) renderProductsGrid();
     renderCartModalItems();
   }
@@ -730,6 +731,7 @@ function clearCartState(shouldCloseModal) {
   const affectedIds = cart.map(i => i.id);
   cart = [];
   saveCartToStorage();
+  clearCustomerForm();
   updateCartBadge();
   updateFloatingCartBar();
   renderCartModalItems();
@@ -921,13 +923,6 @@ async function sendOrderToWhatsApp() {
     return;
   }
 
-  // Simpan data customer untuk auto-fill kunjungan berikutnya
-  try {
-    localStorage.setItem('catalog_last_cust_name', customerName);
-    localStorage.setItem('catalog_last_cust_phone', customerPhone);
-    localStorage.setItem('catalog_last_cust_notes', notes);
-  } catch (e) { }
-
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan Pesanan ke Antrean POS...';
@@ -1094,20 +1089,25 @@ function toggleOnlyReadyFilter(isChecked) {
   applyFilterAndRender();
 }
 
-function loadSavedCustomerInfo() {
+/**
+ * Mengosongkan form data pemesan serta menghapus sisa auto-fill di localStorage.
+ */
+function clearCustomerForm() {
   try {
-    const savedName = localStorage.getItem('catalog_last_cust_name');
-    const savedPhone = localStorage.getItem('catalog_last_cust_phone');
-    const savedNotes = localStorage.getItem('catalog_last_cust_notes');
-
-    const nameInput = document.getElementById('cust-name');
-    const phoneInput = document.getElementById('cust-phone');
-    const notesInput = document.getElementById('cust-notes');
-
-    if (savedName && nameInput) nameInput.value = savedName;
-    if (savedPhone && phoneInput) phoneInput.value = savedPhone;
-    if (savedNotes && notesInput) notesInput.value = savedNotes;
+    localStorage.removeItem('catalog_last_cust_name');
+    localStorage.removeItem('catalog_last_cust_phone');
+    localStorage.removeItem('catalog_last_cust_notes');
   } catch (e) { }
+
+  const nameInput = document.getElementById('cust-name');
+  const phoneInput = document.getElementById('cust-phone');
+  const methodSelect = document.getElementById('cust-method');
+  const notesInput = document.getElementById('cust-notes');
+
+  if (nameInput) nameInput.value = '';
+  if (phoneInput) phoneInput.value = '';
+  if (methodSelect) methodSelect.selectedIndex = 0;
+  if (notesInput) notesInput.value = '';
 }
 
 // 9. EVENT LISTENERS
@@ -1203,6 +1203,7 @@ window.goToSlide = goToSlide;
 window.handleSlideCTA = handleSlideCTA;
 window.quickSelectProduct = quickSelectProduct;
 window.clearCartState = clearCartState;
+window.clearCustomerForm = clearCustomerForm;
 window.closeOrderSuccessModal = closeOrderSuccessModal;
 window.toggleOnlyReadyFilter = toggleOnlyReadyFilter;
 window.toggleOnlyReadyChip = toggleOnlyReadyChip;

@@ -21881,7 +21881,7 @@ if ('serviceWorker' in navigator) {
     }
   });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js?v=14.8', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=14.9', { updateViaCache: 'none' })
       .then(function (reg) {
         console.log('[PWA] Service Worker berhasil terdaftar:', reg.scope);
         try { if (reg.update) reg.update(); } catch (e) { }

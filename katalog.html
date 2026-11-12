@@ -216,17 +216,17 @@
 
           <div class="form-group">
             <label for="cust-name">Nama Pemesan <span>*</span></label>
-            <input type="text" id="cust-name" class="form-input" placeholder="Contoh: Budi Santoso" required>
+            <input type="text" id="cust-name" class="form-input" placeholder="Contoh: Budi Santoso" autocomplete="off" required>
           </div>
 
           <div class="form-group">
             <label for="cust-phone">Nomor WhatsApp <span>*</span></label>
-            <input type="tel" id="cust-phone" class="form-input" placeholder="Contoh: 081234567890" required>
+            <input type="tel" id="cust-phone" class="form-input" placeholder="Contoh: 081234567890" autocomplete="off" required>
           </div>
 
           <div class="form-group">
             <label for="cust-method">Metode Pengambilan</label>
-            <select id="cust-method" class="form-select">
+            <select id="cust-method" class="form-select" autocomplete="off">
               <option value="Ambil di Toko">Ambil Sendiri di Toko (Pick-up)</option>
               <option value="Kirim Kurir / Ekspedisi">Kirim Ekspedisi / Kurir Lokal (Delivery)</option>
             </select>
@@ -234,7 +234,7 @@
 
           <div class="form-group">
             <label for="cust-notes">Alamat Lengkap / Catatan Khusus</label>
-            <textarea id="cust-notes" class="form-textarea"
+            <textarea id="cust-notes" class="form-textarea" autocomplete="off"
               placeholder="Tuliskan alamat pengiriman atau catatan untuk pesanan Anda..."></textarea>
           </div>
         </div>
@@ -271,7 +271,7 @@
   <!-- Supabase CDN Client Library (v2) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Skrip Mandiri Katalog Publik -->
-  <script src="katalog.js?v=3.6"></script>
+  <script src="katalog.js?v=3.7"></script>
 </body>
 
 </html>

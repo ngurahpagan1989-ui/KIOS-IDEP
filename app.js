@@ -1527,6 +1527,7 @@ function triggerIdleAutoLogout(timeoutMin) {
     try { closeModal(); } catch (e) { }
     CART = [];
     EDITING_TRANSACTION = null;
+    SELECTED_CUSTOMER = null;
     try {
       localStorage.setItem('ekasir_idle_logout_notice', JSON.stringify({ minutes: mins, ts: Date.now() }));
     } catch (e) { }
@@ -1605,6 +1606,7 @@ function initIdleSessionListeners() {
       CURRENT_USER_PERMISSIONS = null;
       CART = [];
       EDITING_TRANSACTION = null;
+      SELECTED_CUSTOMER = null;
       if (document.body) {
         document.body.classList.remove('perm-no-edit', 'perm-no-delete', 'role-koordinator-active');
       }
@@ -2011,6 +2013,7 @@ function handleLogout(opts) {
   USER_ROLE = '';
   CURRENT_USER = null;
   CURRENT_USER_PERMISSIONS = null;
+  if (typeof resetCart === 'function') resetCart();
   removeSafeSession('ekasir_token');
   removeSafeSession('ekasir_user');
   removeSafeSession('ekasir_role');
@@ -8986,7 +8989,7 @@ function renderPOS(forceRefresh) {
     '<strong>' + (EDITING_TRANSACTION ? 'Koreksi Nota' : 'Keranjang Penjualan') + '</strong>' +
     '<div style="display:flex;gap:6px;align-items:center;">' +
     '<button type="button" class="btn btn-secondary btn-sm pos-mobile-back-catalog-btn" onclick="switchPOSMobilePane(\'catalog\')">+ Produk</button>' +
-    '<button type="button" class="btn btn-secondary btn-sm" onclick="CART=[];SELECTED_CUSTOMER=null;window.ACTIVE_ONLINE_ORDER_ID=null;window.ACTIVE_ONLINE_ORDER_NO=null;window.ACTIVE_ONLINE_ORDER_DATA=null;clearCustomerInput();renderCart();">Kosongkan</button>' +
+    '<button type="button" class="btn btn-secondary btn-sm" onclick="resetCart();">Kosongkan</button>' +
     '</div>' +
     '</div>' +
     '<div style="padding:10px 14px;background:var(--surface-muted);border-bottom:1px solid var(--border);">' +
@@ -9192,6 +9195,24 @@ function toggleSaveMemberPhone(checked) {
     const phoneInp = document.getElementById('pos-customer-phone-input');
     if (phoneInp) phoneInp.focus();
   }
+}
+
+/**
+ * Mengosongkan seluruh state keranjang POS, pelanggan terpilih, dan order online aktif.
+ */
+function resetCart() {
+  EDITING_TRANSACTION = null;
+  CART = [];
+  SELECTED_CUSTOMER = null;
+  SELECTED_CUSTOMER = null;
+  window.ACTIVE_ONLINE_ORDER_ID = null;
+  window.ACTIVE_ONLINE_ORDER_NO = null;
+  window.ACTIVE_ONLINE_ORDER_DATA = null;
+  window.PENDING_POS_ONLINE_CART = false;
+  clearCustomerInput();
+  const saveChk = document.getElementById('pos-save-member-chk');
+  if (saveChk) saveChk.checked = false;
+  if (typeof renderCart === 'function') renderCart();
 }
 
 function selectCustomer(customerId) {
@@ -10236,14 +10257,10 @@ function submitCheckout() {
     if (window.ACTIVE_ONLINE_ORDER_ID || window.ACTIVE_ONLINE_ORDER_NO) {
       const orderTarget = window.ACTIVE_ONLINE_ORDER_ID || window.ACTIVE_ONLINE_ORDER_NO;
       updateOnlineOrderStatus(orderTarget, 'completed');
-      window.ACTIVE_ONLINE_ORDER_ID = null;
-      window.ACTIVE_ONLINE_ORDER_NO = null;
-      window.ACTIVE_ONLINE_ORDER_DATA = null;
     }
     closeModal();
     openTxSuccessModal(res, payload);
-    EDITING_TRANSACTION = null;
-    CART = [];
+    resetCart();
     updateGlobalReceivableBadge();
   }).catch(function (err) {
     if (submitBtn) {
@@ -10293,7 +10310,7 @@ function openTxSuccessModal(res, payload) {
     '</div>';
 
   const footerHtml =
-    '<button type="button" class="btn btn-secondary" onclick="closeModal();renderPOS(true);">Transaksi Baru</button>' +
+    '<button type="button" class="btn btn-secondary" onclick="closeModal();resetCart();renderPOS(true);">Transaksi Baru</button>' +
     '<button type="button" class="btn btn-secondary" onclick="printMiniReceipt(window._lastTxReceipt)">🖨️ Cetak Struk (PDF)</button>' +
     '<button type="button" class="btn btn-primary" onclick="sendReceiptToWhatsApp(window._lastTxReceipt)">💬 Kirim WA</button>';
 
@@ -11176,9 +11193,7 @@ function startEditTransaction(transactionId) {
 }
 
 function cancelEditMode() {
-  EDITING_TRANSACTION = null;
-  CART = [];
-  SELECTED_CUSTOMER = null;
+  resetCart();
   renderPOS();
   showToast('Koreksi dibatalkan.');
 }
@@ -21604,6 +21619,7 @@ window.updateCheckoutModalTotalsUI = updateCheckoutModalTotalsUI;
 window.setCheckoutShippingQuick = setCheckoutShippingQuick;
 window.setCheckoutCashQuick = setCheckoutCashQuick;
 window.syncPosCustomerPhone = syncPosCustomerPhone;
+window.resetCart = resetCart;
 window.updateOnlineOrderBadgesUI = updateOnlineOrderBadgesUI;
 
 // ========================= INITIALIZATION & GLOBAL LISTENERS =========================
@@ -21865,7 +21881,7 @@ if ('serviceWorker' in navigator) {
     }
   });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js?v=14.7', { updateViaCache: 'none' })
+    navigator.serviceWorker.register('./sw.js?v=14.8', { updateViaCache: 'none' })
       .then(function (reg) {
         console.log('[PWA] Service Worker berhasil terdaftar:', reg.scope);
         try { if (reg.update) reg.update(); } catch (e) { }
@@ -24059,7 +24075,10 @@ function loadOnlineOrderToPosCart(orderId) {
     ? PRODUCTS_CACHE
     : (getCachedData('products') || []);
 
+  const wasEditing = !!EDITING_TRANSACTION;
+  EDITING_TRANSACTION = null;
   CART = [];
+  SELECTED_CUSTOMER = null;
   order.items.forEach(function (it) {
     let matched = prods.find(function (p) { return p.id === it.product_id || p.id === it.id; });
     if (!matched) {
@@ -24141,13 +24160,15 @@ function loadOnlineOrderToPosCart(orderId) {
 
   const custInput = document.getElementById('pos-customer-input');
   const phoneInput = document.getElementById('pos-customer-phone-input');
-  if (custInput) {
+  const saveChk = document.getElementById('pos-save-member-chk');
+  if (saveChk) saveChk.checked = false;
+
+  if (custInput && !wasEditing) {
     custInput.value = orderCustName;
-    if (phoneInput && orderCustPhone) {
-      phoneInput.value = orderCustPhone;
-      syncPosCustomerPhone(orderCustPhone);
-    } else if (phoneInput && SELECTED_CUSTOMER && SELECTED_CUSTOMER.phone) {
-      phoneInput.value = SELECTED_CUSTOMER.phone;
+    if (phoneInput) {
+      const resolvedPhone = orderCustPhone || (SELECTED_CUSTOMER && SELECTED_CUSTOMER.phone) || '';
+      phoneInput.value = resolvedPhone;
+      if (resolvedPhone) syncPosCustomerPhone(resolvedPhone);
     }
     if (typeof handleCustomerInput === 'function') handleCustomerInput(orderCustName);
     const phoneWrap = document.getElementById('pos-member-phone-wrap');

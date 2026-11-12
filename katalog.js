@@ -75,6 +75,14 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchCatalogData();
 });
 
+window.addEventListener('pageshow', (event) => {
+  if (event && event.persisted) {
+    loadCartFromStorage();
+    if (allProducts.length > 0) renderProductsGrid();
+    renderCartModalItems();
+  }
+});
+
 function initSupabase() {
   try {
     const createFn = window.supabase?.createClient;
@@ -718,16 +726,21 @@ function removeFromCart(productId) {
   showToast('Item dihapus dari keranjang.');
 }
 
+function clearCartState(shouldCloseModal) {
+  const affectedIds = cart.map(i => i.id);
+  cart = [];
+  saveCartToStorage();
+  updateCartBadge();
+  updateFloatingCartBar();
+  renderCartModalItems();
+  affectedIds.forEach(id => updateSingleCardAction(id));
+  if (shouldCloseModal) closeCartModal();
+}
+
 function clearCart() {
   if (cart.length === 0) return;
   if (confirm('Kosongkan semua pesanan di keranjang?')) {
-    const affectedIds = cart.map(i => i.id);
-    cart = [];
-    saveCartToStorage();
-    updateCartBadge();
-    updateFloatingCartBar();
-    affectedIds.forEach(id => updateSingleCardAction(id));
-    closeCartModal();
+    clearCartState(true);
     showToast('Keranjang telah dikosongkan.');
   }
 }
@@ -797,7 +810,11 @@ function updateFloatingCartBar() {
 
 function saveCartToStorage() {
   try {
-    localStorage.setItem('public_catalog_cart', JSON.stringify(cart));
+    if (!Array.isArray(cart) || cart.length === 0) {
+      localStorage.removeItem('public_catalog_cart');
+    } else {
+      localStorage.setItem('public_catalog_cart', JSON.stringify(cart));
+    }
   } catch (e) { }
 }
 
@@ -883,7 +900,9 @@ async function sendOrderToWhatsApp() {
   const phoneInput = document.getElementById('cust-phone');
   const methodSelect = document.getElementById('cust-method');
   const notesInput = document.getElementById('cust-notes');
-  const submitBtn = document.querySelector('.btn-checkout');
+  const submitBtn = document.querySelector('.btn-send-wa');
+  if (submitBtn && submitBtn.disabled) return;
+  const origSubmitHtml = submitBtn ? submitBtn.innerHTML : '<i class="fab fa-whatsapp" style="font-size:18px;"></i> Kirim Pesanan via WhatsApp';
 
   const customerName = nameInput ? nameInput.value.trim() : '';
   const customerPhone = phoneInput ? phoneInput.value.trim() : '';
@@ -971,7 +990,7 @@ async function sendOrderToWhatsApp() {
 
   // Format Teks Pesan WhatsApp Resmi
   let msg = `*PESANAN RESMI KATALOG ONLINE*\n`;
-  msg += `*${storeConfig.name.toUpperCase()}*\n`;
+  msg += `*${String(storeConfig.name || 'Toko').toUpperCase()}*\n`;
   msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
   msg += `📋 *No. Pesanan:* *#${orderNo}*\n`;
   msg += `📅 *Tanggal:* ${now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}\n`;
@@ -998,16 +1017,12 @@ async function sendOrderToWhatsApp() {
   const waUrl = `https://wa.me/${waTarget}?text=${encodeURIComponent(msg)}`;
 
   // Bersihkan keranjang belanja
-  cart = [];
-  saveCartToStorage();
-  updateCartBadge();
-  updateFloatingCartBar();
+  clearCartState(true);
   renderProductsGrid();
-  closeCartModal();
 
   if (submitBtn) {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="fab fa-whatsapp"></i> Kirim Pesanan &amp; Hubungi WhatsApp';
+    submitBtn.innerHTML = origSubmitHtml;
   }
 
   // Tampilkan Modal Konfirmasi Sukses ke Pelanggan
@@ -1023,6 +1038,9 @@ function showOrderSuccessModal(orderNo, customerName, total, waUrl) {
     modal = document.createElement('div');
     modal.id = 'order-success-modal';
     modal.className = 'cart-modal-backdrop';
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeOrderSuccessModal();
+    });
     document.body.appendChild(modal);
   }
 
@@ -1184,5 +1202,10 @@ window.nextSlide = nextSlide;
 window.goToSlide = goToSlide;
 window.handleSlideCTA = handleSlideCTA;
 window.quickSelectProduct = quickSelectProduct;
+window.clearCartState = clearCartState;
+window.closeOrderSuccessModal = closeOrderSuccessModal;
+window.toggleOnlyReadyFilter = toggleOnlyReadyFilter;
+window.toggleOnlyReadyChip = toggleOnlyReadyChip;
+window.askStockViaWhatsApp = askStockViaWhatsApp;
 
 

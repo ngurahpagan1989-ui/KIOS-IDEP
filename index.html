@@ -97,7 +97,7 @@
     if ('caches' in window) {
       caches.keys().then(function (names) {
         names.forEach(function (name) {
-          if (name !== 'pos-app-v14.7') {
+          if (name !== 'pos-app-v14.8') {
             caches.delete(name);
           }
         });
@@ -1185,7 +1185,7 @@
   <!-- Multi-Language i18n Engine -->
   <script src="i18n.js?v=3.3"></script>
   <!-- Core Application Logic -->
-  <script src="app.js?v=14.7"></script>
+  <script src="app.js?v=14.8"></script>
 </body>
 
 </html>

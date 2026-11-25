@@ -97,7 +97,7 @@
     if ('caches' in window) {
       caches.keys().then(function (names) {
         names.forEach(function (name) {
-          if (name !== 'pos-app-v14.9') {
+          if (name !== 'pos-app-v15.0') {
             caches.delete(name);
           }
         });
@@ -1180,12 +1180,54 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Supabase CDN Client Library (v2) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Supabase Client Adapter & API Bridge -->
-  <script src="supabaseClient.js?v=7.7"></script>
+
+  <!-- Layer 1 & 2: Config & Core Utilities -->
+  <script src="config/supabase.js?v=15.0"></script>
+  <script src="utils/session.js?v=15.0"></script>
+  <script src="config/state.js?v=15.0"></script>
+  <script src="utils/theme.js?v=15.0"></script>
+  <script src="utils/formatters.js?v=15.0"></script>
+  <script src="utils/dialogs.js?v=15.0"></script>
+
+  <!-- Layer 3: Services & Supabase API Bridge -->
+  <script src="services/auth.js?v=15.0"></script>
+  <script src="services/pwa.js?v=15.0"></script>
+  <script src="services/api-core.js?v=15.0"></script>
+  <script src="services/api-sales.js?v=15.0"></script>
+  <script src="services/api-reports.js?v=15.0"></script>
+  <script src="services/api.js?v=15.0"></script>
+  <script src="services/notifications.js?v=15.0"></script>
+
   <!-- Multi-Language i18n Engine -->
   <script src="i18n.js?v=3.3"></script>
-  <!-- Core Application Logic -->
-  <script src="app.js?v=14.9"></script>
+
+  <!-- Layer 4A: UI Components (Core & Operations) -->
+  <script src="components/login-vault.js?v=15.0"></script>
+  <script src="components/navigation.js?v=15.0"></script>
+  <script src="components/sop-guide.js?v=15.0"></script>
+  <script src="components/dashboard.js?v=15.0"></script>
+  <script src="components/produk.js?v=15.0"></script>
+  <script src="components/stok.js?v=15.0"></script>
+  <script src="components/produksi.js?v=15.0"></script>
+  <script src="components/qc.js?v=15.0"></script>
+  <script src="components/pembelian.js?v=15.0"></script>
+
+  <!-- Layer 4B: UI Components (Sales, Partners, Reports & Settings) -->
+  <script src="components/pos.js?v=15.0"></script>
+  <script src="components/receipt-print.js?v=15.0"></script>
+  <script src="components/konsinyasi.js?v=15.0"></script>
+  <script src="components/piutang.js?v=15.0"></script>
+  <script src="components/crm.js?v=15.0"></script>
+  <script src="components/purnajual.js?v=15.0"></script>
+  <script src="components/laporan.js?v=15.0"></script>
+  <script src="components/pengaturan.js?v=15.0"></script>
+  <script src="components/faktur.js?v=15.0"></script>
+  <script src="components/expenses.js?v=15.0"></script>
+  <script src="components/public-catalog.js?v=15.0"></script>
+  <script src="components/online-orders.js?v=15.0"></script>
+
+  <!-- Application Entry Point / Bootstrapper -->
+  <script src="app.js?v=15.0"></script>
 </body>
 
 </html>
